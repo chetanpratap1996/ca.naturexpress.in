@@ -21,10 +21,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, portal, entityId, noticeId, partnerReviewNotes } = body;
 
-    const client = db.clients.find((c) => c.id === (entityId || "CLI-001")) || db.clients[0];
-    const clientName = client ? client.name : "Singhania Industrial Group";
+    const client = db.clients.find((c) => c.id === entityId) || db.clients[0];
 
     if (action === "TRIGGER_PORTAL_SCAN") {
+      if (!client) {
+        return NextResponse.json({
+          success: true,
+          message: "No clients onboarded yet. Please onboard an entity in Client Master first.",
+          noticesScraped: 0,
+        });
+      }
       // Scrape simulated notices from GSTN / ITD / MCA
       const scannedDIN = `ITBA/AST/S/148A/${Date.now().toString().slice(-6)}`;
       const newScrapedNotice: NoticeRecord = {
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
       await logAuditEvent(
         "Govt Portal Scraper Engine",
         "SYSTEM",
-        clientName,
+        client.name,
         "Automated Notice Ingestion via DIN",
         `Scraped statutory notice with DIN ${scannedDIN} under ${newScrapedNotice.section}. Statutory deadline: 08-Nov-2026.`,
         "COMPLIANCE"

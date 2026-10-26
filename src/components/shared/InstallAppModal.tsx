@@ -35,7 +35,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
       <div 
-        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 text-slate-900"
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">

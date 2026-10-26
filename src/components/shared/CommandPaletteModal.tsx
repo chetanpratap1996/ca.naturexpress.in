@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  INITIAL_CLIENTS, 
-  INITIAL_GROUPS, 
-  INITIAL_TASKS, 
-  INITIAL_DSC_TOKENS, 
-  INITIAL_NOTICES 
-} from "@/lib/data/mockData";
+import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { 
   Search, 
   Building2, 
@@ -53,28 +47,30 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  const { clients, groups, tasks, dscTokens } = useTaxoData();
+
   if (!isOpen) return null;
 
   const q = query.toLowerCase().trim();
 
   // Matched Clients
-  const matchedClients = INITIAL_CLIENTS.filter(
+  const matchedClients = (clients || []).filter(
     (c) =>
       c.name.toLowerCase().includes(q) ||
       c.pan.toLowerCase().includes(q) ||
       (c.gstin && c.gstin.toLowerCase().includes(q)) ||
-      c.groupName.toLowerCase().includes(q)
+      (c.groupName && c.groupName.toLowerCase().includes(q))
   );
 
   // Matched Groups
-  const matchedGroups = INITIAL_GROUPS.filter(
+  const matchedGroups = (groups || []).filter(
     (g) =>
       g.name.toLowerCase().includes(q) ||
-      g.promoterName.toLowerCase().includes(q)
+      (g.promoterName && g.promoterName.toLowerCase().includes(q))
   );
 
   // Matched Tasks
-  const matchedTasks = INITIAL_TASKS.filter(
+  const matchedTasks = (tasks || []).filter(
     (t) =>
       t.entityName.toLowerCase().includes(q) ||
       t.title.toLowerCase().includes(q) ||
@@ -82,16 +78,16 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   );
 
   // Matched DSCs
-  const matchedDscs = INITIAL_DSC_TOKENS.filter(
+  const matchedDscs = (dscTokens || []).filter(
     (d) =>
       d.entityName.toLowerCase().includes(q) ||
       d.holderName.toLowerCase().includes(q) ||
-      d.vaultSlot.toLowerCase().includes(q)
+      (d.vaultSlot && d.vaultSlot.toLowerCase().includes(q))
   );
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-16 sm:pt-24 p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[80vh]">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-3 sm:pt-20 p-2.5 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[88dvh]">
         {/* Search Header */}
         <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
           <Search className="w-5 h-5 text-btred-logo flex-shrink-0" />
@@ -132,7 +128,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                   <Building2 className="w-4 h-4 text-btred-logo" />
                   <div>
                     <p className="font-black text-slate-900">Statutory Matrix</p>
-                    <p className="text-[10px] text-slate-500">540 clients &bull; 1,120 entities</p>
+                    <p className="text-[10px] text-slate-500">Entity DNA &amp; Compliance Profiles</p>
                   </div>
                 </button>
 
@@ -174,7 +170,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                   <KeyRound className="w-4 h-4 text-blue-500" />
                   <div>
                     <p className="font-black text-slate-900">Physical DSC Vault</p>
-                    <p className="text-[10px] text-slate-500">420 tokens &bull; Locker bins</p>
+                    <p className="text-[10px] text-slate-500">Hardware USB tokens &amp; Safe lockers</p>
                   </div>
                 </button>
               </div>

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       // Create new parsed statement record with realistic Indian banking transactions
       const newParsed: ParsedBankStatement = statementData || {
         id: `STMT-${Date.now().toString().slice(-6)}`,
-        entityId: entityId || "CLI-001",
+        entityId: entityId || db.clients[0]?.id || "CLI-001",
         bankName: vault?.bankName || "State Bank of India (Current A/c *8192)",
         statementPeriod: "01-Oct-2026 to 24-Oct-2026",
         openingBalance: 2450000,
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       const { bankName, accountNumberMasked, pdfPasswordPattern, notes } = body;
       const newVault = {
         id: `VAULT-${Date.now().toString().slice(-4)}`,
-        entityId: entityId || "CLI-001",
+        entityId: entityId || db.clients[0]?.id || "CLI-001",
         bankName: bankName || "HDFC Bank",
         accountNumberMasked: accountNumberMasked || "XXXX-XXXX-0000",
         pdfPasswordPattern: pdfPasswordPattern || "PAN uppercase",

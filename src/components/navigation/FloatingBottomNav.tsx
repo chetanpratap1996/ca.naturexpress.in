@@ -10,7 +10,8 @@ import {
   Calendar, 
   ShieldAlert,
   Plus,
-  KeyRound
+  KeyRound,
+  Lock
 } from "lucide-react";
 
 interface FloatingBottomNavProps {
@@ -30,32 +31,35 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
   const isClient = currentView === "client-pwa";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] py-2 px-3 transition-all">
+    <nav 
+      aria-label="Mobile Navigation Bar"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-all pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 px-2"
+    >
       <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around relative">
         
         {/* ===================== TAB 1 ===================== */}
         {isClient ? (
           <button
             onClick={() => onTabChange("progress")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "progress"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <FileCheck2 className="w-5 h-5" />
+            <FileCheck2 className={`w-5 h-5 ${activeTab === "progress" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Filings</span>
           </button>
         ) : (
           <button
             onClick={() => onTabChange("calendar")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "calendar"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <Calendar className="w-5 h-5" />
+            <Calendar className={`w-5 h-5 ${activeTab === "calendar" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Deadlines</span>
           </button>
         )}
@@ -63,32 +67,32 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {/* ===================== TAB 2 ===================== */}
         {isClient ? (
           <button
-            onClick={() => onTabChange("cash-forecast")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
-              activeTab === "cash-forecast"
+            onClick={() => onTabChange("vendor-hold")}
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+              activeTab === "vendor-hold"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <TrendingUp className="w-5 h-5" />
-            <span className="text-[10px] tracking-tight">Tax Due</span>
+            <Lock className={`w-5 h-5 ${activeTab === "vendor-hold" ? "stroke-[2.5]" : ""}`} />
+            <span className="text-[10px] tracking-tight">Blocked ITC</span>
           </button>
         ) : (
           <button
             onClick={() => onTabChange("notices")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "notices"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <ShieldAlert className="w-5 h-5" />
+            <ShieldAlert className={`w-5 h-5 ${activeTab === "notices" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Notices</span>
           </button>
         )}
 
         {/* ===================== CENTER ELEVATED BUTTON ===================== */}
-        <div className="relative -top-5 flex flex-col items-center">
+        <div className="relative -top-4 flex flex-col items-center shrink-0">
           <button
             onClick={() => {
               if (onQuickAction) {
@@ -99,13 +103,14 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
                 onTabChange("calendar");
               }
             }}
-            className="w-14 h-14 rounded-full bg-gradient-to-tr from-btred-700 via-btred-logo to-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/40 ring-4 ring-white hover:scale-105 active:scale-95 transition-all"
+            className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-btred-700 via-btred-logo to-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/40 ring-4 ring-white hover:scale-105 active:scale-95 transition-all touch-manipulation"
             title={isClient ? "Quick Actions" : "Firm Hub"}
+            aria-label={isClient ? "Quick Actions" : "Firm Hub"}
           >
             {isClient ? <Sparkles className="w-6 h-6 animate-pulse" /> : <Plus className="w-6 h-6" />}
           </button>
-          <span className="text-[10px] font-black uppercase text-btblack tracking-wider mt-1">
-            {isClient ? "Quick Action" : "Firm Hub"}
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800 tracking-wider mt-0.5">
+            {isClient ? "Quick Hub" : "Firm Hub"}
           </span>
         </div>
 
@@ -113,25 +118,25 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {isClient ? (
           <button
             onClick={() => onTabChange("vault")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "vault" || activeTab === "kyc-locker"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <ShieldCheck className="w-5 h-5" />
+            <ShieldCheck className={`w-5 h-5 ${activeTab === "vault" || activeTab === "kyc-locker" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Vault</span>
           </button>
         ) : (
           <button
             onClick={() => onTabChange("billing")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "billing" || activeTab === "pay-to-release"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <CreditCard className="w-5 h-5" />
+            <CreditCard className={`w-5 h-5 ${activeTab === "billing" || activeTab === "pay-to-release" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Billing</span>
           </button>
         )}
@@ -140,25 +145,25 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {isClient ? (
           <button
             onClick={() => onTabChange("billing")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "billing"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <CreditCard className="w-5 h-5" />
+            <CreditCard className={`w-5 h-5 ${activeTab === "billing" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Invoices</span>
           </button>
         ) : (
           <button
             onClick={() => onTabChange("dsc")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
               activeTab === "dsc"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <KeyRound className="w-5 h-5" />
+            <KeyRound className={`w-5 h-5 ${activeTab === "dsc" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">DSC Keys</span>
           </button>
         )}

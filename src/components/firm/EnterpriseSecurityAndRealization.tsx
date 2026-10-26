@@ -94,23 +94,23 @@ export function EnterpriseSecurityAndRealization({
       {/* TAB 1: PARTNER REALIZATION & WIP */}
       {activeTab === "realization" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
               <span className="text-xs font-semibold text-slate-400 uppercase">Unbilled WIP across Firm</span>
-              <div className="text-2xl font-bold text-amber-400 mt-1">₹{totalWipFirm.toLocaleString("en-IN")}</div>
-              <div className="text-xs text-slate-400 mt-1">Hours logged pending invoice generation</div>
+              <div className="text-xl sm:text-2xl font-bold text-amber-400 mt-1">₹{totalWipFirm.toLocaleString("en-IN")}</div>
+              <div className="text-xs text-slate-400 mt-1">Hours logged pending billing</div>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
               <span className="text-xs font-semibold text-slate-400 uppercase">Total Monthly Collections</span>
-              <div className="text-2xl font-bold text-emerald-400 mt-1">₹{totalRecovered.toLocaleString("en-IN")}</div>
+              <div className="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">₹{totalRecovered.toLocaleString("en-IN")}</div>
               <div className="text-xs text-slate-400 mt-1">Direct Bank &amp; UPI settlements</div>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
               <span className="text-xs font-semibold text-slate-400 uppercase">Equity Partners Monitored</span>
-              <div className="text-2xl font-bold text-white mt-1">{partnerMetrics.length} Partners</div>
-              <div className="text-xs text-slate-400 mt-1">Realization above 85% benchmark</div>
+              <div className="text-xl sm:text-2xl font-bold text-white mt-1">{partnerMetrics.length} Partners</div>
+              <div className="text-xs text-slate-400 mt-1">&gt; 85% realization benchmark</div>
             </div>
           </div>
 
@@ -136,7 +136,13 @@ export function EnterpriseSecurityAndRealization({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-sans">
-                  {partnerMetrics.map((p) => (
+                  {partnerMetrics.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-slate-400">
+                        No partner billing or WIP metrics recorded yet. Metrics accrue automatically as client tasks and invoices are reconciled.
+                      </td>
+                    </tr>
+                  ) : partnerMetrics.map((p) => (
                     <tr key={p.partnerName} className="hover:bg-slate-800/40 transition-colors">
                       <td className="py-3 px-4">
                         <div className="font-bold text-white">{p.partnerName}</div>
@@ -237,7 +243,13 @@ export function EnterpriseSecurityAndRealization({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-sans">
-                  {logs.map((log) => (
+                  {logs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                        No sensitive data access violations or bulk downloads recorded. Live anti-poaching monitors all export attempts in real-time.
+                      </td>
+                    </tr>
+                  ) : logs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="py-2.5 px-3 text-slate-400 font-mono whitespace-nowrap">
                         {log.timestamp.slice(0, 16).replace("T", " ")}

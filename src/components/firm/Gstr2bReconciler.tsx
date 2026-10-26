@@ -45,158 +45,7 @@ export interface EnhancedRecoItem {
   actionNote: string;
 }
 
-const INITIAL_ENHANCED_RECO: EnhancedRecoItem[] = [
-  {
-    id: "REC-01",
-    vendorName: "Tata Steel Tubes & Pipes Division",
-    vendorGstin: "27AAACT2727Q1ZW",
-    invoiceNo: "TS/2026/09/1821",
-    booksInvoiceNo: "TS/2026/09/1821",
-    invoiceDate: "2026-09-14",
-    taxableValue: 450000,
-    igst: 0,
-    cgst: 40500,
-    sgst: 40500,
-    totalItc: 81000,
-    status: "EXACT_MATCH",
-    section17_5Blocked: false,
-    section16_4Risk: false,
-    rule37aRisk: false,
-    actionNote: "100% Eligible ITC in GSTR-3B Table 4(A)(5) All Other ITC",
-  },
-  {
-    id: "REC-02",
-    vendorName: "Mahindra Heavy Engineering Spares",
-    vendorGstin: "27AAACM1920R1ZV",
-    invoiceNo: "MH-SEP-8890",
-    booksInvoiceNo: "MH-8890",
-    invoiceDate: "2026-09-18",
-    taxableValue: 280000,
-    igst: 0,
-    cgst: 25200,
-    sgst: 25200,
-    totalItc: 50400,
-    status: "FUZZY_MATCHED",
-    section17_5Blocked: false,
-    section16_4Risk: false,
-    rule37aRisk: false,
-    actionNote: "Fuzzy Matched: Books recorded 'MH-8890' vs 2B 'MH-SEP-8890'. GSTIN and ₹50,400 tax match 100%.",
-  },
-  {
-    id: "REC-03",
-    vendorName: "Taj Lands End & Luxury Catering",
-    vendorGstin: "27AAACT0019L1Z5",
-    invoiceNo: "TLE/BQT/0491",
-    booksInvoiceNo: "TLE/0491",
-    invoiceDate: "2026-09-20",
-    taxableValue: 180000,
-    igst: 0,
-    cgst: 16200,
-    sgst: 16200,
-    totalItc: 32400,
-    status: "EXACT_MATCH",
-    section17_5Blocked: true,
-    blockedReason: "FOOD_BEVERAGE",
-    section16_4Risk: false,
-    rule37aRisk: false,
-    actionNote: "BLOCKED ITC u/s 17(5)(b)(i) (Outdoor catering/hospitality). Routed automatically to Table 4(B)(1) Ineligible.",
-  },
-  {
-    id: "REC-04",
-    vendorName: "Mercedes Benz Autohangar Mumbai",
-    vendorGstin: "27AAACM4491J1ZD",
-    invoiceNo: "MB/SVC/26-09",
-    booksInvoiceNo: "MB/SVC/26-09",
-    invoiceDate: "2026-09-21",
-    taxableValue: 250000,
-    igst: 0,
-    cgst: 35000,
-    sgst: 35000,
-    totalItc: 70000,
-    status: "EXACT_MATCH",
-    section17_5Blocked: true,
-    blockedReason: "MOTOR_VEHICLE",
-    section16_4Risk: false,
-    rule37aRisk: false,
-    actionNote: "BLOCKED ITC u/s 17(5)(a) (Motor vehicle servicing/spares for passenger car). Routed to Table 4(B)(1).",
-  },
-  {
-    id: "REC-05",
-    vendorName: "Singhal Industrial Lubricants & Oils",
-    vendorGstin: "27AAYPS9901M1ZQ",
-    invoiceNo: "SIL/0926/771",
-    booksInvoiceNo: "SIL/0926/771",
-    invoiceDate: "2026-09-25",
-    taxableValue: 185000,
-    igst: 33300,
-    cgst: 0,
-    sgst: 0,
-    totalItc: 33300,
-    status: "MISSING_IN_2B",
-    section17_5Blocked: false,
-    section16_4Risk: false,
-    rule37aRisk: true,
-    vendorPhone: "+91 98210 55412",
-    actionNote: "Recorded in client Tally, but vendor GSTR-1 NOT FILED. Ineligible under Section 16(2)(aa). WhatsApp chase required.",
-  },
-  {
-    id: "REC-06",
-    vendorName: "Bajaj Electrical Transformers & Spares",
-    vendorGstin: "27AAACB4410K1ZX",
-    invoiceNo: "BET/SEP/2026/019",
-    booksInvoiceNo: "BET/019",
-    invoiceDate: "2026-09-28",
-    taxableValue: 240000,
-    igst: 0,
-    cgst: 21600,
-    sgst: 21600,
-    totalItc: 43200,
-    status: "MISSING_IN_2B",
-    section17_5Blocked: false,
-    section16_4Risk: false,
-    rule37aRisk: false,
-    vendorPhone: "+91 98900 88219",
-    actionNote: "Vendor QRMP quarterly filer or return delayed. Risk of ₹43,200 ITC deferment.",
-  },
-  {
-    id: "REC-07",
-    vendorName: "Kirloskar Precision Fasteners Ltd",
-    vendorGstin: "27AAACK3301L1ZT",
-    invoiceNo: "KPF/INV/26-27/401",
-    booksInvoiceNo: "KPF/401",
-    invoiceDate: "2026-09-22",
-    taxableValue: 310000,
-    igst: 0,
-    cgst: 27900,
-    sgst: 27900,
-    totalItc: 55800,
-    status: "VALUE_MISMATCH",
-    difference: 4500,
-    section17_5Blocked: false,
-    section16_4Risk: false,
-    rule37aRisk: false,
-    vendorPhone: "+91 98220 11928",
-    actionNote: "Tally shows ₹55,800 ITC; Vendor filed ₹51,300 in GSTR-1. ₹4,500 differential held back.",
-  },
-  {
-    id: "REC-08",
-    vendorName: "Sterling Tools & Gauges (FY 25-26 Legacy)",
-    vendorGstin: "27AAACS1102P1Z0",
-    invoiceNo: "STG/25-26/1190",
-    booksInvoiceNo: "STG/1190",
-    invoiceDate: "2026-03-29",
-    taxableValue: 140000,
-    igst: 25200,
-    cgst: 0,
-    sgst: 0,
-    totalItc: 25200,
-    status: "EXACT_MATCH",
-    section17_5Blocked: false,
-    section16_4Risk: true, // Urgent FY 25-26 invoice
-    rule37aRisk: false,
-    actionNote: "CRITICAL: FY 2025-26 Invoice! Section 16(4) deadline expires 30-Nov-2026. Claim in this GSTR-3B or permanently forfeit.",
-  }
-];
+const INITIAL_ENHANCED_RECO: EnhancedRecoItem[] = [];
 
 export const Gstr2bReconciler: React.FC = () => {
   const [items, setItems] = useState<EnhancedRecoItem[]>(INITIAL_ENHANCED_RECO);
@@ -247,7 +96,7 @@ export const Gstr2bReconciler: React.FC = () => {
     const phone = sanitizeIndianPhoneNumber(item.vendorPhone || "919820044101");
     const text = `*URGENT: GSTR-1 UPLOAD PENDING FOR ITC RECONCILIATION*\n\n` +
       `Dear ${item.vendorName},\n\n` +
-      `Invoice #${item.invoiceNo} dated ${item.invoiceDate} (Taxable: ₹${item.taxableValue.toLocaleString()}, ITC: ₹${item.totalItc.toLocaleString()}) issued to Apex Precision Technologies is currently *NOT REFLECTING* in departmental GSTR-2B.\n\n` +
+      `Invoice #${item.invoiceNo} dated ${item.invoiceDate} (Taxable: ₹${item.taxableValue.toLocaleString()}, ITC: ₹${item.totalItc.toLocaleString()}) issued to our client is currently *NOT REFLECTING* in departmental GSTR-2B.\n\n` +
       `Under Section 16(2)(aa) of CGST Act, client cannot claim ITC without your GSTR-1 filing. Kindly file immediately or client accounts will withhold payment.\n\n` +
       `Regards,\n*GPA & Co., Chartered Accountants & Brains & Taxes*`;
 
@@ -341,46 +190,46 @@ export const Gstr2bReconciler: React.FC = () => {
       )}
 
       {/* 4-Bucket Tax Summary Strip */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-400 uppercase">Table 4(A)(5) Eligible ITC</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 uppercase truncate">Table 4A5 Eligible</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           </div>
-          <div className="text-xl font-bold text-white mt-2">₹{eligibleItcTable4A5.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">Exact &amp; Fuzzy Matched (Safe to Claim)</div>
+          <div className="text-base sm:text-xl font-bold text-white mt-1.5 sm:mt-2">₹{eligibleItcTable4A5.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Safe to Claim in 3B</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-400 uppercase">Table 4(B)(1) Blocked 17(5)</span>
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-amber-400 uppercase truncate">Table 4B1 Blocked</span>
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
           </div>
-          <div className="text-xl font-bold text-amber-400 mt-2">₹{blockedItcTable4B1.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">Auto-routed to Ineligible (Vehicles/Food)</div>
+          <div className="text-base sm:text-xl font-bold text-amber-400 mt-1.5 sm:mt-2">₹{blockedItcTable4B1.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Vehicles &amp; Food ITC</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-400 uppercase">Missing in 2B (At Risk)</span>
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-rose-400 uppercase truncate">Missing in 2B</span>
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
           </div>
-          <div className="text-xl font-bold text-rose-400 mt-2">₹{atRiskMissingItc.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">Vendor GSTR-1 pending / WhatsApp Chase</div>
+          <div className="text-base sm:text-xl font-bold text-rose-400 mt-1.5 sm:mt-2">₹{atRiskMissingItc.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Vendor GSTR-1 Pending</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-purple-400 uppercase">Section 16(4) Alert</span>
-            <Clock className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-purple-400 uppercase truncate">Sec 16(4) Risk</span>
+            <Clock className="w-4 h-4 text-purple-400 shrink-0" />
           </div>
-          <div className="text-xl font-bold text-purple-300 mt-2">₹{timeBarredRisk164.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">FY 25-26 expiry: 30-Nov-2026</div>
+          <div className="text-base sm:text-xl font-bold text-purple-300 mt-1.5 sm:mt-2">₹{timeBarredRisk164.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Cutoff: 30-Nov-2026</div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 p-3 rounded-xl">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 p-3 rounded-2xl">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Search className="w-4 h-4 text-slate-400" />
           <input
@@ -392,10 +241,10 @@ export const Gstr2bReconciler: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto scrollbar-none touch-pan-x pb-1 sm:pb-0">
           <button
             onClick={() => setFilterStatus("ALL")}
-            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+            className={`px-3 py-1.5 text-xs rounded-xl font-medium transition whitespace-nowrap shrink-0 ${
               filterStatus === "ALL" ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
             }`}
           >
@@ -403,7 +252,7 @@ export const Gstr2bReconciler: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterStatus("MATCHED")}
-            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+            className={`px-3 py-1.5 text-xs rounded-xl font-medium transition whitespace-nowrap shrink-0 ${
               filterStatus === "MATCHED" ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
             }`}
           >
@@ -411,7 +260,7 @@ export const Gstr2bReconciler: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterStatus("BLOCKED_17_5")}
-            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+            className={`px-3 py-1.5 text-xs rounded-xl font-medium transition whitespace-nowrap shrink-0 ${
               filterStatus === "BLOCKED_17_5" ? "bg-amber-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
             }`}
           >
@@ -419,7 +268,7 @@ export const Gstr2bReconciler: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterStatus("MISSING_IN_2B")}
-            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+            className={`px-3 py-1.5 text-xs rounded-xl font-medium transition whitespace-nowrap shrink-0 ${
               filterStatus === "MISSING_IN_2B" ? "bg-rose-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
             }`}
           >
@@ -427,7 +276,7 @@ export const Gstr2bReconciler: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterStatus("SEC_16_4")}
-            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+            className={`px-3 py-1.5 text-xs rounded-xl font-medium transition whitespace-nowrap shrink-0 ${
               filterStatus === "SEC_16_4" ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
             }`}
           >
@@ -452,7 +301,18 @@ export const Gstr2bReconciler: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-sans">
-              {filtered.map((item) => (
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 px-4 text-center text-slate-400">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                    <div className="font-bold text-slate-200 text-sm">Zero GSTR-2B Invoices Loaded</div>
+                    <div className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                      Upload departmental GSTR-2B JSON and Tally / ERP Purchase Register above to execute 3-way automated matching and Section 17(5) blocking.
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
                   <td className="py-3 px-4">
                     <div className="font-semibold text-white">{item.vendorName}</div>
@@ -512,7 +372,7 @@ export const Gstr2bReconciler: React.FC = () => {
                     )}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

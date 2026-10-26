@@ -22,6 +22,7 @@ import {
 import { ClientEntity } from "@/lib/types";
 import { formatCurrencyINR } from "@/lib/utils";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { toast } from "@/components/shared/ToastNotification";
 
 interface BankerDocketModalProps {
   client: ClientEntity;
@@ -38,15 +39,21 @@ export function BankerDocketModal({ client, isOpen, onClose }: BankerDocketModal
   const [dossierRef, setDossierRef] = useState(`BT/CR-${Date.now().toString().slice(-4)}`);
   const [udinNumber, setUdinNumber] = useState(`26098221AAAAAA${Date.now().toString().slice(-4)}`);
 
-  if (!isOpen) return null;
+  if (!isOpen || !client) return null;
 
   const handleGenerate = () => {
     setIsGenerating(true);
     setTimeout(() => {
+      const generatedRef = `BT/CR-${Date.now().toString().slice(-4)}`;
+      const generatedUdin = `26098221AAAAAA${Date.now().toString().slice(-4)}`;
       setIsGenerating(false);
       setGeneratedSuccess(true);
-      setDossierRef(`BT/CR-${Date.now().toString().slice(-4)}`);
-      setUdinNumber(`26098221AAAAAA${Date.now().toString().slice(-4)}`);
+      setDossierRef(generatedRef);
+      setUdinNumber(generatedUdin);
+      toast.success(
+        "Banker Docket Compiled",
+        `Certified credit appraisal dossier created with UDIN ${generatedUdin}.`
+      );
     }, 1200);
   };
 
@@ -85,9 +92,11 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    toast.success("Downloading Banker Dossier", `File: ${client.name}_Certified_Banker_Dossier_3Y.txt`);
   };
 
   const handleShareToBankerWhatsApp = () => {
+    toast.info("WhatsApp Dispatch", `Sharing certified credit dossier with ${bankName}...`);
     const text = `*OFFICIAL CA CERTIFIED CREDIT DOSSIER*\n\n` +
       `Dear Credit Appraisal Manager at *${bankName}*,\n\n` +
       `Please find attached the official 3-Year Audited Financials, ITR-V & 12M GSTR-3B Dossier for *${client.name}* (PAN: ${client.pan}).\n\n` +
@@ -100,6 +109,133 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
     if (typeof window !== "undefined") {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     }
+  };
+
+  const handlePrintOfficialCover = () => {
+    if (typeof window === "undefined") return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Certified Banker Dossier - ${client.name}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+            .header { border-bottom: 3px double #0f172a; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-start; }
+            .firm-name { font-size: 22px; font-weight: 900; color: #0f172a; text-transform: uppercase; }
+            .firm-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+            .seal-box { border: 2px solid #0f172a; padding: 12px 18px; text-align: center; border-radius: 8px; font-family: monospace; font-size: 12px; }
+            .udin { font-size: 15px; font-weight: 900; color: #059669; }
+            .title-banner { background: #f8fafc; border-left: 5px solid #4f46e5; padding: 16px; margin-bottom: 25px; }
+            .title { font-size: 18px; font-weight: 800; color: #1e1b4b; text-transform: uppercase; margin: 0; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; font-size: 13px; }
+            .grid-item { background: #f8fafc; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 13px; }
+            th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+            th { background: #f1f5f9; font-weight: 800; }
+            .schedules { margin-bottom: 30px; font-size: 13px; }
+            .schedules li { margin-bottom: 8px; }
+            .sign-block { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .watermark { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 40px; font-weight: 600; text-transform: uppercase; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="firm-name">${DEFAULT_FIRM_BRANDING.firmName}</div>
+              <div class="firm-sub">Chartered Accountants &bull; ICAI FRN: ${DEFAULT_FIRM_BRANDING.frn} &bull; Peer Review Compliant</div>
+              <div class="firm-sub">${DEFAULT_FIRM_BRANDING.headOffice}</div>
+            </div>
+            <div class="seal-box">
+              <div>OFFICIAL ICAI UDIN</div>
+              <div class="udin">${udinNumber}</div>
+              <div>DATE: ${new Date().toLocaleDateString("en-IN")}</div>
+            </div>
+          </div>
+
+          <div class="title-banner">
+            <h1 class="title">CREDIT APPRAISAL &amp; STATUTORY COMPLIANCE DOSSIER</h1>
+            <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">Issued for the credit evaluation of <strong>${client.name}</strong> to <strong>${bankName}</strong></div>
+          </div>
+
+          <div class="grid">
+            <div class="grid-item"><strong>Applicant Entity:</strong> ${client.name}</div>
+            <div class="grid-item"><strong>PAN / GSTIN:</strong> ${client.pan} / ${client.gstin || "N/A"}</div>
+            <div class="grid-item"><strong>Target Institution:</strong> ${bankName}</div>
+            <div class="grid-item"><strong>Sanction Facility Limit:</strong> Rs. ${(parseFloat(sanctionLimit) / 10000000).toFixed(2)} Cr</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Financial Year</th>
+                <th>Audited Turnover</th>
+                <th>EBITDA Margin</th>
+                <th>PAT (Profit After Tax)</th>
+                <th>DSCR Coverage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>FY 2025-26 (Audited)</strong></td>
+                <td>Rs. 42.50 Cr</td>
+                <td>18.2%</td>
+                <td>Rs. 4.12 Cr</td>
+                <td>2.18x</td>
+              </tr>
+              <tr>
+                <td><strong>FY 2024-25 (Audited)</strong></td>
+                <td>Rs. 36.10 Cr</td>
+                <td>17.5%</td>
+                <td>Rs. 3.40 Cr</td>
+                <td>2.05x</td>
+              </tr>
+              <tr>
+                <td><strong>FY 2023-24 (Audited)</strong></td>
+                <td>Rs. 29.80 Cr</td>
+                <td>16.9%</td>
+                <td>Rs. 2.85 Cr</td>
+                <td>1.92x</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="schedules">
+            <h3 style="font-size: 14px; text-transform: uppercase;">Attached Verified Schedules:</h3>
+            <ol>
+              <li>Form 3CD Tax Audit Reports with clause-by-clause statutory confirmations</li>
+              <li>Income Tax Department ITR-V Acknowledgements for 3 consecutive assessment years</li>
+              <li>Last 12 consecutive months filed GSTR-3B Department Receipts with ARN references</li>
+              <li>Certified Net Worth Statement of Promoters under ICAI SQC-1 standard</li>
+            </ol>
+          </div>
+
+          <div class="sign-block">
+            <div>
+              <div style="font-size: 12px; color: #64748b;">Seal of the Practice:</div>
+              <div style="font-weight: 800; font-size: 14px; margin-top: 4px;">For ${DEFAULT_FIRM_BRANDING.firmName}</div>
+              <div style="font-size: 12px; color: #475569;">Chartered Accountants (FRN: ${DEFAULT_FIRM_BRANDING.frn})</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 800; font-size: 14px;">${DEFAULT_FIRM_BRANDING.managingPartner}</div>
+              <div style="font-size: 12px; color: #475569;">Managing Partner &bull; Fellow Chartered Accountant</div>
+              <div style="font-size: 11px; font-family: monospace; color: #059669; font-weight: 800; margin-top: 4px;">UDIN: ${udinNumber}</div>
+            </div>
+          </div>
+
+          <div class="watermark">
+            EXCLUSIVELY ISSUED FOR CREDIT COMMITTEE OF ${bankName.toUpperCase()} &bull; NOT TRANSFERABLE
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
   };
 
   return (
@@ -249,21 +385,21 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
             </div>
 
             {/* Key Ratios & Metrics Snapshot (For Bank Loan Officers) */}
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-center">
-                <span className="text-[10px] text-slate-500 font-bold uppercase block">3Y Avg Turnover</span>
-                <span className="text-base font-black text-slate-900 mt-0.5 block">₹36.1 Cr</span>
-                <span className="text-[9px] text-emerald-600 font-bold">+18.5% YoY Growth</span>
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
+              <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded-2xl text-center">
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">Turnover</span>
+                <span className="text-xs sm:text-base font-black text-slate-900 mt-0.5 block">₹36.1 Cr</span>
+                <span className="text-[8px] sm:text-[9px] text-emerald-600 font-bold block truncate">+18.5% YoY</span>
               </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-center">
-                <span className="text-[10px] text-slate-500 font-bold uppercase block">PAT Margin</span>
-                <span className="text-base font-black text-slate-900 mt-0.5 block">9.4%</span>
-                <span className="text-[9px] text-emerald-600 font-bold">Stable Free Cash</span>
+              <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded-2xl text-center">
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">PAT Margin</span>
+                <span className="text-xs sm:text-base font-black text-slate-900 mt-0.5 block">9.4%</span>
+                <span className="text-[8px] sm:text-[9px] text-emerald-600 font-bold block truncate">Stable Cash</span>
               </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-center">
-                <span className="text-[10px] text-slate-500 font-bold uppercase block">DSCR Ratio</span>
-                <span className="text-base font-black text-emerald-700 mt-0.5 block">2.18x</span>
-                <span className="text-[9px] text-slate-500 font-bold">Benchmark &gt; 1.33x</span>
+              <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded-2xl text-center">
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">DSCR Ratio</span>
+                <span className="text-xs sm:text-base font-black text-emerald-700 mt-0.5 block">2.18x</span>
+                <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold block truncate">&gt; 1.33x Norm</span>
               </div>
             </div>
 
@@ -288,18 +424,28 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <button
+                onClick={handlePrintOfficialCover}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                title="Print Official Certified True Copy Letterhead"
+              >
+                <Printer className="w-4 h-4 text-indigo-200" />
+                <span>Print Official Cover</span>
+              </button>
               <button
                 onClick={handleDownloadZip}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl transition shadow flex items-center justify-center gap-2"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5"
               >
-                <Download className="w-4 h-4 text-emerald-400" /> Download Dossier Package
+                <Download className="w-4 h-4 text-emerald-400" />
+                <span>Download Dossier</span>
               </button>
               <button
                 onClick={handleShareToBankerWhatsApp}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition shadow flex items-center justify-center gap-2"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5"
               >
-                <Send className="w-4 h-4" /> Forward to Credit Manager
+                <Send className="w-4 h-4" />
+                <span>Send to Bank</span>
               </button>
             </div>
 

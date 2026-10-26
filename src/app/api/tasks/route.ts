@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       period: body.period,
       dueDate: body.dueDate,
       status: body.status || "DOCUMENTS_AWAITED",
-      assignedTo: body.assignedTo || "Rohan Verma (Article)",
+      assignedTo: body.assignedTo || "Kriti Jain (Article)",
       reviewedBy: body.reviewedBy || "CA Gunjan Jain",
       priority: body.priority || "HIGH",
       penaltyRisk: body.penaltyRisk || 10000,
@@ -80,7 +80,7 @@ export async function PATCH(req: Request) {
       currentTask.chaseCount = chaseCount;
       currentTask.lastChaseDate = new Date().toISOString().split("T")[0];
       await logAuditEvent(
-        actorName || "Rohan Verma",
+        actorName || "Kriti Jain",
         "ARTICLE",
         currentTask.entityName,
         "WhatsApp Chase Dispatched",

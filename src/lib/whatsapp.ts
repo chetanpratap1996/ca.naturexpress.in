@@ -14,7 +14,10 @@ export type WhatsAppTemplate =
   | "FEE_INVOICE_UTR"
   | "OTP_CALL_NOTICE"
   | "SCRUTINY_NOTICE_ALERT"
-  | "DSC_EXPIRY_ALERT";
+  | "DSC_EXPIRY_ALERT"
+  | "CLIENT_CREDENTIALS"
+  | "VENDOR_ITC_HOLD"
+  | "MSME_43BH_ALERT";
 
 export interface WhatsAppTemplateParams {
   clientName: string;
@@ -32,6 +35,11 @@ export interface WhatsAppTemplateParams {
   callTime?: string;
   noticeSection?: string;
   portalUrl?: string;
+  loginId?: string;
+  loginPassword?: string;
+  vendorName?: string;
+  overdueAmount?: number;
+  daysRemaining?: number;
 }
 
 /**
@@ -145,6 +153,44 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
         `An active DSC is mandatory for signing GST returns, MCA filings, and Tax Audit reports. To avoid last-minute filing blocks, our team will initiate token re-validation.\n\n` +
         `Please confirm approval so we can initiate paperless KYC re-issuance.\n\n` +
         `Regards,\n${firm}`;
+    }
+
+    case "CLIENT_CREDENTIALS": {
+      return `*YOUR BRAINS & TAXES CLIENT PORTAL CREDENTIALS*\n\n` +
+        `Dear ${params.clientName},\n\n` +
+        `Your company compliance and tax intelligence cockpit is now active at *${firm}*.\n\n` +
+        `🔐 *Your Login Details (Zero-SMS OTP Required):*\n` +
+        `• *Login Mobile/ID:* ${params.loginId || params.clientName}\n` +
+        `• *Access Password:* ${params.loginPassword || "Name@1234"}\n` +
+        `• *Portal Link:* ${portalLink}\n\n` +
+        `*What you can do on your portal:*\n` +
+        `1. Track blocked GST ITC and hold payments to defaulting vendors\n` +
+        `2. Monitor Section 43B(h) MSME 45-day payment countdown\n` +
+        `3. 1-Touch Aadhaar e-Sign for filed returns & financials\n` +
+        `4. Download official GST, ITR & ROC receipts with UDIN\n\n` +
+        `Regards,\n*Client Relations Team*\n${firm}`;
+    }
+
+    case "VENDOR_ITC_HOLD": {
+      return `*PAYMENT HOLD ADVISORY: GST ITC DEFAULT NOTIFICATION*\n\n` +
+        `To,\n*Accounts Payable - ${params.vendorName || "Vendor"}*\n\n` +
+        `This is a formal communication from *${params.clientName}* (represented by ${firm}).\n\n` +
+        `During our monthly GST reconciliation for *${params.period || "current month"}*, it was noted that your invoices totaling *${formatINR(params.overdueAmount)}* have *not been reflected in our GSTR-2B*.\n\n` +
+        `⚠️ Under *Section 16(2)(aa) of the CGST Act*, input tax credit cannot be availed by us until you upload and file your GSTR-1.\n\n` +
+        `*Action Taken:* As per company policy, payment of GST component is temporarily placed on hold until your return filing reflects on the GST portal.\n\n` +
+        `Kindly file your GSTR-1 and share the filing ARN at the earliest to release your payout.\n\n` +
+        `Regards,\n*Finance & Accounts Department*\n${params.clientName}`;
+    }
+
+    case "MSME_43BH_ALERT": {
+      return `*URGENT: SECTION 43B(h) MSME 45-DAY PAYMENT ALERT*\n\n` +
+        `Dear ${params.clientName} (Accounts Team),\n\n` +
+        `Statutory tax reminder from *${firm}*:\n\n` +
+        `Invoice from *${params.vendorName || "Registered MSME Vendor"}* for *${formatINR(params.overdueAmount)}* has reached *Day ${45 - (params.daysRemaining || 4)} of the 45-day statutory window*.\n\n` +
+        `⏳ *Days Remaining:* ${params.daysRemaining || 4} Days\n\n` +
+        `⚠️ *Tax Consequence:* Under *Section 43B(h) of the Income Tax Act*, if this payment is not settled within 45 days, the full expense will be *disallowed and taxed at 31.2%* in the current financial year.\n\n` +
+        `Please process this payment immediately via NetBanking/RTGS to protect business deduction.\n\n` +
+        `Regards,\n*Audit & Compliance Team*\n${firm}`;
     }
   }
 }

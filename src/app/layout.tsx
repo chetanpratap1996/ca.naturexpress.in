@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { ToastContainer } from "@/components/shared/ToastNotification";
 
 export const metadata: Metadata = {
   title: "Brains & Taxes - Client & Practice Portal",
@@ -10,6 +11,18 @@ export const metadata: Metadata = {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Brains & Taxes",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#e52320",
 };
 
 export default function RootLayout({
@@ -19,14 +32,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <meta name="theme-color" content="#e52320" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Brains & Taxes" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-      </head>
-      <body className="antialiased min-h-screen bg-slate-50 text-slate-900 pb-24 md:pb-8">
+      <body className="antialiased min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden selection:bg-btred-logo selection:text-white">
+        <ToastContainer />
         <ErrorBoundary>
           {children}
         </ErrorBoundary>

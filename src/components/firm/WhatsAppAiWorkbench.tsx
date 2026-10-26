@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "@/components/shared/ToastNotification";
 import { 
   ParsedBankStatement, 
   ClientPasswordVault, 
@@ -40,8 +41,15 @@ export function WhatsAppAiWorkbench({
   initialVaults = [],
   onTaskUpdated,
 }: WhatsAppAiWorkbenchProps) {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-001");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "");
   const [activeStatementIndex, setActiveStatementIndex] = useState<number>(0);
+
+  React.useEffect(() => {
+    if (clients.length > 0 && (!selectedEntityId || selectedEntityId === "CLI-001" || !clients.some(c => c.id === selectedEntityId))) {
+      setSelectedEntityId(clients[0].id);
+    }
+  }, [clients, selectedEntityId]);
+  const [mobileView, setMobileView] = useState<"chat" | "statement">("chat");
   const [escalationLevel, setEscalationLevel] = useState<"GENTLE" | "PENALTY_WARNING" | "PARTNER_ESCALATION">("PENALTY_WARNING");
   const [isSimulatingIntake, setIsSimulatingIntake] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -56,17 +64,17 @@ export function WhatsAppAiWorkbench({
   const [statements, setStatements] = useState<ParsedBankStatement[]>(initialStatements);
   const [vaults, setVaults] = useState<ClientPasswordVault[]>(initialVaults);
 
-  const selectedClient = clients.find((c) => c.id === selectedEntityId) || clients[0];
-  const clientStatements = statements.filter((s) => s.entityId === selectedEntityId);
-  const activeStatement = clientStatements[activeStatementIndex] || clientStatements[0] || statements[0];
-  const clientVaults = vaults.filter((v) => v.entityId === selectedEntityId);
+  const selectedClient = clients.find((c) => c.id === selectedEntityId) || clients[0] || null;
+  const clientStatements = selectedClient ? statements.filter((s) => s.entityId === selectedClient.id) : [];
+  const activeStatement = clientStatements[activeStatementIndex] || clientStatements[0] || statements[0] || null;
+  const clientVaults = selectedClient ? vaults.filter((v) => v.entityId === selectedClient.id) : [];
 
   // Simulated WhatsApp conversation history
   const [chatMessages, setChatMessages] = useState([
     {
       id: "MSG-1",
       sender: "BOT",
-      text: `Hello ${selectedClient.primaryContact.name} ji, this is Brains & Taxes on behalf of GPA & Co., Chartered Accountants. Statutory deadline for September 2026 GST & TDS is approaching. Please provide HDFC Bank statements for the period 01-Sep to 30-Sep.`,
+      text: `Hello ${selectedClient?.primaryContact?.name || "Client Promoter"} ji, this is Brains & Taxes on behalf of GPA & Co., Chartered Accountants. Statutory deadline for GST & TDS is approaching. Please provide HDFC Bank statements for the period.`,
       time: "22-Oct, 10:15 AM",
       status: "READ"
     },
@@ -80,7 +88,7 @@ export function WhatsAppAiWorkbench({
     {
       id: "MSG-3",
       sender: "CLIENT",
-      text: "📄 HDFC_Current_Sep2026_stmt.pdf (Encrypted)",
+      text: "📄 HDFC_Current_stmt.pdf (Encrypted)",
       attachment: true,
       time: "24-Oct, 02:21 PM",
       status: "RECEIVED"
@@ -88,7 +96,7 @@ export function WhatsAppAiWorkbench({
     {
       id: "MSG-4",
       sender: "BOT",
-      text: `✅ Document Received & Auto-Decrypted via Firm Vault! Bypassed using Company PAN (${selectedClient.pan}). 8 transactions extracted & categorized into Sales/Tax Challans. Task moved to In-Preparation.`,
+      text: `✅ Document Received & Auto-Decrypted via Firm Vault! Bypassed using Company PAN (${selectedClient?.pan || "Registered PAN"}). 8 transactions extracted & categorized into Sales/Tax Challans. Task moved to In-Preparation.`,
       time: "24-Oct, 02:22 PM",
       status: "SENT"
     }
@@ -114,7 +122,11 @@ export function WhatsAppAiWorkbench({
         status: "SENT"
       }
     ]);
-    setSuccessToast(`Automated WhatsApp dispatch sent to ${selectedClient.primaryContact.phone}!`);
+    setSuccessToast(`Automated WhatsApp dispatch sent to ${selectedClient?.primaryContact?.phone || "Client"}!`);
+    toast.success(
+      "WhatsApp Dispatch Sent",
+      `Automated ${level.replace(/_/g, " ")} notification delivered to client phone.`
+    );
     setTimeout(() => setSuccessToast(null), 4000);
   };
 
@@ -132,6 +144,7 @@ export function WhatsAppAiWorkbench({
     ]);
     setCustomChatInput("");
     setSuccessToast(`Message sent to ${selectedClient.primaryContact.name} on WhatsApp!`);
+    toast.success("Message Delivered", `WhatsApp sent to ${selectedClient.primaryContact.name}.`);
     setTimeout(() => setSuccessToast(null), 4000);
   };
 
@@ -152,10 +165,15 @@ export function WhatsAppAiWorkbench({
         setStatements((prev) => [data.statement, ...prev]);
         setActiveStatementIndex(0);
         setSuccessToast(`New PDF received on WhatsApp: Password bypassed & 6 transactions parsed!`);
+        toast.success(
+          "Statement Decrypted & Parsed",
+          "Automated parser bypassed password & extracted transactions into firm ledger."
+        );
         setTimeout(() => setSuccessToast(null), 5000);
         if (onTaskUpdated) onTaskUpdated();
       }
     } catch (e) {
+      toast.error("Intake Error", "Failed to parse incoming WhatsApp statement.");
       console.error(e);
     } finally {
       setIsSimulatingIntake(false);
@@ -232,31 +250,55 @@ export function WhatsAppAiWorkbench({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-400 uppercase">Selected Entity:</span>
           <select
-            value={selectedEntityId}
+            value={selectedEntityId || selectedClient?.id || ""}
             onChange={(e) => {
               setSelectedEntityId(e.target.value);
               setActiveStatementIndex(0);
             }}
             className="bg-slate-950 border border-slate-800 text-white text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-teal-500 font-semibold"
           >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.pan})
-              </option>
-            ))}
+            {clients.length === 0 ? (
+              <option value="">No clients onboarded</option>
+            ) : (
+              clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.pan})
+                </option>
+              ))
+            )}
           </select>
         </div>
         <div className="text-xs text-slate-400 flex items-center gap-3">
-          <span>Promoter: <strong className="text-white">{selectedClient.primaryContact.name}</strong></span>
-          <span>WhatsApp: <strong className="text-emerald-400 font-mono">{selectedClient.primaryContact.phone}</strong></span>
+          <span>Promoter: <strong className="text-white">{selectedClient?.primaryContact?.name || "No Client Selected"}</strong></span>
+          <span>WhatsApp: <strong className="text-emerald-400 font-mono">{selectedClient?.primaryContact?.phone || "N/A"}</strong></span>
         </div>
+      </div>
+
+      {/* Mobile View Toggle (screens < lg) */}
+      <div className="flex lg:hidden items-center bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs font-bold w-full">
+        <button
+          onClick={() => setMobileView("chat")}
+          className={`flex-1 py-2 text-center rounded-xl transition ${
+            mobileView === "chat" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
+          }`}
+        >
+          WhatsApp Chat &amp; Rules
+        </button>
+        <button
+          onClick={() => setMobileView("statement")}
+          className={`flex-1 py-2 text-center rounded-xl transition ${
+            mobileView === "statement" ? "bg-teal-600 text-white shadow" : "text-slate-400 hover:text-white"
+          }`}
+        >
+          Extracted Ledger ({activeStatement?.transactions?.length || 0})
+        </button>
       </div>
 
       {/* Two Column Grid: Left WhatsApp Thread, Right Parsed Statement */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Column: Live WhatsApp Escalation Bot (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className={`lg:col-span-5 space-y-4 ${mobileView === "chat" ? "block" : "hidden lg:block"}`}>
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col h-[640px]">
             {/* Chat Header */}
             <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
@@ -382,7 +424,7 @@ export function WhatsAppAiWorkbench({
         </div>
 
         {/* Right Column: Statement Parser & AI Ledger (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={`lg:col-span-7 space-y-4 ${mobileView === "statement" ? "block" : "hidden lg:block"}`}>
           {activeStatement ? (
             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-5">
               {/* Statement Header */}

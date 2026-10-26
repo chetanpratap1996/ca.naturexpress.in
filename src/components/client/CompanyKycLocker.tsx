@@ -27,63 +27,41 @@ interface KycDocument {
   fileSize: string;
 }
 
-const INITIAL_KYC_DOCS: KycDocument[] = [
-  {
-    id: "KYC-01",
-    name: "Certificate of Incorporation (COI) & CIN",
-    category: "PERMANENT_CONSTITUTION",
-    numberOrRef: "U29100MH2012PTC229104",
-    validity: "LIFETIME",
-    fileSize: "1.2 MB"
-  },
-  {
-    id: "KYC-02",
-    name: "Memorandum & Articles of Association (MOA / AOA)",
-    category: "PERMANENT_CONSTITUTION",
-    numberOrRef: "Stamped ROC Mumbai Master Copy",
-    validity: "LIFETIME",
-    fileSize: "4.8 MB"
-  },
-  {
-    id: "KYC-03",
-    name: "GST Registration Certificate (Form REG-06)",
-    category: "REGISTRATION_CERTIFICATE",
-    numberOrRef: "27AAACA1294F1Z8",
-    validity: "LIFETIME",
-    fileSize: "850 KB"
-  },
-  {
-    id: "KYC-04",
-    name: "MSME Udyam Registration Certificate",
-    category: "REGISTRATION_CERTIFICATE",
-    numberOrRef: "UDYAM-MH-12-0049182 (Small Enterprise)",
-    validity: "LIFETIME",
-    fileSize: "920 KB"
-  },
-  {
-    id: "KYC-05",
-    name: "Director Class-3 DSC (Rajesh Singhania)",
-    category: "DIRECTOR_KYC",
-    numberOrRef: "ProxKey Token SN: 981240182",
-    validity: "EXPIRES_SOON",
-    expiryDate: "2026-11-15",
-    daysToExpiry: 22,
-    fileSize: "Token Vault Ref"
-  },
-  {
-    id: "KYC-06",
-    name: "Registered Office Commercial Lease Agreement",
-    category: "STATUTORY_LICENSE",
-    numberOrRef: "Registered at Sub-Registrar Andheri",
-    validity: "EXPIRES_SOON",
-    expiryDate: "2026-12-31",
-    daysToExpiry: 68,
-    fileSize: "3.4 MB"
-  }
-];
-
-export function CompanyKycLocker({ client }: { client: ClientEntity }) {
-  const [docs, setDocs] = useState<KycDocument[]>(INITIAL_KYC_DOCS);
+export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
+  const docs: KycDocument[] = client ? [
+    {
+      id: "KYC-01",
+      name: "Permanent Account Number (PAN Card)",
+      category: "PERMANENT_CONSTITUTION",
+      numberOrRef: `PAN: ${client.pan || "AANCP9915B"}`,
+      validity: "LIFETIME",
+      fileSize: "720 KB"
+    },
+    {
+      id: "KYC-02",
+      name: "Certificate of Incorporation (COI)",
+      category: "PERMANENT_CONSTITUTION",
+      numberOrRef: `CIN: ${client.cin || "ROC Registered Private Limited"}`,
+      validity: "LIFETIME",
+      fileSize: "1.2 MB"
+    },
+    ...(client.gstin ? [{
+      id: "KYC-03",
+      name: "GST Registration Certificate (Form REG-06)",
+      category: "REGISTRATION_CERTIFICATE" as const,
+      numberOrRef: `GSTIN: ${client.gstin}`,
+      validity: "LIFETIME" as const,
+      fileSize: "850 KB"
+    }] : []),
+    {
+      id: "KYC-04",
+      name: `Key Signatory Director (${client.primaryContact?.name || "Director"})`,
+      category: "DIRECTOR_KYC",
+      numberOrRef: `Verified KYC • ${client.primaryContact?.phone || ""}`,
+      validity: "LIFETIME",
+      fileSize: "MCA V3 Synced"
+    }
+  ] : [];
 
   const expiringCount = docs.filter((d) => d.validity === "EXPIRES_SOON").length;
 
@@ -116,7 +94,14 @@ export function CompanyKycLocker({ client }: { client: ClientEntity }) {
 
       {/* Grid of Master Documents */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {docs.map((d) => (
+        {docs.length === 0 ? (
+          <div className="col-span-full p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-500">
+            <FolderLock className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <div className="font-bold text-slate-800 text-sm">No Permanent Master Documents Enrolled</div>
+            <div className="text-xs text-slate-400 mt-1">Upload incorporation charter or identity certificates to synchronize.</div>
+          </div>
+        ) : (
+          docs.map((d) => (
           <div
             key={d.id}
             className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition space-y-3 flex flex-col justify-between"
@@ -151,7 +136,7 @@ export function CompanyKycLocker({ client }: { client: ClientEntity }) {
               </button>
             </div>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );

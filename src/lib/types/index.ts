@@ -169,7 +169,7 @@ export interface AuditTrailLog {
   entityName: string;
   action: string;
   details: string;
-  category: "COMPLIANCE" | "DOCUMENT" | "INVOICE" | "UDIN" | "WHATSAPP" | "SECURITY" | "PEER_REVIEW" | "PAY_RELEASE";
+  category: "COMPLIANCE" | "DOCUMENT" | "INVOICE" | "UDIN" | "WHATSAPP" | "SECURITY" | "PEER_REVIEW" | "PAY_RELEASE" | "SYSTEM";
 }
 
 // -------------------------------------------------------------

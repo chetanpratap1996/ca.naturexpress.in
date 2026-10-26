@@ -311,6 +311,27 @@ export function useTaxoData() {
     }
   };
 
+  // Create Client
+  const createClient = async (clientData: Partial<ClientEntity>) => {
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clientData),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.client) {
+          setClients((prev) => [json.client, ...prev]);
+          refreshData();
+          return json.client;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to create client", err);
+    }
+  };
+
   return {
     tasks,
     documents,
@@ -323,6 +344,7 @@ export function useTaxoData() {
     payConfigs,
     isLoading,
     refreshData,
+    createClient,
     createTask,
     updateTask,
     uploadDocument,

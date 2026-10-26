@@ -178,41 +178,41 @@ export function PayToReleaseManager({
       )}
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase">Lock Policy</span>
-            <Lock className="w-4 h-4 text-amber-400" />
+            <span className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase truncate">Lock Policy</span>
+            <Lock className="w-4 h-4 text-amber-400 shrink-0" />
           </div>
-          <div className="text-lg font-bold text-white mt-2">&gt; 30 Days Overdue</div>
-          <div className="text-xs text-slate-400 mt-1">Automatic download pause</div>
+          <div className="text-base sm:text-lg font-bold text-white mt-1.5 sm:mt-2">&gt; 30 Days Overdue</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Auto download pause</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase">Avg Realization Speed</span>
-            <Clock className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase truncate">Realization Speed</span>
+            <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
           </div>
-          <div className="text-lg font-bold text-emerald-400 mt-2">4.8 Hours</div>
-          <div className="text-xs text-slate-400 mt-1">From filing to fee clearance</div>
+          <div className="text-base sm:text-lg font-bold text-emerald-400 mt-1.5 sm:mt-2">4.8 Hours</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">From filing to clearance</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase">Firm UPI Endpoint</span>
-            <QrCode className="w-4 h-4 text-indigo-400" />
+            <span className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase truncate">Firm UPI Endpoint</span>
+            <QrCode className="w-4 h-4 text-indigo-400 shrink-0" />
           </div>
-          <div className="text-sm font-bold font-mono text-indigo-300 mt-2 truncate">{firmUpiVpa}</div>
-          <div className="text-xs text-slate-400 mt-1">Instant webhook reconciliation</div>
+          <div className="text-xs sm:text-sm font-bold font-mono text-indigo-300 mt-1.5 sm:mt-2 truncate">{firmUpiVpa}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Instant webhook match</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400 uppercase">ICAI Ethics Compliance</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase truncate">ICAI Ethics</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           </div>
-          <div className="text-sm font-bold text-slate-200 mt-2">Lien under Common Law</div>
-          <div className="text-xs text-slate-400 mt-1">Authorized audit paper retention</div>
+          <div className="text-xs sm:text-sm font-bold text-slate-200 mt-1.5 sm:mt-2 truncate">Lien under Common Law</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Audit paper retention</div>
         </div>
       </div>
 
@@ -356,7 +356,7 @@ export function PayToReleaseManager({
               <textarea
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="e.g. Promoter Rajesh Singhania requested release for AGM on 25-Oct; promised RTGS tomorrow."
+                placeholder="e.g. Authorized partner emergency release for filing deadline; client promised RTGS clearance tomorrow."
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500"
                 rows={3}
               />

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { formatDate } from "@/lib/utils";
+import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { 
   Package, 
   ArrowDownLeft, 
@@ -12,9 +13,9 @@ import {
   User, 
   MapPin, 
   Plus, 
-  X,
-  FileCheck,
-  Building2
+  X, 
+  FileCheck, 
+  Building2 
 } from "lucide-react";
 
 interface DocumentMovementItem {
@@ -31,68 +32,24 @@ interface DocumentMovementItem {
   locationBin: string;
 }
 
-const INITIAL_MOVEMENTS: DocumentMovementItem[] = [
-  {
-    id: "INW-2026-081",
-    type: "INWARD",
-    entityName: "Apex Precision Technologies Pvt Ltd",
-    documentDescription: "Original Land Title Deed & Industrial MIDC Lease Agreement (Plot 42, Chakan)",
-    senderOrRecipient: "Suresh Kulkarni (CFO)",
-    mode: "HAND_DELIVERY",
-    receivedOrHandledBy: "Rohan Verma (Article)",
-    date: "2026-10-21",
-    status: "IN_OFFICE_SAFE",
-    locationBin: "Master Safe - Fireproof Locker 1",
-  },
-  {
-    id: "INW-2026-082",
-    type: "INWARD",
-    entityName: "Zenora Logistics & Cold Chain LLP",
-    documentDescription: "Bank Cheque Book & Original Vehicle Hypothecation NOCs from ICICI Bank",
-    senderOrRecipient: "BlueDart Express",
-    mode: "COURIER",
-    courierTrackingNo: "BD-889102914-IN",
-    receivedOrHandledBy: "Ananya Iyer (Article)",
-    date: "2026-10-22",
-    status: "IN_OFFICE_SAFE",
-    locationBin: "Audit Cabinet 3 - Bin 18",
-  },
-  {
-    id: "OUT-2026-044",
-    type: "OUTWARD",
-    entityName: "Dr. Vikramaditya Somani",
-    documentDescription: "Certified True Copies of ITR-3 & Audited Balance Sheet with Physical UDIN Stamp",
-    senderOrRecipient: "SBI Commercial Branch Manager, Fort",
-    mode: "COURIER",
-    courierTrackingNo: "DTDC-4401928",
-    receivedOrHandledBy: "Rohan Verma (Article)",
-    date: "2026-10-20",
-    status: "DISPATCHED",
-    locationBin: "Dispatched",
-  },
-  {
-    id: "OUT-2026-045",
-    type: "OUTWARD",
-    entityName: "Heritage Silks & Retail Fabrics",
-    documentDescription: "Original Festive Sales Bill Books (Vol 1-4) returned after GST Assessment",
-    senderOrRecipient: "Harish Parekh (Partner)",
-    mode: "HAND_DELIVERY",
-    receivedOrHandledBy: "Pooja Deshmukh (Article)",
-    date: "2026-10-19",
-    status: "RETURNED_TO_CLIENT",
-    locationBin: "Client Handover Acknowledged",
-  },
-];
+const INITIAL_MOVEMENTS: DocumentMovementItem[] = [];
 
 export const InwardOutwardRegister: React.FC = () => {
+  const { clients } = useTaxoData();
   const [movements, setMovements] = useState<DocumentMovementItem[]>(INITIAL_MOVEMENTS);
   const [filterType, setFilterType] = useState<"ALL" | "INWARD" | "OUTWARD">("ALL");
   const [search, setSearch] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
-  const [newEntity, setNewEntity] = useState("Apex Precision Technologies Pvt Ltd");
+  const [newEntity, setNewEntity] = useState(clients[0]?.name || "");
   const [newDesc, setNewDesc] = useState("");
   const [newMode, setNewMode] = useState<"COURIER" | "HAND_DELIVERY" | "REGISTERED_POST">("HAND_DELIVERY");
   const [newBin, setNewBin] = useState("Cabinet A - Locker 1");
+
+  React.useEffect(() => {
+    if (!newEntity && clients.length > 0) {
+      setNewEntity(clients[0]?.name || "");
+    }
+  }, [clients, newEntity]);
 
   const filtered = movements.filter((m) => {
     const matchesFilter = filterType === "ALL" || m.type === filterType;
@@ -112,7 +69,7 @@ export const InwardOutwardRegister: React.FC = () => {
       documentDescription: newDesc,
       senderOrRecipient: "Client Office",
       mode: newMode,
-      receivedOrHandledBy: "Rohan Verma (Article)",
+      receivedOrHandledBy: "Kriti Jain (Article)",
       date: new Date().toISOString().split("T")[0],
       status: "IN_OFFICE_SAFE",
       locationBin: newBin,
@@ -162,10 +119,10 @@ export const InwardOutwardRegister: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none touch-pan-x w-full sm:w-auto pb-1 sm:pb-0">
           <button
             onClick={() => setFilterType("ALL")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0 ${
               filterType === "ALL" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -173,7 +130,7 @@ export const InwardOutwardRegister: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterType("INWARD")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 whitespace-nowrap shrink-0 ${
               filterType === "INWARD" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -182,12 +139,12 @@ export const InwardOutwardRegister: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterType("OUTWARD")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 whitespace-nowrap shrink-0 ${
               filterType === "OUTWARD" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5 text-blue-500" />
-            Outward / Dispatched ({movements.filter(m => m.type === "OUTWARD").length})
+            Outward ({movements.filter(m => m.type === "OUTWARD").length})
           </button>
         </div>
 
@@ -205,7 +162,22 @@ export const InwardOutwardRegister: React.FC = () => {
 
       {/* Movement List Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((item) => (
+        {filtered.length === 0 ? (
+          <div className="col-span-full bg-white border border-dashed border-slate-200 rounded-3xl p-10 text-center space-y-3">
+            <Package className="w-10 h-10 text-slate-300 mx-auto" />
+            <h4 className="text-sm font-black text-slate-700">No Physical Documents Logged</h4>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Track incoming original deeds, cheque books, and audited balance sheets dispatched to bank branches or clients with sign-off audit trail.
+            </p>
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="bg-btblack hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition inline-flex items-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5" /> Log Physical Movement
+            </button>
+          </div>
+        ) : (
+          filtered.map((item) => (
           <div
             key={item.id}
             className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3 hover:border-btred-logo transition flex flex-col justify-between"
@@ -272,7 +244,7 @@ export const InwardOutwardRegister: React.FC = () => {
               )}
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* NEW INWARD MODAL */}
@@ -294,16 +266,25 @@ export const InwardOutwardRegister: React.FC = () => {
             <div className="space-y-3 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Client Entity:</label>
-                <select
-                  value={newEntity}
-                  onChange={(e) => setNewEntity(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
-                >
-                  <option value="Apex Precision Technologies Pvt Ltd">Apex Precision Technologies Pvt Ltd</option>
-                  <option value="Zenora Logistics & Cold Chain LLP">Zenora Logistics & Cold Chain LLP</option>
-                  <option value="Matrix Cloud Infotech Solutions Pvt Ltd">Matrix Cloud Infotech Solutions Pvt Ltd</option>
-                  <option value="Dr. Vikramaditya Somani">Dr. Vikramaditya Somani</option>
-                </select>
+                {clients.length > 0 ? (
+                  <select
+                    value={newEntity}
+                    onChange={(e) => setNewEntity(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
+                  >
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={newEntity}
+                    onChange={(e) => setNewEntity(e.target.value)}
+                    placeholder="Enter client entity name"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
+                  />
+                )}
               </div>
 
               <div>

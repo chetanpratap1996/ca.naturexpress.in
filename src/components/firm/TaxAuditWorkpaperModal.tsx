@@ -39,7 +39,7 @@ const INITIAL_CLAUSES: ClauseItem[] = [
     clauseNo: "Clause 26",
     actSection: "Sec 43B(h)",
     title: "MSME Overdue Payables Beyond 45-Day Statutory Window",
-    findingNote: "₹14,20,000 payable to registered micro & small vendor (LaserTech Enclosures) outstanding for 62 days at year-end. No written agreement for credit period beyond 15 days.",
+    findingNote: "Payables to registered micro & small suppliers verified against Udyam registration certificates and written terms. Any balances exceeding the statutory window are reported for disallowance.",
     disallowanceAmount: 1420000,
     penaltyRiskNote: "Full ₹14.2L disallowed and added to taxable income under Sec 43B(h). Deduction allowed only in year of actual payment.",
     partnerSignedOff: true,
@@ -142,33 +142,33 @@ export const TaxAuditWorkpaperModal: React.FC<TaxAuditWorkpaperModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in fade-in zoom-in-95 max-h-[90dvh] flex flex-col">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-slate-400 hover:text-slate-800 p-1"
+          className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 text-slate-400 hover:text-slate-800 p-1"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3 pr-8 sm:pr-0">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-100 text-btred-logo border border-red-200">
                 ICAI Tax Audit Workpaper &bull; Form 3CA - 3CD
               </span>
-              <span className="text-xs text-slate-500 font-semibold">Assessment Year 2026-27</span>
+              <span className="text-xs text-slate-500 font-semibold">AY 2026-27</span>
             </div>
-            <h3 className="text-lg font-black text-slate-900 mt-1">{entityName}</h3>
+            <h3 className="text-base sm:text-lg font-black text-slate-900 mt-1">{entityName}</h3>
             <p className="text-xs text-slate-500 font-medium">
-              Maker: Rohan Verma (Article) &bull; Signatory: CA Gunjan Jain (GPA &amp; Co., FRN: 022998C)
+              Maker: Kriti Jain (Article) &bull; Signatory: CA Gunjan Jain (GPA &amp; Co., FRN: 022998C)
             </p>
           </div>
 
-          <div className="text-right bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+          <div className="text-left sm:text-right bg-slate-50 p-2 sm:p-2.5 rounded-2xl border border-slate-200 self-start sm:self-auto">
             <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Disallowances</span>
-            <span className="text-lg font-black text-btred-logo">{formatCurrencyINR(totalDisallowances)}</span>
+            <span className="text-base sm:text-lg font-black text-btred-logo">{formatCurrencyINR(totalDisallowances)}</span>
           </div>
         </div>
 

@@ -37,14 +37,22 @@ export function PeerReviewManager({
   initialMsmeRecords = [],
   initialSection40a = [],
 }: PeerReviewManagerProps) {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-001");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "");
+
+  React.useEffect(() => {
+    if (clients && clients.length > 0 && (!selectedEntityId || selectedEntityId === "CLI-001" || !clients.some(c => c.id === selectedEntityId))) {
+      setSelectedEntityId(clients[0].id);
+    }
+  }, [clients, selectedEntityId]);
   const [activeTab, setActiveTab] = useState<"msme" | "section40a" | "workpapers">("msme");
   const [msmeRecords, setMsmeRecords] = useState<Msme43BhClauseItem[]>(initialMsmeRecords);
   const [section40aSamples, setSection40aSamples] = useState<Section40A2bSampleItem[]>(initialSection40a);
   const [isSigningOff, setIsSigningOff] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const selectedClient = clients.find((c) => c.id === selectedEntityId) || clients[0];
+  const selectedClient = (clients && clients.length > 0)
+    ? (clients.find((c) => c.id === selectedEntityId) || clients[0])
+    : null;
 
   const totalMsmeDisallowance = msmeRecords
     .filter((m) => m.disallowedUnder43Bh)
@@ -125,41 +133,41 @@ export function PeerReviewManager({
       )}
 
       {/* Compliance Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">SQC-1 Audit Score</span>
-            <Award className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">SQC-1 Score</span>
+            <Award className="w-4 h-4 text-emerald-400 shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-emerald-400 mt-2">98.4%</div>
-          <div className="text-xs text-slate-400 mt-1">Zero Disciplinary Deficiencies</div>
+          <div className="text-lg sm:text-2xl font-bold text-emerald-400 mt-1.5 sm:mt-2">98.4%</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Zero Deficiencies</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Sec 43B(h) Disallowance</span>
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">Sec 43B(h)</span>
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
           </div>
-          <div className="text-xl font-bold text-rose-400 mt-2">₹{totalMsmeDisallowance.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">Added to Tax Audit Form 3CD</div>
+          <div className="text-base sm:text-xl font-bold text-rose-400 mt-1.5 sm:mt-2">₹{totalMsmeDisallowance.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Form 3CD Disallowance</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Sec 40A(2)(b) Excess</span>
-            <Scale className="w-4 h-4 text-amber-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">Sec 40A(2)(b)</span>
+            <Scale className="w-4 h-4 text-amber-400 shrink-0" />
           </div>
-          <div className="text-xl font-bold text-amber-400 mt-2">₹{totalExcess40a.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">FMV benchmark excess</div>
+          <div className="text-base sm:text-xl font-bold text-amber-400 mt-1.5 sm:mt-2">₹{totalExcess40a.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">FMV benchmark excess</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">ICAI UDIN Stamped</span>
-            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">ICAI UDIN</span>
+            <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
           </div>
-          <div className="text-xs font-mono font-bold text-cyan-300 mt-2 truncate">24049281AAAAAA8912</div>
-          <div className="text-xs text-slate-400 mt-1">Matched with Form 3CD Figures</div>
+          <div className="text-[11px] sm:text-xs font-mono font-bold text-cyan-300 mt-1.5 sm:mt-2 truncate">24049281AAAAAA8912</div>
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Matched with 3CD</div>
         </div>
       </div>
 
@@ -369,7 +377,7 @@ export function PeerReviewManager({
                 title: "SA 530: Audit Sampling for Section 269SS/269T Cash Loans & Section 40A(2)(b)",
                 ref: "WP-04-SAMPLING",
                 standard: "SA 530",
-                sign: "Rohan Verma (Article)",
+                sign: "Kriti Jain (Article Trainee)",
                 date: "24-Sep-2026"
               },
               {

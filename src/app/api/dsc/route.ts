@@ -27,7 +27,7 @@ export async function PATCH(req: Request) {
     const token = db.dscTokens[index];
 
     if (action === "CHECKOUT") {
-      token.currentCustodian = staffName || "Rohan Verma (Article)";
+      token.currentCustodian = staffName || "Kriti Jain (Article)";
       token.checkedOutAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       token.checkedOutPurpose = purpose || "Statutory Department Sign-off";
 

@@ -25,10 +25,12 @@ import {
   FileCheck
 } from "lucide-react";
 import { TaxAuditWorkpaperModal } from "@/components/firm/TaxAuditWorkpaperModal";
+import { BankStatementParser } from "@/components/firm/BankStatementParser";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
+import { toast } from "@/components/shared/ToastNotification";
 
 export const ArticleWorkbench: React.FC = () => {
-  const { tasks: hookTasks, documents: hookDocs, updateTask } = useTaxoData();
+  const { tasks: hookTasks, documents: hookDocs, clients, updateTask } = useTaxoData();
   const [tasks, setTasks] = useState<ComplianceTask[]>(hookTasks.length > 0 ? hookTasks : INITIAL_TASKS);
   const [documents, setDocuments] = useState<DocumentItem[]>(hookDocs.length > 0 ? hookDocs : INITIAL_DOCUMENTS);
 
@@ -44,14 +46,14 @@ export const ArticleWorkbench: React.FC = () => {
   const [messages, setMessages] = useState<{ id: string; sender: string; text: string; time: string; isClient: boolean }[]>([
     {
       id: "1",
-      sender: "Rohan Verma (Article)",
-      text: "Sir, we completed the September 2026 GSTR-3B reconciliation. Vendor invoice for ₹42,000 is missing in GSTR-2B. Please confirm if we should reverse ITC or pay under protest.",
+      sender: "Kriti Jain (Article)",
+      text: "Sir, we completed the statutory GSTR-3B reconciliation. Vendor invoice is missing in GSTR-2B. Please confirm if we should reverse ITC or pay under protest.",
       time: "10:15 AM",
       isClient: false,
     },
     {
       id: "2",
-      sender: "Suresh Kulkarni (CFO - Apex Tech)",
+      sender: "Client Authorized Signatory",
       text: "Checked with the vendor. They will upload in quarterly GSTR-1. Please defer the ITC to next month and file 3B today.",
       time: "10:42 AM",
       isClient: true,
@@ -74,11 +76,11 @@ export const ArticleWorkbench: React.FC = () => {
 
   // Workpaper Modal State
   const [workpaperModalOpen, setWorkpaperModalOpen] = useState(false);
-  const [selectedWorkpaperEntity, setSelectedWorkpaperEntity] = useState("Apex Precision Technologies Pvt Ltd");
+  const [selectedWorkpaperEntity, setSelectedWorkpaperEntity] = useState(clients[0]?.name || "");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const myTasks = tasks.filter(
-    (t) => t.assignedTo.includes("Rohan") || t.assignedTo.includes("Article")
+    (t) => t.assignedTo.includes("Kriti") || t.assignedTo.includes("Article")
   );
 
   const handleTaskWhatsAppChase = (task: ComplianceTask) => {
@@ -121,7 +123,7 @@ export const ArticleWorkbench: React.FC = () => {
       ...prev,
       {
         id: String(Date.now()),
-        sender: "Rohan Verma (Article)",
+        sender: "Kriti Jain (Article)",
         text: chatMessage,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         isClient: false,
@@ -138,13 +140,17 @@ export const ArticleWorkbench: React.FC = () => {
       "919823011928",
       "OTP_CALL_NOTICE",
       {
-        clientName: "Suresh Kulkarni (CFO - Apex Precision)",
+        clientName: selectedWorkpaperEntity || (clients[0]?.name ? `${clients[0]?.primaryContact?.name || "Authorized"} (${clients[0].name})` : "Authorized Signatory"),
         portalName: "Income Tax E-filing Portal (ITR-6)",
         serviceName: "Form 3CD Tax Audit & Return Filing",
         callTime: new Date(Date.now() + 10 * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }
     );
     setOtpCoordinationState("heads_up_sent");
+    toast.info(
+      "OTP Heads-Up Dispatched",
+      "Signatory notified via WhatsApp for upcoming authentication call."
+    );
   };
 
   const handleApproveDoc = (docId: string) => {
@@ -154,18 +160,26 @@ export const ArticleWorkbench: React.FC = () => {
           ? {
               ...d,
               reviewStatus: "APPROVED",
-              reviewedBy: "Rohan Verma (Article)",
+              reviewedBy: "Kriti Jain (Article)",
               reviewedAt: new Date().toISOString(),
             }
           : d
       )
     );
+    const targetDoc = documents.find((d) => d.id === docId);
     setTasks((prev) =>
       prev.map((t) =>
-        t.entityName.includes("Apex") && t.status === "DOCUMENTS_AWAITED"
-          ? { ...t, status: "IN_PREPARATION", missingDocumentsCount: Math.max(0, t.missingDocumentsCount - 1) }
+        ((targetDoc && t.id === targetDoc.taskId) ||
+          (targetDoc && t.entityId === targetDoc.entityId) ||
+          (targetDoc && t.entityName.toLowerCase() === targetDoc.entityName.toLowerCase())) &&
+        t.status === "DOCUMENTS_AWAITED"
+          ? { ...t, status: "IN_PREPARATION", missingDocumentsCount: Math.max(0, (t.missingDocumentsCount || 1) - 1) }
           : t
       )
+    );
+    toast.success(
+      "Workpaper Approved",
+      "Document verified by Kriti Jain. Engagement advanced to In Preparation."
     );
     setToastMessage("Document verified & marked APPROVED. Engagement moved to In Preparation!");
     setTimeout(() => setToastMessage(null), 5000);
@@ -180,6 +194,10 @@ export const ArticleWorkbench: React.FC = () => {
       serviceName: "Statutory Verification",
       missingDocs: [`Correction needed on ${doc.fileName} (Unclear scan or statement incomplete)`],
     });
+    toast.warning(
+      "Clarification Requested",
+      `WhatsApp message triggered to ${doc.entityName} for ${doc.fileName}.`
+    );
     setToastMessage(`Marked correction needed and opened 1-tap WhatsApp chase for ${doc.fileName}!`);
     setTimeout(() => setToastMessage(null), 5000);
   };
@@ -189,6 +207,10 @@ export const ArticleWorkbench: React.FC = () => {
     setTimeout(() => {
       setIsSubmittingTimesheet(false);
       setTimesheetSubmitted(true);
+      toast.success(
+        "Timesheet Submitted",
+        "Daily article timesheet logged for Partner review."
+      );
       setTimeout(() => setTimesheetSubmitted(false), 4000);
     }, 1200);
   };
@@ -213,7 +235,7 @@ export const ArticleWorkbench: React.FC = () => {
             <span className="text-xs uppercase font-black px-2.5 py-0.5 rounded-full bg-red-50 text-btred-logo border border-red-200">
               Active Article Trainee
             </span>
-            <span className="text-xs text-slate-500 font-semibold">Rohan Verma &bull; Year 2 Articleship &bull; Reg: WRO0641209</span>
+            <span className="text-xs text-slate-500 font-semibold">Kriti Jain &bull; Assigned Article Assistant &bull; Reg: CRO022998</span>
           </div>
           <h3 className="text-xl font-black text-slate-900 mt-1 tracking-tight">
             Article Execution Workbench &amp; Automation Hub
@@ -224,18 +246,36 @@ export const ArticleWorkbench: React.FC = () => {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold overflow-x-auto scrollbar-none touch-pan-x w-full md:w-auto">
           <button
             onClick={() => setActiveTab("tasks")}
-            className={`px-3 py-1.5 rounded-xl transition ${
+            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap shrink-0 ${
               activeTab === "tasks" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             My Returns ({myTasks.length})
           </button>
           <button
+            onClick={() => setActiveTab("bank-decryptor")}
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              activeTab === "bank-decryptor" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+            Bank OCR &amp; Tally XML
+          </button>
+          <button
+            onClick={() => setActiveTab("chat-hub")}
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              activeTab === "chat-hub" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-teal-500" />
+            1-Tap WhatsApp Desk
+          </button>
+          <button
             onClick={() => setActiveTab("doc-review")}
-            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === "doc-review" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
             }`}
           >
@@ -243,40 +283,22 @@ export const ArticleWorkbench: React.FC = () => {
             Client Doc Intake ({documents.filter(d => d.reviewStatus === "PENDING_REVIEW").length})
           </button>
           <button
-            onClick={() => setActiveTab("bank-decryptor")}
-            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-              activeTab === "bank-decryptor" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            PDF Decryptor
-          </button>
-          <button
-            onClick={() => setActiveTab("chat-hub")}
-            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-              activeTab === "chat-hub" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-            WhatsApp Desk
-          </button>
-          <button
             onClick={() => setActiveTab("otp-relay")}
-            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === "otp-relay" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <PhoneCall className="w-3.5 h-3.5 text-btred-logo" />
-            Signatory OTP Call
+            Signatory OTP
           </button>
           <button
             onClick={() => setActiveTab("timesheet")}
-            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === "timesheet" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <Clock className="w-3.5 h-3.5 text-blue-500" />
-            ICAI Form 102/103
+            Timesheet (102/103)
           </button>
         </div>
       </div>
@@ -304,7 +326,14 @@ export const ArticleWorkbench: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                {myTasks.map((task) => (
+                {myTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                      No statutory returns assigned. All client engagements are currently clean.
+                    </td>
+                  </tr>
+                ) : (
+                myTasks.map((task) => (
                   <tr key={task.id} className="hover:bg-slate-50 transition">
                     <td className="py-3.5 px-4">
                       <div className="font-black text-slate-900">{task.entityName}</div>
@@ -373,7 +402,8 @@ export const ArticleWorkbench: React.FC = () => {
                       )}
                     </td>
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>
@@ -399,7 +429,12 @@ export const ArticleWorkbench: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {documents.map((doc) => (
+            {documents.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-xs">
+                No client documents pending verification. Intake vault is clean.
+              </div>
+            ) : (
+            documents.map((doc) => (
               <div
                 key={doc.id}
                 className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs"
@@ -454,7 +489,8 @@ export const ArticleWorkbench: React.FC = () => {
                   )}
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
       )}
@@ -523,7 +559,7 @@ export const ArticleWorkbench: React.FC = () => {
                   >
                     <div>
                       <span className="font-bold text-slate-900 text-xs block">{doc.fileName}</span>
-                      <span className="text-[11px] text-slate-400 font-medium">{doc.fileSize} &bull; Apex Precision Technologies</span>
+                      <span className="text-[11px] text-slate-400 font-medium">{doc.fileSize} &bull; {doc.entityName || "Client Entity"}</span>
                     </div>
 
                     {isDecrypted ? (
@@ -553,6 +589,11 @@ export const ArticleWorkbench: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Direct Bank Statement OCR & Tally XML Suite */}
+          <div className="pt-6 border-t border-slate-200">
+            <BankStatementParser />
+          </div>
         </div>
       )}
 
@@ -563,7 +604,7 @@ export const ArticleWorkbench: React.FC = () => {
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-emerald-600" />
-                Firm-Controlled Client WhatsApp Channel: Apex Precision Technologies
+                Firm-Controlled Client WhatsApp Channel: {selectedWorkpaperEntity || (clients[0]?.name ?? "Client Direct Desk")}
               </h3>
               <p className="text-xs text-slate-500 font-medium">
                 Uses 1-tap WhatsApp deep links (wa.me). Zero Meta Cloud API fees, zero template bans, opens directly on your desktop WhatsApp Web or phone.
@@ -579,10 +620,10 @@ export const ArticleWorkbench: React.FC = () => {
             <button
               onClick={() => {
                 openWhatsAppPreset("919823011928", "DOC_CHASE", {
-                  clientName: "Suresh Kulkarni (Apex Tech)",
+                  clientName: selectedWorkpaperEntity || (clients[0]?.name ?? "Client Direct Desk"),
                   serviceName: "GSTR-3B & Tax Audit",
                   period: "September 2026",
-                  missingDocs: ["HDFC Current Statement", "September Purchase Register with E-Way Bill Nos"],
+                  missingDocs: ["Bank Statement", "Purchase Register with E-Way Bill Nos"],
                 });
               }}
               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 border border-slate-200"
@@ -593,7 +634,7 @@ export const ArticleWorkbench: React.FC = () => {
             <button
               onClick={() => {
                 openWhatsAppPreset("919823011928", "ADVANCE_TAX_REMINDER", {
-                  clientName: "Suresh Kulkarni (Apex Tech)",
+                  clientName: selectedWorkpaperEntity || (clients[0]?.name ?? "Client Direct Desk"),
                   period: "Q2 FY 2026-27",
                   deadline: "15th Sept",
                   invoiceAmount: 450000,
@@ -607,7 +648,7 @@ export const ArticleWorkbench: React.FC = () => {
             <button
               onClick={() => {
                 openWhatsAppPreset("919823011928", "FILING_ACKNOWLEDGEMENT", {
-                  clientName: "Suresh Kulkarni (Apex Tech)",
+                  clientName: selectedWorkpaperEntity || (clients[0]?.name ?? "Client Direct Desk"),
                   serviceName: "GSTR-1 Monthly Return",
                   period: "September 2026",
                   arnNumber: "AA2709260192841",
@@ -680,8 +721,8 @@ export const ArticleWorkbench: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
               <div className="bg-white p-3 rounded-xl border border-slate-200">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Target Client Entity</span>
-                <span className="font-black text-slate-900 text-sm mt-0.5 block">Apex Precision Technologies Pvt Ltd</span>
-                <span className="text-[11px] text-slate-500">CIN: U29253MH2012PTC231456</span>
+                <span className="font-black text-slate-900 text-sm mt-0.5 block">{selectedWorkpaperEntity || (clients[0]?.name ?? "No Client Selected")}</span>
+                <span className="text-[11px] text-slate-500 font-mono">PAN: {clients[0]?.pan ?? "N/A"}</span>
               </div>
               <div className="bg-white p-3 rounded-xl border border-slate-200">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Department Filing</span>
@@ -690,8 +731,8 @@ export const ArticleWorkbench: React.FC = () => {
               </div>
               <div className="bg-white p-3 rounded-xl border border-slate-200">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Authorized Signatory</span>
-                <span className="font-black text-slate-900 text-sm mt-0.5 block">Suresh Kulkarni (CFO)</span>
-                <span className="text-[11px] text-slate-500 font-mono">Mobile: +91 98230 11928</span>
+                <span className="font-black text-slate-900 text-sm mt-0.5 block">{clients[0]?.primaryContact?.name ?? "Key Signatory"}</span>
+                <span className="text-[11px] text-slate-500 font-mono">Mobile: {clients[0]?.primaryContact?.phone ?? "+91 98000 00000"}</span>
               </div>
             </div>
 
@@ -771,7 +812,7 @@ export const ArticleWorkbench: React.FC = () => {
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
               <div>
                 <span className="font-bold text-slate-900 block">GSTR-3B Filing &amp; GSTR-2B Matching</span>
-                <span className="text-[11px] text-slate-500">Apex Precision, Zenora Logistics &amp; Heritage Silks</span>
+                <span className="text-[11px] text-slate-500">Statutory Return Computations &amp; ITC Verifications</span>
               </div>
               <span className="font-mono font-bold text-slate-800">12.0 hrs</span>
             </div>

@@ -7,14 +7,59 @@
   --foreground: #09090b;
 }
 
+/* Ensure full viewport height and safe area support across iOS / Android / Desktop */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
 body {
   color: #09090b;
   background-color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
+  overflow-x: hidden;
+  /* Prevent rubber-band pulling over horizontal boundary */
+  overscroll-behavior-x: none;
 }
 
-/* Custom scrollbars for clean light UI */
+/* iOS Safe Area Padding Utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Prevent unwanted iOS auto-zoom on input focus by ensuring mobile input font-size >= 16px */
+@media screen and (max-width: 640px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Custom scrollbars for clean modern UI */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -31,4 +76,13 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Hide scrollbar for clean horizontal tab lists while preserving touch scrolling */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

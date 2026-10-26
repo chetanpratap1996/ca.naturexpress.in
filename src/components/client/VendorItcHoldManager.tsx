@@ -32,38 +32,9 @@ export interface VendorHoldItem {
   status: "PAYMENT_HELD" | "NOTICE_SENT" | "RESOLVED_IN_2B";
 }
 
-const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [
-  {
-    id: "VHOLD-1",
-    vendorName: "Singhal Industrial Lubricants & Oils",
-    vendorGstin: "27AAYPS9901M1ZQ",
-    invoiceNo: "SIL/0926/771",
-    invoiceDate: "25-Sep-2026",
-    taxableAmount: 185000,
-    blockedItc: 33300,
-    totalInvoiceValue: 218300,
-    recommendedWithholdAmount: 33300, // Hold back the GST component
-    vendorContactPhone: "+91 98210 55412",
-    vendorAccountEmail: "accounts@singhalindustrial.com",
-    status: "PAYMENT_HELD"
-  },
-  {
-    id: "VHOLD-2",
-    vendorName: "Bajaj Electrical Transformers & Spares",
-    vendorGstin: "27AAACB4410K1ZX",
-    invoiceNo: "BET/SEP/2026/019",
-    invoiceDate: "28-Sep-2026",
-    taxableAmount: 240000,
-    blockedItc: 43200,
-    totalInvoiceValue: 283200,
-    recommendedWithholdAmount: 43200,
-    vendorContactPhone: "+91 98900 88219",
-    vendorAccountEmail: "billing@bajajelectricals.co.in",
-    status: "PAYMENT_HELD"
-  }
-];
+const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [];
 
-export function VendorItcHoldManager({ clientName = "Apex Precision Technologies Pvt Ltd" }: { clientName?: string }) {
+export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientName?: string }) {
   const [holds, setHolds] = useState<VendorHoldItem[]>(INITIAL_VENDOR_HOLDS);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -158,7 +129,7 @@ export function VendorItcHoldManager({ clientName = "Apex Precision Technologies
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <div className="bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-2xl text-right shrink-0">
             <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Blocked ITC to Withhold</span>
             <span className="text-xl font-black text-rose-700">₹{totalBlockedItc.toLocaleString("en-IN")}</span>
@@ -182,7 +153,16 @@ export function VendorItcHoldManager({ clientName = "Apex Precision Technologies
 
       {/* Holds Table */}
       <div className="space-y-3">
-        {holds.map((item) => (
+        {holds.length === 0 ? (
+          <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <h4 className="text-sm font-bold text-slate-800">Zero Invoices on Payment Hold</h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+              All supplier invoices in GSTR-2B match your purchase registers. No vendor GST payment holds are active. Click + to flag any non-compliant vendor manually.
+            </p>
+          </div>
+        ) : (
+          holds.map((item) => (
           <div
             key={item.id}
             className={`p-4 rounded-2xl border transition space-y-3 ${
@@ -250,7 +230,7 @@ export function VendorItcHoldManager({ clientName = "Apex Precision Technologies
               </div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Add Modal */}
@@ -278,7 +258,7 @@ export function VendorItcHoldManager({ clientName = "Apex Precision Technologies
                   required
                   value={newVendorName}
                   onChange={(e) => setNewVendorName(e.target.value)}
-                  placeholder="e.g. Apex Industrial Steel Corp"
+                  placeholder="e.g. Steel Trading Co Pvt Ltd"
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-slate-800"
                 />
               </div>

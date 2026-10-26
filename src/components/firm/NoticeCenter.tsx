@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { NoticeRecord } from "@/lib/types";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
+import { toast } from "@/components/shared/ToastNotification";
 import { 
   AlertCircle, 
   Clock, 
@@ -30,11 +31,19 @@ interface NoticeCenterProps {
 export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNotices, onNoticeUpdated }) => {
   const [notices, setNotices] = useState<NoticeRecord[]>(initialNotices);
   const [selectedNotice, setSelectedNotice] = useState<NoticeRecord | null>(initialNotices[0] || null);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [isScanningPortals, setIsScanningPortals] = useState(false);
   const [replySuccessMessage, setReplySuccessMessage] = useState<string | null>(null);
   const [aiDefenseData, setAiDefenseData] = useState<any | null>(null);
+
+  React.useEffect(() => {
+    setNotices(initialNotices);
+    if (!selectedNotice && initialNotices.length > 0) {
+      setSelectedNotice(initialNotices[0]);
+    }
+  }, [initialNotices]);
 
   const getDaysRemaining = (deadline: string) => {
     const diffTime = new Date(deadline).getTime() - new Date("2026-10-24").getTime();
@@ -58,10 +67,20 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
         setNotices((prev) => [data.notice, ...prev]);
         setSelectedNotice(data.notice);
         setReplySuccessMessage(data.message);
+        toast.success(
+          "Government Portals Synced",
+          "Automated audit scraper verified Income Tax, GSTN & MCA portals."
+        );
         setTimeout(() => setReplySuccessMessage(null), 6000);
         if (onNoticeUpdated) onNoticeUpdated();
+      } else {
+        toast.info(
+          "Portals Verified",
+          "All statutory portals up to date. Zero outstanding demand notices found."
+        );
       }
     } catch (e) {
+      toast.error("Sync Failed", "Could not complete portal sync.");
       console.error(e);
     } finally {
       setIsScanningPortals(false);
@@ -84,6 +103,10 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
       if (data.success) {
         setAiDefenseData(data.legalDefenseDraft);
         setShowReplyModal(true);
+        toast.success(
+          "Legal Defense Generated",
+          "Jurisprudence-backed legal response draft generated with judicial precedents."
+        );
       }
     } catch (e) {
       console.error(e);
@@ -195,9 +218,30 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
       </div>
 
       {/* Grid: List of Notices + Detailed Triage Workpaper */}
+      {notices.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-sm space-y-4">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-3xl mx-auto flex items-center justify-center">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-900">Zero Pending Scrutiny Notices or Demands</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              Your practice client records are clean. The background daemon continuously monitors ITD, GSTN, and MCA portals for statutory notices with verified DIN numbers.
+            </p>
+          </div>
+          <button
+            onClick={handleRunPortalScraper}
+            disabled={isScanningPortals}
+            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isScanningPortals ? "animate-spin" : ""}`} />
+            <span>Poll Department Portals Now</span>
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Notices Master List */}
-        <div className="lg:col-span-5 space-y-3">
+        <div className={`lg:col-span-5 space-y-3 ${mobileView === "detail" ? "hidden lg:block" : "block"}`}>
           {notices.map((notice) => {
             const daysLeft = getDaysRemaining(notice.statutoryDeadline);
             const isSelected = selectedNotice?.id === notice.id;
@@ -205,7 +249,10 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
             return (
               <div
                 key={notice.id}
-                onClick={() => setSelectedNotice(notice)}
+                onClick={() => {
+                  setSelectedNotice(notice);
+                  setMobileView("detail");
+                }}
                 className={`p-4 rounded-3xl border transition-all cursor-pointer ${
                   isSelected
                     ? "bg-white border-btred-logo shadow-md ring-2 ring-red-100"
@@ -251,9 +298,17 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
 
         {/* Selected Notice Workpaper */}
         {selectedNotice && (
-          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between shadow-sm space-y-4">
+          <div className={`lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 flex flex-col justify-between shadow-sm space-y-4 ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              {/* Mobile Back Button */}
+              <button
+                onClick={() => setMobileView("list")}
+                className="lg:hidden text-xs font-bold text-btred-logo flex items-center gap-1.5 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl transition w-fit"
+              >
+                &larr; Back to Case List
+              </button>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                 <div>
                   <span className="text-xs font-black text-btred-logo uppercase tracking-wider">
                     {selectedNotice.authority.replace("_", " ")} Case Docket
@@ -355,6 +410,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
           </div>
         )}
       </div>
+      )}
 
       {/* AI LEGAL DEFENSE DOCKET MODAL */}
       {showReplyModal && selectedNotice && (

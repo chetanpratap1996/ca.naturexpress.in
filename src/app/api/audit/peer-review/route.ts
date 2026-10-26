@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
   try {
     const db = ensureDatabase();
     const searchParams = request.nextUrl.searchParams;
-    const entityId = searchParams.get("entityId") || "CLI-001";
+    const defaultId = db.clients[0]?.id || "CLI-001";
+    const entityId = searchParams.get("entityId") || defaultId;
 
     const msmeRecords = db.msmeRecords || [];
     const section40a2bSamples = db.section40a2bSamples || [];
@@ -33,21 +34,21 @@ export async function GET(request: NextRequest) {
           title: "Section 43B(h) MSME 45-Day Payment Disallowance Working Paper",
           standard: "SA_500",
           status: "ATTACHED_AND_SIGNED",
-          verifiedBy: "Rohan Verma (Article) & CA Gunjan Jain",
+          verifiedBy: "Kriti Jain (Article) & CA Gunjan Jain",
           signedDate: "2026-09-18"
         },
         {
           title: "Section 40A(2)(b) Related Party Fair Market Value Test (SA 550)",
           standard: "SA_500",
           status: "ATTACHED_AND_SIGNED",
-          verifiedBy: "Sneha Patil (Article) & CA Vikas Chhajed",
+          verifiedBy: "Kriti Jain (Article) & CA Gunjan Jain",
           signedDate: "2026-09-20"
         },
         {
           title: "External Bank & Trade Debtors Confirmation Circulars (SA 505)",
           standard: "SA_505",
           status: "ATTACHED_AND_SIGNED",
-          verifiedBy: "Pooja Mehta (Paid CA)",
+          verifiedBy: "Kriti Jain (Article Trainee) & CA Gunjan Jain",
           signedDate: "2026-09-24"
         },
         {

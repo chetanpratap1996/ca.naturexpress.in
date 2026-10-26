@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { DscRecord } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { toast } from "@/components/shared/ToastNotification";
 import { 
   KeyRound, 
   AlertTriangle, 
@@ -28,7 +29,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "checked-out" | "expiring-soon">("all");
   const [checkoutModalToken, setCheckoutModalToken] = useState<DscRecord | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<string>("Rohan Verma (Article)");
+  const [selectedStaff, setSelectedStaff] = useState<string>("Kriti Jain (Article Trainee)");
   const [checkoutPurpose, setCheckoutPurpose] = useState<string>("Statutory Filing Sign-off");
   const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null);
 
@@ -77,6 +78,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
     } catch (e) {
       console.error(e);
     }
+    toast.success("DSC Token Returned", "Token safely returned to Firm Master Safe.");
     setActionSuccessToast("Token returned safely to Master Safe! Custody logged.");
     setTimeout(() => setActionSuccessToast(null), 4000);
   };
@@ -110,6 +112,10 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
     } catch (e) {
       console.error(e);
     }
+    toast.info(
+      "DSC Checked Out",
+      `Token for ${token.holderName} checked out to ${selectedStaff}.`
+    );
     setActionSuccessToast(`Token checked out to ${selectedStaff}! Custody transfer logged to audit ledger.`);
     setCheckoutModalToken(null);
     setTimeout(() => setActionSuccessToast(null), 4000);
@@ -147,16 +153,16 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Tracks 420 physical USB dongles (ePass2003, ProxKey, mToken). Prevents lost hardware, midnight filing panics, and un-renewed certificates.
+              Tracks physical USB dongles (ePass2003, ProxKey, mToken). Prevents lost hardware, midnight filing panics, and un-renewed certificates.
             </p>
           </div>
         </div>
 
         {/* Quick Filter Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none touch-pan-x w-full md:w-auto pb-1 md:pb-0">
           <button
             onClick={() => setActiveFilter("all")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition whitespace-nowrap shrink-0 ${
               activeFilter === "all" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -164,7 +170,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
           </button>
           <button
             onClick={() => setActiveFilter("checked-out")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition whitespace-nowrap shrink-0 ${
               activeFilter === "checked-out" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -172,7 +178,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
           </button>
           <button
             onClick={() => setActiveFilter("expiring-soon")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition whitespace-nowrap shrink-0 ${
               activeFilter === "expiring-soon" ? "bg-btred-logo text-white shadow-sm" : "bg-red-50 text-btred-logo border border-red-200"
             }`}
           >
@@ -196,7 +202,18 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
       </div>
 
       {/* Tokens List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {filtered.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-sm space-y-3">
+          <div className="w-12 h-12 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center text-slate-400">
+            <KeyRound className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-800">No Physical DSC Tokens In Vault</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Your physical vault custody ledger is currently clean. Register director/partner USB dongles to track safe locker slots and expiry dates.
+          </p>
+        </div>
+      ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((token) => {
           const isExpiring = token.daysToExpiry <= 30;
           const isExpired = token.daysToExpiry <= 0;
@@ -313,6 +330,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
           );
         })}
       </div>
+      )}
 
       {/* CHECKOUT MODAL */}
       {checkoutModalToken && (
@@ -334,9 +352,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
                   onChange={(e) => setSelectedStaff(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
                 >
-                  <option value="Rohan Verma (Article - Year 2)">Rohan Verma (Article - Year 2)</option>
-                  <option value="Ananya Iyer (Article - Year 3)">Ananya Iyer (Article - Year 3)</option>
-                  <option value="Pooja Deshmukh (Article - Year 1)">Pooja Deshmukh (Article - Year 1)</option>
+                  <option value="Kriti Jain (Article Trainee)">Kriti Jain (Article Trainee)</option>
                   <option value="CA Gunjan Jain (Partner)">CA Gunjan Jain (Partner)</option>
                 </select>
               </div>

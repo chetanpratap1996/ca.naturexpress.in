@@ -13,6 +13,7 @@ import { DocumentItem, InvoiceItem, PayToReleaseConfig, ComplianceTask, ClientEn
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
+import { toast } from "@/components/shared/ToastNotification";
 import { 
   CheckCircle2, 
   Clock, 
@@ -28,6 +29,7 @@ import {
   X, 
   FileCheck, 
   ShieldCheck, 
+  ShieldAlert,
   ExternalLink,
   Lock,
   Unlock,
@@ -46,6 +48,8 @@ import { VendorItcHoldManager } from "./VendorItcHoldManager";
 import { TaxCashflowForecaster } from "./TaxCashflowForecaster";
 import { CompanyKycLocker } from "./CompanyKycLocker";
 import { ClientQuickActionModal } from "./ClientQuickActionModal";
+import { DirectorRiskRadar } from "./DirectorRiskRadar";
+import { Msme43bhWatchdog } from "./Msme43bhWatchdog";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 export type ClientTabType = 
@@ -54,6 +58,8 @@ export type ClientTabType =
   | "cash-forecast" 
   | "vendor-hold" 
   | "kyc-locker" 
+  | "director-risk"
+  | "msme-watchdog"
   | "upload" 
   | "vault" 
   | "billing";
@@ -86,7 +92,12 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
     instantUpiUnlock
   } = dataHook;
 
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-001");
+  const clientsList = (hookClients && hookClients.length > 0) ? hookClients : INITIAL_CLIENTS;
+
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => {
+    return hookClients?.[0]?.id || INITIAL_CLIENTS[0]?.id || "";
+  });
+
   const [currentTab, setCurrentTab] = useState<ClientTabType>(
     externalTab || activeTab
   );
@@ -107,6 +118,15 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
       setCurrentTab(externalTab);
     }
   }, [externalTab]);
+
+  // Keep selectedEntityId properly synchronized to live clients
+  React.useEffect(() => {
+    if (hookClients && hookClients.length > 0) {
+      if (!selectedEntityId || !hookClients.some((c) => c.id === selectedEntityId)) {
+        setSelectedEntityId(hookClients[0].id);
+      }
+    }
+  }, [hookClients, selectedEntityId]);
   
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,14 +145,15 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   const [clientPayerNote, setClientPayerNote] = useState("");
   const [isSubmittingUtr, setIsSubmittingUtr] = useState(false);
 
-  const clientsList = (hookClients && hookClients.length > 0) ? hookClients : INITIAL_CLIENTS;
-  const currentClient = clientsList.find((c) => c.id === selectedEntityId) || clientsList[0] || INITIAL_CLIENTS[0];
+  const currentClient = (clientsList && clientsList.length > 0)
+    ? (clientsList.find((c) => c.id === selectedEntityId) || clientsList[0])
+    : null;
   const siblingEntities = currentClient?.groupId 
     ? clientsList.filter((c) => c.groupId === currentClient.groupId)
     : clientsList;
 
-  const currentPayConfig = (hookPayConfigs || []).find((c) => c.entityId === selectedEntityId) || {
-    entityId: selectedEntityId,
+  const currentPayConfig = (hookPayConfigs || []).find((c) => c.entityId === (currentClient?.id || selectedEntityId)) || {
+    entityId: currentClient?.id || selectedEntityId,
     isLocked: false,
     totalOutstandingAmount: 0,
     oldestInvoiceDays: 0,
@@ -143,10 +164,21 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
     lockReason: "Account in good standing."
   };
 
-  const clientTasks = (hookTasks || []).filter((t) => t.entityId === selectedEntityId);
-  const clientDocs = (hookDocs || []).filter((d) => d.entityId === selectedEntityId);
-  const clientInvoices = (hookInvoices || []).filter(
-    (i) => i.entityId === selectedEntityId || (currentClient?.groupId && i.groupId === currentClient.groupId)
+  // Robust data filtering matching both entityId and entityName for 1000% accuracy
+  const clientTasks = (hookTasks || []).filter((t) => 
+    t.entityId === currentClient?.id || 
+    (currentClient?.name && t.entityName.toLowerCase() === currentClient.name.toLowerCase())
+  );
+
+  const clientDocs = (hookDocs || []).filter((d) => 
+    d.entityId === currentClient?.id || 
+    (currentClient?.name && d.entityName.toLowerCase() === currentClient.name.toLowerCase())
+  );
+
+  const clientInvoices = (hookInvoices || []).filter((i) => 
+    i.entityId === currentClient?.id || 
+    (currentClient?.groupId && i.groupId === currentClient.groupId) ||
+    (currentClient?.name && i.entityName.toLowerCase() === currentClient.name.toLowerCase())
   );
 
   const handleDocumentDownload = (doc: DocumentItem) => {
@@ -171,12 +203,17 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
     setIsInstantPaying(true);
     try {
       await instantUpiUnlock(selectedEntityId, currentPayConfig.totalOutstandingAmount);
+      toast.success(
+        "Deliverables Unlocked",
+        "Payment verified! Official statutory documents released and available for download."
+      );
       setUnlockSuccessMsg("Payment verified! Official deliverable unlocked and released.");
       setTimeout(() => {
         setPayLockModalDoc(null);
         setUnlockSuccessMsg("");
       }, 1500);
     } catch (e) {
+      toast.error("Unlock Failed", "Failed to process release payment.");
       console.error(e);
     } finally {
       setIsInstantPaying(false);
@@ -185,12 +222,12 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentClient) return;
 
     setIsUploading(true);
     try {
       await uploadDocument({
-        entityId: selectedEntityId,
+        entityId: currentClient.id,
         entityName: currentClient.name,
         category: selectedCategory,
         fileName: file.name,
@@ -199,10 +236,15 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         uploadedBy: "CLIENT_PWA",
         actorName: currentClient.primaryContact.name,
       });
+      toast.success(
+        "Document Uploaded Successfully",
+        `"${file.name}" uploaded to firm vault. Assigned article Kriti Jain notified.`
+      );
       setUploadSuccessMessage(`Successfully uploaded "${file.name}" to Firm Master File!`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setTimeout(() => setUploadSuccessMessage(""), 5000);
     } catch (err) {
+      toast.error("Upload Failed", "Could not complete upload to firm vault.");
       console.error("Upload failed", err);
     } finally {
       setIsUploading(false);
@@ -210,27 +252,33 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   };
 
   const handleSubmitClientUtr = async () => {
-    if (!selectedInvoiceForUtr) return;
+    if (!selectedInvoiceForUtr || !currentClient) return;
     if (!clientUtrInput.trim()) {
       alert("Please enter the 12-digit UTR or Bank transaction reference number");
       return;
     }
 
     setIsSubmittingUtr(true);
+    const enteredUtr = clientUtrInput.trim();
     try {
       await submitClientUtr(
         selectedInvoiceForUtr.id,
-        clientUtrInput.trim(),
+        enteredUtr,
         clientPaymentMode,
         clientPayerNote.trim() || undefined,
         currentClient.primaryContact.name
       );
       setSelectedInvoiceForUtr(null);
-      setUploadSuccessMessage(`Payment reference UTR ${clientUtrInput.trim()} submitted to CA firm! Receipt will be issued upon bank verification.`);
+      toast.success(
+        "Payment UTR Submitted",
+        `UTR ${enteredUtr} received. Firm accounts team notified for bank reconciliation.`
+      );
+      setUploadSuccessMessage(`Payment reference UTR ${enteredUtr} submitted to CA firm! Receipt will be issued upon bank verification.`);
       setClientUtrInput("");
       setClientPayerNote("");
       setTimeout(() => setUploadSuccessMessage(""), 6000);
     } catch (err) {
+      toast.error("Submission Failed", "Could not record UTR reference.");
       console.error(err);
     } finally {
       setIsSubmittingUtr(false);
@@ -238,16 +286,31 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   };
 
   const handleOpenFirmWhatsApp = () => {
+    toast.info("WhatsApp Connected", "Opening firm compliance chat line...");
     openWhatsAppPreset(
       DEFAULT_FIRM_BRANDING.whatsappNumber,
       "DOC_CHASE",
       {
-        clientName: currentClient.name,
+        clientName: currentClient?.name || "Practice Client",
         serviceName: "Compliance Desk",
         period: "Current Statutory Period",
       }
     );
   };
+
+  if (!currentClient) {
+    return (
+      <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4">
+        <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto text-slate-400">
+          <Building2 className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-black text-slate-900">No Client Profile Loaded</h3>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          No practice clients are enrolled yet in this session. Please onboard an entity in CA Partner Hub &gt; Client Master to unlock the client portal and document vault.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-28 sm:pb-20">
@@ -390,6 +453,26 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         >
           <FolderLock className="w-3.5 h-3.5 text-emerald-500" />
           Company Documents
+        </button>
+
+        <button
+          onClick={() => setCurrentTab("director-risk")}
+          className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+            currentTab === "director-risk" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5 text-indigo-500" />
+          Director Risk Radar
+        </button>
+
+        <button
+          onClick={() => setCurrentTab("msme-watchdog")}
+          className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+            currentTab === "msme-watchdog" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5 text-amber-500" />
+          MSME 43B(h) Watchdog
         </button>
 
         <button
@@ -641,6 +724,16 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
       {/* TAB 5: PERMANENT LEGAL & KYC LOCKER */}
       {currentTab === "kyc-locker" && (
         <CompanyKycLocker client={currentClient} />
+      )}
+
+      {/* TAB: DIRECTOR RISK & MCA SHIELD */}
+      {currentTab === "director-risk" && (
+        <DirectorRiskRadar client={currentClient} />
+      )}
+
+      {/* TAB: MSME 43B(H) 45-DAY PAYMENT WATCHDOG */}
+      {currentTab === "msme-watchdog" && (
+        <Msme43bhWatchdog client={currentClient} />
       )}
 
       {/* TAB 6: UPLOAD DOCS */}

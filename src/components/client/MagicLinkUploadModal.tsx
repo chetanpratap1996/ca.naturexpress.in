@@ -60,8 +60,8 @@ export const MagicLinkUploadModal: React.FC<MagicLinkUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-700 space-y-4 relative animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-slate-900 text-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-700 space-y-4 relative animate-in fade-in zoom-in-95 max-h-[90dvh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-slate-400 hover:text-white p-1"
@@ -160,7 +160,7 @@ export const MagicLinkUploadModal: React.FC<MagicLinkUploadModalProps> = ({
             <div>
               <h4 className="text-sm font-black text-white">Received &amp; Verified!</h4>
               <p className="text-xs text-slate-300 mt-1">
-                Document attached to your September 2026 GST Docket. Your article clerk Rohan Verma has been notified to resume filing.
+                Document attached to your statutory compliance docket. Your assigned article assistant Kriti Jain has been notified to resume filing.
               </p>
             </div>
             <button

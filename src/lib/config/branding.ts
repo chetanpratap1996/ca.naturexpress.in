@@ -58,12 +58,12 @@ export const DEFAULT_FIRM_BRANDING: FirmBrandingConfig = {
 };
 
 export const DEFAULT_CLIENT_BRANDING: ClientBrandingConfig = {
-  groupName: "Singhania Industrial Group",
-  primaryContactName: "Suresh Kulkarni",
-  designation: "Finance Head",
-  phone: "+91 98230 11928",
-  email: "finance@apexprecision.com",
-  defaultEntityId: "CLI-001",
+  groupName: "Client Business Group",
+  primaryContactName: "Authorized Signatory",
+  designation: "Director / CFO",
+  phone: "+91 98000 00000",
+  email: "accounts@cliententerprise.in",
+  defaultEntityId: "",
 };
 
 // Safe storage access for dynamic white-labeling

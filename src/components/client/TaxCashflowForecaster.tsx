@@ -21,7 +21,7 @@ interface TaxCashflowForecasterProps {
   clientName?: string;
 }
 
-export function TaxCashflowForecaster({ clientName = "Apex Precision Technologies Pvt Ltd" }: TaxCashflowForecasterProps) {
+export function TaxCashflowForecaster({ clientName = "Client Entity" }: TaxCashflowForecasterProps) {
   // GSTR-3B Interactive State
   const [estimatedSalesTax, setEstimatedSalesTax] = useState<number>(580000);
   const [eligible2bItc, setEligible2bItc] = useState<number>(395000);

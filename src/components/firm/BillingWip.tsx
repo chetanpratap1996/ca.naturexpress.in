@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { InvoiceItem } from "@/lib/types";
+import { InvoiceItem, ClientEntity } from "@/lib/types";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { 
@@ -20,13 +20,15 @@ import {
   Plus
 } from "lucide-react";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { toast } from "@/components/shared/ToastNotification";
 
 interface BillingWipProps {
   invoices: InvoiceItem[];
+  clients?: ClientEntity[];
   onRefresh?: () => void;
 }
 
-export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) => {
+export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], onRefresh }) => {
   const [invoiceList, setInvoiceList] = useState<InvoiceItem[]>(invoices);
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid">("all");
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
@@ -41,7 +43,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
   const [payerNote, setPayerNote] = useState("");
 
   // New Invoice Form State
-  const [newEntityName, setNewEntityName] = useState("Apex Precision Technologies Pvt Ltd");
+  const [newEntityName, setNewEntityName] = useState(() => clients[0]?.name || "");
   const [newServiceDesc, setNewServiceDesc] = useState("Statutory Tax Audit & GSTR-9C Annual Certification");
   const [newAmount, setNewAmount] = useState("75000");
 
@@ -105,11 +107,16 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
       );
 
       const amountFormatted = formatCurrencyINR(reconcileModalInvoice.amount);
+      toast.success(
+        "Payment Reconciled",
+        `Invoice #${reconcileModalInvoice.invoiceNo} settled (${amountFormatted}) via UTR ${utrInput.trim()}. Deliverables released.`
+      );
       setToastMessage(`Invoice #${reconcileModalInvoice.invoiceNo} reconciled & settled (${amountFormatted}) via UTR ${utrInput.trim()}! Deliverables unlocked.`);
       setReconcileModalInvoice(null);
       setTimeout(() => setToastMessage(null), 5000);
       if (onRefresh) onRefresh();
     } catch (err) {
+      toast.error("Reconciliation Error", "Failed to reconcile invoice.");
       console.error(err);
     }
   };
@@ -139,10 +146,15 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
             : i
         )
       );
+      toast.success(
+        "UTR Verified & Settled",
+        `UTR ${inv.clientUtrNumber} verified against bank ledger! Invoice #${inv.invoiceNo} marked PAID.`
+      );
       setToastMessage(`UTR ${inv.clientUtrNumber} verified against firm bank ledger! Invoice marked PAID.`);
       setTimeout(() => setToastMessage(null), 5000);
       if (onRefresh) onRefresh();
     } catch (err) {
+      toast.error("Verification Error", "Failed to verify bank UTR.");
       console.error(err);
     }
   };
@@ -152,14 +164,19 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
     const amountVal = Number(newAmount);
     if (!amountVal) return;
 
+    const matchedClient = clients.find(c => c.name === newEntityName) || clients[0];
+    const finalEntityName = newEntityName.trim() || matchedClient?.name || "Client Entity";
+    const finalEntityId = matchedClient?.id || "CLI-001";
+    const finalGroupId = matchedClient?.groupId || "GRP-001";
+
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          entityId: "CLI-001",
-          entityName: newEntityName,
-          groupId: "GRP-001",
+          entityId: finalEntityId,
+          entityName: finalEntityName,
+          groupId: finalGroupId,
           serviceDescription: newServiceDesc,
           amount: amountVal,
           dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -170,6 +187,10 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
       if (data.success && data.invoice) {
         setInvoiceList([data.invoice, ...invoiceList]);
         setIsAddInvoiceOpen(false);
+        toast.success(
+          "Tax Invoice Generated",
+          `Tax Invoice #${data.invoice.invoiceNo} issued for ${formatCurrencyINR(data.invoice.amount)}.`
+        );
         setToastMessage(`Created Tax Invoice #${data.invoice.invoiceNo} for ${formatCurrencyINR(data.invoice.amount)}!`);
         setTimeout(() => setToastMessage(null), 5000);
         if (onRefresh) onRefresh();
@@ -324,7 +345,107 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Invoice Card View (screens < 768px) */}
+        <div className="block md:hidden p-3 space-y-3">
+          {filteredInvoices.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-xs">
+              No invoices match the filter criteria.
+            </div>
+          ) : (
+            filteredInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3 shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono font-black text-slate-900 text-xs">{inv.invoiceNo}</span>
+                  {inv.status === "PAID" ? (
+                    <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Reconciled
+                    </span>
+                  ) : inv.status === "UTR_SUBMITTED" ? (
+                    <span className="bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> UTR Submitted
+                    </span>
+                  ) : (
+                    <span className="bg-red-100 text-btred-logo border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      Pending
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs line-clamp-1">{inv.entityName}</h4>
+                  <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5">{inv.serviceDescription}</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">SAC: {inv.sacCode} &bull; Due: {formatDate(inv.dueDate)}</p>
+                </div>
+
+                <div className="flex items-baseline justify-between pt-2 border-t border-slate-200">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">Total Fee</span>
+                    <span className="text-base font-black text-slate-900">{formatCurrencyINR(inv.amount)}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setPreviewInvoice(inv)}
+                      className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-700 text-xs font-bold hover:bg-slate-100 transition"
+                      title="View Official Tax Invoice"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-slate-600" />
+                    </button>
+
+                    {inv.status !== "PAID" && (
+                      <button
+                        onClick={() => handleWhatsAppChase(inv)}
+                        className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1"
+                        title="Send via WhatsApp"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span className="text-[11px]">Chase</span>
+                      </button>
+                    )}
+
+                    {inv.status === "UTR_SUBMITTED" && (
+                      <button
+                        onClick={() => handleDirectReconcileUtr(inv)}
+                        className="px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Settle
+                      </button>
+                    )}
+
+                    {inv.status !== "PAID" && inv.status !== "UTR_SUBMITTED" && (
+                      <button
+                        onClick={() => handleOpenReconcileModal(inv)}
+                        className="px-2.5 py-1.5 bg-btblack hover:bg-slate-800 text-white font-bold rounded-xl transition text-[11px]"
+                      >
+                        UTR
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {inv.clientUtrNumber && (
+                  <div className="bg-amber-50 border border-amber-200 p-2 rounded-xl text-[10px] font-mono text-amber-900 font-bold flex items-center justify-between">
+                    <span>UTR: {inv.clientUtrNumber} ({inv.clientPaymentMode})</span>
+                    {inv.status !== "PAID" && (
+                      <button
+                        onClick={() => handleOpenReconcileModal(inv)}
+                        className="text-emerald-700 underline font-black"
+                      >
+                        Verify
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View (screens >= 768px) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] tracking-wider border-b border-slate-200 font-extrabold">
               <tr>
@@ -337,7 +458,14 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {filteredInvoices.map((inv) => (
+              {filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                    No billing records found. Click <strong>+ New Tax Invoice</strong> to generate your first professional invoice.
+                  </td>
+                </tr>
+              ) : (
+                filteredInvoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-slate-50 transition">
                   <td className="py-3.5 px-4">
                     <span className="font-mono font-black text-slate-900 block">{inv.invoiceNo}</span>
@@ -436,7 +564,8 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
                     )}
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -671,14 +800,31 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, onRefresh }) =
             </h4>
             <div className="space-y-3 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Client Entity</label>
-                <input
-                  type="text"
-                  required
-                  value={newEntityName}
-                  onChange={(e) => setNewEntityName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
-                />
+                <label className="font-bold text-slate-700 block mb-1">Client Entity *</label>
+                {clients.length > 0 ? (
+                  <select
+                    required
+                    value={newEntityName}
+                    onChange={(e) => setNewEntityName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-600"
+                  >
+                    <option value="">-- Select Client Entity --</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} (PAN: {c.pan})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={newEntityName}
+                    onChange={(e) => setNewEntityName(e.target.value)}
+                    placeholder="e.g. Pratwi Solutions Private Limited"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
+                  />
+                )}
               </div>
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Professional Service Scope</label>

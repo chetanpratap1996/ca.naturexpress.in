@@ -13,6 +13,8 @@ import {
   Sparkles,
   ChevronRight,
   ShieldCheck,
+  ShieldAlert,
+  Clock,
   Send
 } from "lucide-react";
 
@@ -39,7 +41,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
-      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95">
+      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -204,6 +206,54 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Download govt filed receipts &amp; returns
+              </p>
+            </div>
+          </button>
+
+          {/* Action 7: Director Risk Radar */}
+          <button
+            onClick={() => {
+              onClose();
+              onNavigateTab("director-risk");
+            }}
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50/80 transition flex items-start gap-3 group"
+          >
+            <div className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200 shrink-0">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 transition">
+                  Director Risk Radar
+                </h4>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                DIN freeze, Sec 164(2) &amp; SFT tax tracking
+              </p>
+            </div>
+          </button>
+
+          {/* Action 8: MSME 43B(h) Watchdog */}
+          <button
+            onClick={() => {
+              onClose();
+              onNavigateTab("msme-watchdog");
+            }}
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-amber-400 bg-amber-50/40 hover:bg-amber-50/80 transition flex items-start gap-3 group"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-700 transition">
+                  MSME 45-Day Watchdog
+                </h4>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Section 43B(h) disallowance risk tracker
               </p>
             </div>
           </button>

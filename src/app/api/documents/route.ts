@@ -38,8 +38,8 @@ export async function POST(req: Request) {
 
     const newDoc: DocumentItem = {
       id: docId,
-      entityId: entityId || "CLI-001",
-      entityName: entityName || "Apex Precision Technologies Pvt Ltd",
+      entityId: entityId || "CLI-000",
+      entityName: entityName || "Client Entity",
       category: category || "BANK_STATEMENT",
       fileName: fileName || "Uploaded_Document.pdf",
       fileSize: fileSize || "1.5 MB",
@@ -96,14 +96,14 @@ export async function PATCH(req: Request) {
     }
 
     db.documents[docIndex].reviewStatus = reviewStatus;
-    db.documents[docIndex].reviewedBy = reviewedBy || "Rohan Verma (Article)";
+    db.documents[docIndex].reviewedBy = reviewedBy || "Kriti Jain (Article)";
     db.documents[docIndex].reviewedAt = new Date().toISOString();
     if (reviewNotes) db.documents[docIndex].reviewNotes = reviewNotes;
 
     await saveDatabase(db);
 
     await logAuditEvent(
-      reviewedBy || "Rohan Verma",
+      reviewedBy || "Kriti Jain",
       "ARTICLE",
       db.documents[docIndex].entityName,
       "Document Review",

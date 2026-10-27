@@ -83,7 +83,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-slate-950/95 text-white border-b border-slate-800/80 shadow-xl backdrop-blur-md pt-safe">
+      <header className="sticky top-0 z-40 bg-slate-950/95 text-white border-b border-slate-800/80 shadow-xl backdrop-blur-md pt-safe w-full max-w-full overflow-hidden">
         {/* Single Unified High-Density Responsive Header */}
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
           

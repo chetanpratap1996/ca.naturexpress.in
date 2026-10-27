@@ -365,13 +365,13 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
         {/* Top Control Bar: Group Switcher & View Mode */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           {/* Family Group Dropdown */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto min-w-0 max-w-full">
             <Building2 className="w-4 h-4 text-btred-logo flex-shrink-0" />
             <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Business Group:</span>
             <select
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:border-btred-logo"
+              className="flex-1 min-w-0 max-w-full bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:border-btred-logo truncate"
             >
               <option value="ALL">All Business Groups ({groups.length} Groups)</option>
               {groups.map((grp) => (

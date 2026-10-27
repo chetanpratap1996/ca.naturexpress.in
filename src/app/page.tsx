@@ -344,7 +344,7 @@ export default function Home() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto w-full space-y-4 sm:space-y-6 pb-28 md:pb-20">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 pb-28 md:pb-20">
           {process.env.NODE_ENV === "production" && currentUser.role === "PARTNER" && (
             <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
               <strong>Limited production workspace.</strong> Enabled workflows are deadlines, private firm documents, client and employee account assignments, assigned-entity task progress/document intake, recent firm activity, manual notice tracking, and the pilot scorecard. Payment verification and government portal connections are not enabled. Apply all workspace migrations and configure the server-only Supabase secret plus the allowed invitation redirect before using access actions.

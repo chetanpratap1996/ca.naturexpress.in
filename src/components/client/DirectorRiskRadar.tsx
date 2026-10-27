@@ -49,7 +49,7 @@ export interface DirectorRiskRadarProps {
 export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) => {
   const directorsList: DirectorProfile[] = client ? [
     {
-      name: client.primaryContact.name,
+      name: client.primaryContact?.name || "Client Promoter",
       din: "02849102",
       dinStatus: "ACTIVE",
       dir3KycStatus: "FILED",

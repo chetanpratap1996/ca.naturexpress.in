@@ -289,7 +289,7 @@ const clientsList = (hookClients && hookClients.length > 0)
         enteredUtr,
         clientPaymentMode,
         clientPayerNote.trim() || undefined,
-        currentClient.primaryContact.name
+        currentClient.primaryContact?.name || "Client Promoter"
       );
       if (!savedInvoice) throw new Error("The firm did not confirm receipt of this payment reference.");
       setSelectedInvoiceForUtr(null);

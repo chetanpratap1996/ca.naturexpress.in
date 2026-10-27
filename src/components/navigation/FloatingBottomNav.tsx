@@ -35,7 +35,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
   return (
     <nav 
       aria-label="Mobile Navigation Bar"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-all pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 px-2"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-all pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 px-2 w-full max-w-full overflow-hidden"
     >
       <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around relative">
         

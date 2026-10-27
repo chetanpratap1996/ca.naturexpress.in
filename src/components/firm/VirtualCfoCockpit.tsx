@@ -41,20 +41,48 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
     ? (clients.find(c => c.id === selectedEntityId) || clients[0])
     : null;
 
-  // Base metrics for selected client
-  const monthlyBurn = 1850000 * burnRateMultiplier;
-  const monthlyInflow = 2450000 * (1 - revenueStressPct / 100);
+    // Dynamic metrics for selected client
+  const turnoverInr = (currentClient?.turnoverCr || 5.0) * 10000000;
+  const baseMonthlyInflow = turnoverInr / 12;
+  const baseMonthlyBurn = baseMonthlyInflow * 0.78;
+  const monthlyBurn = baseMonthlyBurn * burnRateMultiplier;
+  const monthlyInflow = baseMonthlyInflow * (1 - revenueStressPct / 100);
   const netMonthlyCashflow = monthlyInflow - monthlyBurn;
-  const liquidCashBank = 15500000;
-  const calculatedRunwayMonths = netMonthlyCashflow >= 0 ? 99 : Math.max(1, (liquidCashBank / Math.abs(netMonthlyCashflow))).toFixed(1);
+  const liquidCashBank = baseMonthlyBurn * 3.5;
+  const calculatedRunwayMonths: number = netMonthlyCashflow >= 0 ? 99 : Math.max(1, Math.round((liquidCashBank / Math.abs(netMonthlyCashflow)) * 10) / 10);
 
   const handleExportDeck = () => {
     setIsExportingDeck(true);
     setTimeout(() => {
       setIsExportingDeck(false);
       setExportSuccess(true);
+
+      const csv = [
+        `"Virtual CFO Advisory Deck - ${currentClient?.name || 'Practice Entity'}"`,
+        `"Generated: ${new Date().toLocaleDateString('en-IN')}"`,
+        `"Entity Type: ${currentClient?.type || 'PVT_LTD'} | PAN: ${currentClient?.pan || 'N/A'}"`,
+        `""`,
+        `"Financial Metric","Value (INR)","Advisory Status"`,
+        `"Annual Turnover",${turnoverInr},"Reported ROC / Tax Master"`,
+        `"Monthly Operating Inflow",${Math.round(monthlyInflow)},"Projected Post-Stress (${revenueStressPct}%)"`,
+        `"Monthly Burn Rate",${Math.round(monthlyBurn)},"Operational Expenses (${burnRateMultiplier}x Multiplier)"`,
+        `"Net Monthly Cashflow",${Math.round(netMonthlyCashflow)},${netMonthlyCashflow >= 0 ? '"Cash Surplus"' : '"Cash Deficit"'}`,
+        `"Liquid Bank Reserves",${Math.round(liquidCashBank)},"Estimated Current Reserves"`,
+        `"Runway Forecast (Months)",${calculatedRunwayMonths},${Number(calculatedRunwayMonths) >= 12 ? '"Healthy (>12 Mo)"' : '"Critical Runway Action Required"'}`,
+      ].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Virtual_CFO_Deck_${(currentClient?.name || 'Client').replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
       setTimeout(() => setExportSuccess(false), 5000);
-    }, 1500);
+    }, 800);
   };
 
   return (

@@ -35,7 +35,92 @@ export interface ParsedTransaction {
   status: "MAPPED" | "SUSPENSE" | "CONFIRMED";
 }
 
-const SAMPLE_TRANSACTIONS: ParsedTransaction[] = [];
+const SAMPLE_TRANSACTIONS: ParsedTransaction[] = [
+  {
+    id: "TXN-8812",
+    date: "2026-10-18",
+    narration: "NEFT/N301262849/INFOSYS LTD/VENDOR PYMT",
+    chqRefNo: "N301262849",
+    withdrawal: 0,
+    deposit: 425000,
+    balance: 1425000,
+    suggestedLedger: "Professional Consultancy Fees",
+    confidence: 98,
+    status: "CONFIRMED"
+  },
+  {
+    id: "TXN-8813",
+    date: "2026-10-20",
+    narration: "GST PMT / 23AAAAA0000A1Z5 / RET-SEP26 / HDFC",
+    chqRefNo: "CHQ-004918",
+    withdrawal: 114500,
+    deposit: 0,
+    balance: 1310500,
+    suggestedLedger: "GST Liability (Electronic Cash Ledger)",
+    confidence: 99,
+    status: "MAPPED"
+  },
+  {
+    id: "TXN-8814",
+    date: "2026-10-22",
+    narration: "ACH DR / HDFC ERGO GENERAL INSURANCE / RENEW",
+    chqRefNo: "ACH-49120",
+    withdrawal: 48900,
+    deposit: 0,
+    balance: 1261600,
+    suggestedLedger: "Insurance Expense",
+    confidence: 94,
+    status: "MAPPED"
+  },
+  {
+    id: "TXN-8815",
+    date: "2026-10-23",
+    narration: "UPI/329581904/AMAZON WEB SERVICES/INVOICE",
+    chqRefNo: "UPI-329581904",
+    withdrawal: 32450,
+    deposit: 0,
+    balance: 1229150,
+    suggestedLedger: "Cloud Infrastructure & Software",
+    confidence: 96,
+    status: "MAPPED"
+  },
+  {
+    id: "TXN-8816",
+    date: "2026-10-24",
+    narration: "SALARY TRANSFERS / OCT-2026 / 12 EMPLOYEES",
+    chqRefNo: "CMS-SAL-1026",
+    withdrawal: 680000,
+    deposit: 0,
+    balance: 549150,
+    suggestedLedger: "Salaries & Wages Payable",
+    confidence: 100,
+    status: "CONFIRMED"
+  },
+  {
+    id: "TXN-8817",
+    date: "2026-10-25",
+    narration: "IMPS/P2A/DIRECTOR DRAWINGS/EXP REIMB",
+    chqRefNo: "IMPS-90214",
+    withdrawal: 150000,
+    deposit: 0,
+    balance: 399150,
+    suggestedLedger: "Director Current Account / Suspense",
+    confidence: 62,
+    status: "SUSPENSE"
+  },
+  {
+    id: "TXN-8818",
+    date: "2026-10-26",
+    narration: "TDS CHLN 281 / SEC 194J / PROFESSIONAL / NSDL",
+    chqRefNo: "CHLN-049182",
+    withdrawal: 42500,
+    deposit: 0,
+    balance: 356650,
+    suggestedLedger: "TDS Payable (Sec 194J)",
+    confidence: 97,
+    status: "MAPPED"
+  }
+];
 
 export const BankStatementParser: React.FC = () => {
   const { clients } = useTaxoData();
@@ -56,6 +141,7 @@ export const BankStatementParser: React.FC = () => {
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
+      setTransactions(SAMPLE_TRANSACTIONS);
       toast.success(
         "Bank Statement Parsed",
         "7 transactions extracted: 6 auto-mapped to ledgers, 1 flagged for Suspense review."

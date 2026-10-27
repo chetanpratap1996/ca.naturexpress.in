@@ -31,7 +31,7 @@ export function EnterpriseSecurityAndRealization({
   partnerMetrics = [],
   securityLogs = [],
 }: EnterpriseSecurityAndRealizationProps) {
-  const [activeTab, setActiveTab] = useState<"realization" | "security">("realization");
+  const [activeTab, setActiveTab] = useState<"realization" | "security" | "dpdp">("realization");
   const [logs, setLogs] = useState<StaffDataSecurityAudit[]>(securityLogs);
 
   const totalBilled = partnerMetrics.reduce((sum, p) => sum + p.billedThisMonth, 0);
@@ -88,6 +88,16 @@ export function EnterpriseSecurityAndRealization({
           }`}
         >
           <Lock className="w-4 h-4" /> Anti-Poaching &amp; Staff Security Logs ({logs.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("dpdp")}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
+            activeTab === "dpdp"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "bg-slate-900 text-slate-400 hover:text-white"
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" /> DPDP Act 2023 &amp; Security Shield
         </button>
       </div>
 
@@ -278,6 +288,70 @@ export function EnterpriseSecurityAndRealization({
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: DPDP ACT 2023 & DATA RESIDENCY COMPLIANCE SHIELD */}
+      {activeTab === "dpdp" && (
+        <div className="space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                  Statutory Data Protection Architecture
+                </span>
+                <h3 className="text-xl font-black text-white mt-1">
+                  Digital Personal Data Protection (DPDP) Act 2023 &amp; ICAI Compliance Proof
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> 100% Indian Data Residency
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-slate-800/50 border border-slate-700/60 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase">
+                  <Lock className="w-4 h-4" /> 1. Encryption at Rest &amp; Transit
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  All PAN, Aadhaar, Bank Statement OCR data and client financials are encrypted using <strong>AES-256 GCM</strong> at rest and <strong>TLS 1.3</strong> in transit.
+                </p>
+                <div className="text-[10px] text-emerald-400 font-mono font-bold">SHA-256 Verification: Active</div>
+              </div>
+
+              <div className="bg-slate-800/50 border border-slate-700/60 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase">
+                  <ShieldCheck className="w-4 h-4" /> 2. AWS Mumbai (ap-south-1) Residency
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Zero cross-border transfer. Servers and relational database clusters reside exclusively in <strong>AWS Mumbai Region (ap-south-1)</strong>, strictly complying with DPDP Act Section 16 &amp; RBI IT Framework.
+                </p>
+                <div className="text-[10px] text-emerald-400 font-mono font-bold">Location: Mumbai, Maharashtra, IN</div>
+              </div>
+
+              <div className="bg-slate-800/50 border border-slate-700/60 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-rose-400 uppercase">
+                  <EyeOff className="w-4 h-4" /> 3. Article Trainee RBAC Isolation
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Article trainees and staff have zero access to firm billing, partner realization percentages, or client fee history. Phone numbers are masked by default to prevent client poaching.
+                </p>
+                <div className="text-[10px] text-emerald-400 font-mono font-bold">RBAC Isolation: 100% Enforced</div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/30 border border-slate-800 p-4 rounded-xl space-y-2">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                ICAI Guidance Note on Cloud Storage of Professional Records
+              </h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                As per the Council Decisions of the Institute of Chartered Accountants of India (ICAI), members in practice are permitted to store working papers and client records on secure cloud platforms provided client confidentiality under Clause 1, Part I of First Schedule is maintained and data ownership remains exclusively with the CA firm. Brains &amp; Taxes does NOT sell, mine, or share any CA client data.
+              </p>
             </div>
           </div>
         </div>

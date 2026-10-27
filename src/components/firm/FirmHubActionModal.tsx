@@ -15,7 +15,10 @@ import {
   ArrowRight,
   TrendingUp,
   FileCheck2,
-  Users
+  Users,
+  Calculator,
+  Video,
+  FileCheck
 } from "lucide-react";
 
 interface FirmHubActionModalProps {
@@ -122,6 +125,39 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
       onClick: () => {
         onClose();
         onNavigateTab("vcfo");
+      }
+    },
+    {
+      title: "Compute ITR-1 & 4 (Sec 115BAC)",
+      subtitle: "Dual-regime calculator with revised ₹75k standard deduction",
+      icon: Calculator,
+      color: "bg-amber-50 text-amber-700 border-amber-200",
+      badge: "AY 25-26",
+      onClick: () => {
+        onClose();
+        onNavigateTab("itr-calc");
+      }
+    },
+    {
+      title: "CA Creator Instagram Studio",
+      subtitle: "Viral tax reel scripts & ICAI Rule 7 compliance scanner",
+      icon: Video,
+      color: "bg-pink-50 text-pink-700 border-pink-200",
+      badge: "Social Media",
+      onClick: () => {
+        onClose();
+        onNavigateTab("content-studio");
+      }
+    },
+    {
+      title: "Generate SA-210 Engagement Letter",
+      subtitle: "Official audit & tax representation retainer agreement",
+      icon: FileCheck,
+      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      badge: "ICAI Mandate",
+      onClick: () => {
+        onClose();
+        onNavigateTab("engagement-letter");
       }
     }
   ];

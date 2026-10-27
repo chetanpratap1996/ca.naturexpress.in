@@ -143,8 +143,8 @@ export function WhatsAppAiWorkbench({
       }
     ]);
     setCustomChatInput("");
-    setSuccessToast(`Message sent to ${selectedClient.primaryContact?.name || "Client"} on WhatsApp!`);
-    toast.success("Message Delivered", `WhatsApp sent to ${selectedClient.primaryContact?.name || "Client"}.`);
+    setSuccessToast(`Message sent to ${selectedClient?.primaryContact?.name || "Client"} on WhatsApp!`);
+    toast.success("Message Delivered", `WhatsApp sent to ${selectedClient?.primaryContact?.name || "Client"}.`);
     setTimeout(() => setSuccessToast(null), 4000);
   };
 
@@ -304,10 +304,10 @@ export function WhatsAppAiWorkbench({
             <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
-                  {selectedClient.primaryContact?.name ? selectedClient.primaryContact.name.slice(0, 2).toUpperCase() : "CL"}
+                  {selectedClient?.primaryContact?.name ? selectedClient.primaryContact.name.slice(0, 2).toUpperCase() : "CL"}
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">{selectedClient.primaryContact?.name || "Client"}</h4>
+                  <h4 className="text-sm font-bold text-white">{selectedClient?.primaryContact?.name || "Client Contact"}</h4>
                   <p className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Verified WhatsApp Line
                   </p>

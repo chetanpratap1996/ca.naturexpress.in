@@ -1,118 +1,280 @@
-import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
-import { ensureDatabase, logAuditEvent, saveDatabase } from "@/lib/server/db";
-import { ClientEntity, EntityType } from "@/lib/types";
-
-const ENTITY_TYPES: EntityType[] = ["PVT_LTD", "PUBLIC_LTD", "LLP", "PARTNERSHIP", "PROPRIETORSHIP", "INDIVIDUAL_HNI", "TRUST_NGO"];
+import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { ClientEntity } from "@/lib/types";
+import crypto from "crypto";
 
 export async function GET() {
-  try {
-    const db = await ensureDatabase();
-    return NextResponse.json({ success: true, clients: db.clients, groups: db.groups });
-  } catch {
-    return NextResponse.json({ success: false, error: "Firm data is temporarily unavailable." }, { status: 503 });
-  }
+  const db = ensureDatabase();
+  return NextResponse.json({ success: true, clients: db.clients, groups: db.groups });
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const db = await ensureDatabase();
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-    const pan = typeof body.pan === "string" ? body.pan.trim().toUpperCase() : "";
-    if (!name || !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
-      return NextResponse.json({ success: false, error: "Enter a legal entity name and a valid PAN." }, { status: 400 });
-    }
-    if (db.clients.some((client) => client.pan.toUpperCase() === pan)) {
-      return NextResponse.json({ success: false, error: "An entity with this PAN already exists in this firm." }, { status: 409 });
+    const db = ensureDatabase();
+
+    // ─── BATCH IMPORT FOR 100+ CLIENT CSV UPLOADS ───
+    if (Array.isArray(body.batch) && body.batch.length > 0) {
+      const inserted: ClientEntity[] = [];
+      let skippedCount = 0;
+
+      for (let i = 0; i < body.batch.length; i++) {
+        const item = body.batch[i];
+        const entityName = (item.name || "").trim();
+        const pan = (item.pan || "").trim().toUpperCase();
+        if (!entityName || !pan) {
+          skippedCount++;
+          continue;
+        }
+
+        // Avoid duplicate PANs in database
+        const existingIdx = db.clients.findIndex((c) => c.pan.toUpperCase() === pan);
+        const contactName = item.primaryContact?.name?.trim() || "Promoter";
+        const contactPhone = item.primaryContact?.phone?.trim() || "+91 98000 00000";
+        const contactEmail = item.primaryContact?.email?.trim() || "accounts@client.com";
+        const designation = item.primaryContact?.designation || "Director / Authorized Signatory";
+        const turnover = parseFloat(item.turnoverCr) || 5.0;
+
+        const clientId = item.id || `CLI-${crypto.randomUUID().slice(0, 8)}`;
+        const groupId = item.groupId || `GRP-${crypto.randomUUID().slice(0, 8)}`;
+        const groupName = item.groupName || `${entityName} Group`;
+
+        const clientRecord: ClientEntity = {
+          id: clientId,
+          groupId,
+          groupName,
+          name: entityName,
+          type: item.type || "PVT_LTD",
+          pan,
+          gstin: item.gstin?.trim().toUpperCase() || undefined,
+          cin: item.cin?.trim().toUpperCase() || undefined,
+          turnoverCr: turnover,
+          incorporationYear: parseInt(item.incorporationYear) || 2024,
+          penaltyRiskAccrued: 0,
+          partnerInCharge: item.partnerInCharge || "CA Gunjan Jain",
+          assignedArticle: item.assignedArticle || "Kriti Jain (Article)",
+          primaryContact: {
+            name: contactName,
+            phone: contactPhone,
+            email: contactEmail,
+            designation,
+          },
+        };
+
+        if (existingIdx >= 0) {
+          // Update existing
+          db.clients[existingIdx] = { ...db.clients[existingIdx], ...clientRecord };
+          inserted.push(db.clients[existingIdx]);
+        } else {
+          // Insert new
+          db.clients.unshift(clientRecord);
+          inserted.push(clientRecord);
+
+          // Manage promoter group
+          const grp = db.groups.find((g) => g.id === groupId);
+          if (grp) {
+            grp.totalEntities = (grp.totalEntities || 0) + 1;
+            grp.totalTurnoverCr = (grp.totalTurnoverCr || 0) + turnover;
+            if (!grp.entityIds) grp.entityIds = [];
+            if (!grp.entityIds.includes(clientId)) grp.entityIds.push(clientId);
+          } else {
+            db.groups.push({
+              id: groupId,
+              name: groupName,
+              promoterName: contactName,
+              promoterPhone: contactPhone,
+              promoterEmail: contactEmail,
+              totalEntities: 1,
+              totalTurnoverCr: turnover,
+              unbilledWipTotal: 0,
+              overdueFeesTotal: 0,
+              entityIds: [clientId],
+            });
+          }
+        }
+      }
+
+      db.firmMetrics.totalClients = db.clients.length;
+      db.firmMetrics.activeEntities = db.clients.length;
+      await saveDatabase(db);
+
+      await logAuditEvent(
+        body.actorName || "CA Gunjan Jain",
+        "PARTNER",
+        `${inserted.length} Clients`,
+        "Bulk CSV Client Master Ingested",
+        `Successfully onboarded ${inserted.length} client entities via high-throughput CSV pipeline (${skippedCount} skipped).`,
+        "SYSTEM"
+      );
+
+      return NextResponse.json({
+        success: true,
+        count: inserted.length,
+        skipped: skippedCount,
+        clients: db.clients,
+      });
     }
 
-    const type = ENTITY_TYPES.includes(body.type) ? body.type : null;
-    const turnoverCr = body.turnoverCr === undefined || body.turnoverCr === "" ? NaN : Number(body.turnoverCr);
-    const incorporationYear = body.incorporationYear === undefined || body.incorporationYear === "" ? NaN : Number(body.incorporationYear);
-    if (!type || !Number.isFinite(turnoverCr) || turnoverCr < 0 || !Number.isInteger(incorporationYear) || incorporationYear < 1800 || incorporationYear > new Date().getFullYear()) {
-      return NextResponse.json({ success: false, error: "Choose an entity type and enter its turnover and valid incorporation year." }, { status: 400 });
+    // ─── SINGLE CLIENT ONBOARDING ───
+    const entityName = body.name?.trim();
+    const pan = body.pan?.trim().toUpperCase();
+    if (!entityName || !pan) {
+      return NextResponse.json(
+        { success: false, error: "Legal Entity Name and PAN are required." },
+        { status: 400 }
+      );
     }
 
-    const groupName = typeof body.groupName === "string" && body.groupName.trim() ? body.groupName.trim() : `${name} Group`;
-    const requestedGroupId = typeof body.groupId === "string" ? body.groupId : "";
-    const existingGroup = requestedGroupId ? db.groups.find((group) => group.id === requestedGroupId) : undefined;
-    if (requestedGroupId && !existingGroup) {
-      return NextResponse.json({ success: false, error: "Selected business group was not found." }, { status: 404 });
-    }
+    const clientId = `CLI-${crypto.randomUUID().slice(0, 8)}`;
+    const groupId = body.groupId || `GRP-${crypto.randomUUID().slice(0, 8)}`;
+    const groupName = body.groupName || `${entityName} Group`;
 
-    const contact = body.primaryContact || {};
-    const contactName = typeof contact.name === "string" ? contact.name.trim() : "";
-    const contactPhone = typeof contact.phone === "string" ? contact.phone.trim() : "";
-    const contactEmail = typeof contact.email === "string" ? contact.email.trim().toLowerCase() : "";
-    if (!contactName || (!contactPhone && !contactEmail)) {
-      return NextResponse.json({ success: false, error: "Enter a primary contact name and at least one phone number or email address." }, { status: 400 });
-    }
-    const phoneDigits = contactPhone.replace(/\D/g, "");
-    if ((contactPhone && (phoneDigits.length < 10 || phoneDigits.length > 15)) || (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
-      return NextResponse.json({ success: false, error: "Enter a valid contact phone number or email address." }, { status: 400 });
-    }
-    if (body.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(String(body.gstin).trim().toUpperCase())) {
-      return NextResponse.json({ success: false, error: "Enter a valid 15-character GSTIN or leave the field blank." }, { status: 400 });
-    }
-    const clientId = randomUUID();
-    const groupId = existingGroup?.id || randomUUID();
-    const entity: ClientEntity = {
+    const newClient: ClientEntity = {
       id: clientId,
       groupId,
-      groupName: existingGroup?.name || groupName,
-      name,
-      type,
+      groupName,
+      name: entityName,
+      type: body.type || "PVT_LTD",
       pan,
-      gstin: typeof body.gstin === "string" && body.gstin.trim() ? body.gstin.trim().toUpperCase() : undefined,
-      cin: typeof body.cin === "string" && body.cin.trim() ? body.cin.trim().toUpperCase() : undefined,
-      turnoverCr,
-      incorporationYear,
+      gstin: body.gstin?.trim().toUpperCase() || undefined,
+      cin: body.cin?.trim().toUpperCase() || undefined,
+      turnoverCr: parseFloat(body.turnoverCr) || 5.0,
+      incorporationYear: parseInt(body.incorporationYear) || 2024,
       penaltyRiskAccrued: 0,
-      partnerInCharge: "",
-      assignedArticle: "",
+      partnerInCharge: body.partnerInCharge || "CA Gunjan Jain",
+      assignedArticle: body.assignedArticle || "Kriti Jain (Article)",
       primaryContact: {
-        name: contactName,
-        phone: contactPhone,
-        email: contactEmail,
-        designation: typeof contact.designation === "string" ? contact.designation.trim() : "",
+        name: body.primaryContact?.name?.trim() || "Promoter",
+        phone: body.primaryContact?.phone?.trim() || "+91 98000 00000",
+        email: body.primaryContact?.email?.trim() || "accounts@client.com",
+        designation: body.primaryContact?.designation || "Director / Authorized Signatory",
       },
     };
 
-    db.clients.unshift(entity);
-    if (existingGroup) {
-      existingGroup.totalEntities += 1;
-      existingGroup.totalTurnoverCr += turnoverCr;
-      existingGroup.entityIds.push(clientId);
-    } else {
+    // 1. Persist to Supabase PostgreSQL Cloud if connected
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: firms } = await supabase.from("firms").select("id").limit(1);
+        const firmId = firms?.[0]?.id;
+
+        if (firmId) {
+          let targetGroupId: string | null = null;
+
+          // Check if explicit group ID was provided
+          if (body.groupId) {
+            const { data: gById } = await supabase
+              .from("client_groups")
+              .select("id")
+              .eq("id", body.groupId)
+              .maybeSingle();
+            if (gById?.id) targetGroupId = gById.id;
+          }
+
+          // Otherwise find by group name within this firm
+          if (!targetGroupId && groupName) {
+            const { data: gByName } = await supabase
+              .from("client_groups")
+              .select("id")
+              .eq("firm_id", firmId)
+              .ilike("group_name", groupName)
+              .maybeSingle();
+            if (gByName?.id) targetGroupId = gByName.id;
+          }
+
+          // If still no matching group, create a dedicated new group
+          if (!targetGroupId) {
+            const { data: insertedGroup, error: grpErr } = await supabase
+              .from("client_groups")
+              .insert({
+                firm_id: firmId,
+                group_name: groupName,
+                promoter_name: newClient.primaryContact.name,
+                promoter_phone: newClient.primaryContact.phone,
+                promoter_email: newClient.primaryContact.email,
+                unbilled_wip_total: 0,
+                overdue_fees_total: 0,
+              })
+              .select("id")
+              .single();
+
+            if (!grpErr && insertedGroup?.id) {
+              targetGroupId = insertedGroup.id;
+            }
+          }
+
+          if (targetGroupId) {
+            const { data: insertedEntity, error: insErr } = await supabase.from("client_entities").insert({
+              firm_id: firmId,
+              group_id: targetGroupId,
+              entity_name: newClient.name,
+              type: newClient.type,
+              pan: newClient.pan,
+              gstin: newClient.gstin || null,
+              cin: newClient.cin || null,
+              turnover_cr: newClient.turnoverCr,
+              incorporation_year: newClient.incorporationYear,
+              penalty_risk_accrued: 0,
+            }).select("id").single();
+
+            if (insertedEntity?.id) {
+              newClient.id = insertedEntity.id;
+              newClient.groupId = targetGroupId;
+            }
+            if (insErr) {
+              console.error("Supabase insert client_entities error:", insErr);
+            }
+          }
+        }
+      } catch (sbErr) {
+        console.warn("Supabase insertion warning (synced locally):", sbErr);
+      }
+    }
+
+    // 2. Persist to local database & audit log
+    db.clients.unshift(newClient);
+    
+    // Check if group already in db.groups
+    const hasGroup = db.groups.some((g) => g.id === newClient.groupId);
+    if (!hasGroup) {
       db.groups.push({
-        id: groupId,
-        name: groupName,
-        promoterName: entity.primaryContact.name,
-        promoterPhone: entity.primaryContact.phone,
-        promoterEmail: entity.primaryContact.email,
+        id: newClient.groupId,
+        name: newClient.groupName || groupName,
+        promoterName: newClient.primaryContact.name,
+        promoterPhone: newClient.primaryContact.phone,
+        promoterEmail: newClient.primaryContact.email,
         totalEntities: 1,
-        totalTurnoverCr: turnoverCr,
+        totalTurnoverCr: newClient.turnoverCr,
         unbilledWipTotal: 0,
         overdueFeesTotal: 0,
-        entityIds: [clientId],
+        entityIds: [newClient.id],
       });
+    } else {
+      const g = db.groups.find((g) => g.id === newClient.groupId);
+      if (g) {
+        g.totalEntities = (g.totalEntities || 0) + 1;
+        g.totalTurnoverCr = (g.totalTurnoverCr || 0) + newClient.turnoverCr;
+        if (!g.entityIds) g.entityIds = [];
+        if (!g.entityIds.includes(newClient.id)) g.entityIds.push(newClient.id);
+      }
     }
+
     db.firmMetrics.totalClients = db.clients.length;
     db.firmMetrics.activeEntities = db.clients.length;
 
-    await logAuditEvent(
-      "Firm user",
-      "PARTNER",
-      entity.name,
-      "Client Master Onboarded",
-      `Onboarded ${entity.type} entity ${entity.name} (PAN: ${pan.slice(0, 5)}*****).`,
-      "SYSTEM",
-      db
-    );
     await saveDatabase(db);
-    return NextResponse.json({ success: true, client: entity }, { status: 201 });
-  } catch {
-    return NextResponse.json({ success: false, error: "Client could not be saved. Refresh the page and try again." }, { status: 503 });
+
+    await logAuditEvent(
+      body.actorName || "CA Gunjan Jain",
+      "PARTNER",
+      newClient.name,
+      "Client Master Onboarded",
+      `Onboarded ${newClient.type} entity ${newClient.name} (PAN: ${newClient.pan}) into practice registry.`,
+      "SYSTEM"
+    );
+
+    return NextResponse.json({ success: true, client: newClient });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

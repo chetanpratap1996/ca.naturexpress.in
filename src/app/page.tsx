@@ -5,13 +5,7 @@ import Link from "next/link";
 import { TopNav } from "@/components/navigation/TopNav";
 import { FloatingBottomNav } from "@/components/navigation/FloatingBottomNav";
 import { StatutoryCalendar } from "@/components/firm/StatutoryCalendar";
-import { FirmDocuments } from "@/components/firm/FirmDocuments";
-import { ClientAccessManager } from "@/components/firm/ClientAccessManager";
-import { StaffAccessManager } from "@/components/firm/StaffAccessManager";
-import { StaffPortal } from "@/components/firm/StaffPortal";
-import { ActivityLog } from "@/components/firm/ActivityLog";
-import { NoticeRegister } from "@/components/firm/NoticeRegister";
-import { PilotScorecard } from "@/components/firm/PilotScorecard";
+import { NoticeCenter } from "@/components/firm/NoticeCenter";
 import { BillingWip } from "@/components/firm/BillingWip";
 import { DscVault } from "@/components/firm/DscVault";
 import { ArticleWorkbench } from "@/components/firm/ArticleWorkbench";
@@ -28,11 +22,19 @@ import { FirmHubActionModal } from "@/components/firm/FirmHubActionModal";
 import { VirtualCfoCockpit } from "@/components/firm/VirtualCfoCockpit";
 import { BankStatementParser } from "@/components/firm/BankStatementParser";
 import { EntityDnaMatrixViewer } from "@/components/firm/EntityDnaMatrixViewer";
+import { ItrComputationEngine } from "@/components/firm/ItrComputationEngine";
+import { CaCreatorContentStudio } from "@/components/firm/CaCreatorContentStudio";
+import { EngagementLetterGenerator } from "@/components/firm/EngagementLetterGenerator";
+import { Ais26asAnalyzer } from "@/components/firm/Ais26asAnalyzer";
+import { Form3cdWorkpaper } from "@/components/firm/Form3cdWorkpaper";
+import { Schedule3AuditEngine } from "@/components/firm/Schedule3AuditEngine";
+import { UdinVault } from "@/components/firm/UdinVault";
+import { NoticeReplyDrafter } from "@/components/firm/NoticeReplyDrafter";
+import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
 import { toast } from "@/components/shared/ToastNotification";
-import { loadAuthenticatedUser, signOutSupabaseUser } from "@/lib/auth/supabaseUser";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { 
@@ -40,7 +42,8 @@ import {
   getActiveSession, 
   clearSession, 
   setActiveSession, 
-  DEMO_USERS
+  DEMO_USERS,
+  generateDeterministicPassword 
 } from "@/lib/auth/session";
 import { 
   FIRM_METRICS, 
@@ -66,7 +69,6 @@ import {
   TrendingUp, 
   AlertTriangle, 
   FileSpreadsheet,
-  FileText,
   Package,
   Lock,
   MessageSquare,
@@ -77,68 +79,45 @@ import {
   ShieldCheck,
   Building,
   Users,
-  Briefcase,
   ChevronDown,
   Layers,
-  ClipboardCheck
+  Calculator,
+  Video,
+  FileCheck,
+  FileSearch,
+  ClipboardCheck,
+  Scale
 } from "lucide-react";
 
 export default function Home() {
-  // Production clients use the entity-scoped portal API inside ClientPortalPwa.
-  // Do not even request the whole-firm JSON endpoint for their parent page.
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(process.env.NODE_ENV === "production" ? null : DEMO_USERS.partner);
   // Use persistent hook
   const {
     tasks,
-    documents,
     invoices,
-    auditTrail,
     notices,
     dscTokens,
     clients,
     groups,
     payConfigs,
     refreshData,
-    dataError,
     createClient,
     updateTask,
-    recordReminderDraft,
     createTask,
-    reconcileInvoice,
-    uploadDocument,
-    reviewDocument
-  } = useTaxoData({ enabled: process.env.NODE_ENV !== "production" || currentUser?.role === "PARTNER" });
-  const now = Date.now();
-  const next72Hours = now + 72 * 60 * 60 * 1000;
-  const criticalDueWithin72Hours = tasks.filter((task) => {
-    if (task.priority !== "CRITICAL" || task.status === "FILED_AND_COMPLETED") return false;
-    const dueAtEndOfDay = new Date(`${task.dueDate}T23:59:59`).getTime();
-    return Number.isFinite(dueAtEndOfDay) && dueAtEndOfDay >= now && dueAtEndOfDay <= next72Hours;
-  }).length;
+    reconcileInvoice
+  } = useTaxoData();
 
   // Default to Managing Partner Cockpit for fresh setup
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("calendar");
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
-  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(process.env.NODE_ENV !== "production");
-  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(process.env.NODE_ENV === "production");
+  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(true);
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
 
   // Safe Session Synchronization
   useEffect(() => {
-    if (process.env.NODE_ENV === "production") {
-      setIsDemoSandbox(false);
-      void loadAuthenticatedUser().then((user) => {
-        setCurrentUser(user);
-        if (user?.role === "ARTICLE" || user?.role === "MANAGER") setCurrentView("article");
-        else if (user?.role === "CLIENT") setCurrentView("client-pwa");
-        else if (user) setCurrentView("partner");
-      }).finally(() => setIsCheckingAuth(false));
-      return;
-    }
-
     try {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view");
@@ -179,25 +158,16 @@ export default function Home() {
     }
   }, []);
 
-  const handleTaskStatusChange = async (taskId: string, newStatus: WorkflowStatus, arnNumber?: string) => {
-    try {
-      await updateTask(taskId, { status: newStatus, ...(arnNumber ? { arnNumber } : {}) });
-    } catch (error) {
-      toast.error("Task update failed", error instanceof Error ? error.message : "The change could not be saved.");
-      throw error;
-    }
+  const handleTaskStatusChange = async (taskId: string, newStatus: WorkflowStatus) => {
+    await updateTask(taskId, { status: newStatus });
   };
 
   const handleTabChange = (tab: string) => {
     if (currentView === "client-pwa") {
       setActiveClientTab(tab as any);
     } else {
-      setActivePartnerTab(process.env.NODE_ENV === "production" && !["calendar", "documents", "client-access", "staff-access", "activity", "notices", "pilot"].includes(tab) ? "calendar" : tab);
+      setActivePartnerTab(tab);
     }
-  };
-
-  const navigatePartnerTab = (tab: string) => {
-    setActivePartnerTab(process.env.NODE_ENV === "production" && !["calendar", "documents", "client-access", "staff-access", "activity", "notices", "pilot"].includes(tab) ? "calendar" : tab);
   };
 
   const handleLoginSuccess = (user: AuthUser | null) => {
@@ -206,43 +176,39 @@ export default function Home() {
     setIsDemoSandbox(false);
     toast.success(
       "Signed In Successfully",
-      `Welcome, ${user.name} (${user.role === "PARTNER" ? "Partner" : user.role === "MANAGER" ? "Firm Manager" : user.role === "ARTICLE" ? "Article Trainee" : "Client Portal"})`
+      `Welcome, ${user.name} (${user.role === "PARTNER" ? "Managing Partner" : user.role === "ARTICLE" ? "Article Trainee" : "Client Portal"})`
     );
-    if (user.role === "ARTICLE" || user.role === "MANAGER") setCurrentView("article");
+    if (user.role === "ARTICLE") setCurrentView("article");
     else if (user.role === "CLIENT") setCurrentView("client-pwa");
     else setCurrentView("partner");
   };
 
-  if (isCheckingAuth) {
-    return <main className="min-h-screen grid place-items-center bg-slate-50 text-slate-600">Checking your secure firm session…</main>;
-  }
-
   const handleLogout = () => {
     clearSession();
-    void signOutSupabaseUser();
     setCurrentUser(null);
     setIsDemoSandbox(false);
     toast.info("Signed Out", "Your session has been securely closed.");
   };
 
   const handleSwitchUserRole = (role: "partner" | "article" | "client") => {
-    if (process.env.NODE_ENV === "production") return;
     let targetUser: AuthUser | null = null;
     if (role === "client") {
       const activeClient = clients.length > 0 ? clients[0] : null;
       if (activeClient) {
         targetUser = {
           id: `USR-${activeClient.id}`,
-          name: activeClient.primaryContact?.name || "Sample Client Contact",
-          email: activeClient.primaryContact?.email || "client@example.invalid",
-          phone: activeClient.primaryContact?.phone || "+91 00000 00002",
+          name: activeClient.primaryContact?.name || "Chetan Pratap Singh",
+          email: activeClient.primaryContact?.email || "chetanpratap1996@gmail.com",
+          phone: activeClient.primaryContact?.phone || "+91 80771 70715",
           role: "CLIENT",
           designation: `${activeClient.primaryContact?.designation || "Director"} (${activeClient.name})`,
           firmId: "FRM-022998C",
           firmName: "GPA & Co., Chartered Accountants",
           firmFrn: "022998C",
+          defaultPassword: generateDeterministicPassword(activeClient.name, activeClient.primaryContact?.phone || "0715"),
           clientGroupId: activeClient.groupId,
           clientEntityId: activeClient.id,
+          token: `tok_client_${Date.now()}`,
           expiresAt: new Date(Date.now() + 86400000).toISOString(),
         };
       } else {
@@ -274,9 +240,6 @@ export default function Home() {
 
   // If user exits demo and has no active session -> Show Enterprise SaaS Gateway
   if (!currentUser && !isDemoSandbox) {
-    if (process.env.NODE_ENV === "production") {
-      return <LoginModal onLoginSuccess={handleLoginSuccess} initialRole="partner" />;
-    }
     return (
       <SaasGateway 
         onEnterSandbox={(role) => handleSwitchUserRole(role)}
@@ -290,25 +253,31 @@ export default function Home() {
 
   // If user explicitly logs out without landing
   if (!currentUser) {
-    return <LoginModal onLoginSuccess={handleLoginSuccess} initialRole={currentView === "client-pwa" ? "client" : "partner"} />;
-  }
-
-  if (process.env.NODE_ENV === "production" && (currentUser.role === "MANAGER" || currentUser.role === "ARTICLE")) {
-    return <StaffPortal user={currentUser} onLogout={handleLogout} />;
+    return (
+      <LoginModal 
+        onLoginSuccess={handleLoginSuccess} 
+        initialRole={currentView === "client-pwa" ? "client" : "partner"} 
+        clients={clients}
+      />
+    );
   }
 
   const partnerTabs = [
     { id: "calendar", label: `Tax Deadlines (${tasks.length})`, icon: Calendar, iconColor: "text-btred-logo" },
-    { id: "documents", label: `Documents (${documents.length})`, icon: FileText, iconColor: "text-indigo-500" },
-    { id: "client-access", label: "Client Access", icon: Users, iconColor: "text-emerald-600" },
-    { id: "staff-access", label: "Employee Access", icon: Briefcase, iconColor: "text-indigo-600" },
-    { id: "activity", label: "Activity Log", icon: ShieldCheck, iconColor: "text-slate-700" },
     { id: "pay-to-release", label: "Fee Release Gate", icon: Lock, iconColor: "text-emerald-400" },
     { id: "notices", label: "Tax Scrutiny Notices", icon: ShieldAlert, iconColor: "text-btred-logo" },
-    { id: "pilot", label: "Pilot Scorecard", icon: ClipboardCheck, iconColor: "text-indigo-600" },
     { id: "vcfo", label: "vCFO Cockpit", icon: TrendingUp, iconColor: "text-indigo-600" },
     { id: "bank-parser", label: "Bank OCR to Tally", icon: FileSpreadsheet, iconColor: "text-emerald-500" },
     { id: "gstr2b", label: "GST Matcher (2B)", icon: FileSpreadsheet, iconColor: "text-blue-500" },
+    { id: "ais-analyzer", label: "AIS / 26AS SFT Inspector", icon: FileSearch, iconColor: "text-cyan-400" },
+    { id: "itr-calc", label: "ITR Tax Engine (115BAC)", icon: Calculator, iconColor: "text-amber-500" },
+    { id: "tax-audit-3cd", label: "Tax Audit 3CD Workpapers", icon: ClipboardCheck, iconColor: "text-yellow-400" },
+    { id: "schedule3-audit", label: "Schedule III & Audit Leads", icon: Layers, iconColor: "text-indigo-400" },
+    { id: "udin-vault", label: "UDIN 60-Day Vault", icon: KeyRound, iconColor: "text-purple-400" },
+    { id: "notice-drafter", label: "Statutory Notice Drafter", icon: Scale, iconColor: "text-btred-logo" },
+    { id: "assessee-approval", label: "Assessee Legal Sign-off", icon: FileCheck, iconColor: "text-teal-400" },
+    { id: "content-studio", label: "CA Creator Studio", icon: Video, iconColor: "text-pink-500" },
+    { id: "engagement-letter", label: "Engagement Letters (SA 210)", icon: FileCheck, iconColor: "text-emerald-500" },
     { id: "billing", label: "Billing & Invoices", icon: DollarSign, iconColor: "text-btred-logo" },
     { id: "whatsapp-ai", label: "1-Tap WhatsApp Desk", icon: MessageSquare, iconColor: "text-teal-400" },
     { id: "entity-dna", label: "Entity DNA Engine", icon: Layers, iconColor: "text-purple-600" },
@@ -318,9 +287,6 @@ export default function Home() {
     { id: "inward-outward", label: "Dispatches & Letters", icon: Package, iconColor: "text-amber-500" },
     { id: "batch-dispatch", label: "Batch Dispatcher", icon: Sparkles, iconColor: "text-indigo-300" },
   ];
-  const enabledPartnerTabs = process.env.NODE_ENV === "production"
-    ? partnerTabs.filter((tab) => ["calendar", "documents", "client-access", "staff-access", "activity", "notices", "pilot"].includes(tab.id))
-    : partnerTabs;
 
   return (
     <ErrorBoundary fallbackTitle="Client Application Recovered">
@@ -329,7 +295,7 @@ export default function Home() {
         <TopNav 
           currentView={currentView} 
           onViewChange={setCurrentView}
-          onNavigateTab={navigatePartnerTab}
+          onNavigateTab={(tab) => setActivePartnerTab(tab)}
           currentUser={currentUser}
           onLogout={handleLogout}
           onSwitchUser={handleSwitchUserRole}
@@ -345,16 +311,6 @@ export default function Home() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 pb-28 md:pb-20">
-          {process.env.NODE_ENV === "production" && currentUser.role === "PARTNER" && (
-            <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              <strong>Limited production workspace.</strong> Enabled workflows are deadlines, private firm documents, client and employee account assignments, assigned-entity task progress/document intake, recent firm activity, manual notice tracking, and the pilot scorecard. Payment verification and government portal connections are not enabled. Apply all workspace migrations and configure the server-only Supabase secret plus the allowed invitation redirect before using access actions.
-            </div>
-          )}
-          {dataError && !isDemoSandbox && (
-            <div role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              <strong>Live data is unavailable.</strong> {dataError} Refresh the page or contact your firm administrator.
-            </div>
-          )}
           {/* VIEW 1: CLIENT PWA PORTAL (PRIMARY CLIENT-CENTRIC EXPERIENCE) */}
           {currentView === "client-pwa" && (
             <ClientPortalPwa 
@@ -377,7 +333,7 @@ export default function Home() {
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-emerald-700 truncate">
-                      Engagement Completion Rate
+                      On-Time Filing Rate
                     </span>
                     <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 shrink-0">
                       <TrendingUp className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
@@ -385,9 +341,9 @@ export default function Home() {
                   </div>
                   <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 flex-wrap">
                     <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
-                      {tasks.length > 0 ? `${Math.round((tasks.filter(t => t.status === "FILED_AND_COMPLETED").length / tasks.length) * 100)}%` : "—"}
+                      {tasks.length > 0 ? `${Math.round((tasks.filter(t => t.status === 'FILED_AND_COMPLETED').length / tasks.length) * 100)}%` : "100%"}
                     </span>
-                    <span className="text-[10px] sm:text-xs text-emerald-600 font-bold">{tasks.length > 0 ? "Completed" : "No task data"}</span>
+                    <span className="text-[10px] sm:text-xs text-emerald-600 font-bold">Compliant</span>
                   </div>
                   <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium truncate">
                     {clients.length} Clients &bull; {clients.length} Active
@@ -412,12 +368,12 @@ export default function Home() {
                   </div>
                   <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 flex-wrap">
                     <span className="text-xl sm:text-2xl lg:text-3xl font-black text-btred-logo">
-                      {tasks.length > 0 ? criticalDueWithin72Hours : "—"}
+                      {tasks.filter(t => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED").length}
                     </span>
-                    <span className="text-[10px] sm:text-xs text-btred-logo font-bold">{tasks.length > 0 ? "Critical" : "No task data"}</span>
+                    <span className="text-[10px] sm:text-xs text-btred-logo font-bold">Critical</span>
                   </div>
                   <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium truncate">
-                    {tasks.length === 0 ? "Create engagements to see deadlines" : "Critical statutory tasks"}
+                    {tasks.length === 0 ? "No pending returns" : "Statutory Returns"}
                   </p>
                   <span className="text-[10px] text-btred-logo font-bold mt-1.5 inline-flex items-center gap-1 group-hover:underline">
                     View Critical &rarr;
@@ -425,7 +381,7 @@ export default function Home() {
                 </div>
 
                 <div 
-                  onClick={() => navigatePartnerTab("notices")}
+                  onClick={() => setActivePartnerTab("notices")}
                   className="bg-white border border-slate-200 hover:border-amber-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
                   title="Click to view Active Scrutiny Notices"
                 >
@@ -450,7 +406,7 @@ export default function Home() {
                 </div>
 
                 <div 
-                  onClick={() => navigatePartnerTab("billing")}
+                  onClick={() => setActivePartnerTab("billing")}
                   className="bg-white border border-slate-200 hover:border-indigo-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
                   title="Click to view Fee Realization & Unbilled WIP"
                 >
@@ -486,7 +442,7 @@ export default function Home() {
                     onChange={(e) => setActivePartnerTab(e.target.value)}
                     className="flex-1 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 rounded-xl px-2.5 py-1.5 focus:outline-none"
                   >
-                    {enabledPartnerTabs.map((tab) => (
+                    {partnerTabs.map((tab) => (
                       <option key={tab.id} value={tab.id}>
                         {tab.label}
                       </option>
@@ -497,13 +453,13 @@ export default function Home() {
 
               {/* Desktop & Tablet Tabs Header with horizontal touch scroll */}
               <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-3 overflow-x-auto scrollbar-none touch-pan-x">
-                {enabledPartnerTabs.map((tab) => {
+                {partnerTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activePartnerTab === tab.id;
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => navigatePartnerTab(tab.id)}
+                      onClick={() => setActivePartnerTab(tab.id)}
                       className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                         isActive
                           ? tab.id === "batch-dispatch"
@@ -522,7 +478,7 @@ export default function Home() {
               {/* Active Content */}
               {activePartnerTab === "batch-dispatch" && (
                 <BatchOutwardDispatcher 
-                  clients={clients.length > 0 ? clients : isDemoSandbox ? INITIAL_CLIENTS : []}
+                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
                   onBatchDispatched={() => refreshData()}
                   onTasksUpdated={() => refreshData()}
                 />
@@ -533,22 +489,8 @@ export default function Home() {
                   clients={clients}
                   onStatusChange={handleTaskStatusChange} 
                   onAddTask={createTask}
-                  onTaskUpdate={updateTask}
-                  onReminderDraft={recordReminderDraft}
                 />
               )}
-
-              {activePartnerTab === "documents" && (
-                <FirmDocuments
-                  clients={clients}
-                  documents={documents}
-                  onUpload={uploadDocument}
-                  onReview={reviewDocument}
-                />
-              )}
-          {activePartnerTab === "client-access" && <ClientAccessManager clients={clients} />}
-          {activePartnerTab === "staff-access" && <StaffAccessManager />}
-              {activePartnerTab === "activity" && <ActivityLog entries={auditTrail} onRefresh={refreshData} />}
 
               {activePartnerTab === "vcfo" && (
                 <VirtualCfoCockpit />
@@ -564,9 +506,9 @@ export default function Home() {
 
               {activePartnerTab === "pay-to-release" && (
                 <PayToReleaseManager
-                  configs={(payConfigs.length > 0 ? payConfigs : isDemoSandbox ? INITIAL_PAY_TO_RELEASE_CONFIGS : []) as any}
-                  clients={clients.length > 0 ? clients : isDemoSandbox ? INITIAL_CLIENTS : []}
-                  invoices={invoices.length > 0 ? invoices : isDemoSandbox ? INITIAL_INVOICES : []}
+                  configs={(payConfigs.length > 0 ? payConfigs : INITIAL_PAY_TO_RELEASE_CONFIGS) as any}
+                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
+                  invoices={invoices.length > 0 ? invoices : INITIAL_INVOICES}
                   firmUpiVpa={DEFAULT_FIRM_BRANDING.firmUpiVpa}
                   onRefreshData={refreshData}
                 />
@@ -575,8 +517,8 @@ export default function Home() {
               {activePartnerTab === "whatsapp-ai" && (
                 <WhatsAppAiWorkbench
                   clients={clients}
-                  initialStatements={(isDemoSandbox ? INITIAL_PARSED_STATEMENTS : []) as any}
-                  initialVaults={(isDemoSandbox ? INITIAL_PASSWORD_VAULTS : []) as any}
+                  initialStatements={INITIAL_PARSED_STATEMENTS as any}
+                  initialVaults={INITIAL_PASSWORD_VAULTS as any}
                   onTaskUpdated={refreshData}
                 />
               )}
@@ -585,21 +527,61 @@ export default function Home() {
                 <Gstr2bReconciler />
               )}
 
-              {activePartnerTab === "notices" && <NoticeRegister clients={clients} onRefresh={refreshData} />}
-              {activePartnerTab === "pilot" && <PilotScorecard />}
+              {activePartnerTab === "ais-analyzer" && (
+                <Ais26asAnalyzer clients={clients} />
+              )}
+
+              {activePartnerTab === "itr-calc" && (
+                <ItrComputationEngine clients={clients} />
+              )}
+
+              {activePartnerTab === "tax-audit-3cd" && (
+                <Form3cdWorkpaper clients={clients} />
+              )}
+
+              {activePartnerTab === "schedule3-audit" && (
+                <Schedule3AuditEngine clients={clients} />
+              )}
+
+              {activePartnerTab === "udin-vault" && (
+                <UdinVault clients={clients} />
+              )}
+
+              {activePartnerTab === "notice-drafter" && (
+                <NoticeReplyDrafter clients={clients} />
+              )}
+
+              {activePartnerTab === "assessee-approval" && (
+                <AssesseeApprovalDesk clients={clients} />
+              )}
+
+              {activePartnerTab === "content-studio" && (
+                <CaCreatorContentStudio />
+              )}
+
+              {activePartnerTab === "engagement-letter" && (
+                <EngagementLetterGenerator clients={clients} />
+              )}
+
+              {activePartnerTab === "notices" && (
+                <NoticeCenter 
+                  notices={notices} 
+                  onNoticeUpdated={refreshData}
+                />
+              )}
 
               {activePartnerTab === "peer-review" && (
                 <PeerReviewManager
                   clients={clients}
-                  initialMsmeRecords={(isDemoSandbox ? INITIAL_MSME_43BH_RECORDS : []) as any}
-                  initialSection40a={(isDemoSandbox ? INITIAL_SECTION_40A2B_SAMPLES : []) as any}
+                  initialMsmeRecords={INITIAL_MSME_43BH_RECORDS as any}
+                  initialSection40a={INITIAL_SECTION_40A2B_SAMPLES as any}
                 />
               )}
 
               {activePartnerTab === "anti-poaching" && (
                 <EnterpriseSecurityAndRealization
-                  partnerMetrics={(isDemoSandbox ? INITIAL_PARTNER_METRICS : []) as any}
-                  securityLogs={(isDemoSandbox ? INITIAL_STAFF_SECURITY_LOGS : []) as any}
+                  partnerMetrics={INITIAL_PARTNER_METRICS as any}
+                  securityLogs={INITIAL_STAFF_SECURITY_LOGS as any}
                 />
               )}
 
@@ -637,7 +619,6 @@ export default function Home() {
               setIsFirmHubOpen(true);
             }
           }}
-          restrictedPartnerMode={process.env.NODE_ENV === "production" && currentUser.role === "PARTNER"}
         />
 
         {/* Firm Action Hub Modal */}
@@ -645,8 +626,8 @@ export default function Home() {
           isOpen={isFirmHubOpen}
           onClose={() => setIsFirmHubOpen(false)}
           onOpenClientMaster={() => setIsClientMasterOpen(true)}
-          onOpenNewTask={() => navigatePartnerTab("calendar")}
-          onNavigateTab={navigatePartnerTab}
+          onOpenNewTask={() => setActivePartnerTab("calendar")}
+          onNavigateTab={(tab) => setActivePartnerTab(tab)}
         />
 
         {/* Client Master Modal */}

@@ -16,6 +16,7 @@ export type WhatsAppTemplate =
   | "SCRUTINY_NOTICE_ALERT"
   | "DSC_EXPIRY_ALERT"
   | "CLIENT_CREDENTIALS"
+  | "STAFF_CREDENTIALS"
   | "VENDOR_ITC_HOLD"
   | "MSME_43BH_ALERT";
 
@@ -71,7 +72,7 @@ function formatINR(val?: number): string {
  * Generate formatted template text according to professional CA communication standards
  */
 export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAppTemplateParams): string {
-  const firm = params.firmName || "your CA firm";
+  const firm = params.firmName || "GPA & Co., Chartered Accountants & Brains & Taxes";
   const portalLink = params.portalUrl || "https://ca.naturexpress.in/";
 
   switch (template) {
@@ -86,7 +87,7 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
         `We are currently preparing your *${params.serviceName || "Compliance Filing"}* for the period *${params.period || "current period"}*.\n\n` +
         `The statutory filing deadline is *${params.deadline || "approaching shortly"}*. To avoid late filing fees and interest, kindly upload the following pending documents:\n\n` +
         `${docsList}\n\n` +
-        `Client portal: ${portalLink} (sign-in required; the firm must enable portal access).\n\n` +
+        `📱 *1-Tap Upload from your mobile:*\n${portalLink}\n\n` +
         `Kindly share these at the earliest so our audit team can complete the reconciliation on schedule.\n\n` +
         `Regards,\n*Taxation & Audit Team*\n${firm}`;
     }
@@ -156,11 +157,55 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
     }
 
     case "CLIENT_CREDENTIALS": {
-      return `*YOUR CA FIRM CLIENT PORTAL*\n\n` +
-        `Dear ${params.clientName},\n\n` +
-        `Your client portal is at ${portalLink}. Sign in using the credentials you set through the firm's approved account setup process.\n\n` +
-        `For your security, passwords are not sent in WhatsApp messages.\n\n` +
-        `Regards,\n${firm}`;
+      return `*OFFICIAL CLIENT PORTAL ACCESS — GPA & CO.*
+(Chartered Accountants | ICAI FRN: 022998C)
+
+Dear ${params.clientName},
+
+Greetings from *GPA & Co., Chartered Accountants*.
+Your corporate tax compliance & financial portal is now live for *${params.clientName}*.
+
+🔐 *Your Secure Login Credentials:*
+• *Portal URL:* https://ca.naturexpress.in/
+• *User ID (Mobile/PAN):* ${params.loginId || params.clientName}
+• *Security Password:* ${params.loginPassword || "Client@2026"}
+*(Zero-SMS OTP delay — Direct 1-tap login)*
+
+📌 *Why you should log in today:*
+1. 🏦 *Banker Loan Dockets:* 1-click audited balance sheets & ITR-V for bank credit renewals.
+2. ⚠️ *Protect GST ITC Loss:* Live alerts for non-filing vendors so you hold defaulting payments.
+3. ⏳ *MSME 43B(h) Clock:* 45-day vendor payment deadline countdown.
+4. ✍️ *Paperless E-Sign:* Approve filed returns & financial statements right from mobile.
+
+👉 *Log in now:* https://ca.naturexpress.in/
+For direct assistance, reach our audit desk at +91 98937 23639.
+
+Warm regards,
+*Tax & Corporate Compliance Team*
+*GPA & Co., Chartered Accountants*`;
+    }
+
+    case "STAFF_CREDENTIALS": {
+      return `*PRACTICE MANAGEMENT ACCESS — GPA & CO.*
+(Chartered Accountants | ICAI FRN: 022998C)
+
+Dear ${params.clientName},
+
+Your staff desk access is active on the GPA & Co. Practice Management System.
+
+🔐 *Your Secure Login Details:*
+• *Portal URL:* https://ca.naturexpress.in/
+• *User ID (Email/Phone):* ${params.loginId || params.clientName}
+• *Password:* ${params.loginPassword || "Staff@2026"}
+• *Assigned Role:* ${params.serviceName || "Staff Member"}
+
+📌 *Workbench Capabilities:*
+• Track statutory tax calendars, GSTR-2B reconciliations & scrutiny notices
+• Prepare compliance workpapers & route for partner sign-off
+• Manage client digital vaults & automated document chases
+
+👉 *Log in here:* https://ca.naturexpress.in/
+*GPA & Co., Chartered Accountants*`;
     }
 
     case "VENDOR_ITC_HOLD": {

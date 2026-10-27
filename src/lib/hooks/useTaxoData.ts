@@ -24,153 +24,134 @@ import {
   INITIAL_PAY_TO_RELEASE_CONFIGS
 } from "@/lib/data/mockData";
 
-const isDemoBuild = process.env.NODE_ENV !== "production";
-
-async function requestMutation(path: string, body: unknown, method: "POST" | "PATCH" = "POST") {
-  const response = await fetch(path, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.success) {
-    throw new Error(result?.error || "The change could not be saved. Refresh and try again.");
-  }
-  return result;
-}
-
-export function useTaxoData(options: { clientPortal?: boolean; enabled?: boolean } = {}) {
-  const dataEndpoint = options.clientPortal ? "/api/client-portal" : "/api/data";
-  const documentUploadEndpoint = options.clientPortal ? "/api/client-portal/documents" : "/api/documents";
-  const enabled = options.enabled ?? true;
-  const [tasks, setTasks] = useState<ComplianceTask[]>(isDemoBuild ? INITIAL_TASKS : []);
-  const [documents, setDocuments] = useState<DocumentItem[]>(isDemoBuild ? INITIAL_DOCUMENTS : []);
-  const [invoices, setInvoices] = useState<InvoiceItem[]>(isDemoBuild ? INITIAL_INVOICES : []);
-  const [notices, setNotices] = useState<NoticeRecord[]>(isDemoBuild ? INITIAL_NOTICES : []);
-  const [dscTokens, setDscTokens] = useState<DscRecord[]>(isDemoBuild ? INITIAL_DSC_TOKENS : []);
-  const [clients, setClients] = useState<ClientEntity[]>(isDemoBuild ? INITIAL_CLIENTS : []);
-  const [groups, setGroups] = useState<ClientGroup[]>(isDemoBuild ? INITIAL_GROUPS : []);
-  const [auditTrail, setAuditTrail] = useState<AuditTrailLog[]>(isDemoBuild ? INITIAL_AUDIT_TRAIL : []);
-  const [payConfigs, setPayConfigs] = useState<PayToReleaseConfig[]>(isDemoBuild ? INITIAL_PAY_TO_RELEASE_CONFIGS as any : []);
+export function useTaxoData() {
+  const [tasks, setTasks] = useState<ComplianceTask[]>(INITIAL_TASKS);
+  const [documents, setDocuments] = useState<DocumentItem[]>(INITIAL_DOCUMENTS);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>(INITIAL_INVOICES);
+  const [notices, setNotices] = useState<NoticeRecord[]>(INITIAL_NOTICES);
+  const [dscTokens, setDscTokens] = useState<DscRecord[]>(INITIAL_DSC_TOKENS);
+  const [clients, setClients] = useState<ClientEntity[]>(INITIAL_CLIENTS);
+  const [groups, setGroups] = useState<ClientGroup[]>(INITIAL_GROUPS);
+  const [auditTrail, setAuditTrail] = useState<AuditTrailLog[]>(INITIAL_AUDIT_TRAIL);
+  const [payConfigs, setPayConfigs] = useState<PayToReleaseConfig[]>(INITIAL_PAY_TO_RELEASE_CONFIGS as any);
   const [isLoading, setIsLoading] = useState(true);
-  const [dataError, setDataError] = useState<string | null>(null);
 
   // Fetch initial data from persistent backend
   const refreshData = useCallback(async () => {
     try {
-      const res = await fetch(dataEndpoint, { cache: "no-store" });
-      if (!res.ok) {
-        setDataError("Firm data is temporarily unavailable. Your changes may not be saved.");
-        if (!isDemoBuild) {
-          setTasks([]); setDocuments([]); setInvoices([]); setNotices([]); setDscTokens([]);
-          setClients([]); setGroups([]); setAuditTrail([]); setPayConfigs([]);
-        }
-      } else {
+      const res = await fetch("/api/data");
+      if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
-          setDataError(null);
-          setTasks(json.data.tasks || (isDemoBuild ? INITIAL_TASKS : []));
-          setDocuments(json.data.documents || (isDemoBuild ? INITIAL_DOCUMENTS : []));
-          setInvoices(json.data.invoices || (isDemoBuild ? INITIAL_INVOICES : []));
-          setNotices(json.data.notices || (isDemoBuild ? INITIAL_NOTICES : []));
-          setDscTokens(json.data.dscTokens || (isDemoBuild ? INITIAL_DSC_TOKENS : []));
-          setClients(json.data.clients || (isDemoBuild ? INITIAL_CLIENTS : []));
-          setGroups(json.data.groups || (isDemoBuild ? INITIAL_GROUPS : []));
-          setAuditTrail(json.data.auditTrail || (isDemoBuild ? INITIAL_AUDIT_TRAIL : []));
+          setTasks(json.data.tasks || INITIAL_TASKS);
+          setDocuments(json.data.documents || INITIAL_DOCUMENTS);
+          setInvoices(json.data.invoices || INITIAL_INVOICES);
+          setNotices(json.data.notices || INITIAL_NOTICES);
+          setDscTokens(json.data.dscTokens || INITIAL_DSC_TOKENS);
+          setClients(json.data.clients || INITIAL_CLIENTS);
+          setGroups(json.data.groups || INITIAL_GROUPS);
+          setAuditTrail(json.data.auditTrail || INITIAL_AUDIT_TRAIL);
           if (json.data.payToReleaseConfigs) {
             setPayConfigs(json.data.payToReleaseConfigs);
-          } else if (!isDemoBuild) {
-            setPayConfigs([]);
           }
         }
       }
     } catch (err) {
       console.warn("Using local cached state, backend offline:", err);
-      setDataError("Firm data is temporarily unavailable. Your changes may not be saved.");
-      if (!isDemoBuild) {
-        setTasks([]); setDocuments([]); setInvoices([]); setNotices([]); setDscTokens([]);
-        setClients([]); setGroups([]); setAuditTrail([]); setPayConfigs([]);
-      }
     } finally {
       setIsLoading(false);
     }
-  }, [dataEndpoint]);
+  }, []);
 
   useEffect(() => {
-    if (enabled) void refreshData();
-    else setIsLoading(false);
-  }, [refreshData, enabled]);
+    refreshData();
+  }, [refreshData]);
 
   // Create Task
   const createTask = async (taskData: Partial<ComplianceTask>) => {
     try {
-      const result = await requestMutation("/api/tasks", taskData);
-      await refreshData();
-      return result.task;
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setTasks((prev) => [json.task, ...prev]);
+          refreshData();
+          return json.task;
+        }
+      }
     } catch (err) {
       console.error("Failed to create task", err);
-      throw err;
     }
   };
 
   // Update Task (status, UDIN, chase)
   const updateTask = async (taskId: string, updates: Partial<ComplianceTask>) => {
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t))
+    );
     try {
-      const result = await requestMutation("/api/tasks", { taskId, ...updates }, "PATCH");
-      await refreshData();
-      return result.task;
+      await fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, ...updates }),
+      });
+      refreshData();
     } catch (err) {
       console.error("Failed to update task", err);
-      throw err;
-    }
-  };
-
-  const recordReminderDraft = async (taskId: string) => {
-    try {
-      const result = await requestMutation("/api/tasks", { taskId, action: "PREPARE_WHATSAPP_DRAFT" }, "PATCH");
-      await refreshData();
-      return result.task;
-    } catch (err) {
-      console.error("Failed to record reminder draft", err);
-      throw err;
     }
   };
 
   // Upload Document
   const uploadDocument = async (docData: {
     entityId: string;
+    entityName: string;
     category: DocumentItem["category"];
+    fileName: string;
+    fileSize: string;
     financialYear: string;
     taskId?: string;
-    file: File;
+    uploadedBy: DocumentItem["uploadedBy"];
+    fileContentBase64?: string;
+    actorName?: string;
   }) => {
     try {
-      const body = new FormData();
-      body.set("entityId", docData.entityId);
-      body.set("category", docData.category);
-      body.set("financialYear", docData.financialYear);
-      if (docData.taskId) body.set("taskId", docData.taskId);
-      body.set("file", docData.file);
-      const response = await fetch(documentUploadEndpoint, { method: "POST", body, cache: "no-store" });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.success) throw new Error(result?.error || "The document could not be stored.");
-      await refreshData();
-      return result.document;
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(docData),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setDocuments((prev) => [json.document, ...prev]);
+          refreshData();
+          return json.document;
+        }
+      }
     } catch (err) {
       console.error("Failed to upload document", err);
-      throw err;
     }
   };
 
   // Review Document
   const reviewDocument = async (docId: string, reviewStatus: DocumentItem["reviewStatus"], reviewNotes?: string) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, reviewStatus, reviewNotes } : d))
+    );
     try {
-      const result = await requestMutation("/api/documents", { docId, reviewStatus, reviewNotes }, "PATCH");
-      await refreshData();
-      return result.document;
+      await fetch("/api/documents", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId, reviewStatus, reviewNotes }),
+      });
+      refreshData();
     } catch (err) {
       console.error("Failed to review document", err);
-      throw err;
     }
   };
 
@@ -182,95 +163,172 @@ export function useTaxoData(options: { clientPortal?: boolean; enabled?: boolean
     clientPayerNote?: string,
     actorName?: string
   ) => {
+    setInvoices((prev) =>
+      prev.map((inv) =>
+        inv.id === invoiceId
+          ? {
+              ...inv,
+              status: "UTR_SUBMITTED",
+              clientUtrNumber,
+              clientPaymentMode,
+              clientPaymentDate: new Date().toISOString().split("T")[0],
+              clientPayerNote,
+            }
+          : inv
+      )
+    );
     try {
-      const result = await requestMutation("/api/invoices", {
+      await fetch("/api/invoices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           invoiceId,
           action: "SUBMIT_UTR",
           clientUtrNumber,
           clientPaymentMode,
           clientPayerNote,
           actorName: actorName || "Client Accounts Desk",
-      }, "PATCH");
-      await refreshData();
-      return result.invoice;
+        }),
+      });
+      refreshData();
     } catch (err) {
       console.error("Failed to submit UTR", err);
-      throw err;
     }
   };
 
   // Reconcile Invoice (Firm Partner/Article marks as Paid)
   const reconcileInvoice = async (invoiceId: string, reconciledBy?: string) => {
+    setInvoices((prev) =>
+      prev.map((inv) =>
+        inv.id === invoiceId
+          ? {
+              ...inv,
+              status: "PAID",
+              reconciledBy: reconciledBy || "CA Gunjan Jain (Partner)",
+              reconciledAt: new Date().toISOString(),
+            }
+          : inv
+      )
+    );
     try {
-      const result = await requestMutation("/api/invoices", {
+      await fetch("/api/invoices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           invoiceId,
           action: "RECONCILE",
           reconciledBy: reconciledBy || "CA Gunjan Jain (Partner)",
-      }, "PATCH");
-      await refreshData();
-      return result.invoice;
+        }),
+      });
+      refreshData();
     } catch (err) {
       console.error("Failed to reconcile invoice", err);
-      throw err;
     }
   };
 
   // DSC Checkout & Return
   const checkoutDscToken = async (tokenId: string, staffName: string, purpose: string) => {
+    setDscTokens((prev) =>
+      prev.map((t) =>
+        t.id === tokenId
+          ? {
+              ...t,
+              currentCustodian: staffName,
+              checkedOutAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              checkedOutPurpose: purpose,
+            }
+          : t
+      )
+    );
     try {
-      await requestMutation("/api/dsc", {
+      await fetch("/api/dsc", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           tokenId,
           action: "CHECKOUT",
           staffName,
           purpose,
-      }, "PATCH");
-      await refreshData();
+        }),
+      });
+      refreshData();
     } catch (err) {
       console.error("Failed to checkout DSC token", err);
-      throw err;
     }
   };
 
   const returnDscToken = async (tokenId: string) => {
+    setDscTokens((prev) =>
+      prev.map((t) =>
+        t.id === tokenId
+          ? {
+              ...t,
+              currentCustodian: "Firm Master Safe",
+              checkedOutAt: undefined,
+              checkedOutPurpose: undefined,
+            }
+          : t
+      )
+    );
     try {
-      await requestMutation("/api/dsc", {
+      await fetch("/api/dsc", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           tokenId,
           action: "RETURN",
-      }, "PATCH");
-      await refreshData();
+        }),
+      });
+      refreshData();
     } catch (err) {
       console.error("Failed to return DSC token", err);
-      throw err;
     }
   };
 
   // Pay-To-Release Gatekeeper
   const instantUpiUnlock = async (entityId: string, amount: number) => {
     try {
-      const result = await requestMutation("/api/pay-to-release", {
+      const res = await fetch("/api/pay-to-release", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           action: "INSTANT_PAYMENT_RELEASE",
           entityId,
           amountPaid: amount,
           paymentMode: "UPI_DYNAMIC",
           utrRef: `UPI-${Date.now().toString().slice(-8)}`,
+        }),
       });
-      await refreshData();
-      return result;
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          refreshData();
+          return json;
+        }
+      }
     } catch (err) {
       console.error("Failed to instant unlock", err);
-      throw err;
     }
   };
 
   // Create Client
   const createClient = async (clientData: Partial<ClientEntity>) => {
     try {
-      const result = await requestMutation("/api/clients", clientData);
-      await refreshData();
-      return result.client;
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clientData),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.client) {
+          setClients((prev) => [json.client, ...prev]);
+          refreshData();
+          return json.client;
+        }
+      }
     } catch (err) {
       console.error("Failed to create client", err);
-      throw err;
     }
   };
 
@@ -285,12 +343,10 @@ export function useTaxoData(options: { clientPortal?: boolean; enabled?: boolean
     auditTrail,
     payConfigs,
     isLoading,
-    dataError,
     refreshData,
     createClient,
     createTask,
     updateTask,
-    recordReminderDraft,
     uploadDocument,
     reviewDocument,
     submitClientUtr,

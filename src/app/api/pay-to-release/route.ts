@@ -4,7 +4,7 @@ import { PayToReleaseConfig, PaymentReleaseReceipt } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
   try {
-    const db = await ensureDatabase();
+    const db = ensureDatabase();
     const searchParams = request.nextUrl.searchParams;
     const entityId = searchParams.get("entityId");
 
@@ -29,13 +29,13 @@ export async function GET(request: NextRequest) {
       firmMetrics: db.firmMetrics 
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const db = await ensureDatabase();
+    const db = ensureDatabase();
     const body = await request.json();
     const { action, entityId, partnerName, utrRef, amountPaid, paymentMode, reason } = body;
 
@@ -115,8 +115,7 @@ export async function POST(request: NextRequest) {
         clientName,
         "Pay-to-Release Fee Clearance",
         `Cleared ₹${clearedAmount.toLocaleString("en-IN")} via ${paymentMode || "UPI"}. Deliverables instantly unlocked for client download.`,
-        "PAY_RELEASE",
-      db
+        "PAY_RELEASE"
       );
 
       await saveDatabase(db);
@@ -138,8 +137,7 @@ export async function POST(request: NextRequest) {
         clientName,
         "Partner Lock Override",
         `Partner manually unlocked deliverables. Reason: ${reason || "Temporary waiver authorized"}`,
-        "PAY_RELEASE",
-      db
+        "PAY_RELEASE"
       );
 
       await saveDatabase(db);
@@ -163,8 +161,7 @@ export async function POST(request: NextRequest) {
         clientName,
         willLock ? "Pay-to-Release Lock Enabled" : "Pay-to-Release Lock Disabled",
         `Deliverables lock status toggled to: ${willLock ? "LOCKED" : "UNLOCKED"}`,
-        "PAY_RELEASE",
-      db
+        "PAY_RELEASE"
       );
 
       await saveDatabase(db);
@@ -173,6 +170,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -31,17 +31,17 @@ import { toast } from "@/components/shared/ToastNotification";
 
 export const ArticleWorkbench: React.FC = () => {
   const { tasks: hookTasks, documents: hookDocs, clients, updateTask } = useTaxoData();
-  const [tasks, setTasks] = useState<ComplianceTask[]>(hookTasks.length > 0 || process.env.NODE_ENV === "production" ? hookTasks : INITIAL_TASKS);
-  const [documents, setDocuments] = useState<DocumentItem[]>(hookDocs.length > 0 || process.env.NODE_ENV === "production" ? hookDocs : INITIAL_DOCUMENTS);
+  const [tasks, setTasks] = useState<ComplianceTask[]>(hookTasks.length > 0 ? hookTasks : INITIAL_TASKS);
+  const [documents, setDocuments] = useState<DocumentItem[]>(hookDocs.length > 0 ? hookDocs : INITIAL_DOCUMENTS);
 
   React.useEffect(() => {
-    if (hookTasks.length > 0 || process.env.NODE_ENV === "production") setTasks(hookTasks);
+    if (hookTasks.length > 0) setTasks(hookTasks);
   }, [hookTasks]);
 
   React.useEffect(() => {
-    if (hookDocs.length > 0 || process.env.NODE_ENV === "production") setDocuments(hookDocs);
+    if (hookDocs.length > 0) setDocuments(hookDocs);
   }, [hookDocs]);
-  const [activeTab, setActiveTab] = useState<"tasks" | "doc-review" | "bank-decryptor" | "chat-hub" | "timesheet" | "otp-relay">("tasks");
+  const [activeTab, setActiveTab] = useState<"tasks" | "doc-review" | "bank-decryptor" | "chat-hub" | "timesheet" | "otp-relay" | "icai-register">("tasks");
   const [chatMessage, setChatMessage] = useState("");
   const [messages, setMessages] = useState<{ id: string; sender: string; text: string; time: string; isClient: boolean }[]>([
     {
@@ -300,6 +300,15 @@ export const ArticleWorkbench: React.FC = () => {
             <Clock className="w-3.5 h-3.5 text-blue-500" />
             Timesheet (102/103)
           </button>
+          <button
+            onClick={() => setActiveTab("icai-register")}
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              activeTab === "icai-register" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+            ICAI Form 102/103/108 &amp; Stipend
+          </button>
         </div>
       </div>
 
@@ -548,7 +557,7 @@ export const ArticleWorkbench: React.FC = () => {
 
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3">
               <span className="text-xs font-black text-slate-900 block">Encrypted Document Queue</span>
-              {documents.filter((d) => d.category === "BANK_STATEMENT").map((doc) => {
+              {INITIAL_DOCUMENTS.filter((d) => d.category === "BANK_STATEMENT").map((doc) => {
                 const isDecrypted = decryptedFiles.includes(doc.id);
                 const isProcessing = decryptingFileId === doc.id;
 
@@ -851,6 +860,106 @@ export const ArticleWorkbench: React.FC = () => {
                 </>
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tax Audit Form 3CD Workpaper Modal with real UDIN tracking */}
+      {/* TAB 7: ICAI REGULATION 48 ARTICLES REGISTER & STIPEND DESK */}
+      {activeTab === "icai-register" && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                ICAI Regulation 48 &amp; Training Mandate
+              </span>
+              <h3 className="text-lg font-black text-slate-900 mt-1">
+                Articleship Training, Leaves &amp; Regulation 48 Stipend Register
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Tracks Form 102 (Articleship Deed), Form 103 (30-day ICAI Registration countdown), Form 108 (Completion), and permissible leave limits.
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-bold text-slate-500 block">Total Active Trainees</span>
+              <span className="text-xl font-black text-slate-900">4 Enrolled</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              {
+                name: "Kriti Jain",
+                croNo: "CRO-0651289",
+                commencement: "2024-08-15",
+                year: "Year 2 (Intermediate Both Groups Passed)",
+                minStipend: 4000,
+                leavesTaken: 18,
+                maxPermissibleLeaves: 52,
+                form108Due: "2026-08-14"
+              },
+              {
+                name: "Aman Sharma",
+                croNo: "CRO-0699412",
+                commencement: "2025-02-01",
+                year: "Year 1 (Direct Entry Graduate)",
+                minStipend: 3000,
+                leavesTaken: 6,
+                maxPermissibleLeaves: 52,
+                form108Due: "2027-01-31"
+              },
+              {
+                name: "Pooja Agrawal",
+                croNo: "WRO-0741289",
+                commencement: "2026-09-20",
+                year: "Year 1 (Foundation Route)",
+                minStipend: 3000,
+                leavesTaken: 0,
+                maxPermissibleLeaves: 52,
+                form108Due: "2028-09-19"
+              },
+              {
+                name: "Rahul Verma",
+                croNo: "CRO-0588211",
+                commencement: "2023-11-10",
+                year: "Final Year (Approaching Completion)",
+                minStipend: 5000,
+                leavesTaken: 38,
+                maxPermissibleLeaves: 52,
+                form108Due: "2025-11-09"
+              }
+            ].map((art, i) => (
+              <div key={i} className="border border-slate-200 rounded-2xl p-4 space-y-3 hover:border-slate-300 transition">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900">{art.name}</h4>
+                    <span className="text-[11px] font-mono font-bold text-slate-500">{art.croNo} &bull; {art.year}</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Form 103 OK
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2.5 rounded-xl text-slate-700">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Regulation 48 Stipend</span>
+                    <strong className="text-emerald-700 font-mono text-xs">₹{art.minStipend.toLocaleString()}/mo</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Leave Balance</span>
+                    <strong className="text-slate-800">{art.leavesTaken} / {art.maxPermissibleLeaves} Days Used</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Deed Start</span>
+                    <span>{art.commencement}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Form 108 Due Date</span>
+                    <span className="font-mono">{art.form108Due}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

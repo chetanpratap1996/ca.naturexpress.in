@@ -4,7 +4,7 @@ import { Msme43BhClauseItem, Section40A2bSampleItem, PeerReviewDossier } from "@
 
 export async function GET(request: NextRequest) {
   try {
-    const db = await ensureDatabase();
+    const db = ensureDatabase();
     const searchParams = request.nextUrl.searchParams;
     const defaultId = db.clients[0]?.id || "CLI-001";
     const entityId = searchParams.get("entityId") || defaultId;
@@ -71,13 +71,13 @@ export async function GET(request: NextRequest) {
       client
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const db = await ensureDatabase();
+    const db = ensureDatabase();
     const body = await request.json();
     const { action, entityId, msmeRecord, section40aRecord } = body;
 
@@ -108,8 +108,7 @@ export async function POST(request: NextRequest) {
         clientName,
         "Section 43B(h) MSME Disallowance Computed",
         `Flagged invoice #${newMsme.invoiceNumber} for ₹${newMsme.amount.toLocaleString("en-IN")}. Unpaid at 31-March, added to 3CD Clause 26.`,
-        "PEER_REVIEW",
-      db
+        "PEER_REVIEW"
       );
 
       await saveDatabase(db);
@@ -123,11 +122,8 @@ export async function POST(request: NextRequest) {
         clientName,
         "Peer Review Working Paper Dossier Stamped",
         "Executed SA 230 digital sign-off. Permanent & Current audit files locked with ICAI UDIN 24049281AAAAAA8912.",
-        "PEER_REVIEW",
-      db
+        "PEER_REVIEW"
       );
-
-      await saveDatabase(db);
 
       return NextResponse.json({
         success: true,
@@ -137,6 +133,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

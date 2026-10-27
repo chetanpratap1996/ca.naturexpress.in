@@ -1,14 +1,11 @@
-const { Client } = require('pg');
-const client = new Client({
-  connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
-  ssl: true
-});
+const { getDatabaseClient } = require('./db-client');
+
+const client = getDatabaseClient();
 
 async function run() {
   await client.connect();
-  await client.query("DELETE FROM client_entities WHERE entity_name = 'Test Live Connection Pvt Ltd'");
-  const res = await client.query('SELECT id, entity_name, pan FROM client_entities');
-  console.log('Current Supabase clients:', res.rows);
+  const res = await client.query("DELETE FROM client_entities WHERE entity_name ILIKE '%test%' OR pan = 'AAAAA0000A'");
+  console.log(`Cleaned up test entities: ${res.rowCount} removed.`);
   await client.end();
 }
 

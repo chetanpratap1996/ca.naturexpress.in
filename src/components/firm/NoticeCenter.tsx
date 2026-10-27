@@ -46,7 +46,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
   }, [initialNotices]);
 
   const getDaysRemaining = (deadline: string) => {
-    const diffTime = new Date(deadline).getTime() - new Date("2026-10-24").getTime();
+    const diffTime = new Date(deadline).getTime() - new Date().setHours(0, 0, 0, 0);
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 

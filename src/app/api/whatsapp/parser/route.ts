@@ -4,7 +4,7 @@ import { ParsedBankStatement, BankTransactionItem } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
   try {
-    const db = await ensureDatabase();
+    const db = ensureDatabase();
     const searchParams = request.nextUrl.searchParams;
     const entityId = searchParams.get("entityId");
 
@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
       vaults
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const db = await ensureDatabase();
+    const db = ensureDatabase();
     const body = await request.json();
     const { action, entityId, fileName, customPassword, statementData } = body;
 
@@ -154,8 +154,7 @@ export async function POST(request: NextRequest) {
         clientName,
         "Auto-Decrypted Bank Statement",
         `Parsed ${newParsed.transactions.length} transactions from ${newParsed.sourceFile}. Password bypassed using vault pattern (${usedPassword}).`,
-        "WHATSAPP",
-      db
+        "WHATSAPP"
       );
 
       await saveDatabase(db);
@@ -187,8 +186,7 @@ export async function POST(request: NextRequest) {
         clientName,
         "Registered Client PDF Password Pattern",
         `Added decryption pattern for ${newVault.bankName} (${newVault.accountNumberMasked})`,
-        "DOCUMENT",
-      db
+        "DOCUMENT"
       );
 
       await saveDatabase(db);
@@ -197,6 +195,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

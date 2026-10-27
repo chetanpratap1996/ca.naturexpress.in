@@ -18,9 +18,9 @@ import { EnterpriseSecurityAndRealization } from "@/components/firm/EnterpriseSe
 import { BatchOutwardDispatcher } from "@/components/firm/BatchOutwardDispatcher";
 import { ClientMasterModal } from "@/components/firm/ClientMasterModal";
 import { FirmHubActionModal } from "@/components/firm/FirmHubActionModal";
+import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { toast } from "@/components/shared/ToastNotification";
-import { signOutSupabaseUser } from "@/lib/auth/supabaseUser";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { 
@@ -64,10 +64,6 @@ import {
   Sparkles
 } from "lucide-react";
 
-function isProductionBuild() {
-  return process.env.NODE_ENV === "production";
-}
-
 export default function AdminPage() {
   const {
     tasks,
@@ -84,20 +80,14 @@ export default function AdminPage() {
     reconcileInvoice
   } = useTaxoData();
 
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(process.env.NODE_ENV === "production" ? null : DEMO_USERS.partner);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("calendar");
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
 
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === "production") {
-      window.location.replace("/");
-    }
-  }, []);
-
-  const handleTaskStatusChange = async (taskId: string, newStatus: WorkflowStatus, arnNumber?: string) => {
-    await updateTask(taskId, { status: newStatus, ...(arnNumber ? { arnNumber } : {}) });
+  const handleTaskStatusChange = async (taskId: string, newStatus: WorkflowStatus) => {
+    await updateTask(taskId, { status: newStatus });
   };
 
   const handleTabChange = (tab: string) => {
@@ -106,29 +96,29 @@ export default function AdminPage() {
 
   const handleLogout = () => {
     clearSession();
-    void signOutSupabaseUser();
     setCurrentUser(null);
     toast.info("Signed Out", "Admin session ended securely.");
   };
 
   const handleSwitchUserRole = (role: "partner" | "article" | "client") => {
-    if (process.env.NODE_ENV === "production") return;
     let targetUser: AuthUser | null = null;
     if (role === "client") {
       const activeClient = clients.length > 0 ? clients[0] : null;
       if (activeClient) {
         targetUser = {
           id: `USR-${activeClient.id}`,
-          name: activeClient.primaryContact?.name || "Sample Client Contact",
-          email: activeClient.primaryContact?.email || "client@example.invalid",
-          phone: activeClient.primaryContact?.phone || "+91 00000 00002",
+          name: activeClient.primaryContact?.name || "Chetan Pratap Singh",
+          email: activeClient.primaryContact?.email || "chetanpratap1996@gmail.com",
+          phone: activeClient.primaryContact?.phone || "+91 80771 70715",
           role: "CLIENT",
           designation: `${activeClient.primaryContact?.designation || "Director"} (${activeClient.name})`,
           firmId: "FRM-022998C",
           firmName: "GPA & Co., Chartered Accountants",
           firmFrn: "022998C",
+          defaultPassword: `${activeClient.primaryContact?.name?.split(" ")?.[0] || "Chetan"}@${activeClient.primaryContact?.phone?.slice(-4) || "0715"}`,
           clientGroupId: activeClient.groupId,
           clientEntityId: activeClient.id,
+          token: `tok_client_${Date.now()}`,
           expiresAt: new Date(Date.now() + 86400000).toISOString(),
         };
       } else {
@@ -164,8 +154,19 @@ export default function AdminPage() {
     { id: "batch-dispatch", label: "Batch Dispatcher", icon: Sparkles, iconColor: "text-indigo-300" },
   ];
 
-  if (isProductionBuild()) {
-    return <main className="min-h-screen grid place-items-center bg-slate-50 text-slate-600">Opening the authenticated workspace…</main>;
+  if (!currentUser) {
+    return (
+      <LoginModal 
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          if (user.role === "ARTICLE") setCurrentView("article");
+          else if (user.role === "CLIENT") setCurrentView("client-pwa");
+          else setCurrentView("partner");
+        }} 
+        initialRole="partner" 
+        clients={clients}
+      />
+    );
   }
 
   return (
@@ -185,7 +186,7 @@ export default function AdminPage() {
             clearSession();
             window.location.href = "/?landing=true";
           }}
-          isSandbox={process.env.NODE_ENV !== "production"}
+          isSandbox={true}
         />
 
         {/* Main Content Area */}
@@ -346,7 +347,7 @@ export default function AdminPage() {
               {/* Active Content */}
               {activePartnerTab === "batch-dispatch" && (
                 <BatchOutwardDispatcher 
-                  clients={clients.length > 0 ? clients : process.env.NODE_ENV !== "production" ? INITIAL_CLIENTS : []}
+                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
                   onBatchDispatched={() => refreshData()}
                   onTasksUpdated={() => refreshData()}
                 />
@@ -362,9 +363,9 @@ export default function AdminPage() {
 
               {activePartnerTab === "pay-to-release" && (
                 <PayToReleaseManager
-                  configs={(payConfigs.length > 0 ? payConfigs : process.env.NODE_ENV !== "production" ? INITIAL_PAY_TO_RELEASE_CONFIGS : []) as any}
-                  clients={clients.length > 0 ? clients : process.env.NODE_ENV !== "production" ? INITIAL_CLIENTS : []}
-                  invoices={invoices.length > 0 ? invoices : process.env.NODE_ENV !== "production" ? INITIAL_INVOICES : []}
+                  configs={(payConfigs.length > 0 ? payConfigs : INITIAL_PAY_TO_RELEASE_CONFIGS) as any}
+                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
+                  invoices={invoices.length > 0 ? invoices : INITIAL_INVOICES}
                   firmUpiVpa={DEFAULT_FIRM_BRANDING.firmUpiVpa}
                   onRefreshData={refreshData}
                 />
@@ -372,9 +373,9 @@ export default function AdminPage() {
 
               {activePartnerTab === "whatsapp-ai" && (
                 <WhatsAppAiWorkbench
-                  clients={clients.length > 0 ? clients : process.env.NODE_ENV !== "production" ? INITIAL_CLIENTS : []}
-                  initialStatements={(process.env.NODE_ENV !== "production" ? INITIAL_PARSED_STATEMENTS : []) as any}
-                  initialVaults={(process.env.NODE_ENV !== "production" ? INITIAL_PASSWORD_VAULTS : []) as any}
+                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
+                  initialStatements={INITIAL_PARSED_STATEMENTS as any}
+                  initialVaults={INITIAL_PASSWORD_VAULTS as any}
                   onTaskUpdated={refreshData}
                 />
               )}
@@ -393,15 +394,15 @@ export default function AdminPage() {
               {activePartnerTab === "peer-review" && (
                 <PeerReviewManager
                   clients={clients}
-                  initialMsmeRecords={(process.env.NODE_ENV !== "production" ? INITIAL_MSME_43BH_RECORDS : []) as any}
-                  initialSection40a={(process.env.NODE_ENV !== "production" ? INITIAL_SECTION_40A2B_SAMPLES : []) as any}
+                  initialMsmeRecords={INITIAL_MSME_43BH_RECORDS as any}
+                  initialSection40a={INITIAL_SECTION_40A2B_SAMPLES as any}
                 />
               )}
 
               {activePartnerTab === "anti-poaching" && (
                 <EnterpriseSecurityAndRealization
-                  partnerMetrics={(process.env.NODE_ENV !== "production" ? INITIAL_PARTNER_METRICS : []) as any}
-                  securityLogs={(process.env.NODE_ENV !== "production" ? INITIAL_STAFF_SECURITY_LOGS : []) as any}
+                  partnerMetrics={INITIAL_PARTNER_METRICS as any}
+                  securityLogs={INITIAL_STAFF_SECURITY_LOGS as any}
                 />
               )}
 

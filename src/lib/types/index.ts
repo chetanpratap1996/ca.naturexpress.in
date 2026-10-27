@@ -68,7 +68,9 @@ export interface ComplianceTask {
   period: string; // e.g., "September 2026" or "FY 2025-26"
   dueDate: string;
   status: WorkflowStatus;
+  assignedToId?: string;
   assignedTo: string;
+  reviewedById?: string;
   reviewedBy: string;
   priority: "HIGH" | "CRITICAL" | "MEDIUM" | "LOW";
   penaltyRisk: number; // Potential penalty in INR if delayed
@@ -77,6 +79,8 @@ export interface ComplianceTask {
   missingDocumentsList?: string[];
   chaseCount: number;
   lastChaseDate?: string;
+  reminderDraftCount?: number;
+  lastReminderDraftAt?: string;
   arnNumber?: string;
   officialUdin?: string;
   udinGeneratedAt?: string;
@@ -99,6 +103,21 @@ export interface NoticeRecord {
   riskLevel: "HIGH" | "CRITICAL" | "MEDIUM";
   assignedPartner: string;
   summary: string;
+}
+
+export interface PilotMeasureSet {
+  measuredOn: string;
+  weeklyChasingHours: number | null;
+  medianMinutesPerTask: number | null;
+  overdueTasks: number | null;
+  activePilotClients: number | null;
+  notes: string;
+}
+
+export interface PilotScorecard {
+  baseline: PilotMeasureSet | null;
+  review: PilotMeasureSet | null;
+  updatedAt: string | null;
 }
 
 export interface InvoiceItem {
@@ -150,22 +169,24 @@ export interface DocumentItem {
   fileSize: string;
   uploadedAt: string;
   uploadedBy: "CLIENT_PWA" | "WHATSAPP_LINK" | "FIRM_STAFF";
-  isPasswordProtected: boolean;
-  isUnlocked: boolean;
+  isPasswordProtected?: boolean;
+  isUnlocked?: boolean;
+  storagePath?: string;
+  mimeType?: string;
+  sizeBytes?: number;
   financialYear: string;
   taskId?: string;
   reviewStatus: "PENDING_REVIEW" | "APPROVED" | "CORRECTION_NEEDED";
   reviewNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;
-  fileContentBase64?: string;
 }
 
 export interface AuditTrailLog {
   id: string;
   timestamp: string;
   actorName: string;
-  actorRole: "PARTNER" | "ARTICLE" | "CLIENT" | "SYSTEM";
+  actorRole: "PARTNER" | "MANAGER" | "ARTICLE" | "CLIENT" | "SYSTEM";
   entityName: string;
   action: string;
   details: string;

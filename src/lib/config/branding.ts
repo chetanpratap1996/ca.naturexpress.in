@@ -32,28 +32,30 @@ export interface ClientBrandingConfig {
   defaultEntityId: string;
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const DEFAULT_FIRM_BRANDING: FirmBrandingConfig = {
-  firmName: "GPA & Co., Chartered Accountants",
-  companyName: "Brains & Taxes Private Limited",
-  firmShortName: "Brains & Taxes",
-  tagline: "Tax, Documents & Compliance Made Simple",
-  frn: "022998C",
-  cin: "U74110MP2017PTC043716",
-  headOffice: "Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001",
-  managingPartner: "CA Gunjan Jain (FCA)",
-  partnerPhone: "+91 98937 23639",
-  supportPhone: "+91 79999 95897",
-  whatsappNumber: "917999995897",
-  partnerWhatsappNumber: "919893723639",
-  email: "brainsandtaxes@gmail.com",
-  peerReviewNo: "ICAI/PRB/022998C",
-  firmUpiVpa: "7999995897@upi",
+  firmName: isProduction ? process.env.NEXT_PUBLIC_FIRM_NAME || "" : "GPA & Co., Chartered Accountants",
+  companyName: isProduction ? process.env.NEXT_PUBLIC_COMPANY_NAME || "" : "Brains & Taxes Private Limited",
+  firmShortName: isProduction ? process.env.NEXT_PUBLIC_FIRM_SHORT_NAME || "" : "Brains & Taxes",
+  tagline: isProduction ? process.env.NEXT_PUBLIC_FIRM_TAGLINE || "" : "Tax, Documents & Compliance Made Simple",
+  frn: isProduction ? process.env.NEXT_PUBLIC_FIRM_FRN || "" : "022998C",
+  cin: isProduction ? process.env.NEXT_PUBLIC_FIRM_CIN || "" : "U74110MP2017PTC043716",
+  headOffice: isProduction ? process.env.NEXT_PUBLIC_FIRM_ADDRESS || "" : "Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001",
+  managingPartner: isProduction ? process.env.NEXT_PUBLIC_MANAGING_PARTNER || "" : "CA Gunjan Jain (FCA)",
+  partnerPhone: isProduction ? process.env.NEXT_PUBLIC_PARTNER_PHONE || "" : "+91 98937 23639",
+  supportPhone: isProduction ? process.env.NEXT_PUBLIC_FIRM_PHONE || "" : "+91 79999 95897",
+  whatsappNumber: isProduction ? process.env.NEXT_PUBLIC_FIRM_WHATSAPP || "" : "917999995897",
+  partnerWhatsappNumber: isProduction ? process.env.NEXT_PUBLIC_PARTNER_WHATSAPP || "" : "919893723639",
+  email: isProduction ? process.env.NEXT_PUBLIC_FIRM_EMAIL || "" : "brainsandtaxes@gmail.com",
+  peerReviewNo: isProduction ? process.env.NEXT_PUBLIC_PEER_REVIEW_NO || "" : "ICAI/PRB/022998C",
+  firmUpiVpa: isProduction ? process.env.NEXT_PUBLIC_FIRM_UPI_VPA || "" : "7999995897@upi",
   bankDetails: {
-    bankName: "HDFC Bank",
-    accountName: "Brains & Taxes Private Limited",
-    accountNumber: "To be confirmed via bank letter",
-    ifsc: "HDFC0000281",
-    branch: "Y.N. Road Branch, Indore",
+    bankName: isProduction ? process.env.NEXT_PUBLIC_FIRM_BANK_NAME || "" : "HDFC Bank",
+    accountName: isProduction ? process.env.NEXT_PUBLIC_FIRM_BANK_ACCOUNT_NAME || "" : "Brains & Taxes Private Limited",
+    accountNumber: isProduction ? process.env.NEXT_PUBLIC_FIRM_BANK_ACCOUNT_NUMBER || "" : "To be confirmed via bank letter",
+    ifsc: isProduction ? process.env.NEXT_PUBLIC_FIRM_BANK_IFSC || "" : "HDFC0000281",
+    branch: isProduction ? process.env.NEXT_PUBLIC_FIRM_BANK_BRANCH || "" : "Y.N. Road Branch, Indore",
   },
 };
 

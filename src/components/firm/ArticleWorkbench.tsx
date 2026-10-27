@@ -31,15 +31,15 @@ import { toast } from "@/components/shared/ToastNotification";
 
 export const ArticleWorkbench: React.FC = () => {
   const { tasks: hookTasks, documents: hookDocs, clients, updateTask } = useTaxoData();
-  const [tasks, setTasks] = useState<ComplianceTask[]>(hookTasks.length > 0 ? hookTasks : INITIAL_TASKS);
-  const [documents, setDocuments] = useState<DocumentItem[]>(hookDocs.length > 0 ? hookDocs : INITIAL_DOCUMENTS);
+  const [tasks, setTasks] = useState<ComplianceTask[]>(hookTasks.length > 0 || process.env.NODE_ENV === "production" ? hookTasks : INITIAL_TASKS);
+  const [documents, setDocuments] = useState<DocumentItem[]>(hookDocs.length > 0 || process.env.NODE_ENV === "production" ? hookDocs : INITIAL_DOCUMENTS);
 
   React.useEffect(() => {
-    if (hookTasks.length > 0) setTasks(hookTasks);
+    if (hookTasks.length > 0 || process.env.NODE_ENV === "production") setTasks(hookTasks);
   }, [hookTasks]);
 
   React.useEffect(() => {
-    if (hookDocs.length > 0) setDocuments(hookDocs);
+    if (hookDocs.length > 0 || process.env.NODE_ENV === "production") setDocuments(hookDocs);
   }, [hookDocs]);
   const [activeTab, setActiveTab] = useState<"tasks" | "doc-review" | "bank-decryptor" | "chat-hub" | "timesheet" | "otp-relay">("tasks");
   const [chatMessage, setChatMessage] = useState("");
@@ -548,7 +548,7 @@ export const ArticleWorkbench: React.FC = () => {
 
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3">
               <span className="text-xs font-black text-slate-900 block">Encrypted Document Queue</span>
-              {INITIAL_DOCUMENTS.filter((d) => d.category === "BANK_STATEMENT").map((doc) => {
+              {documents.filter((d) => d.category === "BANK_STATEMENT").map((doc) => {
                 const isDecrypted = decryptedFiles.includes(doc.id);
                 const isProcessing = decryptingFileId === doc.id;
 

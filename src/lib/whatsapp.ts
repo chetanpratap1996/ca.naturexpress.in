@@ -71,7 +71,7 @@ function formatINR(val?: number): string {
  * Generate formatted template text according to professional CA communication standards
  */
 export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAppTemplateParams): string {
-  const firm = params.firmName || "GPA & Co., Chartered Accountants & Brains & Taxes";
+  const firm = params.firmName || "your CA firm";
   const portalLink = params.portalUrl || "https://ca.naturexpress.in/";
 
   switch (template) {
@@ -86,7 +86,7 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
         `We are currently preparing your *${params.serviceName || "Compliance Filing"}* for the period *${params.period || "current period"}*.\n\n` +
         `The statutory filing deadline is *${params.deadline || "approaching shortly"}*. To avoid late filing fees and interest, kindly upload the following pending documents:\n\n` +
         `${docsList}\n\n` +
-        `📱 *1-Tap Upload from your mobile:*\n${portalLink}\n\n` +
+        `Client portal: ${portalLink} (sign-in required; the firm must enable portal access).\n\n` +
         `Kindly share these at the earliest so our audit team can complete the reconciliation on schedule.\n\n` +
         `Regards,\n*Taxation & Audit Team*\n${firm}`;
     }
@@ -156,19 +156,11 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
     }
 
     case "CLIENT_CREDENTIALS": {
-      return `*YOUR BRAINS & TAXES CLIENT PORTAL CREDENTIALS*\n\n` +
+      return `*YOUR CA FIRM CLIENT PORTAL*\n\n` +
         `Dear ${params.clientName},\n\n` +
-        `Your company compliance and tax intelligence cockpit is now active at *${firm}*.\n\n` +
-        `🔐 *Your Login Details (Zero-SMS OTP Required):*\n` +
-        `• *Login Mobile/ID:* ${params.loginId || params.clientName}\n` +
-        `• *Access Password:* ${params.loginPassword || "Name@1234"}\n` +
-        `• *Portal Link:* ${portalLink}\n\n` +
-        `*What you can do on your portal:*\n` +
-        `1. Track blocked GST ITC and hold payments to defaulting vendors\n` +
-        `2. Monitor Section 43B(h) MSME 45-day payment countdown\n` +
-        `3. 1-Touch Aadhaar e-Sign for filed returns & financials\n` +
-        `4. Download official GST, ITR & ROC receipts with UDIN\n\n` +
-        `Regards,\n*Client Relations Team*\n${firm}`;
+        `Your client portal is at ${portalLink}. Sign in using the credentials you set through the firm's approved account setup process.\n\n` +
+        `For your security, passwords are not sent in WhatsApp messages.\n\n` +
+        `Regards,\n${firm}`;
     }
 
     case "VENDOR_ITC_HOLD": {

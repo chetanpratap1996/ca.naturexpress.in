@@ -4,10 +4,10 @@ import { DscRecord } from "@/lib/types";
 
 export async function GET() {
   try {
-    const db = ensureDatabase();
+    const db = await ensureDatabase();
     return NextResponse.json({ success: true, tokens: db.dscTokens || [] });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
   }
 }
 
@@ -16,7 +16,7 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { tokenId, action, staffName, purpose, actorName } = body;
 
-    const db = ensureDatabase();
+    const db = await ensureDatabase();
     if (!db.dscTokens) db.dscTokens = [];
 
     const index = db.dscTokens.findIndex((t) => t.id === tokenId);
@@ -37,7 +37,8 @@ export async function PATCH(req: Request) {
         token.entityName,
         "Physical DSC Token Checked Out",
         `DSC Token ${token.serialNumber} (${token.holderName}) checked out from Master Safe by ${token.currentCustodian} for: ${token.checkedOutPurpose}`,
-        "SECURITY"
+        "SECURITY",
+      db
       );
     } else if (action === "RETURN") {
       const prevCustodian = token.currentCustodian;
@@ -51,7 +52,8 @@ export async function PATCH(req: Request) {
         token.entityName,
         "Physical DSC Token Returned",
         `DSC Token ${token.serialNumber} (${token.holderName}) returned to ${token.vaultSlot} by ${prevCustodian}`,
-        "SECURITY"
+        "SECURITY",
+      db
       );
     }
 
@@ -60,6 +62,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, token });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
   }
 }

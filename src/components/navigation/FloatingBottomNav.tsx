@@ -20,6 +20,7 @@ interface FloatingBottomNavProps {
   onTabChange: (tab: string) => void;
   onViewChange?: (view: "partner" | "article" | "client-pwa") => void;
   onQuickAction?: () => void;
+  restrictedPartnerMode?: boolean;
 }
 
 export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
@@ -27,6 +28,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
   activeTab,
   onTabChange,
   onQuickAction,
+  restrictedPartnerMode = false,
 }) => {
   const isClient = currentView === "client-pwa";
 
@@ -77,7 +79,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             <Lock className={`w-5 h-5 ${activeTab === "vendor-hold" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Blocked ITC</span>
           </button>
-        ) : (
+        ) : !restrictedPartnerMode ? (
           <button
             onClick={() => onTabChange("notices")}
             className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
@@ -89,13 +91,15 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             <ShieldAlert className={`w-5 h-5 ${activeTab === "notices" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Notices</span>
           </button>
-        )}
+        ) : null}
 
         {/* ===================== CENTER ELEVATED BUTTON ===================== */}
         <div className="relative -top-4 flex flex-col items-center shrink-0">
           <button
             onClick={() => {
-              if (onQuickAction) {
+              if (restrictedPartnerMode) {
+                onTabChange("documents");
+              } else if (onQuickAction) {
                 onQuickAction();
               } else if (isClient) {
                 onTabChange("upload");
@@ -104,13 +108,13 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
               }
             }}
             className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-btred-700 via-btred-logo to-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/40 ring-4 ring-white hover:scale-105 active:scale-95 transition-all touch-manipulation"
-            title={isClient ? "Quick Actions" : "Firm Hub"}
-            aria-label={isClient ? "Quick Actions" : "Firm Hub"}
+            title={restrictedPartnerMode ? "Documents" : isClient ? "Quick Actions" : "Firm Hub"}
+            aria-label={restrictedPartnerMode ? "Documents" : isClient ? "Quick Actions" : "Firm Hub"}
           >
-            {isClient ? <Sparkles className="w-6 h-6 animate-pulse" /> : <Plus className="w-6 h-6" />}
+            {restrictedPartnerMode ? <FileCheck2 className="w-6 h-6" /> : isClient ? <Sparkles className="w-6 h-6 animate-pulse" /> : <Plus className="w-6 h-6" />}
           </button>
           <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800 tracking-wider mt-0.5">
-            {isClient ? "Quick Hub" : "Firm Hub"}
+            {restrictedPartnerMode ? "Documents" : isClient ? "Quick Hub" : "Firm Hub"}
           </span>
         </div>
 
@@ -127,7 +131,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             <ShieldCheck className={`w-5 h-5 ${activeTab === "vault" || activeTab === "kyc-locker" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Vault</span>
           </button>
-        ) : (
+        ) : !restrictedPartnerMode ? (
           <button
             onClick={() => onTabChange("billing")}
             className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
@@ -139,7 +143,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             <CreditCard className={`w-5 h-5 ${activeTab === "billing" || activeTab === "pay-to-release" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Billing</span>
           </button>
-        )}
+        ) : null}
 
         {/* ===================== TAB 5 ===================== */}
         {isClient ? (
@@ -154,7 +158,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             <CreditCard className={`w-5 h-5 ${activeTab === "billing" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Invoices</span>
           </button>
-        ) : (
+        ) : !restrictedPartnerMode ? (
           <button
             onClick={() => onTabChange("dsc")}
             className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
@@ -166,7 +170,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             <KeyRound className={`w-5 h-5 ${activeTab === "dsc" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">DSC Keys</span>
           </button>
-        )}
+        ) : null}
       </div>
     </nav>
   );

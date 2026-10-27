@@ -78,10 +78,10 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                 <span>Why install the app on your phone?</span>
               </div>
               <ul className="text-[11px] text-slate-600 space-y-1.5 pl-5 list-disc font-medium">
-                <li>Instant 1-tap access to your document vault and receipts</li>
-                <li>Live notifications when tax returns and GST are filed</li>
-                <li>Upload bank statements and bills directly from your phone camera</li>
-                <li>Zero download storage impact &bull; works fast even on slow connections</li>
+                <li>Open your secure client portal from your home screen</li>
+                <li>Check filing progress and outstanding document requests when you visit</li>
+                <li>Select and upload statements, invoices, and other requested records from your phone</li>
+                <li>Private records are fetched when you are connected; they are not kept for offline viewing</li>
               </ul>
             </div>
 

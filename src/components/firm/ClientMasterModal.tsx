@@ -44,13 +44,12 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   const [entityName, setEntityName] = useState("");
   const [pan, setPan] = useState("");
   const [gstin, setGstin] = useState("");
-  const [type, setType] = useState<ClientEntity["type"]>("PVT_LTD");
+  const [type, setType] = useState<ClientEntity["type"] | "">("");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [assignedArticle, setAssignedArticle] = useState("Kriti Jain (Article)");
-  const [assignedPartner, setAssignedPartner] = useState("CA Gunjan Jain");
-  const [turnoverCr, setTurnoverCr] = useState("10.0");
+  const [turnoverCr, setTurnoverCr] = useState("");
+  const [incorporationYear, setIncorporationYear] = useState("");
   const [successToast, setSuccessToast] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -63,6 +62,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     setIsImporting(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
+      let importedCount = 0;
       try {
         const text = evt.target?.result as string;
         const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
@@ -71,8 +71,8 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
           setIsImporting(false);
           return;
         }
+        if (lines.length > 501) throw new Error("The CSV can contain a header and at most 500 client rows.");
 
-        let importedCount = 0;
         for (let i = 1; i < lines.length; i++) {
           const row = lines[i];
           const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
@@ -80,29 +80,38 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
             ? matches.map((m) => m.replace(/^"|"$/g, "").trim()) 
             : row.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
           
-          if (cols.length >= 3 && cols[0] && cols[2]) {
+          if (cols.length >= 9 && cols[0] && cols[1] && cols[2] && cols[7] !== "" && cols[8] && (cols[4] || cols[5] || cols[6])) {
+            const legalTypes: ClientEntity["type"][] = ["PVT_LTD", "PUBLIC_LTD", "LLP", "PARTNERSHIP", "PROPRIETORSHIP", "INDIVIDUAL_HNI", "TRUST_NGO"];
+            if (!legalTypes.includes(cols[1] as ClientEntity["type"])) throw new Error(`Row ${i + 1}: choose a valid legal type.`);
+            const rowTurnover = Number(cols[7]);
+            const rowYear = Number(cols[8]);
+            if (!Number.isFinite(rowTurnover) || rowTurnover < 0 || !Number.isInteger(rowYear) || rowYear < 1800 || rowYear > new Date().getFullYear()) {
+              throw new Error(`Row ${i + 1}: enter a valid turnover and incorporation year.`);
+            }
             const clientPayload: ClientEntity = {
-              id: `CLI-${Date.now().toString().slice(-4)}-${i}`,
-              groupId: groups?.[0]?.id || "GRP-DIRECT",
-              groupName: groups?.[0]?.name || "Direct Practice Clients",
+              id: "",
+              groupId: "",
+              groupName: "",
               name: cols[0],
-              type: (cols[1] as any) || "PVT_LTD",
+              type: cols[1] as ClientEntity["type"],
               pan: cols[2].toUpperCase(),
               gstin: cols[3] ? cols[3].toUpperCase() : undefined,
-              turnoverCr: parseFloat(cols[7]) || 5.0,
-              incorporationYear: 2024,
+              turnoverCr: rowTurnover,
+              incorporationYear: rowYear,
               penaltyRiskAccrued: 0,
-              partnerInCharge: "CA Gunjan Jain",
-              assignedArticle: cols[8] || "Kriti Jain (Article)",
+              partnerInCharge: "",
+              assignedArticle: "",
               primaryContact: {
-                name: cols[4] || "Promoter",
-                phone: cols[5] || "+91 98000 00000",
-                email: cols[6] || "accounts@client.com",
-                designation: "Director / Authorized Signatory",
+                name: cols[4] || "",
+                phone: cols[5] || "",
+                email: cols[6] || "",
+                designation: "",
               },
             };
             await onAddClient(clientPayload);
             importedCount++;
+          } else {
+            throw new Error(`Row ${i + 1}: required columns are missing. Download a fresh CSV template and fill all required fields.`);
           }
         }
         toast.success(
@@ -115,7 +124,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
           setActiveTab("directory");
         }, 1200);
       } catch (err: any) {
-        toast.error("Import Failed", "Failed to parse CSV file: " + err.message);
+        toast.error("Import stopped", `${importedCount} rows were saved before the import stopped. ${err.message}`);
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -139,7 +148,12 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!entityName.trim() || !pan.trim() || isSubmittingForm) return;
+    if (isSubmittingForm) return;
+    if (!entityName.trim() || !pan.trim() || !type || !contactName.trim() || !turnoverCr || !incorporationYear) return;
+    if (!contactPhone.trim() && !contactEmail.trim()) {
+      toast.error("Contact details required", "Enter a contact phone number or email address.");
+      return;
+    }
 
     setIsSubmittingForm(true);
     const savedName = entityName.trim();
@@ -147,22 +161,22 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
 
     const newClient: ClientEntity = {
       id: `CLI-${Date.now().toString().slice(-4)}`,
-      groupId: groups?.[0]?.id || "GRP-DIRECT",
-      groupName: groups?.[0]?.name || "Direct Practice Clients",
+      groupId: groups?.[0]?.id || "",
+      groupName: groups?.[0]?.name || "",
       name: savedName,
       type,
       pan: savedPan,
       gstin: gstin.trim().toUpperCase() || undefined,
-      turnoverCr: parseFloat(turnoverCr) || 5.0,
-      incorporationYear: 2024,
+      turnoverCr: Number(turnoverCr),
+      incorporationYear: Number(incorporationYear),
       penaltyRiskAccrued: 0,
-      partnerInCharge: assignedPartner,
-      assignedArticle,
+      partnerInCharge: "",
+      assignedArticle: "",
       primaryContact: {
-        name: contactName.trim() || "Promoter",
-        phone: contactPhone.trim() || "+91 98000 00000",
-        email: contactEmail.trim() || "accounts@client.com",
-        designation: "Director / Authorized Signatory",
+        name: contactName.trim(),
+        phone: contactPhone.trim(),
+        email: contactEmail.trim(),
+        designation: "",
       },
     };
 
@@ -180,9 +194,12 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       setEntityName("");
       setPan("");
       setGstin("");
+      setType("");
       setContactName("");
       setContactPhone("");
       setContactEmail("");
+      setTurnoverCr("");
+      setIncorporationYear("");
 
       setTimeout(() => {
         setSuccessToast("");
@@ -196,8 +213,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   };
 
   const handleDownloadCsvTemplate = () => {
-    const csvContent = `entity_name,legal_type,pan,gstin,contact_name,contact_phone,contact_email,turnover_cr,assigned_article
-"Client Business Name Pvt Ltd","PVT_LTD","AAAAA0000A","23AAAAA0000A1Z5","Contact Person","+91 98000 00000","accounts@business.com",10.0,"Kriti Jain"`;
+    const csvContent = `entity_name,legal_type,pan,gstin,contact_name,contact_phone,contact_email,turnover_cr,incorporation_year\n`;
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -382,13 +398,16 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Entity Constitution / Type</label>
+                    <label className="font-bold text-slate-700 block mb-1">Entity Constitution / Type *</label>
                   <select
+                    required
                     value={type}
-                    onChange={(e) => setType(e.target.value as any)}
+                    onChange={(e) => setType(e.target.value as ClientEntity["type"] | "")}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-indigo-600"
                   >
+                    <option value="">-- Select entity type --</option>
                     <option value="PVT_LTD">Private Limited Company</option>
+                    <option value="PUBLIC_LTD">Public Limited Company</option>
                     <option value="LLP">Limited Liability Partnership (LLP)</option>
                     <option value="PARTNERSHIP">Partnership Firm</option>
                     <option value="PROPRIETORSHIP">Proprietorship Concern</option>
@@ -431,9 +450,10 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Contact Person Name</label>
+                    <label className="font-bold text-slate-700 block mb-1">Contact Person Name *</label>
                   <input
                     type="text"
+                    required
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder="e.g. Mukesh Parekh"
@@ -441,7 +461,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">WhatsApp / Mobile Number</label>
+                    <label className="font-bold text-slate-700 block mb-1">WhatsApp / Mobile Number</label>
                   <input
                     type="tel"
                     value={contactPhone}
@@ -451,7 +471,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Email ID</label>
+                    <label className="font-bold text-slate-700 block mb-1">Email ID</label>
                   <input
                     type="email"
                     value={contactEmail}
@@ -464,32 +484,18 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
             </div>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-              <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
-                3. Firm Operational Assignment
-              </h4>
-
+              <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">Business Details</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Assigned Article Assistant</label>
-                  <select
-                    value={assignedArticle}
-                    onChange={(e) => setAssignedArticle(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-indigo-600"
-                  >
-                    <option value="Kriti Jain (Article)">Kriti Jain (CRO022998)</option>
-                  </select>
+                  <label className="font-bold text-slate-700 block mb-1">Annual Turnover (₹ crore) *</label>
+                  <input type="number" min="0" step="0.01" required value={turnoverCr} onChange={(e) => setTurnoverCr(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900" />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Managing Partner in Charge</label>
-                  <select
-                    value={assignedPartner}
-                    onChange={(e) => setAssignedPartner(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-indigo-600"
-                  >
-                    <option value="CA Gunjan Jain">CA Gunjan Jain (Managing Partner)</option>
-                  </select>
+                  <label className="font-bold text-slate-700 block mb-1">Incorporation Year *</label>
+                  <input type="number" min="1800" max={new Date().getFullYear()} step="1" required value={incorporationYear} onChange={(e) => setIncorporationYear(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900" />
                 </div>
               </div>
+              {!contactPhone.trim() && !contactEmail.trim() && <p className="text-amber-800">Enter at least one contact phone number or email address.</p>}
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -518,7 +524,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 <div>
                   <h4 className="font-black text-slate-900 text-sm">Bulk Client Onboarding via Excel / CSV</h4>
                   <p className="text-slate-500 mt-0.5">
-                    Import up to 500 clients in one shot with legal names, PAN, GSTIN, and article trainee assignments.
+                    Import client legal details, PAN, contact information, turnover, and incorporation year. Each row is validated before it is saved.
                   </p>
                 </div>
                 <button

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ComplianceTask, WorkflowStatus, ClientGroup, ClientEntity } from "@/lib/types";
-import { INITIAL_GROUPS } from "@/lib/data/mockData";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
-import { openWhatsAppPreset } from "@/lib/whatsapp";
+import { createWhatsAppWebLink, openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { COMPLIANCE_WORKFLOW_TEMPLATES, getWorkflowTemplate } from "@/lib/compliance/workflowTemplates";
 import { 
   Calendar, 
   AlertTriangle, 
@@ -19,7 +20,6 @@ import {
   Zap, 
   ShieldAlert, 
   Clock, 
-  Check, 
   Layers,
   Sparkles,
   Smartphone,
@@ -31,8 +31,10 @@ import { MagicLinkUploadModal } from "@/components/client/MagicLinkUploadModal";
 interface StatutoryCalendarProps {
   tasks: ComplianceTask[];
   clients?: ClientEntity[];
-  onStatusChange: (taskId: string, newStatus: WorkflowStatus) => void;
-  onAddTask?: (taskData: Partial<ComplianceTask>) => void;
+  onStatusChange: (taskId: string, newStatus: WorkflowStatus, arnNumber?: string) => Promise<unknown> | void;
+  onAddTask?: (taskData: Partial<ComplianceTask>) => Promise<unknown> | void;
+  onTaskUpdate?: (taskId: string, updates: Partial<ComplianceTask>) => Promise<unknown> | void;
+  onReminderDraft?: (taskId: string) => Promise<unknown> | void;
 }
 
 const STATUS_COLUMNS: { key: WorkflowStatus; label: string; badgeColor: string }[] = [
@@ -42,6 +44,14 @@ const STATUS_COLUMNS: { key: WorkflowStatus; label: string; badgeColor: string }
   { key: "PARTNER_SIGN_OFF", label: "Partner Final Sign-off", badgeColor: "bg-red-100 text-btred-logo border-red-300" },
   { key: "FILED_AND_COMPLETED", label: "Filed & Acknowledged", badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-300" },
 ];
+
+type QueueFilter = "ALL" | "DUE_SOON" | "WAITING_CLIENT" | "READY_REVIEW" | "UNASSIGNED";
+
+function localDateOffset(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 export const getDueStatus = (dueDateStr: string, status: WorkflowStatus) => {
   if (status === "FILED_AND_COMPLETED") {
@@ -62,15 +72,45 @@ export const getDueStatus = (dueDateStr: string, status: WorkflowStatus) => {
   }
 };
 
-export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, clients = [], onStatusChange, onAddTask }) => {
+export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, clients = [], onStatusChange, onAddTask, onTaskUpdate, onReminderDraft }) => {
+  const [firmUsers, setFirmUsers] = useState<Array<{ id: string; name: string; role: string; isActive: boolean }>>([]);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return;
+    let mounted = true;
+    void fetch("/api/staff-access", { cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success) throw new Error("Team members could not be loaded.");
+        if (mounted) setFirmUsers((result.users || []).filter((user: { isActive: boolean }) => user.isActive));
+      })
+      .catch(() => { if (mounted) setFirmUsers([]); });
+    return () => { mounted = false; };
+  }, []);
+  const groups = Array.from(
+    clients.reduce((map, client) => {
+      const current = map.get(client.groupId) || {
+        id: client.groupId,
+        name: client.groupName,
+        totalEntities: 0,
+        totalTurnoverCr: 0,
+        promoterName: client.primaryContact?.name || "",
+        overdueFeesTotal: undefined as number | undefined,
+      };
+      current.totalEntities += 1;
+      current.totalTurnoverCr += client.turnoverCr || 0;
+      map.set(client.groupId, current);
+      return map;
+    }, new Map<string, { id: string; name: string; totalEntities: number; totalTurnoverCr: number; promoterName: string; overdueFeesTotal?: number }>()).values()
+  );
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("ALL");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<"kanban" | "family-groups">("kanban");
   const [mobileKanbanStage, setMobileKanbanStage] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeNudgeToast, setActiveNudgeToast] = useState<{ entity: string; task: string; link: string } | null>(null);
-  const [bulkChaseProgress, setBulkChaseProgress] = useState(false);
-  const [bulkChaseSuccess, setBulkChaseSuccess] = useState(false);
+  const [filingReferenceTask, setFilingReferenceTask] = useState<string | null>(null);
+  const [filingReferenceInput, setFilingReferenceInput] = useState("");
   const [simModalOpen, setSimModalOpen] = useState(false);
   const [simEntityName, setSimEntityName] = useState("");
   const [simTaskTitle, setSimTaskTitle] = useState("");
@@ -78,73 +118,117 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
   // New Engagement Modal State
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskEntity, setNewTaskEntity] = useState(() => clients[0]?.name || "");
-  const [newTaskCategory, setNewTaskCategory] = useState<ComplianceTask["category"]>("GST");
-  const [newTaskPeriod, setNewTaskPeriod] = useState("October 2026");
-  const [newTaskDueDate, setNewTaskDueDate] = useState("2026-11-20");
+  const [newTaskEntityIds, setNewTaskEntityIds] = useState<string[]>([]);
+  const [entitySearch, setEntitySearch] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [newTaskMissingDocuments, setNewTaskMissingDocuments] = useState("");
+  const [newTaskCategory, setNewTaskCategory] = useState<ComplianceTask["category"] | "">("");
+  const [newTaskPriority, setNewTaskPriority] = useState<ComplianceTask["priority"] | "">("");
+  const [newTaskOwnerId, setNewTaskOwnerId] = useState("");
+  const [newTaskReviewerId, setNewTaskReviewerId] = useState("");
+  const [newTaskPeriod, setNewTaskPeriod] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [editingRequestsTaskId, setEditingRequestsTaskId] = useState<string | null>(null);
+  const [editedRequests, setEditedRequests] = useState("");
+  const [isSavingRequests, setIsSavingRequests] = useState(false);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
+    if (!newTaskTitle.trim() || !newTaskEntityIds.length || !newTaskCategory || !newTaskPriority || !newTaskPeriod.trim() || !newTaskDueDate) return;
 
-    const matchedClient = clients.find(c => c.name === newTaskEntity) || clients[0];
-    const finalEntityName = newTaskEntity.trim() || matchedClient?.name || "Client Entity";
-    const finalEntityId = matchedClient?.id || "CLI-001";
-    const finalGroupId = matchedClient?.groupId || "GRP-001";
+    const matchedClients = clients.filter(c => newTaskEntityIds.includes(c.id));
+    if (matchedClients.length !== newTaskEntityIds.length) {
+      toast.error("Select a client", "Create or select a client entity before opening an engagement.");
+      return;
+    }
 
     const payload: Partial<ComplianceTask> = {
       title: newTaskTitle.trim(),
-      entityId: finalEntityId,
-      entityName: finalEntityName,
-      groupId: finalGroupId,
+      entityId: matchedClients[0].id,
+      entityIds: newTaskEntityIds,
+      entityName: matchedClients.map((client) => client.name).join(", "),
+      groupId: matchedClients[0].groupId,
       category: newTaskCategory,
-      period: newTaskPeriod,
+      period: newTaskPeriod.trim(),
       dueDate: newTaskDueDate,
       status: "DOCUMENTS_AWAITED",
-      assignedTo: "Kriti Jain (Article)",
-      reviewedBy: "CA Gunjan Jain",
-      priority: "HIGH",
-      penaltyRisk: 10000,
-      accruingDailyPenalty: 50,
-      missingDocumentsCount: 1,
-      missingDocumentsList: ["Statutory Vouchers & Invoices"],
-    };
+      assignedToId: newTaskOwnerId || undefined,
+      assignedTo: firmUsers.find((user) => user.id === newTaskOwnerId)?.name || "",
+      reviewedById: newTaskReviewerId || undefined,
+      reviewedBy: firmUsers.find((user) => user.id === newTaskReviewerId)?.name || "",
+      priority: newTaskPriority,
+      penaltyRisk: 0,
+      accruingDailyPenalty: 0,
+      missingDocumentsCount: newTaskMissingDocuments.split("\n").filter((item) => item.trim()).length,
+      missingDocumentsList: [...new Set(newTaskMissingDocuments.split("\n").map((item) => item.trim()).filter(Boolean))],
+    } as Partial<ComplianceTask> & { entityIds: string[] };
 
-    if (onAddTask) {
-      onAddTask(payload);
-    } else {
-      try {
-        await fetch("/api/tasks", {
+    try {
+      if (onAddTask) {
+        await onAddTask(payload);
+      } else {
+        const response = await fetch("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-      } catch (err) {
-        console.error(err);
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success) throw new Error(result?.error || "Engagement could not be saved.");
       }
+      toast.success("Engagements created", `${matchedClients.length} ${matchedClients.length === 1 ? "entity is" : "entities are"} now on the ${payload.title} workflow.`);
+      setIsAddTaskOpen(false);
+      setNewTaskTitle("");
+      setNewTaskEntityIds([]);
+      setSelectedTemplateId("");
+      setNewTaskMissingDocuments("");
+      setNewTaskCategory("");
+      setNewTaskPriority("");
+      setNewTaskOwnerId("");
+      setNewTaskReviewerId("");
+      setNewTaskPeriod("");
+      setNewTaskDueDate("");
+    } catch (error) {
+      toast.error("Engagement not saved", error instanceof Error ? error.message : "Refresh and try again.");
     }
+  };
 
-    toast.success(
-      "Compliance Task Scheduled",
-      `"${payload.title}" created for ${payload.entityName}. Assigned to Kriti Jain.`
-    );
-
-    setIsAddTaskOpen(false);
-    setNewTaskTitle("");
+  const saveDocumentRequests = async (task: ComplianceTask) => {
+    if (!onTaskUpdate) return;
+    const items = [...new Set(editedRequests.split("\n").map((item) => item.trim()).filter(Boolean))];
+    setIsSavingRequests(true);
+    try {
+      await onTaskUpdate(task.id, { missingDocumentsList: items, missingDocumentsCount: items.length });
+      setEditingRequestsTaskId(null);
+      toast.success("Request list updated", `${items.length} document request${items.length === 1 ? "" : "s"} saved for ${task.entityName}.`);
+    } catch (error) {
+      toast.error("Request list not saved", error instanceof Error ? error.message : "Refresh and try again.");
+    } finally {
+      setIsSavingRequests(false);
+    }
   };
 
   const filteredTasks = tasks.filter((t) => {
     const matchesCategory = selectedCategory === "ALL" || t.category === selectedCategory;
     const matchesGroup = selectedGroupId === "ALL" || t.groupId === selectedGroupId;
+    const matchesQueue = queueFilter === "ALL"
+      || (queueFilter === "DUE_SOON" && t.status !== "FILED_AND_COMPLETED" && t.dueDate <= localDateOffset(7))
+      || (queueFilter === "WAITING_CLIENT" && t.status === "DOCUMENTS_AWAITED")
+      || (queueFilter === "READY_REVIEW" && ["MANAGER_REVIEW", "PARTNER_SIGN_OFF"].includes(t.status))
+      || (queueFilter === "UNASSIGNED" && t.status !== "FILED_AND_COMPLETED" && !(t.assignedTo || "").trim());
     const matchesSearch =
       t.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (t.arnNumber && t.arnNumber.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesGroup && matchesSearch;
+    return matchesQueue && matchesCategory && matchesGroup && matchesSearch;
   });
 
-  const totalMissingDocs = tasks.reduce((sum, t) => sum + (t.missingDocumentsCount || 0), 0);
+  const activeTasks = tasks.filter((task) => task.status !== "FILED_AND_COMPLETED");
+  const dueSoonCount = activeTasks.filter((task) => task.dueDate <= localDateOffset(7)).length;
+  const waitingClientCount = activeTasks.filter((task) => task.status === "DOCUMENTS_AWAITED").length;
+  const readyReviewCount = tasks.filter((task) => ["MANAGER_REVIEW", "PARTNER_SIGN_OFF"].includes(task.status)).length;
+  const unassignedCount = activeTasks.filter((task) => !(task.assignedTo || "").trim()).length;
+
   const totalAccruingDaily = tasks
     .filter((t) => t.status !== "FILED_AND_COMPLETED")
     .reduce((sum, t) => sum + (t.accruingDailyPenalty || 0), 0);
@@ -154,85 +238,86 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
 
   const triggerSingleWhatsAppChase = (task: ComplianceTask) => {
     if (!task) return;
-    openWhatsAppPreset("919820044101", "DOC_CHASE", {
+    const entity = clients.find((client) => client.id === task.entityId);
+    const phone = entity?.primaryContact?.phone;
+    if (!phone) {
+      toast.error("Reminder not prepared", "Add an authorized contact phone number to this client first.");
+      return;
+    }
+    const params = {
       clientName: task.entityName,
+      firmName: DEFAULT_FIRM_BRANDING.firmName || undefined,
       serviceName: task.title,
       period: task.period,
       deadline: formatDate(task.dueDate),
       missingDocs: task.missingDocumentsList || ["Pending financial statements and vouchers"],
-    });
+    };
+    openWhatsAppPreset(phone, "DOC_CHASE", params);
+    const link = createWhatsAppWebLink(phone, "DOC_CHASE", params);
+    if (onReminderDraft) {
+      void Promise.resolve(onReminderDraft(task.id)).catch((error) => {
+        toast.error("Draft opened but not recorded", error instanceof Error ? error.message : "The WhatsApp draft opened, but the activity record could not be saved.");
+      });
+    }
 
     setActiveNudgeToast({
       entity: task.entityName,
       task: task.title,
-      link: "https://ca.naturexpress.in/",
+      link,
     });
-    toast.info(
-      "WhatsApp Reminder Dispatched",
-      `Document chase sent to ${task.entityName} authorized signatory.`
-    );
+    toast.info("WhatsApp draft opened", `Review and send the document reminder to ${task.entityName}. The app does not send messages.`);
     setTimeout(() => {
       setActiveNudgeToast(null);
     }, 6000);
   };
 
-  const handleBulkChase = () => {
-    setBulkChaseProgress(true);
-    setTimeout(() => {
-      setBulkChaseProgress(false);
-      setBulkChaseSuccess(true);
-      setTimeout(() => setBulkChaseSuccess(false), 5000);
-    }, 1800);
-  };
-
   return (
     <div className="space-y-4">
-      {/* Real-time Enterprise Penalty & Daily Accrual Radar */}
+      {/* Firm-entered task risk summary */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-black text-white p-5 rounded-3xl shadow-md border border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="bg-red-500/20 text-red-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-red-500/40 flex items-center gap-1">
               <Zap className="w-3 h-3 text-red-400" />
-              Real-Time Penalty Engine
+              Task Tracking
             </span>
-            <span className="text-xs text-slate-400 font-medium">Monitoring {tasks.length} Active Obligations</span>
+            <span className="text-xs text-slate-400 font-medium">Monitoring {tasks.filter((task) => task.status !== "FILED_AND_COMPLETED").length} open engagements</span>
           </div>
           <h2 className="text-lg md:text-xl font-black mt-1 tracking-tight text-white flex items-center gap-2">
-            Statutory Compliance Radar &amp; WhatsApp Chase Engine
+            Statutory Task Calendar
           </h2>
           <p className="text-xs text-slate-300 max-w-2xl mt-0.5">
-            Auto-calculates daily accruing statutory fines (₹50/day GST, 234F &amp; 271B audit exposure) and triggers zero-password WhatsApp magic links.
+            Tracks dates, priorities, and acknowledgement references entered by your firm. Risk values are estimates only when recorded. WhatsApp reminders open as drafts for a person to review and send.
           </p>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="bg-white/10 backdrop-blur-sm border border-white/15 px-4 py-2.5 rounded-2xl text-right">
             <span className="text-[10px] uppercase font-bold text-slate-300 block">Daily Accruing Risk</span>
-            <span className="text-xl font-black text-red-400">₹{totalAccruingDaily.toLocaleString()}/day</span>
+            <span className="text-xl font-black text-red-400">{totalAccruingDaily > 0 ? `₹${totalAccruingDaily.toLocaleString()}/day` : "Not assessed"}</span>
           </div>
-          <button
-            onClick={handleBulkChase}
-            disabled={bulkChaseProgress || totalMissingDocs === 0}
-            className="flex-1 md:flex-initial bg-btred-logo hover:bg-btred-700 text-white text-xs font-black px-4 py-3 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-          >
-            {bulkChaseProgress ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Chasing {tasks.filter(t => t.missingDocumentsCount > 0).length} Clients...
-              </>
-            ) : bulkChaseSuccess ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-300" />
-                Dispatched WhatsApp Nudges!
-              </>
-            ) : (
-              <>
-                <Send className="w-3.5 h-3.5" />
-                Auto-Chase Missing Docs ({totalMissingDocs})
-              </>
-            )}
-          </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5" aria-label="Daily work queues">
+        {([
+          { id: "ALL", label: "All engagements", count: tasks.length },
+          { id: "DUE_SOON", label: "Due or overdue · 7 days", count: dueSoonCount },
+          { id: "WAITING_CLIENT", label: "Waiting on client", count: waitingClientCount },
+          { id: "READY_REVIEW", label: "Ready for review", count: readyReviewCount },
+          { id: "UNASSIGNED", label: "Owner needed", count: unassignedCount },
+        ] as const).map((queue) => (
+          <button
+            key={queue.id}
+            type="button"
+            aria-pressed={queueFilter === queue.id}
+            onClick={() => setQueueFilter(queue.id)}
+            className={`rounded-2xl border p-3 text-left transition ${queueFilter === queue.id ? "border-slate-900 bg-slate-900 text-white shadow-sm" : "border-slate-200 bg-white text-slate-800 hover:border-slate-400"}`}
+          >
+            <span className="block text-[10px] font-bold uppercase tracking-wide opacity-75">{queue.label}</span>
+            <span className="mt-1 block text-xl font-black">{queue.count}</span>
+          </button>
+        ))}
       </div>
 
       {/* Toast Notification for WhatsApp Magic Link Dispatch */}
@@ -242,13 +327,13 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
               <p className="text-xs font-black text-white">
-                WhatsApp Nudge Dispatched to {activeNudgeToast.entity}
+                WhatsApp reminder draft for {activeNudgeToast.entity}
               </p>
             </div>
             <p className="text-[11px] text-emerald-300">
-              Generated direct zero-password magic link for missing docs:
+              WhatsApp opened with a draft. Review and send it manually:
             </p>
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {process.env.NODE_ENV !== "production" && <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <code className="text-[10px] bg-black/40 px-2 py-0.5 rounded text-emerald-400 font-mono select-all">
                 {activeNudgeToast.link}
               </code>
@@ -263,7 +348,8 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                 <Smartphone className="w-3 h-3" />
                 Simulate Client Mobile Screen
               </button>
-            </div>
+            </div>}
+            {process.env.NODE_ENV === "production" && <p className="text-[11px] text-emerald-300">Clients can upload source records for their assigned entities through the client portal.</p>}
           </div>
           <button
             onClick={() => setActiveNudgeToast(null)}
@@ -287,8 +373,8 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
               onChange={(e) => setSelectedGroupId(e.target.value)}
               className="bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:border-btred-logo"
             >
-              <option value="ALL">All Business Groups ({INITIAL_GROUPS.length} Groups)</option>
-              {INITIAL_GROUPS.map((grp) => (
+              <option value="ALL">All Business Groups ({groups.length} Groups)</option>
+              {groups.map((grp) => (
                 <option key={grp.id} value={grp.id}>
                   {grp.name} ({grp.totalEntities} entities &bull; ₹{grp.totalTurnoverCr}Cr)
                 </option>
@@ -312,7 +398,7 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                 viewMode === "family-groups" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Promoter Group Rollup ({INITIAL_GROUPS.length})
+              Promoter Group Rollup ({groups.length})
             </button>
           </div>
         </div>
@@ -362,7 +448,7 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
 
       {/* VIEW MODE 1: FAMILY GROUP ROLLUP */}
       {viewMode === "family-groups" && (
-        INITIAL_GROUPS.length === 0 ? (
+        groups.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 text-center shadow-sm space-y-3">
             <div className="w-12 h-12 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center text-slate-400">
               <Users className="w-6 h-6" />
@@ -374,7 +460,7 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
           </div>
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INITIAL_GROUPS.map((grp) => {
+          {groups.map((grp) => {
             const groupTasks = tasks.filter((t) => t.groupId === grp.id);
             const groupMissingDocs = groupTasks.reduce((s, t) => s + (t.missingDocumentsCount || 0), 0);
             const groupExposure = groupTasks
@@ -406,7 +492,7 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Pending Retainers</span>
-                    <span className="font-black text-btred-logo text-sm">{formatCurrencyINR(grp.overdueFeesTotal)}</span>
+                    <span className="font-black text-btred-logo text-sm">{grp.overdueFeesTotal === undefined ? "—" : formatCurrencyINR(grp.overdueFeesTotal)}</span>
                   </div>
                 </div>
 
@@ -566,23 +652,33 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                         </div>
 
                         {/* Missing Documents Warning with 1-Click WhatsApp Trigger */}
-                        {task.missingDocumentsCount > 0 && (
+                        {(task.missingDocumentsCount > 0 || onTaskUpdate) && (
                           <div className="mt-2.5 bg-amber-50 border border-amber-200 text-amber-900 text-[10px] p-2 rounded-xl space-y-1 font-medium">
                             <div className="flex items-center justify-between font-bold">
-                              <span>{task.missingDocumentsCount} docs missing</span>
-                              <button
+                              <span>{task.missingDocumentsCount > 0 ? `${task.missingDocumentsCount} docs requested` : "No open document requests"}</span>
+                              {task.missingDocumentsCount > 0 && <button
                                 onClick={() => triggerSingleWhatsAppChase(task)}
                                 className="text-btred-logo font-black hover:underline flex items-center gap-0.5"
                               >
                                 <Send className="w-2.5 h-2.5" />
-                                WhatsApp Chase ({task.chaseCount})
-                              </button>
+                                Prepare draft ({task.reminderDraftCount || 0} prepared)
+                              </button>}
                             </div>
                             {task.missingDocumentsList && task.missingDocumentsList.length > 0 && (
                               <p className="text-[10px] text-slate-600 truncate">
                                 &bull; {task.missingDocumentsList[0]}
                               </p>
                             )}
+                            {onTaskUpdate && <button
+                              type="button"
+                              onClick={() => {
+                                setEditingRequestsTaskId(task.id);
+                                setEditedRequests((task.missingDocumentsList || []).join("\n"));
+                              }}
+                              className="text-[10px] font-black text-amber-900 underline underline-offset-2"
+                            >
+                              Update document request list
+                            </button>}
                           </div>
                         )}
 
@@ -606,8 +702,43 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                           </span>
 
                           {task.status !== "FILED_AND_COMPLETED" ? (
+                            task.status === "PARTNER_SIGN_OFF" && filingReferenceTask === task.id ? (
+                              <form
+                                className="flex min-w-0 gap-1"
+                                onSubmit={async (event) => {
+                                  event.preventDefault();
+                                  const reference = filingReferenceInput.trim();
+                                  if (!reference) return;
+                                  try {
+                                    await onStatusChange(task.id, "FILED_AND_COMPLETED", reference);
+                                    setFilingReferenceTask(null);
+                                    setFilingReferenceInput("");
+                                  } catch (error) {
+                                    toast.error("Filing status not saved", error instanceof Error ? error.message : "The government reference could not be saved.");
+                                  }
+                                }}
+                              >
+                                <input
+                                  aria-label="Government acknowledgement reference"
+                                  value={filingReferenceInput}
+                                  onChange={(event) => setFilingReferenceInput(event.target.value)}
+                                  maxLength={80}
+                                  required
+                                  placeholder="ARN / acknowledgement"
+                                  className="min-w-0 w-36 rounded-lg border border-slate-300 px-2 py-1 text-[10px]"
+                                />
+                                <button type="submit" className="rounded-lg bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">Save</button>
+                              </form>
+                            ) : (
                             <button
+                              disabled={task.status === "DOCUMENTS_AWAITED" && task.missingDocumentsCount > 0}
+                              title={task.status === "DOCUMENTS_AWAITED" && task.missingDocumentsCount > 0 ? "Clear the client document request list before starting preparation." : undefined}
                               onClick={() => {
+                                if (task.status === "PARTNER_SIGN_OFF") {
+                                  setFilingReferenceTask(task.id);
+                                  setFilingReferenceInput("");
+                                  return;
+                                }
                                 const nextStatusMap: Record<WorkflowStatus, WorkflowStatus> = {
                                   DOCUMENTS_AWAITED: "IN_PREPARATION",
                                   IN_PREPARATION: "MANAGER_REVIEW",
@@ -615,17 +746,20 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                                   PARTNER_SIGN_OFF: "FILED_AND_COMPLETED",
                                   FILED_AND_COMPLETED: "FILED_AND_COMPLETED",
                                 };
-                                onStatusChange(task.id, nextStatusMap[task.status]);
+                                void Promise.resolve(onStatusChange(task.id, nextStatusMap[task.status])).catch((error) => {
+                                  toast.error("Task status not saved", error instanceof Error ? error.message : "Refresh and try again.");
+                                });
                               }}
-                              className="flex items-center gap-1 text-[11px] font-black text-white bg-btred-logo hover:bg-btred-700 px-2.5 py-1 rounded-lg transition shadow-sm"
+                              className="flex items-center gap-1 text-[11px] font-black text-white bg-btred-logo hover:bg-btred-700 px-2.5 py-1 rounded-lg transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              Advance
+                              {task.status === "PARTNER_SIGN_OFF" ? "Record ARN" : "Advance"}
                               <ArrowRight className="w-3 h-3" />
                             </button>
+                            )
                           ) : (
                             <span className="flex items-center gap-1 text-[11px] text-emerald-700 font-black">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              ARN Synced
+                              Acknowledgement recorded
                             </span>
                           )}
                         </div>
@@ -667,11 +801,32 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
             </h4>
             <div className="space-y-3 text-xs">
               <div>
+                <label className="font-bold text-slate-700 block mb-1">Start from a workflow</label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => {
+                    const templateId = e.target.value;
+                    const template = getWorkflowTemplate(templateId);
+                    setSelectedTemplateId(templateId);
+                    if (template) {
+                      setNewTaskTitle(template.title);
+                      setNewTaskCategory(template.category);
+                      setNewTaskMissingDocuments(template.requestedDocuments.join("\n"));
+                    }
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
+                >
+                  <option value="">Blank engagement</option>
+                  {COMPLIANCE_WORKFLOW_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.label}</option>)}
+                </select>
+                <p className="mt-1 text-[10px] text-slate-500">Starter checklists are editable. Confirm the document list and statutory due date for this engagement.</p>
+              </div>
+              <div>
                 <label className="font-bold text-slate-700 block mb-1">Engagement Title *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. October 2026 GSTR-3B & 1 Filing"
+                  placeholder="e.g. GSTR-3B filing"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
@@ -680,49 +835,58 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Client Entity *</label>
                 {clients.length > 0 ? (
-                  <select
-                    required
-                    value={newTaskEntity}
-                    onChange={(e) => setNewTaskEntity(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-600"
-                  >
-                    <option value="">-- Select Client Entity --</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name} (PAN: {c.pan})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    <input
+                      type="search"
+                      value={entitySearch}
+                      onChange={(e) => setEntitySearch(e.target.value)}
+                      placeholder="Find a client entity"
+                      aria-label="Find a client entity"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-indigo-600"
+                    />
+                    <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+                      {clients.filter((client) => `${client.name} ${client.pan}`.toLowerCase().includes(entitySearch.toLowerCase())).map((client) => (
+                        <label key={client.id} className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newTaskEntityIds.includes(client.id)}
+                            onChange={(event) => setNewTaskEntityIds((current) => event.target.checked ? [...current, client.id] : current.filter((id) => id !== client.id))}
+                            className="h-4 w-4 rounded border-slate-300 accent-slate-900"
+                          />
+                          <span className="min-w-0"><span className="block truncate text-slate-900 font-bold">{client.name}</span><span className="block text-[10px] text-slate-500">PAN: {client.pan}</span></span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-500">{newTaskEntityIds.length} selected for this service period.</p>
+                  </div>
                 ) : (
-                  <input
-                    type="text"
-                    required
-                    value={newTaskEntity}
-                    onChange={(e) => setNewTaskEntity(e.target.value)}
-                    placeholder="e.g. Pratwi Solutions Private Limited"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
-                  />
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">Add a client entity to the firm workspace before creating an engagement.</p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Category</label>
                   <select
+                    required
                     value={newTaskCategory}
-                    onChange={(e) => setNewTaskCategory(e.target.value as any)}
+                    onChange={(e) => setNewTaskCategory(e.target.value as ComplianceTask["category"] | "")}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none font-medium"
                   >
+                    <option value="">-- Select category --</option>
                     <option value="GST">GST</option>
                     <option value="INCOME_TAX">Income Tax</option>
                     <option value="TAX_AUDIT">Tax Audit (3CD)</option>
                     <option value="TDS">TDS & TCS</option>
                     <option value="ROC_MCA">ROC & MCA</option>
+                    <option value="TRANSFER_PRICING">Transfer Pricing</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Statutory Period</label>
+                  <label className="font-bold text-slate-700 block mb-1">Statutory Period *</label>
                   <input
                     type="text"
+                    required
+                    placeholder="e.g. FY 2025-26 or October 2026"
                     value={newTaskPeriod}
                     onChange={(e) => setNewTaskPeriod(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
@@ -730,12 +894,53 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                 </div>
               </div>
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Due Date</label>
+                <label className="font-bold text-slate-700 block mb-1">Priority *</label>
+                <select
+                  required
+                  value={newTaskPriority}
+                  onChange={(e) => setNewTaskPriority(e.target.value as ComplianceTask["priority"] | "")}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium"
+                >
+                  <option value="">-- Select priority --</option>
+                  <option value="CRITICAL">Critical</option>
+                  <option value="HIGH">High</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="font-bold text-slate-700">Owner
+                  <select value={newTaskOwnerId} onChange={(e) => setNewTaskOwnerId(e.target.value)} className="mt-1 w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-medium focus:outline-none">
+                    <option value="">Unassigned</option>
+                    {firmUsers.filter((user) => ["PAID_CA_MANAGER", "ARTICLE_TRAINEE"].includes(user.role)).map((user) => <option key={user.id} value={user.id}>{user.name} · {user.role === "PAID_CA_MANAGER" ? "Manager" : "Article"}</option>)}
+                  </select>
+                </label>
+                <label className="font-bold text-slate-700">Reviewer
+                  <select value={newTaskReviewerId} onChange={(e) => setNewTaskReviewerId(e.target.value)} className="mt-1 w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-medium focus:outline-none">
+                    <option value="">Unassigned</option>
+                    {firmUsers.filter((user) => ["SUPER_ADMIN", "PARTNER", "PAID_CA_MANAGER"].includes(user.role)).map((user) => <option key={user.id} value={user.id}>{user.name} · {user.role === "PAID_CA_MANAGER" ? "Manager" : "Partner"}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Due Date *</label>
                 <input
                   type="date"
+                  required
                   value={newTaskDueDate}
                   onChange={(e) => setNewTaskDueDate(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none"
+                />
+                <p className="mt-1 text-[10px] text-slate-500">Enter the due date verified by the firm. Starter workflows do not calculate statutory deadlines.</p>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Documents requested from client</label>
+                <textarea
+                  rows={4}
+                  value={newTaskMissingDocuments}
+                  onChange={(e) => setNewTaskMissingDocuments(e.target.value)}
+                  placeholder="One document request per line"
+                  className="w-full resize-y bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none"
                 />
               </div>
             </div>
@@ -749,14 +954,39 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
               </button>
               <button
                 type="submit"
-                className="bg-btblack hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl transition"
+                disabled={clients.length === 0 || newTaskEntityIds.length === 0}
+                className="bg-btblack hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Create Engagement
+                Create {newTaskEntityIds.length || ""} Engagement{newTaskEntityIds.length === 1 ? "" : "s"}
               </button>
             </div>
           </form>
         </div>
       )}
+      {editingRequestsTaskId && (() => {
+        const task = tasks.find((item) => item.id === editingRequestsTaskId);
+        if (!task) return null;
+        return (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div role="dialog" aria-modal="true" aria-labelledby="document-requests-title" className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 id="document-requests-title" className="text-base font-black text-slate-900">Client document requests</h3>
+                  <p className="text-xs text-slate-500 mt-1">{task.entityName} · {task.title} · {task.period}</p>
+                </div>
+                <button type="button" aria-label="Close" onClick={() => setEditingRequestsTaskId(null)} className="text-slate-400 hover:text-slate-800 p-1"><X className="w-5 h-5" /></button>
+              </div>
+              <label className="block text-xs font-bold text-slate-700" htmlFor="document-request-list">One request per line</label>
+              <textarea id="document-request-list" rows={7} maxLength={9000} value={editedRequests} onChange={(event) => setEditedRequests(event.target.value)} placeholder="Remove all lines when the firm confirms the required documents are complete." className="w-full resize-y bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400" />
+              <p className="text-[11px] text-slate-500">A client upload does not automatically close a request. Review the file first, then remove the satisfied request here.</p>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setEditingRequestsTaskId(null)} className="px-4 py-2 text-sm font-bold text-slate-600">Cancel</button>
+                <button type="button" disabled={isSavingRequests} onClick={() => void saveDocumentRequests(task)} className="px-4 py-2 text-sm font-bold text-white bg-slate-900 rounded-xl disabled:opacity-50">{isSavingRequests ? "Saving…" : "Save request list"}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

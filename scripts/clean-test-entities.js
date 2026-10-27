@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 const client = new Client({
-  connectionString: 'postgresql://postgres.uesllnkjrbpmynihvlvy:Chetan9759%40@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres',
-  ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
+  ssl: true
 });
 
 async function run() {

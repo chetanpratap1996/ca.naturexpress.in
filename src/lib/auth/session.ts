@@ -3,7 +3,7 @@
  * Provides Multi-Tenant Role-Based Access Control (RBAC)
  */
 
-export type UserRole = "PARTNER" | "ARTICLE" | "CLIENT";
+export type UserRole = "PARTNER" | "MANAGER" | "ARTICLE" | "CLIENT";
 
 export interface AuthUser {
   id: string;
@@ -15,73 +15,51 @@ export interface AuthUser {
   firmId: string;
   firmName: string;
   firmFrn: string;
-  defaultPassword?: string; // Zero-DLT Deterministic Password: [FirstName]@[Last4Phone]
   membershipNo?: string; // ICAI 6-digit Membership No for Partners
   articleshipRegNo?: string; // ICAI Student WRO/CRO Reg No for Articles
   clientGroupId?: string; // For Client users: locks access to their promoter group
   clientEntityId?: string; // Primary entity
-  token: string;
   expiresAt: string;
 }
 
-/**
- * Deterministic Zero-DLT Password Generator
- * Format: [FirstName / Company]@[Last 4 digits of phone]
- * Example: Contact Person, +91 98000 01234 -> Contact@1234
- */
-export function generateDeterministicPassword(nameOrCompany: string, phone: string): string {
-  const firstWord = (nameOrCompany.split(" ")[0] || "User").replace(/[^a-zA-Z0-9]/g, "");
-  const digits = phone.replace(/\D/g, "");
-  const last4 = digits.length >= 4 ? digits.slice(-4) : "2026";
-  return `${firstWord}@${last4}`;
-}
-
-// Enterprise Pre-Configured Verified Personas
+// Development-only sample identities. These are not application credentials.
 export const DEMO_USERS: Record<string, AuthUser> = {
   partner: {
     id: "USR-PARTNER-01",
-    name: "CA Gunjan Jain",
-    email: "brainsandtaxes@gmail.com",
-    phone: "+91 98937 23639",
+    name: "Sample Partner",
+    email: "partner@example.invalid",
+    phone: "+91 00000 00000",
     role: "PARTNER",
     designation: "Managing Partner (FCA)",
     firmId: "FRM-022998C",
     firmName: "GPA & Co., Chartered Accountants",
     firmFrn: "022998C",
-    defaultPassword: "Gunjan@3639",
-    membershipNo: "Confirming M.No",
-    token: "tok_partner_secure_session_2026",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
   },
   article: {
     id: "USR-ARTICLE-01",
-    name: "Kriti Jain",
-    email: "kriti@brainsandtaxes.com",
-    phone: "+91 79999 95897",
+    name: "Sample Article Assistant",
+    email: "article@example.invalid",
+    phone: "+91 00000 00001",
     role: "ARTICLE",
     designation: "Assigned Article Assistant",
     firmId: "FRM-022998C",
     firmName: "GPA & Co., Chartered Accountants",
     firmFrn: "022998C",
-    defaultPassword: "Kriti@5897",
-    articleshipRegNo: "CRO022998",
-    token: "tok_article_secure_session_2026",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
   },
   client: {
     id: "USR-CLIENT-01",
-    name: "Chetan Pratap Singh",
-    email: "chetanpratap1996@gmail.com",
-    phone: "+91 80771 70715",
+    name: "Sample Client Contact",
+    email: "client@example.invalid",
+    phone: "+91 00000 00002",
     role: "CLIENT",
-    designation: "Director (Pratwi Solutions Private Limited)",
+    designation: "Director (Sample Client Private Limited)",
     firmId: "FRM-022998C",
     firmName: "GPA & Co., Chartered Accountants",
     firmFrn: "022998C",
-    defaultPassword: "Chetan@0715",
     clientGroupId: "3c5eb209-459d-4af7-9868-36d7ac3d6493",
     clientEntityId: "d301662a-10ce-4e32-84ed-a9423a70101d",
-    token: "tok_client_secure_session_2026",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
   },
 };

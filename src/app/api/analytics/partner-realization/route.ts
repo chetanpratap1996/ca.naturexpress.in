@@ -3,7 +3,7 @@ import { ensureDatabase } from "@/lib/server/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const db = await ensureDatabase();
     return NextResponse.json({
       success: true,
       partnerMetrics: db.partnerMetrics || [],
@@ -11,6 +11,6 @@ export async function GET(request: NextRequest) {
       firmMetrics: db.firmMetrics
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
   }
 }

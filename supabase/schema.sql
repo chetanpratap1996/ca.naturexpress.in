@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS firms (
 );
 
 -- 2. FIRM USERS & PROFILES (Partners, Managers, Articles, Clients)
-CREATE TYPE user_role AS ENUM ('SUPER_ADMIN', 'PARTNER', 'PAID_CA_MANAGER', 'ARTICLE_TRAINEE', 'CLIENT_PROMOTER', 'CLIENT_ACCOUNTANT');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('SUPER_ADMIN', 'PARTNER', 'PAID_CA_MANAGER', 'ARTICLE_TRAINEE', 'CLIENT_PROMOTER', 'CLIENT_ACCOUNTANT');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -54,7 +56,9 @@ CREATE TABLE IF NOT EXISTS client_groups (
 );
 
 -- 4. CLIENT LEGAL ENTITIES (Private Ltd, LLP, Trust, Partnership)
-CREATE TYPE entity_type AS ENUM ('PVT_LTD', 'PUBLIC_LTD', 'LLP', 'PARTNERSHIP', 'PROPRIETORSHIP', 'INDIVIDUAL_HNI', 'TRUST_NGO');
+DO $$ BEGIN
+    CREATE TYPE entity_type AS ENUM ('PVT_LTD', 'PUBLIC_LTD', 'LLP', 'PARTNERSHIP', 'PROPRIETORSHIP', 'INDIVIDUAL_HNI', 'TRUST_NGO');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS client_entities (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -75,9 +79,15 @@ CREATE TABLE IF NOT EXISTS client_entities (
 );
 
 -- 5. STATUTORY COMPLIANCE TASKS (GST, ITR, Tax Audit, TDS, ROC)
-CREATE TYPE compliance_category AS ENUM ('GST', 'INCOME_TAX', 'TAX_AUDIT', 'TDS', 'ROC_MCA', 'TRANSFER_PRICING');
-CREATE TYPE workflow_status AS ENUM ('DOCUMENTS_AWAITED', 'IN_PREPARATION', 'MANAGER_REVIEW', 'PARTNER_SIGN_OFF', 'FILED_AND_COMPLETED');
-CREATE TYPE task_priority AS ENUM ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW');
+DO $$ BEGIN
+    CREATE TYPE compliance_category AS ENUM ('GST', 'INCOME_TAX', 'TAX_AUDIT', 'TDS', 'ROC_MCA', 'TRANSFER_PRICING');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+    CREATE TYPE workflow_status AS ENUM ('DOCUMENTS_AWAITED', 'IN_PREPARATION', 'MANAGER_REVIEW', 'PARTNER_SIGN_OFF', 'FILED_AND_COMPLETED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+    CREATE TYPE task_priority AS ENUM ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS compliance_tasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -105,8 +115,12 @@ CREATE TABLE IF NOT EXISTS compliance_tasks (
 );
 
 -- 6. SECURE DOCUMENT INTAKE & VAULT (No Paywalls, Multi-Tenant Isolation)
-CREATE TYPE document_category AS ENUM ('BANK_STATEMENT', 'GST_INVOICES', 'TAX_COMPUTATION', 'AUDIT_REPORT', 'NOTICE_REPLY', 'CHALLAN');
-CREATE TYPE doc_review_status AS ENUM ('PENDING_REVIEW', 'APPROVED', 'CORRECTION_NEEDED');
+DO $$ BEGIN
+    CREATE TYPE document_category AS ENUM ('BANK_STATEMENT', 'GST_INVOICES', 'TAX_COMPUTATION', 'AUDIT_REPORT', 'NOTICE_REPLY', 'CHALLAN');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+    CREATE TYPE doc_review_status AS ENUM ('PENDING_REVIEW', 'APPROVED', 'CORRECTION_NEEDED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -127,8 +141,12 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 -- 7. FEE INVOICES & DIRECT BANK SETTLEMENT (Zero-Gateway Architecture)
-CREATE TYPE invoice_status AS ENUM ('PENDING', 'UTR_SUBMITTED', 'PAID', 'OVERDUE');
-CREATE TYPE payment_mode AS ENUM ('NEFT_RTGS', 'UPI', 'IMPS', 'CHEQUE');
+DO $$ BEGIN
+    CREATE TYPE invoice_status AS ENUM ('PENDING', 'UTR_SUBMITTED', 'PAID', 'OVERDUE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+    CREATE TYPE payment_mode AS ENUM ('NEFT_RTGS', 'UPI', 'IMPS', 'CHEQUE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -199,18 +217,22 @@ ALTER TABLE dsc_vault ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Multi-Tenant Firm Isolation Policy: Users can only query their own Firm's records
+DROP POLICY IF EXISTS firm_isolation_policy ON client_entities;
 CREATE POLICY firm_isolation_policy ON client_entities
     FOR ALL
     USING (firm_id = (SELECT firm_id FROM users WHERE users.id = auth.uid()));
 
+DROP POLICY IF EXISTS task_isolation_policy ON compliance_tasks;
 CREATE POLICY task_isolation_policy ON compliance_tasks
     FOR ALL
     USING (firm_id = (SELECT firm_id FROM users WHERE users.id = auth.uid()));
 
+DROP POLICY IF EXISTS doc_isolation_policy ON documents;
 CREATE POLICY doc_isolation_policy ON documents
     FOR ALL
     USING (firm_id = (SELECT firm_id FROM users WHERE users.id = auth.uid()));
 
+DROP POLICY IF EXISTS invoice_isolation_policy ON invoices;
 CREATE POLICY invoice_isolation_policy ON invoices
     FOR ALL
     USING (firm_id = (SELECT firm_id FROM users WHERE users.id = auth.uid()));

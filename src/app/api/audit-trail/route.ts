@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { ensureDatabase, logAuditEvent } from "@/lib/server/db";
 
 export async function GET() {
-  const db = ensureDatabase();
-  return NextResponse.json({ success: true, auditTrail: db.auditTrail });
+  try {
+    const db = await ensureDatabase();
+    return NextResponse.json(
+      { success: true, auditTrail: db.auditTrail },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch {
+    return NextResponse.json({ success: false, error: "Firm security activity is temporarily unavailable." }, { status: 503 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -22,6 +29,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, log: newLog });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
   }
 }

@@ -67,6 +67,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   } = usePwaInstall();
 
   const isClientMode = currentView === "client-pwa" || currentUser?.role === "CLIENT";
+  const firmName = currentUser?.firmName || (process.env.NODE_ENV === "production" ? "Firm workspace" : DEFAULT_FIRM_BRANDING.firmName);
+  const firmFrn = currentUser?.firmFrn || (process.env.NODE_ENV === "production" ? "Not configured" : DEFAULT_FIRM_BRANDING.frn);
 
   const getInitials = (name?: string) => {
     if (!name) return "BT";
@@ -96,26 +98,28 @@ export const TopNav: React.FC<TopNavProps> = ({
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <div className="leading-tight">
                 <span className="font-extrabold text-slate-200 block text-[11px] truncate max-w-[180px] xl:max-w-[240px]">
-                  {DEFAULT_FIRM_BRANDING.firmName}
+                  {firmName}
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SQC-1
+                  FRN: {firmFrn}
                 </span>
               </div>
             </div>
           </div>
 
           {/* CENTER: Role Specific Badge or Switcher */}
-          {isClientMode ? (
+          {isClientMode || !isSandbox ? (
             <div className="flex items-center gap-2 bg-slate-900 border border-emerald-500/40 px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-inner">
-              <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <Building2 className={`w-3.5 h-3.5 shrink-0 ${isClientMode ? "text-emerald-400" : "text-indigo-300"}`} />
               <span className="font-black text-white text-xs truncate max-w-[150px] sm:max-w-[240px]">
-                {currentUser?.designation?.includes("(")
-                  ? currentUser.designation.split("(")[1].replace(")", "")
-                  : currentUser?.name || "Client Portal"}
+                {isClientMode
+                  ? currentUser?.designation?.includes("(")
+                    ? currentUser.designation.split("(")[1].replace(")", "")
+                    : currentUser?.name || "Client Portal"
+                  : `${currentUser?.role === "ARTICLE" ? "Staff" : currentUser?.role === "MANAGER" ? "Manager" : "Partner"} Workspace`}
               </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 hidden sm:inline">
-                Verified Portal
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border hidden sm:inline ${isClientMode ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-indigo-500/20 text-indigo-200 border-indigo-500/30"}`}>
+                {isClientMode ? "Client Portal" : currentUser?.designation || "Firm workspace"}
               </span>
             </div>
           ) : (
@@ -190,7 +194,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             )}
 
             {/* Direct WhatsApp Desk Link (hidden on xs, shown on sm+) */}
-            <a
+            {isSandbox && <a
               href={`https://wa.me/${DEFAULT_FIRM_BRANDING.whatsappNumber}`}
               target="_blank"
               rel="noreferrer"
@@ -199,7 +203,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span className="hidden md:inline">WhatsApp</span>
-            </a>
+            </a>}
 
             {/* 1-Tap PWA Install */}
             <button
@@ -252,15 +256,11 @@ export const TopNav: React.FC<TopNavProps> = ({
                   <div className="px-3 py-2 text-[11px] text-slate-400 space-y-1.5 border-t border-slate-800">
                     <div className="flex items-center justify-between">
                       <span>CA Firm:</span>
-                      <strong className="text-slate-200 truncate max-w-[170px]">{DEFAULT_FIRM_BRANDING.firmName}</strong>
+                      <strong className="text-slate-200 truncate max-w-[170px]">{firmName}</strong>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>ICAI FRN:</span>
-                      <strong className="font-mono text-emerald-400">{DEFAULT_FIRM_BRANDING.frn}</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Peer Review:</span>
-                      <span className="text-emerald-400 font-bold">Compliant (2028)</span>
+                      <strong className="font-mono text-emerald-400">{firmFrn}</strong>
                     </div>
                   </div>
 

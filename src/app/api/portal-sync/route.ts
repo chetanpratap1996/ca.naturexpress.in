@@ -4,20 +4,20 @@ import { NoticeRecord, GovtPortalSyncProfile } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const db = await ensureDatabase();
     return NextResponse.json({
       success: true,
       profiles: db.portalSyncProfiles || [],
       notices: db.notices || []
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const db = await ensureDatabase();
     const body = await request.json();
     const { action, portal, entityId, noticeId, partnerReviewNotes } = body;
 
@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
         client.name,
         "Automated Notice Ingestion via DIN",
         `Scraped statutory notice with DIN ${scannedDIN} under ${newScrapedNotice.section}. Statutory deadline: 08-Nov-2026.`,
-        "COMPLIANCE"
+        "COMPLIANCE",
+      db
       );
 
       await saveDatabase(db);
@@ -124,7 +125,8 @@ export async function POST(request: NextRequest) {
           targetNotice.entityName,
           "Statutory Notice Reply Submitted",
           `Signed and filed legal submission for DIN ${targetNotice.dinNumber} on portal. Notes: ${partnerReviewNotes || "Verified and approved"}`,
-          "COMPLIANCE"
+          "COMPLIANCE",
+      db
         );
         await saveDatabase(db);
         return NextResponse.json({ success: true, message: "Response successfully signed and logged as submitted" });
@@ -133,6 +135,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Request failed. Refresh the page and try again." }, { status: 500 });
   }
 }

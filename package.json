@@ -7,7 +7,9 @@
     "dev": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}\" && next dev",
     "build": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}\" && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:check": "node scripts/apply-supabase-schema.js --check",
+    "db:migrate": "node scripts/apply-supabase-schema.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

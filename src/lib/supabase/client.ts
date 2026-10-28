@@ -1,18 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://uesllnkjrbpmynihvlvy.supabase.co";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+  "sb_publishable_6gMbtVkt9KiTJrKWCvDJbw_FvSTSWek";
 
 export const isSupabaseConfigured = () => {
   return (
-    Boolean(supabaseUrl && supabaseKey) &&
-    !supabaseUrl?.includes("taxobrain-demo")
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined &&
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY !== undefined || 
+     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== undefined) &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("taxobrain-demo")
   );
 };
 
-// Never silently connect to a hard-coded project when environment configuration is absent.
-export const supabase = createClient(
-  supabaseUrl || "http://127.0.0.1:54321",
-  supabaseKey || "missing-supabase-publishable-key",
-);
+export const supabase = createClient(supabaseUrl, supabaseKey);

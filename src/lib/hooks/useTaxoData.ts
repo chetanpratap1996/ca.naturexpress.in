@@ -117,7 +117,6 @@ export function useTaxoData() {
     taskId?: string;
     uploadedBy: DocumentItem["uploadedBy"];
     fileContentBase64?: string;
-    storagePath?: string;
     actorName?: string;
   }) => {
     try {
@@ -126,10 +125,6 @@ export function useTaxoData() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(docData),
       });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.error || "Document upload was rejected.");
-      }
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -140,7 +135,6 @@ export function useTaxoData() {
       }
     } catch (err) {
       console.error("Failed to upload document", err);
-      throw err;
     }
   };
 

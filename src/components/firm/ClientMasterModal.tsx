@@ -4,10 +4,12 @@ import React, { useState, useRef } from "react";
 import { ClientEntity, ClientGroup } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
+  generateDeterministicPassword, 
   normalizePhone10, 
   DEMO_USERS 
 } from "@/lib/auth/session";
 import { 
+  buildTemplateMessage, 
   sanitizeIndianPhoneNumber 
 } from "@/lib/whatsapp";
 import { 
@@ -55,6 +57,9 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroupFilter, setSelectedGroupFilter] = useState("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isBroadcastQueueOpen, setIsBroadcastQueueOpen] = useState(false);
+  const [broadcastIndex, setBroadcastIndex] = useState(0);
+  const [dispatchedIds, setDispatchedIds] = useState<Set<string>>(new Set());
 
   // Form State for Single Client
   const [entityName, setEntityName] = useState("");
@@ -72,11 +77,21 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Generate 1-Tap WhatsApp Link for a client
+  // Generate 1-Tap WhatsApp Link for a client with 4-Digit Access PIN
   const generateClientWhatsAppUrl = (client: ClientEntity) => {
+    const director = client.primaryContact?.name || "Director";
     const phone = client.primaryContact?.phone || "";
     const cleanPhone = sanitizeIndianPhoneNumber(phone);
-    const message = `Hello ${client.primaryContact?.name || ""}, ${client.name} has been added to the CA firm's client workspace. Portal: https://ca.naturexpress.in/. Secure account activation must be sent separately by the firm. Do not use PAN, phone number, or a shared password to sign in.`;
+    const phone10 = normalizePhone10(phone);
+    const pin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
+
+    const message = buildTemplateMessage("CLIENT_CREDENTIALS", {
+      clientName: client.name,
+      loginId: `${phone10 || client.pan}`,
+      loginPassword: pin,
+      portalUrl: `https://ca.naturexpress.in/?phone=${phone10}`,
+      firmName: "GPA & Co., Chartered Accountants",
+    });
 
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
   };
@@ -85,51 +100,82 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   const generateStaffWhatsAppUrl = (role: "partner" | "article") => {
     const user = DEMO_USERS[role];
     const cleanPhone = sanitizeIndianPhoneNumber(user.phone);
-    const message = `Hello ${user.name}, please use the CA practice portal at https://ca.naturexpress.in/. Secure account activation must be issued separately by the firm administrator. Do not share passwords over WhatsApp.`;
+
+    const message = buildTemplateMessage("STAFF_CREDENTIALS", {
+      clientName: user.name,
+      loginId: user.email,
+      loginPassword: role === "partner" ? "Partner@2026" : "Article@2026",
+      portalUrl: "https://ca.naturexpress.in/",
+      firmName: "GPA & Co., Chartered Accountants",
+      serviceName: user.designation,
+    });
 
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
   };
 
   const handleCopyMessage = (client: ClientEntity) => {
+    const director = client.primaryContact?.name || "Director";
     const phone = client.primaryContact?.phone || "";
-    const message = `Hello ${client.primaryContact?.name || ""}, ${client.name} has been added to the CA firm's client workspace. Portal: https://ca.naturexpress.in/. Secure account activation must be sent separately by the firm. Do not use PAN, phone number, or a shared password to sign in.`;
+    const phone10 = normalizePhone10(phone);
+    const pin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
+
+    const message = buildTemplateMessage("CLIENT_CREDENTIALS", {
+      clientName: client.name,
+      loginId: `${phone10 || client.pan}`,
+      loginPassword: pin,
+      portalUrl: `https://ca.naturexpress.in/?phone=${phone10}`,
+      firmName: "GPA & Co., Chartered Accountants",
+    });
 
     navigator.clipboard.writeText(message);
     setCopiedId(client.id);
-    toast.info("Onboarding Message Copied", `Copied customized WhatsApp text for ${client.name}`);
+    toast.info("Onboarding Message Copied", `Copied credentials message (PIN: ${pin}) for ${client.name}`);
     setTimeout(() => setCopiedId(null), 2500);
   };
 
   const handleCopyStaffMessage = (role: "partner" | "article") => {
     const user = DEMO_USERS[role];
-    const message = `Hello ${user.name}, please use the CA practice portal at https://ca.naturexpress.in/. Secure account activation must be issued separately by the firm administrator. Do not share passwords over WhatsApp.`;
+    const message = buildTemplateMessage("STAFF_CREDENTIALS", {
+      clientName: user.name,
+      loginId: user.email,
+      loginPassword: role === "partner" ? "Partner@2026" : "Article@2026",
+      portalUrl: "https://ca.naturexpress.in/",
+      firmName: "GPA & Co., Chartered Accountants",
+      serviceName: user.designation,
+    });
 
     navigator.clipboard.writeText(message);
     setCopiedId(user.id);
-    toast.info("Secure Setup Message Copied", `Copied a password-free setup message for ${user.name}`);
+    toast.info("Staff Access Copied", `Copied credentials text for ${user.name}`);
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  // Download a client directory without authentication secrets.
+  // Download Master Credentials CSV for all clients
   const handleExportAllCredentialsCsv = () => {
     if (clients.length === 0) {
       toast.warning("No Clients Registered", "Please enroll or import clients first.");
       return;
     }
 
-    const headers = ["Entity Name", "Entity Type", "PAN", "GSTIN", "Director / Signatory", "Mobile Number", "Email", "Portal URL"];
+    const headers = ["Entity Name", "Entity Type", "PAN", "GSTIN", "Director / Signatory", "Mobile Number", "Email", "4-Digit Access PIN", "Direct Portal Link", "1-Tap WhatsApp Link"];
     const rows = clients.map((c) => {
       const director = c.primaryContact?.name || "Director";
       const phone = c.primaryContact?.phone || "";
+      const phone10 = normalizePhone10(phone);
+      const pin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
+      const portalLink = `https://ca.naturexpress.in/?phone=${phone10}`;
+      const waLink = generateClientWhatsAppUrl(c);
       return [
         `"${c.name.replace(/"/g, '""')}"`,
         c.type,
         c.pan,
         c.gstin || "",
         `"${director.replace(/"/g, '""')}"`,
-        `"${normalizePhone10(phone)}"`,
+        `"${phone10}"`,
         `"${c.primaryContact?.email || ""}"`,
-        "https://ca.naturexpress.in/"
+        `"${pin}"`,
+        `"${portalLink}"`,
+        `"${waLink}"`
       ].join(",");
     });
 
@@ -138,12 +184,12 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `GPA_Client_Directory_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `GPA_Clients_Credentials_Master_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success("Export Complete", `Exported a password-free directory for ${clients.length} clients.`);
+    toast.success("Export Complete", `Exported credentials sheet for ${clients.length} clients.`);
   };
 
   // HIGH-THROUGHPUT 100+ CLIENT CSV IMPORTER
@@ -212,7 +258,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
         if (resData.success) {
           toast.success(
             "Bulk Import Successful",
-            `Successfully saved ${resData.count || batchPayload.length} client profiles. Portal accounts require separate provisioning.`
+            `Successfully onboarded ${resData.count || batchPayload.length} clients! Passwords generated & ready.`
           );
           setSuccessToast(`✓ Onboarded ${resData.count || batchPayload.length} clients! Switching to 1-Tap Broadcast Desk...`);
           
@@ -304,7 +350,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       await onAddClient(newClient);
       toast.success(
         "Client Successfully Onboarded",
-        `"${savedName}" (${savedPan}) is saved. Secure portal access must be provisioned separately.`
+        `"${savedName}" (${savedPan}) is now active. Credentials ready to share.`
       );
       setSuccessToast(`✓ Client "${savedName}" registered! Switching to 1-Tap Broadcast Desk...`);
       
@@ -404,7 +450,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
               </div>
               <div>
                 <span className="font-extrabold text-xs block text-emerald-900">{successToast}</span>
-                <span className="text-[11px] text-emerald-700">Client profile saved. Portal access must be provisioned through Supabase Auth.</span>
+                <span className="text-[11px] text-emerald-700">Client profile and Zero-DLT credentials successfully initialized.</span>
               </div>
             </div>
           </div>
@@ -418,21 +464,32 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span className="font-black text-sm text-white">Client Portal Access Desk</span>
+                  <span className="font-black text-sm text-white">1-Tap WhatsApp Client Onboarding Hub</span>
                 </div>
                 <p className="text-slate-300 text-[11px]">
-                  Share password-free portal details. Secure accounts must be provisioned separately by the firm administrator.
+                  Send tailored onboarding kits with username, password, portal link &amp; business reasons to log in.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
+                  onClick={() => {
+                    setBroadcastIndex(0);
+                    setIsBroadcastQueueOpen(true);
+                  }}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition text-[11px] shadow-sm active:scale-95"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>1-Tap Broadcast to All Queue</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handleExportAllCredentialsCsv}
                   className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px]"
                 >
                   <Download className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Download Client Directory</span>
+                  <span>Download Credentials Sheet</span>
                 </button>
               </div>
             </div>
@@ -452,14 +509,14 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       <strong className="text-slate-900 font-extrabold">{DEMO_USERS.partner.name}</strong>
                       <span className="text-[9px] bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Managing Partner</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{DEMO_USERS.partner.email} &bull; Secure account activation required</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{DEMO_USERS.partner.email} &bull; Pass: <strong className="text-slate-800">Partner@2026</strong></p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleCopyStaffMessage("partner")}
                       className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
-                      title="Copy password-free setup message"
+                      title="Copy Staff Credentials"
                     >
                       {copiedId === DEMO_USERS.partner.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
@@ -482,14 +539,14 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       <strong className="text-slate-900 font-extrabold">{DEMO_USERS.article.name}</strong>
                       <span className="text-[9px] bg-indigo-100 text-indigo-800 font-bold px-1.5 py-0.5 rounded">Article Assistant</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{DEMO_USERS.article.email} &bull; Secure account activation required</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{DEMO_USERS.article.email} &bull; Pass: <strong className="text-slate-800">Article@2026</strong></p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleCopyStaffMessage("article")}
                       className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
-                      title="Copy password-free setup message"
+                      title="Copy Staff Credentials"
                     >
                       {copiedId === DEMO_USERS.article.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
@@ -519,6 +576,8 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 filteredClients.map((client) => {
                   const director = client.primaryContact?.name || "Director";
                   const phone = client.primaryContact?.phone || "";
+                  const phone10 = normalizePhone10(phone);
+                  const pin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
                   const isCopied = copiedId === client.id;
 
                   return (
@@ -530,7 +589,9 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                           <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">{director}</span>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-                          <span>Portal access: <strong className="text-amber-700">Invitation required</strong></span>
+                          <span>User ID: <strong className="text-slate-800">{normalizePhone10(phone) || client.pan}</strong></span>
+                          <span>&bull;</span>
+                          <span>PIN: <strong className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-mono">{pin}</strong></span>
                         </div>
                       </div>
 
@@ -605,6 +666,9 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 filteredClients.map((client) => {
                   const director = client.primaryContact?.name || "Director";
                   const phone = client.primaryContact?.phone || "";
+                  const phone10 = normalizePhone10(phone);
+                  const pin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
+
                   return (
                     <div key={client.id} className="p-3.5 hover:bg-slate-50/70 transition flex items-center justify-between gap-3 text-xs">
                       <div className="space-y-1 min-w-0">
@@ -643,6 +707,8 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
                           <span>Signatory: <strong className="text-slate-800">{director}</strong> ({phone})</span>
                           <span>&bull;</span>
+                          <span>PIN: <strong className="font-mono text-emerald-700 font-bold bg-emerald-50 px-1 rounded">{pin}</strong></span>
+                          <span>&bull;</span>
                           <span>Turnover: <strong className="text-slate-800">₹{client.turnoverCr} Cr</strong></span>
                         </div>
                       </div>
@@ -653,7 +719,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold px-2.5 py-1.5 rounded-xl transition text-[11px] flex items-center gap-1"
-                          title="Send password-free portal setup message"
+                          title="Send Credentials via WhatsApp"
                         >
                           <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
                           <span className="hidden md:inline">WhatsApp</span>
@@ -686,7 +752,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <h4 className="font-black text-slate-900 text-sm">Bulk 100+ Client Onboarding Pipeline</h4>
                   <p className="text-slate-500 mt-0.5 text-xs">
                     Instantly import 100+ client entities with legal names, PAN, GSTIN, directors, and phones.
-                    Client profiles are imported; user accounts must be separately provisioned in Supabase Auth.
+                    Profiles and Zero-DLT passwords are automatically created in 1 second.
                   </p>
                 </div>
                 <button
@@ -715,7 +781,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <div className="py-4 space-y-3">
                     <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="font-black text-indigo-700 text-sm">Ingesting 100+ Client Entities into Practice Registry...</p>
-                    <p className="text-slate-400 text-[11px]">Saving client profiles and groups...</p>
+                    <p className="text-slate-400 text-[11px]">Generating deterministic passwords and linking promoter groups...</p>
                   </div>
                 ) : (
                   <>
@@ -739,8 +805,8 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 </span>
                 <p className="text-slate-600 leading-relaxed">
                   1. Each company profile is registered with their legal PAN and promoter details.<br/>
-                  2. No password is created or exported from client contact details.<br/>
-                  3. Secure portal accounts must be provisioned by the firm administrator before clients can sign in.
+                  2. A deterministic password is created: <strong className="font-mono text-indigo-700">[DirectorFirstName]@[Last4DigitsOfPhone]</strong>.<br/>
+                  3. You can immediately switch to the <strong className="text-indigo-900">1-Tap WhatsApp Desk</strong> tab to share login credentials individually or download the master credentials spreadsheet.
                 </p>
               </div>
             </div>
@@ -893,7 +959,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 disabled={isSubmittingForm}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-6 py-2.5 rounded-xl shadow-md transition disabled:opacity-50"
               >
-                {isSubmittingForm ? "Saving..." : "Save Client Profile"}
+                {isSubmittingForm ? "Saving..." : "Save Client & Generate Credentials"}
               </button>
             </div>
           </form>

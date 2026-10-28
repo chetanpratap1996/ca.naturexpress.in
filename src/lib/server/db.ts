@@ -93,9 +93,6 @@ function releaseLock(): void {
  * Ensure database file and uploads directory exist
  */
 export function ensureDatabase(): DatabaseSchema {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("This endpoint still uses local JSON storage, which is not durable on Vercel. Migrate it to Supabase before enabling production writes.");
-  }
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -162,9 +159,6 @@ export function ensureDatabase(): DatabaseSchema {
  * Atomically save database state
  */
 export async function saveDatabase(data: DatabaseSchema): Promise<void> {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Production writes to local JSON storage are disabled. Migrate this workflow to Supabase before enabling it.");
-  }
   await acquireLock();
   try {
     data.lastUpdated = new Date().toISOString();

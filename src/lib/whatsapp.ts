@@ -157,11 +157,55 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
     }
 
     case "CLIENT_CREDENTIALS": {
-      return `*CLIENT PORTAL — ${params.firmName || "Your CA Firm"}*\n\nDear ${params.clientName},\n\nYour organization has been added to the firm's client workspace. Portal: ${params.portalUrl || "https://ca.naturexpress.in/"}\n\nSecure account activation must be issued separately by the firm administrator. This message does not contain login credentials. Do not use PAN, phone number, or a shared password to sign in.`;
+      return `*OFFICIAL CLIENT PORTAL ACCESS — GPA & CO.*
+(Chartered Accountants | ICAI FRN: 022998C)
+
+Dear ${params.clientName},
+
+Greetings from *GPA & Co., Chartered Accountants*.
+Your corporate tax compliance & financial portal is now live for *${params.clientName}*.
+
+🔐 *Your Secure Login Credentials:*
+• *Portal URL:* ${params.portalUrl || "https://ca.naturexpress.in/"}
+• *User ID (Mobile No or PAN):* ${params.loginId || params.clientName}
+• *4-Digit Access PIN:* ${params.loginPassword || "Last 4 digits of your phone"}
+*(Zero-SMS OTP delay — Instant 1-tap direct login. You can customize your PIN inside Profile anytime).*
+
+📌 *Why you should log in today:*
+1. 🏦 *Banker Loan Dockets:* 1-click audited balance sheets & ITR-V for bank credit renewals.
+2. ⚠️ *Protect GST ITC Loss:* Live alerts for non-filing vendors so you hold defaulting payments.
+3. ⏳ *MSME 43B(h) Clock:* 45-day vendor payment deadline countdown.
+4. ✍️ *Paperless E-Sign:* Approve filed returns & financial statements right from mobile.
+
+👉 *Log in now:* https://ca.naturexpress.in/
+For direct assistance, reach our audit desk at +91 98937 23639.
+
+Warm regards,
+*Tax & Corporate Compliance Team*
+*GPA & Co., Chartered Accountants*`;
     }
 
     case "STAFF_CREDENTIALS": {
-      return `*CA PRACTICE WORKSPACE — ${params.firmName || "Your CA Firm"}*\n\nDear ${params.clientName},\n\nPortal: ${params.portalUrl || "https://ca.naturexpress.in/"}\n\nSecure account activation must be issued separately by the firm administrator. This message does not contain login credentials. Do not share passwords over WhatsApp.`;
+      return `*PRACTICE MANAGEMENT ACCESS — GPA & CO.*
+(Chartered Accountants | ICAI FRN: 022998C)
+
+Dear ${params.clientName},
+
+Your staff desk access is active on the GPA & Co. Practice Management System.
+
+🔐 *Your Secure Login Details:*
+• *Portal URL:* https://ca.naturexpress.in/
+• *User ID (Email/Phone):* ${params.loginId || params.clientName}
+• *Password:* ${params.loginPassword || "Staff@2026"}
+• *Assigned Role:* ${params.serviceName || "Staff Member"}
+
+📌 *Workbench Capabilities:*
+• Track statutory tax calendars, GSTR-2B reconciliations & scrutiny notices
+• Prepare compliance workpapers & route for partner sign-off
+• Manage client digital vaults & automated document chases
+
+👉 *Log in here:* https://ca.naturexpress.in/
+*GPA & Co., Chartered Accountants*`;
     }
 
     case "VENDOR_ITC_HOLD": {

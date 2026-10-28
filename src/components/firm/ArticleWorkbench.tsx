@@ -22,22 +22,14 @@ import {
   Check,
   CalendarCheck,
   ShieldCheck,
-  FileCheck,
-  Package
+  FileCheck
 } from "lucide-react";
 import { TaxAuditWorkpaperModal } from "@/components/firm/TaxAuditWorkpaperModal";
 import { BankStatementParser } from "@/components/firm/BankStatementParser";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
-import { InwardOutwardRegister } from "@/components/firm/InwardOutwardRegister";
 
-export type ArticleWorkbenchTab = "my-day" | "tasks" | "doc-review" | "bank-decryptor" | "chat-hub" | "timesheet" | "otp-relay" | "icai-register" | "inward-register" | "quick-actions" | "staff-tools";
-
-interface ArticleWorkbenchProps {
-  externalTab?: ArticleWorkbenchTab;
-}
-
-export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab }) => {
+export const ArticleWorkbench: React.FC = () => {
   const { tasks: hookTasks, documents: hookDocs, clients, updateTask } = useTaxoData();
   const [tasks, setTasks] = useState<ComplianceTask[]>(hookTasks.length > 0 ? hookTasks : INITIAL_TASKS);
   const [documents, setDocuments] = useState<DocumentItem[]>(hookDocs.length > 0 ? hookDocs : INITIAL_DOCUMENTS);
@@ -49,10 +41,7 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
   React.useEffect(() => {
     if (hookDocs.length > 0) setDocuments(hookDocs);
   }, [hookDocs]);
-  const [activeTab, setActiveTab] = useState<ArticleWorkbenchTab>(externalTab || "my-day");
-  React.useEffect(() => {
-    if (externalTab) setActiveTab(externalTab);
-  }, [externalTab]);
+  const [activeTab, setActiveTab] = useState<"tasks" | "doc-review" | "bank-decryptor" | "chat-hub" | "timesheet" | "otp-relay" | "icai-register">("tasks");
   const [chatMessage, setChatMessage] = useState("");
   const [messages, setMessages] = useState<{ id: string; sender: string; text: string; time: string; isClient: boolean }[]>([
     {
@@ -93,14 +82,6 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
   const myTasks = tasks.filter(
     (t) => t.assignedTo.includes("Kriti") || t.assignedTo.includes("Article")
   );
-  const myDayTasks = myTasks.filter((task) => {
-    if (task.status === "FILED_AND_COMPLETED") return false;
-    const due = new Date(`${task.dueDate}T23:59:59`);
-    const nextWeek = new Date();
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    return Number.isNaN(due.getTime()) || due <= nextWeek || task.missingDocumentsCount > 0;
-  });
-  const visibleTasks = activeTab === "my-day" ? myDayTasks : myTasks;
 
   const handleTaskWhatsAppChase = (task: ComplianceTask) => {
     openWhatsAppPreset(
@@ -267,22 +248,14 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
         </div>
 
         {/* Tab Switcher */}
-        <div className="hidden md:flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold overflow-x-auto scrollbar-none touch-pan-x w-full md:w-auto">
-          <button
-            onClick={() => setActiveTab("my-day")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap shrink-0 ${
-              activeTab === "my-day" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            My Day ({myDayTasks.length})
-          </button>
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold overflow-x-auto scrollbar-none touch-pan-x w-full md:w-auto">
           <button
             onClick={() => setActiveTab("tasks")}
             className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap shrink-0 ${
               activeTab === "tasks" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            All Tasks ({myTasks.length})
+            My Returns ({myTasks.length})
           </button>
           <button
             onClick={() => setActiveTab("bank-decryptor")}
@@ -341,43 +314,8 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
         </div>
       </div>
 
-      {(activeTab === "quick-actions" || activeTab === "staff-tools") && (
-        <section className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-indigo-600 font-black">{activeTab === "quick-actions" ? "Staff quick actions" : "Staff tools"}</p>
-            <h3 className="text-lg font-black text-slate-900 mt-1">{activeTab === "quick-actions" ? "What are you working on?" : "All staff tools"}</h3>
-            <p className="text-xs text-slate-500 mt-1">Open a tool directly. Your current workbench data remains available when you return.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(activeTab === "quick-actions" ? [
-              { id: "doc-review", title: "Review incoming documents", detail: "Check client uploads and request corrections", icon: FileCheck },
-              { id: "inward-register", title: "Log an incoming document", detail: "Open the inward and outward dispatch register", icon: Package },
-              { id: "bank-decryptor", title: "Prepare bank statement", detail: "Open bank OCR and Tally preparation", icon: Sparkles },
-              { id: "chat-hub", title: "Follow up with a client", detail: "Open the client communication desk", icon: MessageSquare },
-            ] : [
-              { id: "otp-relay", title: "Signatory coordination", detail: "Coordinate a secure client sign-off", icon: PhoneCall },
-              { id: "timesheet", title: "Timesheet & logbook", detail: "Record training and work hours", icon: Clock },
-              { id: "icai-register", title: "Articleship register", detail: "Open forms and stipend administration", icon: ShieldCheck },
-              { id: "inward-register", title: "Inward / outward register", detail: "Track received files and firm dispatches", icon: Package },
-              { id: "doc-review", title: "Document intake", detail: "Review and organize client documents", icon: FileCheck },
-              { id: "bank-decryptor", title: "Bank OCR & Tally", detail: "Prepare statements for accounting work", icon: Sparkles },
-              { id: "chat-hub", title: "Client follow-ups", detail: "Open WhatsApp and communication tools", icon: MessageSquare },
-            ]).map((action) => {
-              const ActionIcon = action.icon;
-              return (
-                <button key={action.id} type="button" onClick={() => setActiveTab(action.id as ArticleWorkbenchTab)} className="text-left p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition">
-                  <ActionIcon className="w-5 h-5 text-indigo-600 mb-3" />
-                  <span className="block text-sm font-black text-slate-900">{action.title}</span>
-                  <span className="block text-xs text-slate-500 mt-1">{action.detail}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {/* TAB 1: ARTICLE TASKS TABLE */}
-      {(activeTab === "tasks" || activeTab === "my-day") && (
+      {activeTab === "tasks" && (
         <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
           <div className="p-4 border-b border-slate-200 flex items-center justify-between">
             <h3 className="text-sm font-black text-slate-900">
@@ -399,14 +337,14 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {visibleTasks.length === 0 ? (
+                {myTasks.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
                       No statutory returns assigned. All client engagements are currently clean.
                     </td>
                   </tr>
                 ) : (
-                visibleTasks.map((task) => (
+                myTasks.map((task) => (
                   <tr key={task.id} className="hover:bg-slate-50 transition">
                     <td className="py-3.5 px-4">
                       <div className="font-black text-slate-900">{task.entityName}</div>
@@ -928,8 +866,6 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
         </div>
       )}
 
-      {activeTab === "inward-register" && <InwardOutwardRegister />}
-
       {/* Tax Audit Form 3CD Workpaper Modal with real UDIN tracking */}
       {/* TAB 7: ICAI REGULATION 48 ARTICLES REGISTER & STIPEND DESK */}
       {activeTab === "icai-register" && (
@@ -985,7 +921,7 @@ export const ArticleWorkbench: React.FC<ArticleWorkbenchProps> = ({ externalTab 
                 form108Due: "2028-09-19"
               },
               {
-                name: "Aman Sharma",
+                name: "Rahul Verma",
                 croNo: "CRO-0588211",
                 commencement: "2023-11-10",
                 year: "Final Year (Approaching Completion)",

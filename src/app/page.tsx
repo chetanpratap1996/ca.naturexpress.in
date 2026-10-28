@@ -34,7 +34,6 @@ import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
-import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 import { toast } from "@/components/shared/ToastNotification";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
@@ -43,7 +42,8 @@ import {
   getActiveSession, 
   clearSession, 
   setActiveSession, 
-  DEMO_USERS
+  DEMO_USERS,
+  generateDeterministicPassword 
 } from "@/lib/auth/session";
 import { 
   FIRM_METRICS, 
@@ -86,8 +86,7 @@ import {
   FileCheck,
   FileSearch,
   ClipboardCheck,
-  Scale,
-  Search
+  Scale
 } from "lucide-react";
 
 export default function Home() {
@@ -110,11 +109,7 @@ export default function Home() {
   // Default to unauthenticated session (require explicit login or sandbox entry)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("client-pwa");
-  const [activePartnerTab, setActivePartnerTab] = useState<string>("pulse");
-  const [activePartnerCategory, setActivePartnerCategory] = useState<string>("daily");
-  const [activeStaffTab, setActiveStaffTab] = useState<any>("my-day");
-  const [toolSearch, setToolSearch] = useState("");
-  const [toolContext, setToolContext] = useState<{ entityName: string; taskTitle: string } | null>(null);
+  const [activePartnerTab, setActivePartnerTab] = useState<string>("calendar");
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
   const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(false);
@@ -128,51 +123,19 @@ export default function Home() {
       const viewParam = params.get("view");
       const demoParam = params.get("demo");
 
-      // Validate cached UI identity against the server's verified Supabase session.
+      // Check existing authenticated session first
       const existing = getActiveSession();
       if (existing) {
-        fetch("/api/session", { cache: "no-store" })
-          .then(async (response) => ({ response, payload: await response.json() }))
-          .then(({ response, payload }) => {
-            if (!response.ok || !payload?.success || !payload?.user) {
-              clearSession();
-              setCurrentUser(null);
-              setIsDemoSandbox(false);
-              return;
-            }
-            const verifiedUser = payload.user as AuthUser;
-            setActiveSession(verifiedUser);
-            setCurrentUser(verifiedUser);
-            setIsDemoSandbox(false);
-            if (verifiedUser.role === "ARTICLE") setCurrentView("article");
-            else if (verifiedUser.role === "CLIENT") setCurrentView("client-pwa");
-            else setCurrentView("partner");
-          })
-          .catch(() => {
-            clearSession();
-            setCurrentUser(null);
-            setIsDemoSandbox(false);
-          });
+        setCurrentUser(existing);
+        setIsDemoSandbox(false);
+        if (existing.role === "ARTICLE") setCurrentView("article");
+        else if (existing.role === "CLIENT") setCurrentView("client-pwa");
+        else setCurrentView("partner");
         return;
       }
 
-      if (process.env.NODE_ENV === "production") {
-        fetch("/api/session", { cache: "no-store" })
-          .then(async (response) => ({ response, payload: await response.json() }))
-          .then(({ response, payload }) => {
-            if (!response.ok || !payload?.success || !payload?.user) return;
-            const verifiedUser = payload.user as AuthUser;
-            setActiveSession(verifiedUser);
-            setCurrentUser(verifiedUser);
-            if (verifiedUser.role === "ARTICLE") setCurrentView("article");
-            else if (verifiedUser.role === "CLIENT") setCurrentView("client-pwa");
-            else setCurrentView("partner");
-          })
-          .catch(() => undefined);
-      }
-
-      // Explicit local-only sandbox. Production access always requires Supabase Auth.
-      if (process.env.NODE_ENV !== "production" && (demoParam === "true" || viewParam === "sandbox")) {
+      // Explicit Sandbox Evaluation Flag
+      if (demoParam === "true" || viewParam === "sandbox") {
         setCurrentUser(DEMO_USERS.partner);
         setCurrentView("partner");
         setIsDemoSandbox(true);
@@ -190,22 +153,9 @@ export default function Home() {
   const handleTabChange = (tab: string) => {
     if (currentView === "client-pwa") {
       setActiveClientTab(tab as any);
-    } else if (currentView === "article") {
-      setActiveStaffTab(tab);
     } else {
-      selectPartnerTab(tab);
+      setActivePartnerTab(tab);
     }
-  };
-
-  const selectPartnerTab = (tab: string) => {
-    setActivePartnerTab(tab);
-    const groups: Record<string, string> = {
-      pulse: "daily", calendar: "daily", notices: "daily", "whatsapp-ai": "daily", "inward-outward": "daily", "batch-dispatch": "daily",
-      "clients-home": "clients", "entity-dna": "clients", "engagement-letter": "clients", "assessee-approval": "clients",
-      "billing-home": "revenue", billing: "revenue", "pay-to-release": "revenue", dsc: "revenue", "udin-vault": "revenue", "peer-review": "revenue", "anti-poaching": "revenue",
-      tools: "specialist", vcfo: "specialist", "bank-parser": "specialist", gstr2b: "specialist", "ais-analyzer": "specialist", "itr-calc": "specialist", "tax-audit-3cd": "specialist", "schedule3-audit": "specialist", "notice-drafter": "specialist", "content-studio": "specialist",
-    };
-    if (groups[tab]) setActivePartnerCategory(groups[tab]);
   };
 
   const handleLoginSuccess = (user: AuthUser | null) => {
@@ -221,12 +171,7 @@ export default function Home() {
     else setCurrentView("partner");
   };
 
-  const handleLogout = async () => {
-    try {
-      await createSupabaseBrowserClient().auth.signOut();
-    } catch {
-      // Clear the local display cache even if the provider is unavailable.
-    }
+  const handleLogout = () => {
     clearSession();
     setCurrentUser(null);
     setIsDemoSandbox(false);
@@ -286,11 +231,8 @@ export default function Home() {
       <SaasGateway 
         onEnterSandbox={(role) => handleSwitchUserRole(role)}
         onOpenLogin={(role) => {
-          if (role === "article") setCurrentView("article");
-          else if (role === "client") setCurrentView("client-pwa");
-          else setCurrentView("partner");
-          setCurrentUser(null);
-          setIsDemoSandbox(true);
+          if (role) handleSwitchUserRole(role);
+          else setCurrentUser(null);
         }}
       />
     );
@@ -333,19 +275,6 @@ export default function Home() {
     { id: "batch-dispatch", label: "Batch Dispatcher", icon: Sparkles, iconColor: "text-indigo-300" },
   ];
 
-  const partnerGroups = [
-    { id: "daily", label: "Daily Operations", home: "pulse", items: ["calendar", "notices", "whatsapp-ai", "inward-outward", "batch-dispatch"] },
-    { id: "clients", label: "Clients & Practice", home: "clients-home", items: ["entity-dna", "engagement-letter", "assessee-approval"] },
-    { id: "revenue", label: "Revenue & Governance", home: "billing-home", items: ["billing", "pay-to-release", "dsc", "udin-vault", "peer-review", "anti-poaching"] },
-    { id: "specialist", label: "Specialist Engines", home: "tools", items: ["bank-parser", "gstr2b", "ais-analyzer", "itr-calc", "tax-audit-3cd", "schedule3-audit", "notice-drafter", "vcfo", "content-studio"] },
-  ];
-  const selectedPartnerGroup = partnerGroups.find((group) => group.id === activePartnerCategory) || partnerGroups[0];
-  const normalizedToolSearch = toolSearch.trim().toLowerCase();
-  const visibleTools = partnerTabs.filter((tab) => {
-    if (!normalizedToolSearch) return true;
-    return `${tab.label} ${tab.id}`.toLowerCase().includes(normalizedToolSearch);
-  });
-
   return (
     <ErrorBoundary fallbackTitle="Client Application Recovered">
       <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
@@ -353,7 +282,7 @@ export default function Home() {
         <TopNav 
           currentView={currentView} 
           onViewChange={setCurrentView}
-          onNavigateTab={(tab) => selectPartnerTab(tab)}
+          onNavigateTab={(tab) => setActivePartnerTab(tab)}
           currentUser={currentUser}
           onLogout={handleLogout}
           onSwitchUser={handleSwitchUserRole}
@@ -372,7 +301,6 @@ export default function Home() {
           {/* VIEW 1: CLIENT PWA PORTAL (PRIMARY CLIENT-CENTRIC EXPERIENCE) */}
           {currentView === "client-pwa" && (
             <ClientPortalPwa 
-              firmId={currentUser.firmId}
               externalTab={activeClientTab as any}
               isQuickActionOpen={isClientQuickActionOpen}
               onCloseQuickAction={() => setIsClientQuickActionOpen(false)}
@@ -384,9 +312,9 @@ export default function Home() {
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Top KPI Metrics with Drill-Down Navigation */}
-              {activePartnerTab === "pulse" && <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 <div 
-                  onClick={() => selectPartnerTab("calendar")}
+                  onClick={() => setActivePartnerTab("calendar")}
                   className="bg-white border border-slate-200 hover:border-emerald-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
                   title="Click to view Statutory Calendar drill-down"
                 >
@@ -413,7 +341,7 @@ export default function Home() {
                 </div>
 
                 <div 
-                  onClick={() => selectPartnerTab("calendar")}
+                  onClick={() => setActivePartnerTab("calendar")}
                   className="bg-white border border-slate-200 hover:border-red-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
                   title="Click to view 72-Hour Critical Deadlines"
                 >
@@ -440,7 +368,7 @@ export default function Home() {
                 </div>
 
                 <div 
-                  onClick={() => selectPartnerTab("notices")}
+                  onClick={() => setActivePartnerTab("notices")}
                   className="bg-white border border-slate-200 hover:border-amber-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
                   title="Click to view Active Scrutiny Notices"
                 >
@@ -465,7 +393,7 @@ export default function Home() {
                 </div>
 
                 <div 
-                  onClick={() => selectPartnerTab("billing")}
+                  onClick={() => setActivePartnerTab("billing")}
                   className="bg-white border border-slate-200 hover:border-indigo-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
                   title="Click to view Fee Realization & Unbilled WIP"
                 >
@@ -490,78 +418,49 @@ export default function Home() {
                     Inspect WIP &rarr;
                   </span>
                 </div>
-              </div>}
+              </div>
 
-              {/* Grouped desktop navigation; the complete mobile catalog lives in More. */}
-              <section className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-sm space-y-3">
-                <div className="hidden sm:flex flex-wrap gap-2" role="tablist" aria-label="Partner workspace sections">
-                  {partnerGroups.map((group) => (
-                    <button key={group.id} type="button" role="tab" aria-selected={activePartnerCategory === group.id} onClick={() => selectPartnerTab(group.home)} className={`px-3.5 py-2 rounded-xl text-xs font-black transition ${activePartnerCategory === group.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-                      {group.label}
+              {/* Mobile Partner Tab Select Bar (dropdown on mobile for fast navigation) */}
+              <div className="block sm:hidden bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-600">Active Module:</span>
+                  <select
+                    value={activePartnerTab}
+                    onChange={(e) => setActivePartnerTab(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 rounded-xl px-2.5 py-1.5 focus:outline-none"
+                  >
+                    {partnerTabs.map((tab) => (
+                      <option key={tab.id} value={tab.id}>
+                        {tab.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Desktop & Tablet Tabs Header with horizontal touch scroll */}
+              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-3 overflow-x-auto scrollbar-none touch-pan-x">
+                {partnerTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activePartnerTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActivePartnerTab(tab.id)}
+                      className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                        isActive
+                          ? tab.id === "batch-dispatch"
+                            ? "bg-indigo-600 text-white shadow-md"
+                            : "bg-btblack text-white shadow-md"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${tab.iconColor}`} />
+                      <span>{tab.label}</span>
                     </button>
-                  ))}
-                </div>
-                {activePartnerCategory === "specialist" ? (
-                  <div className="space-y-3">
-                    {activePartnerTab !== "tools" && <button type="button" onClick={() => selectPartnerTab("tools")} className="text-xs font-black text-indigo-700 hover:underline">Browse all specialist tools</button>}
-                    {activePartnerTab === "tools" && <label className="relative block">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input value={toolSearch} onChange={(event) => setToolSearch(event.target.value)} placeholder="Find a specialist tool…" aria-label="Search specialist tools" className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                    </label>}
-                  </div>
-                ) : (
-                  <div className="hidden sm:flex flex-wrap gap-2">
-                    {selectedPartnerGroup.id === "clients" && <button type="button" onClick={() => setIsClientMasterOpen(true)} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100">Client Master</button>}
-                    {selectedPartnerGroup.items.map((id) => {
-                      const tab = partnerTabs.find((item) => item.id === id);
-                      if (!tab) return null;
-                      return <button key={id} type="button" onClick={() => selectPartnerTab(id)} aria-current={activePartnerTab === id ? "page" : undefined} className={`rounded-xl px-3 py-2 text-xs font-bold transition ${activePartnerTab === id ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-700 hover:bg-indigo-50"}`}>{tab.label}</button>;
-                    })}
-                  </div>
-                )}
-              </section>
-
-              {activePartnerTab === "tools" && (
-                <section className="space-y-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-indigo-600 font-black">Complete feature catalog</p>
-                    <h2 className="text-xl font-black text-slate-900 mt-1">Specialist tools</h2>
-                    <p className="text-xs text-slate-500 mt-1">Search or browse every specialist module. Tools also appear in the relevant client work context.</p>
-                  </div>
-                  <div className="space-y-5">
-                    {(!normalizedToolSearch || "client master clients directory onboarding".includes(normalizedToolSearch)) && <button type="button" onClick={() => setIsClientMasterOpen(true)} className="w-full sm:w-auto text-left rounded-2xl border border-emerald-200 bg-emerald-50 p-4 hover:bg-emerald-100 transition"><span className="block text-sm font-black text-slate-900">Client Master</span><span className="block text-xs text-slate-600 mt-1">Directory, onboarding, import, and client groups</span></button>}
-                    {partnerGroups.map((group) => {
-                      const groupTools = visibleTools.filter((tool) => group.items.includes(tool.id));
-                      if (!groupTools.length) return null;
-                      return <section key={group.id} className="space-y-2"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">{group.label}</h3><div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">{groupTools.map((tab) => { const Icon = tab.icon; return <button key={tab.id} type="button" onClick={() => selectPartnerTab(tab.id)} className="text-left rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition"><span className="flex items-center gap-2"><Icon className={`w-4 h-4 ${tab.iconColor}`} /><span className="text-sm font-black text-slate-900">{tab.label}</span></span><span className="block text-xs text-slate-500 mt-2">Open this tool for the selected client engagement.</span></button>; })}</div></section>;
-                    })}
-                    {!visibleTools.length && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">No tools match “{toolSearch}”. Try a client, form, or tax keyword.</p>}
-                  </div>
-                </section>
-              )}
-
-              {activePartnerTab === "clients-home" && (
-                <section className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-                  <div><p className="text-[10px] uppercase tracking-wider text-emerald-700 font-black">Clients & practice</p><h2 className="text-xl font-black text-slate-900 mt-1">Client workspace</h2><p className="text-xs text-slate-500 mt-1">Open a client record, review its entity profile, or prepare the engagement.</p></div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button type="button" onClick={() => setIsClientMasterOpen(true)} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left hover:bg-emerald-100 transition"><span className="block text-sm font-black text-slate-900">Client Master</span><span className="block text-xs text-slate-600 mt-1">Directory, onboarding, import, and client groups</span></button>
-                    <button type="button" onClick={() => selectPartnerTab("entity-dna")} className="rounded-2xl border border-slate-200 p-4 text-left hover:border-indigo-300 transition"><span className="block text-sm font-black text-slate-900">Entity profiles</span><span className="block text-xs text-slate-600 mt-1">Entity DNA and statutory profile tools</span></button>
-                    <button type="button" onClick={() => selectPartnerTab("engagement-letter")} className="rounded-2xl border border-slate-200 p-4 text-left hover:border-indigo-300 transition"><span className="block text-sm font-black text-slate-900">Engagement setup</span><span className="block text-xs text-slate-600 mt-1">Engagement letters and service scope</span></button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">{["bank-parser", "gstr2b", "ais-analyzer", "schedule3-audit"].map((id) => { const tool = partnerTabs.find((item) => item.id === id); return tool ? <button key={id} type="button" onClick={() => selectPartnerTab(id)} className="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-[11px] font-bold text-indigo-800">Open {tool.label}</button> : null; })}</div>
-                </section>
-              )}
-
-              {activePartnerTab === "billing-home" && (
-                <section className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4"><div><p className="text-[10px] uppercase tracking-wider text-emerald-700 font-black">Revenue & governance</p><h2 className="text-xl font-black text-slate-900 mt-1">Billing, custody & quality</h2><p className="text-xs text-slate-500 mt-1">Manage realization, controlled document release, signing records, and review quality.</p></div><div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">{selectedPartnerGroup.items.map((id) => { const tool = partnerTabs.find((item) => item.id === id); if (!tool) return null; const Icon = tool.icon; return <button key={id} type="button" onClick={() => selectPartnerTab(id)} className="text-left rounded-2xl border border-slate-200 p-4 hover:border-indigo-300 transition"><Icon className={`w-4 h-4 ${tool.iconColor} mb-3`} /><span className="block text-sm font-black text-slate-900">{tool.label}</span><span className="block text-xs text-slate-500 mt-1">Open this firm workflow.</span></button>; })}</div></section>
-              )}
-
-              {toolContext && ["bank-parser", "gstr2b", "ais-analyzer", "schedule3-audit", "tax-audit-3cd"].includes(activePartnerTab) && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs">
-                  <p className="text-indigo-950"><strong>Opened from {toolContext.entityName}:</strong> {toolContext.taskTitle}</p>
-                  <button type="button" onClick={() => setToolContext(null)} className="self-start sm:self-auto text-indigo-700 font-bold hover:underline">Clear work context</button>
-                </div>
-              )}
+                  );
+                })}
+              </div>
 
               {/* Active Content */}
               {activePartnerTab === "batch-dispatch" && (
@@ -577,10 +476,6 @@ export default function Home() {
                   clients={clients}
                   onStatusChange={handleTaskStatusChange} 
                   onAddTask={createTask}
-                  onOpenTool={(toolId, task) => {
-                    setToolContext({ entityName: task.entityName, taskTitle: task.title });
-                    selectPartnerTab(toolId);
-                  }}
                 />
               )}
 
@@ -696,20 +591,21 @@ export default function Home() {
           )}
 
           {/* VIEW 3: ARTICLE WORKBENCH (FOR ARTICLE TRAINEES) */}
-          {currentView === "article" && <ArticleWorkbench externalTab={activeStaffTab} />}
+          {currentView === "article" && <ArticleWorkbench />}
         </main>
 
         {/* Floating Bottom Navigation */}
         <FloatingBottomNav
           currentView={currentView}
-          activeTab={currentView === "client-pwa" ? activeClientTab : currentView === "article" ? activeStaffTab : activePartnerTab}
+          activeTab={currentView === "client-pwa" ? activeClientTab : activePartnerTab}
           onTabChange={handleTabChange}
           onQuickAction={() => {
-            if (currentView === "client-pwa") setActiveClientTab("upload");
-            else if (currentView === "article") setActiveStaffTab("quick-actions");
-            else setIsFirmHubOpen(true);
+            if (currentView === "client-pwa") {
+              setIsClientQuickActionOpen(true);
+            } else {
+              setIsFirmHubOpen(true);
+            }
           }}
-          onOpenClients={() => selectPartnerTab("clients-home")}
         />
 
         {/* Firm Action Hub Modal */}
@@ -717,8 +613,8 @@ export default function Home() {
           isOpen={isFirmHubOpen}
           onClose={() => setIsFirmHubOpen(false)}
           onOpenClientMaster={() => setIsClientMasterOpen(true)}
-          onOpenNewTask={() => selectPartnerTab("calendar")}
-          onNavigateTab={(tab) => selectPartnerTab(tab)}
+          onOpenNewTask={() => setActivePartnerTab("calendar")}
+          onNavigateTab={(tab) => setActivePartnerTab(tab)}
         />
 
         {/* Client Master Modal */}

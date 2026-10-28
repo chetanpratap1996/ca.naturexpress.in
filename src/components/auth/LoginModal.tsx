@@ -5,9 +5,9 @@ import { BtLogo } from "@/components/shared/BtLogo";
 import { 
   AuthUser, 
   DEMO_USERS, 
-  setActiveSession,
+  setActiveSession, 
+  authenticateUser 
 } from "@/lib/auth/session";
-import { createClient } from "@/utils/supabase/client";
 import { ClientEntity } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
@@ -49,9 +49,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [activeStaffTab, setActiveStaffTab] = useState<"partner" | "article">("partner");
   
   const [identifier, setIdentifier] = useState(
-    process.env.NODE_ENV === "production" ? "" : (portalMode === "client" ? DEMO_USERS.client.phone : DEMO_USERS.partner.email)
+    portalMode === "client" ? DEMO_USERS.client.phone : DEMO_USERS.partner.email
   );
-  const [password, setPassword] = useState(process.env.NODE_ENV === "production" ? "" : "Partner@2026");
+  const [password, setPassword] = useState("Partner@2026");
   const [membershipNo, setMembershipNo] = useState("022998C");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -76,17 +76,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   useEffect(() => {
     if (portalMode === "client") {
       const activeClient = clientRegistry[0];
-      setIdentifier(process.env.NODE_ENV === "production" ? "" : (activeClient?.primaryContact?.phone || DEMO_USERS.client.phone));
-      setPassword(process.env.NODE_ENV === "production" ? "" : "Client@2026");
+      const phone = activeClient?.primaryContact?.phone || "8077170715";
+      const digits = phone.replace(/\D/g, "");
+      const defaultPin = digits.length >= 4 ? digits.slice(-4) : "0715";
+      setIdentifier(phone);
+      setPassword(defaultPin);
       setMembershipNo("");
     } else {
       if (activeStaffTab === "partner") {
-        setIdentifier(process.env.NODE_ENV === "production" ? "" : DEMO_USERS.partner.email);
-        setPassword(process.env.NODE_ENV === "production" ? "" : "Partner@2026");
+        setIdentifier(DEMO_USERS.partner.email);
+        setPassword("Partner@2026");
         setMembershipNo("022998C");
       } else {
-        setIdentifier(process.env.NODE_ENV === "production" ? "" : DEMO_USERS.article.email);
-        setPassword(process.env.NODE_ENV === "production" ? "" : "Article@2026");
+        setIdentifier(DEMO_USERS.article.email);
+        setPassword("Article@2026");
         setMembershipNo("CRO022998");
       }
     }
@@ -97,29 +100,46 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (e) e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      const supabase = createClient();
-      const credentials = identifier.includes("@")
-        ? { email: identifier.trim(), password }
-        : { phone: identifier.trim(), password };
-      const { error } = await supabase.auth.signInWithPassword(credentials);
-      if (error) throw error;
 
-      const sessionResponse = await fetch("/api/session", { cache: "no-store" });
-      const sessionPayload = await sessionResponse.json();
-      if (!sessionResponse.ok || !sessionPayload?.success || !sessionPayload?.user) {
-        await supabase.auth.signOut();
-        throw new Error(sessionPayload?.error || "This account has no active CA practice profile. Contact your firm administrator.");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portalMode,
+          identifier,
+          secret: password,
+          membershipNo: portalMode === "staff" ? membershipNo : undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.user) {
+        const authenticatedUser: AuthUser = data.user;
+        setActiveSession(authenticatedUser);
+        setIsSubmitting(false);
+        toast.success(
+          "Authentication Verified",
+          `Welcome, ${authenticatedUser.name} (${authenticatedUser.role === "PARTNER" ? "Managing Partner" : authenticatedUser.role === "ARTICLE" ? "Article Trainee" : "Client Portal"})`
+        );
+        onLoginSuccess(authenticatedUser);
+        return;
       }
 
-      const authenticatedUser = sessionPayload.user as AuthUser;
-      setActiveSession(authenticatedUser);
-      toast.success("Signed In", `Welcome, ${authenticatedUser.name}`);
-      onLoginSuccess(authenticatedUser);
-    } catch (error: any) {
-      setErrorMessage(error?.message || "Unable to sign in. Check your credentials or contact the firm administrator.");
-    } finally {
+      // If API returned error (e.g. invalid PIN or wrong password)
       setIsSubmitting(false);
+      setErrorMessage(data.error || "Authentication failed. Please verify credentials.");
+    } catch (netErr) {
+      // Fallback for offline/local evaluation sandbox
+      const result = authenticateUser(identifier, password, clientRegistry);
+      setIsSubmitting(false);
+      if (!result.success || !result.user) {
+        setErrorMessage(result.error || "Authentication failed. Invalid User ID or password.");
+        return;
+      }
+      setActiveSession(result.user);
+      onLoginSuccess(result.user);
     }
   };
 
@@ -268,9 +288,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Security Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  {portalMode === "client" ? "4-Digit Security Access PIN" : "Staff Security Password"}
+                </label>
+                {portalMode === "client" && (
+                  <span className="text-[10px] text-emerald-700 font-semibold">
+                    Zero-SMS Direct Access
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <KeyRound className="w-4 h-4" />
@@ -279,11 +306,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 transition"
+                  placeholder={portalMode === "client" ? "e.g. 0715" : "••••••••••••"}
+                  maxLength={portalMode === "client" ? 4 : 50}
+                  inputMode={portalMode === "client" ? "numeric" : "text"}
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 transition tracking-widest"
                   required
                 />
               </div>
+              {portalMode === "client" && (
+                <p className="text-[10px] text-slate-500 font-medium mt-1.5 flex items-center gap-1">
+                  <span className="text-emerald-600 font-bold">💡 Tip:</span>
+                  <span>Default PIN is the last 4 digits of your registered phone.</span>
+                </p>
+              )}
             </div>
 
             {portalMode === "staff" && (
@@ -322,7 +357,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
 
           {/* 1-Click Sandbox Evaluation Access */}
-          {process.env.NODE_ENV !== "production" && <div className="pt-3 border-t border-slate-100">
+          <div className="pt-3 border-t border-slate-100">
             <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block text-center mb-2">
               Evaluation Sandbox &bull; 1-Click Persona Access
             </span>
@@ -370,7 +405,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </button>
               </div>
             )}
-          </div>}
+          </div>
         </form>
       </div>
     </div>

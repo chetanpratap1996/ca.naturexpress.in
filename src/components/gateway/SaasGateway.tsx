@@ -33,6 +33,11 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
   onEnterSandbox,
   onOpenLogin,
 }) => {
+  const enterWorkspace = (role: "partner" | "article" | "client") => {
+    if (process.env.NODE_ENV === "production") onOpenLogin(role);
+    else onEnterSandbox(role);
+  };
+  const isProduction = process.env.NODE_ENV === "production";
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-btred-logo selection:text-white">
       {/* Top Utility Bar */}
@@ -46,11 +51,11 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
         <div className="flex items-center gap-4 text-xs">
           <span className="text-slate-400 hidden sm:inline">Made for Indian CAs, CSs &amp; SMEs</span>
           <button
-            onClick={() => onEnterSandbox("partner")}
+            onClick={() => enterWorkspace("partner")}
             className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Interactive Demo Sandbox</span>
+            <span>{isProduction ? "Secure Sign In" : "Interactive Demo Sandbox"}</span>
           </button>
         </div>
       </div>
@@ -67,23 +72,23 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
 
           <div className="flex items-center gap-3 sm:gap-4">
             <button
-              onClick={() => onEnterSandbox("client")}
+              onClick={() => enterWorkspace("client")}
               className="text-xs text-slate-300 hover:text-white font-semibold hidden md:inline px-3 py-1.5 rounded-xl hover:bg-slate-800 transition"
             >
               Client Portal View
             </button>
             <button
-              onClick={() => onEnterSandbox("partner")}
+              onClick={() => enterWorkspace("partner")}
               className="text-xs text-slate-300 hover:text-white font-semibold hidden md:inline px-3 py-1.5 rounded-xl hover:bg-slate-800 transition"
             >
               CA Practice Desk
             </button>
             <button
-              onClick={() => onEnterSandbox("partner")}
+              onClick={() => enterWorkspace("partner")}
               className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-amber-500/20 active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Launch Live Demo</span>
+              <span>{isProduction ? "Secure Sign In" : "Launch Demo Sandbox"}</span>
             </button>
           </div>
         </div>
@@ -113,7 +118,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           {/* Persona Launch Cluster */}
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <button
-              onClick={() => onEnterSandbox("partner")}
+              onClick={() => enterWorkspace("partner")}
               className="flex items-center gap-2 bg-btred-logo hover:bg-btred-700 text-white px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition shadow-xl shadow-red-500/25 active:scale-95"
             >
               <ShieldCheck className="w-4 h-4" />
@@ -122,7 +127,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </button>
 
             <button
-              onClick={() => onEnterSandbox("client")}
+              onClick={() => enterWorkspace("client")}
               className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition active:scale-95"
             >
               <Building2 className="w-4 h-4 text-emerald-400" />
@@ -130,7 +135,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </button>
 
             <button
-              onClick={() => onEnterSandbox("article")}
+              onClick={() => enterWorkspace("article")}
               className="flex items-center gap-2 bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800 px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition"
             >
               <UserCheck className="w-4 h-4 text-amber-400" />
@@ -139,7 +144,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           </div>
 
           <p className="text-[11px] text-slate-500">
-            ⚡ Instant 1-Click Access &bull; Full interactive workspace &bull; Live Supabase Cloud Database
+            {isProduction ? "Secure access for authorized firm users" : "Local evaluation sandbox · sample records only"}
           </p>
         </div>
 
@@ -200,7 +205,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
 
             <button
-              onClick={() => onEnterSandbox("client")}
+              onClick={() => enterWorkspace("client")}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10"
             >
               <span>Test Client Portal (PWA View)</span>
@@ -263,7 +268,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
 
             <button
-              onClick={() => onEnterSandbox("partner")}
+              onClick={() => enterWorkspace("partner")}
               className="w-full bg-btred-logo hover:bg-btred-700 text-white font-bold py-3 rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
             >
               <span>Test CA Partner Cockpit (GPA &amp; Co.)</span>
@@ -328,9 +333,11 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             <p className="text-[11px] text-slate-600 mt-0.5">ICAI Peer-Review Compliant Practice OS &bull; AES-256 Storage &bull; Data Stored in India</p>
           </div>
           <div className="flex items-center gap-4 text-slate-400">
-            <button onClick={() => onEnterSandbox("partner")} className="hover:text-white transition">Partner View</button>
-            <button onClick={() => onEnterSandbox("client")} className="hover:text-white transition">Client View</button>
-            <button onClick={() => onEnterSandbox("article")} className="hover:text-white transition">Staff View</button>
+            {!isProduction && <>
+              <button onClick={() => enterWorkspace("partner")} className="hover:text-white transition">Partner View</button>
+              <button onClick={() => enterWorkspace("client")} className="hover:text-white transition">Client View</button>
+              <button onClick={() => enterWorkspace("article")} className="hover:text-white transition">Staff View</button>
+            </>}
           </div>
         </div>
       </footer>

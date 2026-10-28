@@ -13,6 +13,7 @@ import { DocumentItem, InvoiceItem, PayToReleaseConfig, ComplianceTask, ClientEn
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
+import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
   CheckCircle2, 
@@ -41,7 +42,8 @@ import {
   FolderLock,
   Award,
   ArrowRight,
-  Smartphone
+  Smartphone,
+  User
 } from "lucide-react";
 import { BankerDocketModal } from "./BankerDocketModal";
 import { VendorItcHoldManager } from "./VendorItcHoldManager";
@@ -50,10 +52,12 @@ import { CompanyKycLocker } from "./CompanyKycLocker";
 import { ClientQuickActionModal } from "./ClientQuickActionModal";
 import { DirectorRiskRadar } from "./DirectorRiskRadar";
 import { Msme43bhWatchdog } from "./Msme43bhWatchdog";
+import { ClientProfileSection } from "./ClientProfileSection";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 export type ClientTabType = 
   | "progress" 
+  | "requests"
   | "banker-docket" 
   | "cash-forecast" 
   | "vendor-hold" 
@@ -62,9 +66,12 @@ export type ClientTabType =
   | "msme-watchdog"
   | "upload" 
   | "vault" 
-  | "billing";
+  | "billing"
+  | "pay-tools"
+  | "profile";
 
 interface ClientPortalPwaProps {
+  firmId?: string;
   activeTab?: ClientTabType;
   externalTab?: ClientTabType;
   isQuickActionOpen?: boolean;
@@ -73,6 +80,7 @@ interface ClientPortalPwaProps {
 }
 
 export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
+  firmId,
   activeTab = "progress",
   externalTab,
   isQuickActionOpen: externalQuickActionOpen,
@@ -260,16 +268,50 @@ startxref
 
     setIsUploading(true);
     try {
-      await uploadDocument({
-        entityId: currentClient.id,
-        entityName: currentClient.name,
-        category: selectedCategory,
-        fileName: file.name,
-        fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-        financialYear: "FY 2026-27",
-        uploadedBy: "CLIENT_PWA",
-        actorName: currentClient.primaryContact?.name || "Authorized Signatory",
-      });
+      if (file.size > 10 * 1024 * 1024) throw new Error("Please choose a file smaller than 10 MB.");
+      let storagePath: string | undefined;
+      let fileContentBase64: string | undefined;
+      if (process.env.NODE_ENV === "production") {
+        if (!firmId) throw new Error("Your firm workspace is not configured for secure document upload.");
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-150);
+        storagePath = `${firmId}/${currentClient.id}/${crypto.randomUUID()}_${safeName}`;
+        const supabase = createSupabaseBrowserClient();
+        const { error: storageError } = await supabase.storage.from("client-documents").upload(storagePath, file, {
+          contentType: file.type || "application/octet-stream", upsert: false,
+        });
+        if (storageError) throw new Error("The file could not be uploaded to the private document vault.");
+      } else {
+        fileContentBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = String(reader.result || "");
+            const comma = result.indexOf(",");
+            if (comma < 0) reject(new Error("Could not read the selected file."));
+            else resolve(result.slice(comma + 1));
+          };
+          reader.onerror = () => reject(new Error("Could not read the selected file."));
+          reader.readAsDataURL(file);
+        });
+      }
+      try {
+        await uploadDocument({
+          entityId: currentClient.id,
+          entityName: currentClient.name,
+          category: selectedCategory,
+          fileName: file.name,
+          fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          financialYear: "FY 2026-27",
+          uploadedBy: "CLIENT_PWA",
+          actorName: currentClient.primaryContact?.name || "Authorized Signatory",
+          storagePath,
+          fileContentBase64,
+        });
+      } catch (uploadError) {
+        if (storagePath && process.env.NODE_ENV === "production") {
+          await createSupabaseBrowserClient().storage.from("client-documents").remove([storagePath]);
+        }
+        throw uploadError;
+      }
       toast.success(
         "Document Uploaded Successfully",
         `"${file.name}" uploaded to firm vault. Assigned article Kriti Jain notified.`
@@ -391,13 +433,26 @@ startxref
             <strong>Client Portal:</strong> {currentClient.name}
           </span>
         </div>
-        <button
-          onClick={() => setInternalQuickActionOpen(true)}
-          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 transition"
-        >
-          <Sparkles className="w-3 h-3 text-emerald-600" />
-          Quick Actions
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setCurrentTab("profile")}
+            className={`px-2.5 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 transition ${
+              currentTab === "profile"
+                ? "bg-slate-900 text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <User className="w-3 h-3 text-indigo-500" />
+            Profile
+          </button>
+          <button
+            onClick={() => setInternalQuickActionOpen(true)}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 transition"
+          >
+            <Sparkles className="w-3 h-3 text-emerald-600" />
+            Quick Actions
+          </button>
+        </div>
       </div>
 
       {/* Multi-Entity Family Group Bar */}
@@ -438,7 +493,7 @@ startxref
       </div>
 
       {/* Client Application Navigation Tabs */}
-      <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-2 rounded-2xl shadow-sm overflow-x-auto text-xs font-bold scrollbar-none">
+      <div className="hidden sm:flex items-center gap-1.5 bg-white border border-slate-200 p-2 rounded-2xl shadow-sm overflow-x-auto text-xs font-bold scrollbar-none">
         <button
           onClick={() => setCurrentTab("progress")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
@@ -447,6 +502,16 @@ startxref
         >
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           Filings &amp; Receipts
+        </button>
+
+        <button
+          onClick={() => setCurrentTab("requests")}
+          className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+            currentTab === "requests" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          <FileCheck className="w-3.5 h-3.5 text-amber-500" />
+          Requests ({clientTasks.filter((t) => t.status !== "FILED_AND_COMPLETED" && (t.status === "DOCUMENTS_AWAITED" || t.status === "PARTNER_SIGN_OFF" || t.missingDocumentsCount > 0)).length})
         </button>
 
         <button
@@ -530,13 +595,23 @@ startxref
         </button>
 
         <button
-          onClick={() => setCurrentTab("billing")}
+          onClick={() => setCurrentTab("pay-tools")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "billing" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "billing" || currentTab === "pay-tools" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <CreditCard className="w-3.5 h-3.5 text-btred-logo" />
-          Invoices &amp; Payments ({clientInvoices.filter(i => i.status !== "PAID").length})
+          Pay &amp; Tools ({clientInvoices.filter(i => i.status !== "PAID").length})
+        </button>
+
+        <button
+          onClick={() => setCurrentTab("profile")}
+          className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+            currentTab === "profile" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          <User className="w-3.5 h-3.5 text-indigo-400" />
+          My Profile &amp; Password
         </button>
       </div>
 
@@ -546,6 +621,48 @@ startxref
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <p className="text-xs font-bold">{uploadSuccessMessage}</p>
         </div>
+      )}
+
+      {currentTab === "requests" && (
+        <section className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-amber-700 font-black">Action needed</p>
+              <h3 className="text-lg font-black text-slate-900 mt-1">Requests from your CA team</h3>
+              <p className="text-xs text-slate-500 mt-1">See what is needed, why it is needed, and where to send it.</p>
+            </div>
+            <button type="button" onClick={() => setCurrentTab("upload")} className="shrink-0 rounded-xl bg-btblack text-white px-3.5 py-2 text-xs font-black hover:bg-slate-800 transition">
+              Upload a document
+            </button>
+          </div>
+          {(() => {
+            const requests = clientTasks.filter((task) => task.status !== "FILED_AND_COMPLETED" && (task.status === "DOCUMENTS_AWAITED" || task.status === "PARTNER_SIGN_OFF" || task.missingDocumentsCount > 0));
+            return requests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-6 text-center">
+                <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto mb-2" />
+                <p className="text-sm font-bold text-slate-800">No open requests</p>
+                <p className="text-xs text-slate-500 mt-1">We’ll list document requests and approvals here when your CA team needs your input.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map((task) => (
+                  <article key={task.id} className="rounded-2xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-slate-900">{task.title}</p>
+                      <p className="text-xs text-slate-500 mt-1">{task.period} · Due {formatDate(task.dueDate)}</p>
+                      <p className="text-xs text-amber-800 mt-1 font-semibold">
+                        {task.status === "PARTNER_SIGN_OFF" ? "Your approval is needed." : task.missingDocumentsCount > 0 ? `${task.missingDocumentsCount} document(s) still needed.` : "Your CA team is waiting for information."}
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => setCurrentTab(task.status === "PARTNER_SIGN_OFF" ? "progress" : "upload")} className="shrink-0 rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-black text-slate-800 hover:bg-slate-50 transition">
+                      {task.status === "PARTNER_SIGN_OFF" ? "View filing status" : "Send documents"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            );
+          })()}
+        </section>
       )}
 
       {/* TAB 1: PROGRESS RADAR WITH 5-STAGE DEPARTMENT FILING PIPELINE */}
@@ -770,6 +887,32 @@ startxref
         <Msme43bhWatchdog client={currentClient} />
       )}
 
+      {currentTab === "pay-tools" && (
+        <section className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-indigo-600 font-black">Business tools</p>
+            <h3 className="text-lg font-black text-slate-900 mt-1">Useful tools for {currentClient.name}</h3>
+            <p className="text-xs text-slate-500 mt-1">Open a tool when it helps with a current business or compliance need.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { id: "banker-docket", title: "Bank loan pack", detail: "Prepare a banker-ready document checklist" },
+              { id: "cash-forecast", title: "Tax planning", detail: "Review upcoming tax and cash outflows" },
+              { id: "vendor-hold", title: "Vendor tax claims", detail: "Track supplier ITC follow-up" },
+              { id: "kyc-locker", title: "Company documents", detail: "View company identity and KYC records" },
+              { id: "director-risk", title: "Director risk", detail: "Review director-related alerts" },
+              { id: "msme-watchdog", title: "MSME payment watch", detail: "Review tracked MSME payables" },
+              { id: "profile", title: "My Profile & Password", detail: "Company tax identity, portal password & alert preferences" },
+            ].map((tool) => (
+              <button key={tool.id} type="button" onClick={() => setCurrentTab(tool.id as ClientTabType)} className="text-left rounded-2xl border border-slate-200 p-4 hover:border-indigo-300 hover:bg-indigo-50/40 transition">
+                <span className="block text-sm font-black text-slate-900">{tool.title}</span>
+                <span className="block text-xs text-slate-500 mt-1">{tool.detail}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* TAB 6: UPLOAD DOCS */}
       {currentTab === "upload" && (
         <div className="space-y-4">
@@ -966,7 +1109,7 @@ startxref
       )}
 
       {/* TAB 8: FEE INVOICES & PAYMENTS */}
-      {currentTab === "billing" && (
+      {(currentTab === "billing" || currentTab === "pay-tools") && (
         <div className="space-y-4">
           <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1 text-xs text-center sm:text-left">

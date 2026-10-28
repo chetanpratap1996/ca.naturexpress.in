@@ -1,26 +1,29 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { AuthUser, DEMO_USERS, setActiveSession, authenticateUser, generateDeterministicPassword, normalizePhone10 } from "@/lib/auth/session";
-import { ClientEntity } from "@/lib/types";
 import { BtLogo } from "@/components/shared/BtLogo";
+import { 
+  AuthUser, 
+  DEMO_USERS, 
+  setActiveSession,
+} from "@/lib/auth/session";
+import { createClient } from "@/utils/supabase/client";
+import { ClientEntity } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
-  ShieldCheck, 
-  UserCheck, 
-  KeyRound, 
   Building2, 
-  ArrowRight, 
-  Smartphone, 
+  Users, 
+  KeyRound, 
   Mail, 
-  Lock, 
-  Sparkles, 
-  CheckCircle2,
+  Smartphone, 
+  ArrowRight, 
+  ShieldCheck, 
+  Sparkles,
+  Lock,
   AlertCircle,
-  Copy,
+  HelpCircle,
   Check,
-  Briefcase,
-  ExternalLink,
+  Copy,
   MessageSquare
 } from "lucide-react";
 
@@ -37,34 +40,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 }) => {
   const [clientRegistry, setClientRegistry] = useState<ClientEntity[]>(initialClients);
 
-  // Determine if this is client portal login or staff practice login
   const [portalMode, setPortalMode] = useState<"client" | "staff">(() => {
     if (initialRole === "client") return "client";
     if (initialRole === "partner" || initialRole === "article") return "staff";
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search).get("view");
-      if (p === "client") return "client";
-      if (p === "partner" || p === "article" || p === "admin") return "staff";
-    }
     return "client";
   });
 
   const [activeStaffTab, setActiveStaffTab] = useState<"partner" | "article">("partner");
   
-  // Default values
   const [identifier, setIdentifier] = useState(
-    portalMode === "client" ? DEMO_USERS.client.phone : DEMO_USERS.partner.email
+    process.env.NODE_ENV === "production" ? "" : (portalMode === "client" ? DEMO_USERS.client.phone : DEMO_USERS.partner.email)
   );
-  const [password, setPassword] = useState(
-    portalMode === "client" ? (DEMO_USERS.client.defaultPassword || "Chetan@0715") : "Gunjan@3639"
-  );
-  const [membershipNo, setMembershipNo] = useState(
-    portalMode === "client" ? "" : "022998C"
-  );
+  const [password, setPassword] = useState(process.env.NODE_ENV === "production" ? "" : "Partner@2026");
+  const [membershipNo, setMembershipNo] = useState("022998C");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [expectedHint, setExpectedHint] = useState<string | null>(null);
-  const [copiedHint, setCopiedHint] = useState(false);
 
   // Sync clients if props change or fetch from API
   useEffect(() => {
@@ -86,217 +76,149 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   useEffect(() => {
     if (portalMode === "client") {
       const activeClient = clientRegistry[0];
-      if (activeClient) {
-        setIdentifier(activeClient.primaryContact?.phone || activeClient.pan);
-        const pass = generateDeterministicPassword(
-          activeClient.primaryContact?.name || activeClient.name,
-          activeClient.primaryContact?.phone || "0715"
-        );
-        setPassword(pass);
-      } else {
-        setIdentifier(DEMO_USERS.client.phone);
-        setPassword(DEMO_USERS.client.defaultPassword || "Chetan@0715");
-      }
+      setIdentifier(process.env.NODE_ENV === "production" ? "" : (activeClient?.primaryContact?.phone || DEMO_USERS.client.phone));
+      setPassword(process.env.NODE_ENV === "production" ? "" : "Client@2026");
       setMembershipNo("");
     } else {
       if (activeStaffTab === "partner") {
-        setIdentifier(DEMO_USERS.partner.email);
-        setPassword("Gunjan@3639");
+        setIdentifier(process.env.NODE_ENV === "production" ? "" : DEMO_USERS.partner.email);
+        setPassword(process.env.NODE_ENV === "production" ? "" : "Partner@2026");
         setMembershipNo("022998C");
       } else {
-        setIdentifier(DEMO_USERS.article.email);
-        setPassword("Kriti@5897");
+        setIdentifier(process.env.NODE_ENV === "production" ? "" : DEMO_USERS.article.email);
+        setPassword(process.env.NODE_ENV === "production" ? "" : "Article@2026");
         setMembershipNo("CRO022998");
       }
     }
     setErrorMessage(null);
-    setExpectedHint(null);
   }, [portalMode, activeStaffTab, clientRegistry]);
 
-  const handleLogin = (e?: React.FormEvent) => {
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    setExpectedHint(null);
+    try {
+      const supabase = createClient();
+      const credentials = identifier.includes("@")
+        ? { email: identifier.trim(), password }
+        : { phone: identifier.trim(), password };
+      const { error } = await supabase.auth.signInWithPassword(credentials);
+      if (error) throw error;
 
-    setTimeout(() => {
-      const result = authenticateUser(identifier, password, clientRegistry);
-
-      if (!result.success || !result.user) {
-        setIsSubmitting(false);
-        setErrorMessage(result.error || "Authentication failed. Check your details or contact GPA & Co.");
-        if (result.expectedHint) setExpectedHint(result.expectedHint);
-        return;
+      const sessionResponse = await fetch("/api/session", { cache: "no-store" });
+      const sessionPayload = await sessionResponse.json();
+      if (!sessionResponse.ok || !sessionPayload?.success || !sessionPayload?.user) {
+        await supabase.auth.signOut();
+        throw new Error(sessionPayload?.error || "This account has no active CA practice profile. Contact your firm administrator.");
       }
 
-      const authenticatedUser = result.user;
+      const authenticatedUser = sessionPayload.user as AuthUser;
       setActiveSession(authenticatedUser);
-      setIsSubmitting(false);
-      toast.success(
-        "Authentication Verified",
-        `Welcome, ${authenticatedUser.name} (${authenticatedUser.role === "PARTNER" ? "Managing Partner" : authenticatedUser.role === "ARTICLE" ? "Article Trainee" : "Client Portal"})`
-      );
+      toast.success("Signed In", `Welcome, ${authenticatedUser.name}`);
       onLoginSuccess(authenticatedUser);
-    }, 250);
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Unable to sign in. Check your credentials or contact the firm administrator.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleQuickDemoLogin = (role: "partner" | "article" | "client") => {
     setIsSubmitting(true);
     setTimeout(() => {
-      let targetUser: AuthUser | null = null;
-      if (role === "client") {
-        const first = clientRegistry[0];
-        if (first) {
-          const pass = generateDeterministicPassword(
-            first.primaryContact?.name || first.name,
-            first.primaryContact?.phone || "0715"
-          );
-          targetUser = {
-            id: `USR-${first.id}`,
-            name: first.primaryContact?.name || "Chetan Pratap Singh",
-            email: first.primaryContact?.email || "director@client.com",
-            phone: first.primaryContact?.phone || "+91 80771 70715",
-            role: "CLIENT",
-            designation: `${first.primaryContact?.designation || "Director"} (${first.name})`,
-            firmId: "FRM-022998C",
-            firmName: "GPA & Co., Chartered Accountants",
-            firmFrn: "022998C",
-            defaultPassword: pass,
-            clientGroupId: first.groupId,
-            clientEntityId: first.id,
-            token: `tok_client_${Date.now()}`,
-            expiresAt: new Date(Date.now() + 86400000).toISOString(),
-          };
-        } else {
-          targetUser = DEMO_USERS.client;
-        }
-      } else {
-        targetUser = DEMO_USERS[role];
-      }
+      const targetUser = DEMO_USERS[role];
 
       if (!targetUser) {
         setIsSubmitting(false);
-        setErrorMessage("User configuration not found. Please log in with credentials.");
+        setErrorMessage("User profile not found.");
         return;
       }
 
       setActiveSession(targetUser);
       setIsSubmitting(false);
       toast.success(
-        "Instant Sign In",
-        `Welcome back, ${targetUser.name} (${role === "partner" ? "Managing Partner" : role === "article" ? "Article Trainee" : "Client Portal"})`
+        "Sandbox Session Initialized",
+        `Welcome, ${targetUser.name} (${role === "partner" ? "Partner Cockpit" : role === "article" ? "Article Assistant" : "Client Portal"})`
       );
       onLoginSuccess(targetUser);
     }, 200);
   };
 
-  const copyCreds = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedHint(true);
-    toast.info("Copied to Clipboard", text);
-    setTimeout(() => setCopiedHint(false), 2000);
-  };
-
-  // Compute active preview password for hint
-  const currentHintPassword = portalMode === "client" 
-    ? (clientRegistry[0] 
-        ? generateDeterministicPassword(clientRegistry[0].primaryContact?.name || clientRegistry[0].name, clientRegistry[0].primaryContact?.phone || "0715")
-        : "Chetan@0715")
-    : activeStaffTab === "article" ? "Kriti@5897" : "Gunjan@3639";
-
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-3 sm:p-4 selection:bg-red-500 selection:text-white">
-      {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(#e52320_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none"></div>
 
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 max-h-[96dvh] overflow-y-auto">
         
         {/* Top Header */}
         <div className="bg-slate-950 text-white p-5 sm:p-6 pb-5 border-b border-slate-800 text-center relative">
-          <div className="flex justify-center mb-3">
+          <div className="flex justify-center mb-2.5">
             <BtLogo size="md" showTagline={false} />
           </div>
+          <h2 className="text-base sm:text-lg font-black tracking-tight">
+            GPA &amp; Co. Chartered Accountants
+          </h2>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">
+            ICAI FRN: 022998C &bull; Practice &amp; Client Compliance Portal
+          </p>
 
-          {portalMode === "client" ? (
-            <>
-              <div className="inline-flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full text-[10px] text-emerald-300 font-bold mb-2">
-                <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Client Financial Collaboration Portal</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-                GPA &amp; Co. Client Desk
-              </h2>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Official Compliance &amp; Banking Collaboration Suite
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="inline-flex items-center gap-1.5 bg-red-950/80 border border-red-500/40 px-3 py-1 rounded-full text-[10px] text-red-300 font-bold mb-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-btred-logo" />
-                <span>CA Firm Practice &amp; Staff Desk</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-                GPA &amp; Co., Chartered Accountants
-              </h2>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
-                ICAI FRN: 022998C &bull; Practice Management System
-              </p>
-            </>
+          {/* Mode Switcher */}
+          <div className="mt-4 p-1 bg-slate-900 border border-slate-800 rounded-2xl flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPortalMode("client")}
+              className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                portalMode === "client"
+                  ? "bg-emerald-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Client Portal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPortalMode("staff")}
+              className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                portalMode === "staff"
+                  ? "bg-slate-800 text-white shadow-md border border-slate-700"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>CA Practice Staff</span>
+            </button>
+          </div>
+
+          {/* Staff Sub-Tabs */}
+          {portalMode === "staff" && (
+            <div className="mt-2.5 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveStaffTab("partner")}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
+                  activeStaffTab === "partner"
+                    ? "bg-btred-logo text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Managing Partner
+              </button>
+              <span className="text-slate-700">&bull;</span>
+              <button
+                type="button"
+                onClick={() => setActiveStaffTab("article")}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
+                  activeStaffTab === "article"
+                    ? "bg-indigo-600 text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Article Trainee
+              </button>
+            </div>
           )}
-
-          <div className="mt-2 text-[10px] text-slate-400 font-mono">
-            <span>https://ca.naturexpress.in/</span>
-          </div>
         </div>
-
-        {/* Portal Mode Tabs (Client vs Staff) */}
-        <div className="grid grid-cols-2 p-1.5 bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-600">
-          <button
-            type="button"
-            onClick={() => setPortalMode("client")}
-            className={`py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
-              portalMode === "client" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-            Client Portal
-          </button>
-          <button
-            type="button"
-            onClick={() => setPortalMode("staff")}
-            className={`py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
-              portalMode === "staff" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-btred-logo" />
-            CA Firm / Staff
-          </button>
-        </div>
-
-        {/* Staff Switcher - ONLY shown in Staff Mode */}
-        {portalMode === "staff" && (
-          <div className="grid grid-cols-2 p-1 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500">
-            <button
-              type="button"
-              onClick={() => setActiveStaffTab("partner")}
-              className={`py-1.5 rounded-lg transition flex items-center justify-center gap-1 ${
-                activeStaffTab === "partner" ? "bg-red-50 text-btred-logo font-black" : "hover:text-slate-900"
-              }`}
-            >
-              <span>Managing Partner</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveStaffTab("article")}
-              className={`py-1.5 rounded-lg transition flex items-center justify-center gap-1 ${
-                activeStaffTab === "article" ? "bg-indigo-50 text-indigo-700 font-black" : "hover:text-slate-900"
-              }`}
-            >
-              <span>Article Assistant</span>
-            </button>
-          </div>
-        )}
 
         {/* Form Body */}
         <form onSubmit={handleLogin} className="p-5 sm:p-6 space-y-4">
@@ -309,39 +231,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <div className="flex items-center justify-between pt-1 border-t border-red-200/60 text-[11px]">
                 <span className="text-slate-600">Need help with login?</span>
                 <a
-                  href="https://wa.me/919893723639?text=Hello%20GPA%20%26%20Co.%2C%20I%20need%20assistance%20logging%20into%20my%20client%20portal%20at%20ca.naturexpress.in"
+                  href="https://wa.me/917999995897?text=Hello%20GPA%20%26%20Co.%2C%20I%20need%20assistance%20logging%20into%20my%20compliance%20portal."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:underline"
                 >
                   <MessageSquare className="w-3 h-3" />
-                  <span>WhatsApp Firm Support</span>
+                  <span>WhatsApp Firm Helpdesk</span>
                 </a>
               </div>
             </div>
           )}
-
-          {/* Zero-DLT Password Explanation Card */}
-          <div className="bg-slate-50 border border-slate-200 text-slate-800 p-3 rounded-2xl text-[11px] space-y-1">
-            <div className="font-bold flex items-center justify-between text-slate-900">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                Zero-SMS Deterministic Password:
-              </span>
-              <button
-                type="button"
-                onClick={() => copyCreds(currentHintPassword)}
-                className="text-indigo-600 hover:underline flex items-center gap-1 text-[10px] font-bold"
-              >
-                {copiedHint ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                {copiedHint ? "Copied" : "Copy Sample"}
-              </button>
-            </div>
-            <p className="text-slate-600 leading-relaxed text-[10px]">
-              Password standard: <strong className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-900">[FirstName/Company]@[Last 4 Phone]</strong>.
-              {" "}(e.g. <strong className="font-mono text-indigo-700">{currentHintPassword}</strong>)
-            </p>
-          </div>
 
           <div className="space-y-3">
             <div>
@@ -349,8 +249,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 {portalMode === "client"
                   ? "Registered Mobile Number, PAN, or Email"
                   : activeStaffTab === "partner"
-                  ? "Partner Email / Mobile (+91 98937 23639)"
-                  : "Article Assistant Email / Mobile"}
+                  ? "Partner Registered Email"
+                  : "Article Assistant Email"}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -360,7 +260,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={portalMode === "client" ? "e.g. 8077170715 or AANCP9915B" : "partner@firm.com"}
+                  placeholder={portalMode === "client" ? "e.g. 9800000003 or PAN" : "partner@firm.com"}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 transition"
                   required
                 />
@@ -376,11 +276,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <input
-                  type="text"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={currentHintPassword}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 transition font-mono"
+                  placeholder="••••••••••••"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 transition"
                   required
                 />
               </div>
@@ -421,10 +321,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             )}
           </button>
 
-          {/* 1-Click Fast Track Testing Login */}
-          <div className="pt-3 border-t border-slate-100">
+          {/* 1-Click Sandbox Evaluation Access */}
+          {process.env.NODE_ENV !== "production" && <div className="pt-3 border-t border-slate-100">
             <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block text-center mb-2">
-              1-Click Verified Instant Access
+              Evaluation Sandbox &bull; 1-Click Persona Access
             </span>
 
             {portalMode === "client" ? (
@@ -435,14 +335,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               >
                 <div>
                   <span className="text-xs font-extrabold text-emerald-950 block">
-                    {clientRegistry[0]?.primaryContact?.name || "Chetan Pratap Singh (Director)"}
+                    Apex Laboratories Private Limited (Client)
                   </span>
                   <span className="text-[10px] text-emerald-800 font-medium">
-                    {clientRegistry[0]?.name || "Pratwi Solutions Private Limited"} &bull; PAN: {clientRegistry[0]?.pan || "AANCP9915B"}
+                    Authorized Director &bull; PAN: AABCA9182K
                   </span>
                 </div>
                 <span className="text-[10px] font-mono font-bold text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200">
-                  {currentHintPassword}
+                  Client Sandbox
                 </span>
               </button>
             ) : (
@@ -455,7 +355,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <span className="text-[10px] font-bold text-slate-800 block truncate group-hover:text-indigo-700">
                     Kriti Jain (Article)
                   </span>
-                  <span className="text-[9px] text-slate-400 block font-mono">Kriti@5897</span>
+                  <span className="text-[9px] text-slate-400 block font-mono">Article Assistant</span>
                 </button>
 
                 <button
@@ -464,13 +364,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-red-50 hover:border-red-300 text-left transition group"
                 >
                   <span className="text-[10px] font-bold text-slate-800 block truncate group-hover:text-red-700">
-                    CA Gunjan Jain
+                    CA Gunjan Jain (FCA)
                   </span>
-                  <span className="text-[9px] text-slate-400 block font-mono">Gunjan@3639</span>
+                  <span className="text-[9px] text-slate-400 block font-mono">Managing Partner</span>
                 </button>
               </div>
             )}
-          </div>
+          </div>}
         </form>
       </div>
     </div>

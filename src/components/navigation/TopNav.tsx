@@ -302,6 +302,19 @@ export const TopNav: React.FC<TopNavProps> = ({
                     </button>
                   )}
 
+                  {isClientMode && onNavigateTab && (
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onNavigateTab("profile");
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800 flex items-center gap-2 text-indigo-300 font-bold transition text-xs border border-indigo-500/20"
+                    >
+                      <User className="w-4 h-4 text-indigo-400" />
+                      <span>Account Profile &amp; Password Settings</span>
+                    </button>
+                  )}
+
                   <div className="border-t border-slate-800 pt-2 flex items-center justify-between gap-2">
                     {onExitSandbox && !isClientMode && (
                       <button
@@ -338,8 +351,9 @@ export const TopNav: React.FC<TopNavProps> = ({
       <CommandPaletteModal
         isOpen={isCommandOpen}
         onClose={() => setIsCommandOpen(false)}
-        onNavigate={(tab) => {
-          if (onNavigateTab) onNavigateTab(tab);
+        onNavigate={(view, tab) => {
+          if (tab && onNavigateTab) onNavigateTab(tab);
+          else onViewChange(view);
           setIsCommandOpen(false);
         }}
       />

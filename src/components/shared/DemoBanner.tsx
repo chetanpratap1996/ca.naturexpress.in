@@ -26,10 +26,10 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/40 text-[10px] uppercase tracking-wider">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Supabase Cloud Live Active
+            Local Sandbox
           </span>
           <span className="text-[11px] text-slate-300 hidden md:inline">
-            GPA &amp; Co. (FRN 022998C) &bull; Verified Production Database &bull; Zero-DLT Credentials
+            Synthetic demo access only &bull; Do not enter client data
           </span>
         </div>
 
@@ -83,10 +83,10 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={onResetData}
               className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-emerald-300 font-semibold px-2 py-1 rounded hover:bg-slate-800 transition"
-              title="Resync live state from Supabase Cloud"
+              title="Reset the local sandbox state"
             >
               <RefreshCw className="w-3 h-3" />
-              <span className="hidden lg:inline">Resync Supabase</span>
+              <span className="hidden lg:inline">Reset Sandbox</span>
             </button>
           )}
 

@@ -34,6 +34,7 @@ interface StatutoryCalendarProps {
   groups?: ClientGroup[];
   onStatusChange: (taskId: string, newStatus: WorkflowStatus) => void;
   onAddTask?: (taskData: Partial<ComplianceTask>) => void;
+  onOpenTool?: (toolId: string, task: ComplianceTask) => void;
 }
 
 const STATUS_COLUMNS: { key: WorkflowStatus; label: string; badgeColor: string }[] = [
@@ -63,7 +64,7 @@ export const getDueStatus = (dueDateStr: string, status: WorkflowStatus) => {
   }
 };
 
-export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, clients = [], groups = [], onStatusChange, onAddTask }) => {
+export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, clients = [], groups = [], onStatusChange, onAddTask, onOpenTool }) => {
   const effectiveGroups = (groups && groups.length > 0) ? groups : INITIAL_GROUPS;
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("ALL");
@@ -639,6 +640,25 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({ tasks, cli
                             )}
                           </div>
                         )}
+
+                        {onOpenTool && task.status !== "FILED_AND_COMPLETED" && (() => {
+                          const category = `${task.category} ${task.title}`.toLowerCase();
+                          const contextualTools = category.includes("bank") || category.includes("statement")
+                            ? [{ id: "bank-parser", label: "Bank OCR" }]
+                            : category.includes("gst")
+                              ? [{ id: "gstr2b", label: "GSTR-2B" }]
+                              : category.includes("tax_audit") || category.includes("3cd") || category.includes("schedule")
+                                ? [{ id: "tax-audit-3cd", label: "Form 3CD" }, { id: "schedule3-audit", label: "Schedule III" }]
+                                : category.includes("income_tax") || category.includes("itr")
+                                  ? [{ id: "ais-analyzer", label: "AIS / 26AS" }, { id: "itr-calc", label: "ITR Engine" }]
+                                  : [];
+                          return contextualTools.length ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label={`Tools for ${task.entityName} ${task.title}`}>
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Open work tool</span>
+                              {contextualTools.map((tool) => <button key={tool.id} type="button" onClick={() => onOpenTool(tool.id, task)} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-800 hover:bg-indigo-100 transition">{tool.label}</button>)}
+                            </div>
+                          ) : null;
+                        })()}
 
                         {/* Assignee & Action */}
                         <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-[11px]">

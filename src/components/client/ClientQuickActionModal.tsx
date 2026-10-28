@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Clock,
-  Send
+  Send,
+  User
 } from "lucide-react";
 
 interface ClientQuickActionModalProps {
@@ -66,6 +67,29 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
 
         {/* Action Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+          {/* Action: My Profile & Password */}
+          <button
+            onClick={() => {
+              onClose();
+              onNavigateTab("profile");
+            }}
+            className="p-3.5 rounded-2xl border border-indigo-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50/80 transition flex items-start gap-3 group"
+          >
+            <div className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200 shrink-0">
+              <User className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 transition">
+                  My Profile &amp; Password
+                </h4>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Update credentials &amp; company tax details
+              </p>
+            </div>
+          </button>
           {/* Action 1: Upload Documents */}
           <button
             onClick={() => {

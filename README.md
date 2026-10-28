@@ -8,7 +8,7 @@ A modern, high-performance, mobile-responsive compliance cockpit and client coll
 
 - **Chartered Accountants Practice (on Seal)**: GPA & Co., Chartered Accountants
 - **ICAI Firm Registration Number (FRN)**: `022998C`
-- **Managing Partner**: CA Gunjan Jain (FCA) &bull; +91 98937 23639
+- **Managing Partner**: CA Gunjan Jain (FCA) &bull; +91 79999 95897
 - **Corporate SaaS Entity**: Brains & Taxes Private Limited
 - **Corporate Identification Number (CIN)**: `U74110MP2017PTC043716` (ROC Gwalior)
 - **Registered Office**: Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001

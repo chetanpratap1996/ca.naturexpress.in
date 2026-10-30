@@ -14,6 +14,7 @@ export interface FirmBrandingConfig {
   email: string;
   peerReviewNo: string;
   firmUpiVpa: string;
+  qrCodeUrl?: string;
   gstin?: string;
   bankDetails: {
     bankName: string;
@@ -48,14 +49,15 @@ export const DEFAULT_FIRM_BRANDING: FirmBrandingConfig = {
   partnerWhatsappNumber: "917999995897",
   email: "brainsandtaxes@gmail.com",
   peerReviewNo: "ICAI/PRB/022998C",
-  firmUpiVpa: "7999995897@upi",
+  firmUpiVpa: "BRAINSANDTAXES@icici",
+  qrCodeUrl: "/brainsandtaxes_qrcode.jpg",
   gstin: "23AABCU9821F1ZX",
   bankDetails: {
-    bankName: "HDFC Bank",
+    bankName: "ICICI Bank",
     accountName: "Brains & Taxes Private Limited",
-    accountNumber: "To be confirmed via bank letter",
-    ifsc: "HDFC0000281",
-    branch: "Y.N. Road Branch, Indore",
+    accountNumber: "Contact Accounts Desk",
+    ifsc: "ICIC0000041",
+    branch: "Indore Branch",
   },
 };
 

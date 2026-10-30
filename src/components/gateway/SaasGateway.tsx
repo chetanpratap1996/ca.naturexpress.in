@@ -291,9 +291,9 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
                   </div>
 
                   <div className="mx-auto w-32 h-32 bg-white rounded-xl p-2 flex flex-col items-center justify-center border-2 border-slate-200 shadow-sm relative">
-                    <div className="w-full h-full bg-slate-50 border border-slate-200 rounded-lg flex flex-col items-center justify-center p-2 text-slate-800">
-                      <QrCode className="w-16 h-16 text-btred-logo" />
-                      <span className="text-[8px] font-mono mt-0.5 text-slate-600 font-bold">7999995897@upi</span>
+                    <div className="w-full h-full bg-slate-50 border border-slate-200 rounded-lg flex flex-col items-center justify-center p-1 text-slate-800">
+                      <img src="/brainsandtaxes_qrcode.jpg" alt="Brains & Taxes UPI QR" className="w-20 h-20 mx-auto object-contain rounded-lg" />
+                      <span className="text-[8px] font-mono mt-0.5 text-slate-600 font-bold">BRAINSANDTAXES@icici</span>
                     </div>
                   </div>
 

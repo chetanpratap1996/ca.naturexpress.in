@@ -34,13 +34,13 @@ export const SANDBOX_FIRM_METRICS = {
   pendingCollections: 273000,  // ₹2.73 Lakhs
   complianceHealthScore: 94,
   dailyAccruingPenaltyRisk: 2500,
-  firmUpiVpa: "7999995897@upi",
+  firmUpiVpa: "BRAINSANDTAXES@icici",
   firmBankDetails: {
     bankName: "HDFC Bank",
     branch: "Y.N. Road Branch, Indore",
     accountNumber: "50200088921842",
     accountName: "GPA & Co., Chartered Accountants",
-    ifsc: "HDFC0000281"
+    ifsc: "ICIC0000041"
   }
 };
 
@@ -714,7 +714,7 @@ export const SANDBOX_PAY_TO_RELEASE_CONFIGS: PayToReleaseConfig[] = [
       "BALANCE_SHEET_SIGNED",
       "ITR_ACKNOWLEDGMENT"
     ],
-    instantUpiVpa: "7999995897@upi",
+    instantUpiVpa: "BRAINSANDTAXES@icici",
     merchantName: "GPA & Co., Chartered Accountants",
     lockReason: "Statutory Tax Audit Fee INV-2026-089 (₹1,18,000) exceeds 30-day grace period. Locked automatically by Fee Release Gatekeeper."
   },
@@ -728,7 +728,7 @@ export const SANDBOX_PAY_TO_RELEASE_CONFIGS: PayToReleaseConfig[] = [
       "ITR_ACKNOWLEDGMENT",
       "BALANCE_SHEET_SIGNED"
     ],
-    instantUpiVpa: "7999995897@upi",
+    instantUpiVpa: "BRAINSANDTAXES@icici",
     merchantName: "GPA & Co., Chartered Accountants",
     lockReason: "Annual Retainer Fee INV-2026-094 (₹90,000) pending payment. Deliverables locked until dynamic UPI QR verification."
   },
@@ -739,7 +739,7 @@ export const SANDBOX_PAY_TO_RELEASE_CONFIGS: PayToReleaseConfig[] = [
     oldestInvoiceDays: 4,
     gracePeriodDays: 30,
     blockedDeliverables: [],
-    instantUpiVpa: "7999995897@upi",
+    instantUpiVpa: "BRAINSANDTAXES@icici",
     merchantName: "GPA & Co., Chartered Accountants",
     lockReason: "Within 30-day grace period. UTR verification in progress."
   },
@@ -750,7 +750,7 @@ export const SANDBOX_PAY_TO_RELEASE_CONFIGS: PayToReleaseConfig[] = [
     oldestInvoiceDays: 0,
     gracePeriodDays: 30,
     blockedDeliverables: [],
-    instantUpiVpa: "7999995897@upi",
+    instantUpiVpa: "BRAINSANDTAXES@icici",
     merchantName: "GPA & Co., Chartered Accountants",
     lockReason: "All invoices cleared. Immediate certified deliverable access active."
   }

@@ -973,8 +973,8 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
             </div>
 
             <div className="text-center p-3 bg-white text-slate-900 rounded-2xl shrink-0 shadow-md">
-              <QrCode className="w-16 h-16 mx-auto text-slate-900" />
-              <span className="text-[10px] font-black uppercase block mt-1">UPI: 7999995897@upi</span>
+              <img src="/brainsandtaxes_qrcode.jpg" alt="Brains & Taxes UPI QR" className="w-20 h-20 mx-auto object-contain rounded-lg border border-slate-200" />
+              <span className="text-[10px] font-black uppercase block mt-1 font-mono tracking-tight text-slate-900">BRAINSANDTAXES@icici</span>
             </div>
           </div>
 
@@ -1169,8 +1169,8 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
               {/* Dynamic QR Simulation */}
               <div className="mx-auto w-36 h-36 bg-white border-2 border-slate-200 rounded-2xl p-2 flex flex-col items-center justify-center shadow-inner relative">
                 <div className="w-full h-full bg-slate-50 border border-slate-200 rounded-lg flex flex-col items-center justify-center p-2 text-slate-800">
-                  <QrCode className="w-16 h-16 text-btred-logo" />
-                  <span className="text-[9px] font-mono mt-1 text-slate-600 font-bold">Scan via Any UPI App</span>
+                  <img src="/brainsandtaxes_qrcode.jpg" alt="Brains & Taxes UPI QR" className="w-24 h-24 mx-auto object-contain rounded-lg" />
+                  <span className="text-[9px] font-mono mt-1 text-slate-600 font-bold">BRAINSANDTAXES@icici</span>
                 </div>
               </div>
 

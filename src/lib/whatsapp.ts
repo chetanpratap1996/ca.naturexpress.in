@@ -123,7 +123,7 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
         `🏦 *Bank Transfer Details:*\n` +
         `• Bank: HDFC Bank, Y.N. Road Branch, Indore\n` +
         `• A/c Name: Brains & Taxes Private Limited\n` +
-        `• Direct UPI VPA: *${params.firmUpiVpa || "7999995897@upi"}*\n\n` +
+        `• Direct UPI VPA: *${params.firmUpiVpa || "BRAINSANDTAXES@icici"}*\n\n` +
         `Once transferred via NEFT/RTGS/UPI, kindly reply with the *12-digit UTR reference number* or submit it here for instant receipt generation:\n${portalLink}\n\n` +
         `Thank you,\n*Accounts Desk*\n${firm}`;
     }

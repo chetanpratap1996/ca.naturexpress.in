@@ -986,8 +986,8 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                   </div>
 
                   <div className="text-center p-3 bg-white border border-slate-200 rounded-xl shadow-xs">
-                    <QrCode className="w-16 h-16 mx-auto text-slate-900" />
-                    <span className="text-[10px] font-black uppercase text-slate-700 block mt-1">Scan &amp; Pay via UPI</span>
+                    <img src="/brainsandtaxes_qrcode.jpg" alt="Brains and Taxes UPI QR" className="w-20 h-20 mx-auto object-contain rounded-lg border border-slate-200" />
+                    <span className="text-[10px] font-black uppercase text-slate-700 block mt-1 font-mono">BRAINSANDTAXES@icici</span>
                     <a
                       href={upiUri}
                       className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[10px] font-black transition"

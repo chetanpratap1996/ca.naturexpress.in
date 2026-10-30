@@ -28,13 +28,13 @@ export const FIRM_METRICS = {
   pendingCollections: 0,
   complianceHealthScore: 100,
   dailyAccruingPenaltyRisk: 0,
-  firmUpiVpa: "7999995897@upi",
+  firmUpiVpa: "BRAINSANDTAXES@icici",
   firmBankDetails: {
-    bankName: "HDFC Bank",
+    bankName: "ICICI Bank",
     branch: "Y.N. Road Branch, Indore",
     accountNumber: "50200088921842",
     accountName: "GPA & Co., Chartered Accountants",
-    ifsc: "HDFC0000281"
+    ifsc: "ICIC0000041"
   }
 };
 
@@ -118,7 +118,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: "notif-3",
     recipientRole: "ARTICLE",
     title: "Bank Statement Uploaded by Client",
-    message: "Client uploaded HDFC Bank Current A/c Statement (Oct 2026). Decryption verified via Password Vault.",
+    message: "Client uploaded ICICI Bank Current A/c Statement (Oct 2026). Decryption verified via Password Vault.",
     category: "DOCUMENT",
     priority: "NORMAL",
     targetTab: "workbench",

@@ -594,9 +594,9 @@ export function PayToReleaseManager({
             {/* Dynamic QR Display */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center space-y-3">
               <div className="mx-auto w-40 h-40 bg-white border-2 border-indigo-200 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-md relative">
-                <QrCode className="w-24 h-24 text-slate-900" />
+                <img src="/brainsandtaxes_qrcode.jpg" alt="Brains & Taxes UPI QR" className="w-28 h-28 mx-auto object-contain rounded-lg" />
                 <span className="text-[10px] font-mono mt-1 text-indigo-700 font-extrabold uppercase">
-                  Scan via Any UPI App
+                  BRAINSANDTAXES@icici
                 </span>
               </div>
 
@@ -605,7 +605,7 @@ export function PayToReleaseManager({
                   {firmUpiVpa}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  Payee: GPA &amp; Co., Chartered Accountants &bull; HDFC Bank
+                  Payee: Brains &amp; Taxes Private Limited &bull; ICICI Bank
                 </div>
               </div>
             </div>

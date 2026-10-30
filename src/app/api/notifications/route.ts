@@ -13,9 +13,7 @@ export async function GET(req: NextRequest) {
     if (auth.isAuthenticated) {
       if (auth.role === "CLIENT") {
         notifications = notifications.filter((n) => 
-          n.recipientRole === "ALL" || 
-          n.recipientRole === "CLIENT" || 
-          (n.recipientEntityId && n.recipientEntityId === auth.clientEntityId)
+          n.recipientRole === "CLIENT" && !!auth.clientEntityId && n.recipientEntityId === auth.clientEntityId
         );
       } else if (auth.role === "ARTICLE") {
         notifications = notifications.filter((n) => 
@@ -45,8 +43,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);
-    if (!auth.isAuthenticated) {
-      return NextResponse.json({ success: false, error: "Authentication required to trigger notification." }, { status: 401 });
+    if (!auth.isAuthenticated || auth.role !== "PARTNER") {
+      return NextResponse.json({ success: false, error: "Partner access required." }, { status: auth.isAuthenticated ? 403 : 401 });
     }
 
     const body = await req.json();
@@ -76,13 +74,23 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
     const body = await req.json();
     const { action, id } = body; // action: "MARK_READ" | "MARK_ALL_READ" | "DELETE"
 
     const db = ensureDatabase();
     if (!db.notifications) db.notifications = [];
 
+    const canSee = (notification: NotificationItem) => {
+      if (auth.role === "PARTNER") return true;
+      if (auth.role === "ARTICLE") return notification.recipientRole === "ALL" || notification.recipientRole === "ARTICLE";
+      return notification.recipientRole === "CLIENT" && !!auth.clientEntityId && notification.recipientEntityId === auth.clientEntityId;
+    };
+
     if (action === "MARK_ALL_READ") {
+      if (auth.role !== "PARTNER") return NextResponse.json({ success: false, error: "Partner access required." }, { status: 403 });
       db.notifications = db.notifications.map((n) => ({ ...n, isRead: true }));
       await saveDatabase(db);
       return NextResponse.json({ success: true, message: "All notifications marked as read." });
@@ -90,6 +98,7 @@ export async function PATCH(req: NextRequest) {
 
     if (action === "MARK_READ" && id) {
       const idx = db.notifications.findIndex((n) => n.id === id);
+      if (idx !== -1 && !canSee(db.notifications[idx])) return NextResponse.json({ success: false, error: "Forbidden." }, { status: 403 });
       if (idx !== -1) {
         db.notifications[idx].isRead = true;
         await saveDatabase(db);
@@ -98,6 +107,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === "DELETE" && id) {
+      if (auth.role !== "PARTNER") return NextResponse.json({ success: false, error: "Partner access required." }, { status: 403 });
       db.notifications = db.notifications.filter((n) => n.id !== id);
       await saveDatabase(db);
       return NextResponse.json({ success: true, message: "Notification removed." });

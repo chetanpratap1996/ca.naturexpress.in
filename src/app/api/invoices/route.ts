@@ -1,15 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { InvoiceItem } from "@/lib/types";
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await authenticateServerRequest(request);
+  if (!auth.isAuthenticated) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
   const db = ensureDatabase();
-  return NextResponse.json({ success: true, invoices: db.invoices });
+
+  if (auth.role === "CLIENT" && auth.clientEntityId) {
+    const clientInvoices = (db.invoices || []).filter(
+      (i) => i.entityId === auth.clientEntityId || (auth.clientGroupId && i.groupId === auth.clientGroupId)
+    );
+    return NextResponse.json({ success: true, invoices: clientInvoices });
+  }
+
+  return NextResponse.json({ success: true, invoices: db.invoices || [] });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || auth.role !== "PARTNER") return NextResponse.json({ success: false, error: "Forbidden." }, { status: auth.isAuthenticated ? 403 : 401 });
     const body = await req.json();
     const db = ensureDatabase();
 
@@ -97,8 +110,10 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !auth.role) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
     const body = await req.json();
     const { 
       invoiceId, 
@@ -106,7 +121,6 @@ export async function PATCH(req: Request) {
       clientUtrNumber, 
       clientPaymentMode, 
       clientPayerNote, 
-      reconciledBy, 
       actorName 
     } = body;
 
@@ -118,6 +132,20 @@ export async function PATCH(req: Request) {
 
     const currentInvoice = db.invoices[invIndex];
 
+    if (auth.role === "CLIENT") {
+      if (action !== "SUBMIT_UTR" || !auth.clientEntityId || currentInvoice.entityId !== auth.clientEntityId) {
+        return NextResponse.json({ success: false, error: "You may submit payment details only for your assigned entity." }, { status: 403 });
+      }
+      if (currentInvoice.status !== "PENDING" || typeof clientUtrNumber !== "string" || !/^[A-Za-z0-9-]{6,40}$/.test(clientUtrNumber.trim())) {
+        return NextResponse.json({ success: false, error: "A valid UTR is required for an unpaid invoice." }, { status: 400 });
+      }
+      if ((clientPaymentMode && !["NEFT_RTGS", "IMPS", "UPI"].includes(clientPaymentMode)) || (clientPayerNote && String(clientPayerNote).length > 500)) {
+        return NextResponse.json({ success: false, error: "Payment mode or note is invalid." }, { status: 400 });
+      }
+    } else if (auth.role !== "PARTNER" || action !== "RECONCILE") {
+      return NextResponse.json({ success: false, error: "Only a firm partner can reconcile invoices." }, { status: 403 });
+    }
+
     if (action === "SUBMIT_UTR") {
       currentInvoice.status = "UTR_SUBMITTED";
       currentInvoice.clientUtrNumber = clientUtrNumber;
@@ -126,8 +154,8 @@ export async function PATCH(req: Request) {
       currentInvoice.clientPayerNote = clientPayerNote;
 
       await logAuditEvent(
-        actorName || "Client Accounts Desk",
-        "CLIENT",
+        auth.user?.name || "Client Accounts Desk",
+        auth.role,
         currentInvoice.entityName,
         "UTR Payment Submitted",
         `Submitted UTR ${clientUtrNumber} (${currentInvoice.clientPaymentMode}) for ₹${currentInvoice.amount.toLocaleString("en-IN")} on Invoice #${currentInvoice.invoiceNo}`,
@@ -149,12 +177,12 @@ export async function PATCH(req: Request) {
       });
     } else if (action === "RECONCILE") {
       currentInvoice.status = "PAID";
-      currentInvoice.reconciledBy = reconciledBy || "CA Gunjan Jain (Partner)";
+      currentInvoice.reconciledBy = auth.user?.name || "Firm Partner";
       currentInvoice.reconciledAt = new Date().toISOString();
 
       await logAuditEvent(
-        reconciledBy || "CA Gunjan Jain",
-        "PARTNER",
+        auth.user?.name || "Firm Partner",
+        auth.role,
         currentInvoice.entityName,
         "Payment Reconciled & Settled",
         `Verified bank settlement via UTR ${currentInvoice.clientUtrNumber || "Direct"} for Invoice #${currentInvoice.invoiceNo}`,
@@ -164,7 +192,7 @@ export async function PATCH(req: Request) {
       // Notify Client and Partners of reconciliation
       await createNotification({
         title: `Payment Reconciled: ${currentInvoice.invoiceNo}`,
-        message: `Payment of ₹${currentInvoice.amount.toLocaleString("en-IN")} for ${currentInvoice.entityName} reconciled by ${reconciledBy || "Partner"}.`,
+        message: `Payment of ₹${currentInvoice.amount.toLocaleString("en-IN")} for ${currentInvoice.entityName} reconciled by ${auth.user?.name || "Partner"}.`,
         category: "BILLING",
         priority: "MEDIUM",
         targetRoles: ["SUPER_ADMIN", "PARTNER", "CLIENT"],

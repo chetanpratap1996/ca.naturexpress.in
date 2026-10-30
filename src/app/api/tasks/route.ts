@@ -1,16 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ComplianceTask } from "@/lib/types";
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await authenticateServerRequest(request);
+  if (!auth.isAuthenticated) {
+    return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  }
   const db = ensureDatabase();
-  return NextResponse.json({ success: true, tasks: db.tasks });
+
+  if (auth.role === "CLIENT" && auth.clientEntityId) {
+    const clientTasks = (db.tasks || []).filter(
+      (t) => t.entityId === auth.clientEntityId || (auth.clientGroupId && t.groupId === auth.clientGroupId)
+    );
+    return NextResponse.json({ success: true, tasks: clientTasks });
+  }
+
+  return NextResponse.json({ success: true, tasks: db.tasks || [] });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || auth.role !== "PARTNER") {
+      return NextResponse.json({ success: false, error: "Partner access required." }, { status: auth.isAuthenticated ? 403 : 401 });
+    }
     const body = await req.json();
+    if (typeof body.title !== "string" || !body.title.trim() || body.title.length > 200 || typeof body.entityId !== "string") {
+      return NextResponse.json({ success: false, error: "A valid task title and entity are required." }, { status: 400 });
+    }
     const db = ensureDatabase();
 
     const newTask: ComplianceTask = {
@@ -71,8 +91,8 @@ export async function POST(req: Request) {
     }
 
     await logAuditEvent(
-      body.actorName || "CA Gunjan Jain",
-      "PARTNER",
+      auth.user?.name || "Firm Partner",
+      auth.role,
       body.entityName,
       "Task Created",
       `Created engagement ${newTask.title} for ${newTask.period} assigned to ${newTask.assignedTo}`,
@@ -95,10 +115,14 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !["PARTNER", "ARTICLE"].includes(auth.role || "")) {
+      return NextResponse.json({ success: false, error: "Firm staff access required." }, { status: auth.isAuthenticated ? 403 : 401 });
+    }
     const body = await req.json();
-    const { taskId, status, officialUdin, chaseCount, actorName, actorRole } = body;
+    const { taskId, status, officialUdin, chaseCount } = body;
 
     const db = ensureDatabase();
     const taskIndex = db.tasks.findIndex((t) => t.id === taskId);
@@ -108,13 +132,23 @@ export async function PATCH(req: Request) {
 
     const currentTask = db.tasks[taskIndex];
 
+    if (officialUdin && (auth.role !== "PARTNER" || !/^\d{18}$/.test(String(officialUdin)))) {
+      return NextResponse.json({ success: false, error: "Only a partner can record an 18-digit UDIN." }, { status: 403 });
+    }
+    if (chaseCount !== undefined && (!Number.isInteger(chaseCount) || chaseCount < currentTask.chaseCount)) {
+      return NextResponse.json({ success: false, error: "Chase count must be a non-decreasing integer." }, { status: 400 });
+    }
+    if (status !== undefined && (typeof status !== "string" || status.length > 50)) {
+      return NextResponse.json({ success: false, error: "Task status is invalid." }, { status: 400 });
+    }
+
     if (status) currentTask.status = status;
     if (officialUdin) {
       currentTask.officialUdin = officialUdin;
       currentTask.udinGeneratedAt = new Date().toISOString();
       await logAuditEvent(
-        actorName || "CA Gunjan Jain",
-        "PARTNER",
+        auth.user?.name || "Firm Partner",
+        auth.role!,
         currentTask.entityName,
         "UDIN Recorded & Stamped",
         `Recorded ICAI UDIN ${officialUdin} on ${currentTask.title}`,
@@ -125,8 +159,8 @@ export async function PATCH(req: Request) {
       currentTask.chaseCount = chaseCount;
       currentTask.lastChaseDate = new Date().toISOString().split("T")[0];
       await logAuditEvent(
-        actorName || "Kriti Jain",
-        "ARTICLE",
+        auth.user?.name || "Firm Staff",
+        auth.role!,
         currentTask.entityName,
         "WhatsApp Chase Dispatched",
         `Dispatched 1-tap WhatsApp reminder for ${currentTask.title}`,

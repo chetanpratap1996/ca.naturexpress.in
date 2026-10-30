@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { getPostgresPool } from "../server/postgres";
 import { AuthUser, UserRole, DEMO_USERS } from "./session";
 import { ensureDatabase, saveDatabase } from "../server/db";
+import { signSessionToken } from "./serverAuth";
 
 export interface LoginRequest {
   portalMode: "client" | "staff";
@@ -178,7 +179,20 @@ export async function authenticateClientEntity(
     }
 
     clearRateLimit(`client:${cleanId}`);
-    const token = `bt_client_${row.entity_id}_${crypto.randomBytes(16).toString("hex")}`;
+    const mappedToken = signSessionToken({
+      id: `USR-${row.entity_id}`,
+      name: row.primary_contact_name || row.promoter_name || row.entity_name,
+      email: row.primary_contact_email || row.promoter_email || "client@practice-portal.in",
+      phone: contactPhone,
+      role: "CLIENT",
+      designation: `${row.primary_contact_designation || "Director"} (${row.entity_name})`,
+      firmId: row.firm_id,
+      firmName: row.firm_name || "GPA & Co., Chartered Accountants",
+      firmFrn: row.firm_frn || "022998C",
+      clientGroupId: row.group_id,
+      clientEntityId: row.entity_id,
+      isSandbox: false,
+    });
     const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
 
     const user: AuthUser = {
@@ -193,7 +207,7 @@ export async function authenticateClientEntity(
       firmFrn: row.firm_frn || "022998C",
       clientGroupId: row.group_id,
       clientEntityId: row.entity_id,
-      token,
+      token: mappedToken,
       expiresAt,
     };
 
@@ -239,7 +253,20 @@ export async function authenticateClientEntity(
     }
 
     clearRateLimit(`client:${cleanId}`);
-    const token = `bt_client_${matchedClient.id}_${crypto.randomBytes(16).toString("hex")}`;
+    const localToken = signSessionToken({
+      id: `USR-${matchedClient.id}`,
+      name: matchedClient.primaryContact?.name || matchedClient.name,
+      email: matchedClient.primaryContact?.email || "accounts@client-portal.in",
+      phone: contactPhone,
+      role: "CLIENT",
+      designation: `${matchedClient.primaryContact?.designation || "Director"} (${matchedClient.name})`,
+      firmId: "FRM-022998C",
+      firmName: "GPA & Co., Chartered Accountants",
+      firmFrn: "022998C",
+      clientGroupId: matchedClient.groupId,
+      clientEntityId: matchedClient.id,
+      isSandbox: false,
+    });
     const user: AuthUser = {
       id: `USR-${matchedClient.id}`,
       name: matchedClient.primaryContact?.name || matchedClient.name,
@@ -252,7 +279,7 @@ export async function authenticateClientEntity(
       firmFrn: "022998C",
       clientGroupId: matchedClient.groupId,
       clientEntityId: matchedClient.id,
-      token,
+      token: localToken,
       expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
     };
 
@@ -352,9 +379,20 @@ export async function authenticateStaffUser(
     }
 
     clearRateLimit(`staff:${cleanId}`);
-    const token = `bt_staff_${row.role === "PARTNER" ? "partner_" : "article_"}${row.id}_${crypto.randomBytes(16).toString("hex")}`;
-    const expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
     const mappedRole: UserRole = row.role === "PARTNER" ? "PARTNER" : "ARTICLE";
+    const staffToken = signSessionToken({
+      id: row.id,
+      name: row.full_name,
+      email: row.email,
+      phone: row.phone,
+      role: mappedRole,
+      designation: mappedRole === "PARTNER" ? "Managing Partner (FCA)" : "Article Assistant",
+      firmId: row.firm_id,
+      firmName: row.firm_name || "GPA & Co., Chartered Accountants",
+      firmFrn: row.firm_frn || "022998C",
+      isSandbox: false,
+    });
+    const expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
 
     const user: AuthUser = {
       id: row.id,
@@ -368,7 +406,7 @@ export async function authenticateStaffUser(
       firmFrn: row.firm_frn || "022998C",
       membershipNo: row.membership_number,
       articleshipRegNo: row.articleship_reg_no,
-      token,
+      token: staffToken,
       expiresAt,
     };
 
@@ -392,7 +430,18 @@ export async function authenticateStaffUser(
     ) {
       if (cleanPass === "Partner@2026" || cleanPass === "Gunjan@3639") {
         clearRateLimit(`staff:${cleanId}`);
-        const token = `bt_staff_partner_${Date.now()}_${crypto.randomBytes(8).toString("hex")}`;
+        const token = signSessionToken({
+          id: partner.id,
+          name: partner.name,
+          email: partner.email,
+          phone: partner.phone,
+          role: "PARTNER",
+          designation: partner.designation,
+          firmId: partner.firmId,
+          firmName: partner.firmName,
+          firmFrn: partner.firmFrn,
+          isSandbox: false,
+        });
         return { success: true, user: { ...partner, token } };
       }
       recordFailedAttempt(`staff:${cleanId}`);
@@ -406,7 +455,18 @@ export async function authenticateStaffUser(
     ) {
       if (cleanPass === "Article@2026" || cleanPass === "Kriti@5897") {
         clearRateLimit(`staff:${cleanId}`);
-        const token = `bt_staff_article_${Date.now()}_${crypto.randomBytes(8).toString("hex")}`;
+        const token = signSessionToken({
+          id: article.id,
+          name: article.name,
+          email: article.email,
+          phone: article.phone,
+          role: "ARTICLE",
+          designation: article.designation,
+          firmId: article.firmId,
+          firmName: article.firmName,
+          firmFrn: article.firmFrn,
+          isSandbox: false,
+        });
         return { success: true, user: { ...article, token } };
       }
       recordFailedAttempt(`staff:${cleanId}`);

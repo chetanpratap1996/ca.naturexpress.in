@@ -5,8 +5,8 @@ import { BtLogo } from "@/components/shared/BtLogo";
 import { 
   AuthUser, 
   DEMO_USERS, 
-  setActiveSession, 
-  authenticateUser 
+  setActiveSession,
+  authenticateUser
 } from "@/lib/auth/session";
 import { ClientEntity } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
@@ -132,14 +132,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setIsSubmitting(false);
       setErrorMessage(data.error || "Authentication failed. Please verify credentials.");
     } catch (netErr) {
+      // Offline / Local Resilience Fallback
       const result = authenticateUser(identifier, password, clientRegistry);
       setIsSubmitting(false);
-      if (!result.success || !result.user) {
-        setErrorMessage(result.error || "Authentication failed. Invalid User ID or password.");
+      if (result.success && result.user) {
+        setActiveSession(result.user);
+        toast.info(
+          "Local Resilient Session",
+          `Logged in via local credentials: ${result.user.name}`
+        );
+        onLoginSuccess(result.user);
         return;
       }
-      setActiveSession(result.user);
-      onLoginSuccess(result.user);
+      setErrorMessage("Could not reach authentication service. Please verify your credentials.");
     }
   };
 

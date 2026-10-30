@@ -1175,3 +1175,19 @@ export const SANDBOX_PARTNER_METRICS: PartnerRealizationMetrics[] = [
     atRiskPenaltyClients: 0
   }
 ];
+
+
+export const SANDBOX_DATA = {
+  firmMetrics: SANDBOX_FIRM_METRICS,
+  groups: SANDBOX_GROUPS,
+  clients: SANDBOX_CLIENTS,
+  tasks: SANDBOX_TASKS,
+  notices: SANDBOX_NOTICES,
+  invoices: SANDBOX_INVOICES,
+  payToReleaseConfigs: SANDBOX_PAY_TO_RELEASE_CONFIGS,
+  dscTokens: SANDBOX_DSC_TOKENS,
+  documents: SANDBOX_DOCUMENTS,
+  auditTrail: SANDBOX_AUDIT_TRAIL,
+  notifications: [],
+  lastUpdated: new Date().toISOString(),
+};

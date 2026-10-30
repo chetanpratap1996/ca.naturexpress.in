@@ -67,7 +67,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
         <div className="flex items-center gap-4 text-xs">
           <span className="text-emerald-700 font-semibold hidden md:flex items-center gap-1">
             <Check className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Zero-SMS OTP Delay &bull; 4-Digit Instant Access</span>
+            <span>Secure account sign-in</span>
           </span>
           <button
             onClick={() => onOpenLogin()}
@@ -164,7 +164,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
 
           {/* Simple Login Hint */}
           <p className="text-xs text-slate-500 font-medium">
-            💡 <strong>Clients:</strong> Log in with Registered Phone/PAN + 4-Digit PIN &bull; <strong>CA Staff:</strong> Log in with Official Email + Password
+            💡 <strong>All users:</strong> Sign in with the email or phone and password registered to your account.
           </p>
 
           {/* 4 Trust Highlights Strip */}

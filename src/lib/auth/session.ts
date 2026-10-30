@@ -89,7 +89,6 @@ export const DEMO_USERS: Record<string, AuthUser> = {
 };
 
 const STORAGE_KEY = "bt_enterprise_session_v4";
-const COOKIE_NAME = "bt_session_token";
 
 export function getActiveSession(): AuthUser | null {
   if (typeof window === "undefined") return null;
@@ -107,15 +106,17 @@ export function getActiveSession(): AuthUser | null {
 export function setActiveSession(user: AuthUser): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  // Set session cookie for server-side API verification
-  document.cookie = `${COOKIE_NAME}=${user.token}; path=/; max-age=86400; SameSite=Lax`;
+  if (user.token) {
+    document.cookie = `bt_session_token=${user.token}; path=/; max-age=86400; SameSite=Lax`;
+  }
   window.dispatchEvent(new Event("taxobrain_auth_state_change"));
 }
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
+  void fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
   localStorage.removeItem(STORAGE_KEY);
-  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`;
+  document.cookie = "bt_session_token=; path=/; max-age=0; SameSite=Lax";
   window.dispatchEvent(new Event("taxobrain_auth_state_change"));
 }
 

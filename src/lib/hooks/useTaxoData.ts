@@ -42,7 +42,7 @@ function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (typeof window !== "undefined") {
     try {
-      const stored = localStorage.getItem("bt_auth_user");
+      const stored = localStorage.getItem("bt_enterprise_session_v4") || localStorage.getItem("bt_auth_user");
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.token) {

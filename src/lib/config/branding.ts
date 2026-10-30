@@ -14,8 +14,43 @@ export interface FirmBrandingConfig {
   email: string;
   peerReviewNo: string;
   firmUpiVpa: string;
-  qrCodeUrl?: string;
   gstin?: string;
+  bankDetails: {
+    bankName: string;
+    accountName: string;
+    accountType?: string;
+    accountNumber: string;
+    ifsc: string;
+    branch: string;
+  };
+}
+
+export interface ClientBrandingConfig {
+  groupName: string;
+  primaryContactName: string;
+  designation: string;
+  phone: string;
+  email: string;
+  defaultEntityId: string;
+}
+
+export const DEFAULT_FIRM_BRANDING: FirmBrandingConfig = {
+  firmName: process.env.NEXT_PUBLIC_FIRM_NAME || "GPA & Co., Chartered Accountants",
+  companyName: "Brains & Taxes Private Limited",
+  firmShortName: "Brains & Taxes",
+  tagline: "Tax, Documents & Compliance Made Simple",
+  frn: process.env.NEXT_PUBLIC_FIRM_FRN || "022998C",
+  cin: "U74110MP2017PTC043716",
+  headOffice: "Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001",
+  managingPartner: "CA Gunjan Jain (FCA)",
+  partnerPhone: process.env.NEXT_PUBLIC_FIRM_PHONE || "+91 98937 23639",
+  supportPhone: "+91 79999 95897",
+  whatsappNumber: "917999995897",
+  partnerWhatsappNumber: "917999995897",
+  email: "brainsandtaxes@gmail.com",
+  peerReviewNo: "ICAI/PRB/022998C",
+  firmUpiVpa: process.env.NEXT_PUBLIC_FIRM_UPI_VPA || "BRAINSANDTAXES@icici",
+  gstin: "23AABCU9821F1ZX",
   bankDetails: {
     bankName: process.env.NEXT_PUBLIC_FIRM_BANK_NAME || "ICICI Bank",
     accountName: process.env.NEXT_PUBLIC_FIRM_BANK_ACCOUNT_NAME || "Brains & Taxes Private Limited",

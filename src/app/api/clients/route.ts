@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ClientEntity } from "@/lib/types";
+import { isValidPan, isValidGstin } from "@/lib/utils";
 import crypto from "crypto";
 
 export async function GET() {
@@ -63,15 +64,12 @@ export async function POST(req: Request) {
         };
 
         if (existingIdx >= 0) {
-          // Update existing
           db.clients[existingIdx] = { ...db.clients[existingIdx], ...clientRecord };
           inserted.push(db.clients[existingIdx]);
         } else {
-          // Insert new
           db.clients.unshift(clientRecord);
           inserted.push(clientRecord);
 
-          // Manage promoter group
           const grp = db.groups.find((g) => g.id === groupId);
           if (grp) {
             grp.totalEntities = (grp.totalEntities || 0) + 1;
@@ -98,6 +96,34 @@ export async function POST(req: Request) {
       db.firmMetrics.totalClients = db.clients.length;
       db.firmMetrics.activeEntities = db.clients.length;
       await saveDatabase(db);
+
+      // Bi-Directional Supabase Sync for Batch Import
+      if (isSupabaseConfigured() && inserted.length > 0) {
+        try {
+          const { data: firms } = await supabase.from("firms").select("id").limit(1);
+          const firmId = firms?.[0]?.id;
+          if (firmId) {
+            for (const item of inserted) {
+              await supabase.from("client_entities").upsert({
+                firm_id: firmId,
+                entity_name: item.name,
+                type: item.type,
+                pan: item.pan,
+                gstin: item.gstin || null,
+                cin: item.cin || null,
+                turnover_cr: item.turnoverCr,
+                incorporation_year: item.incorporationYear,
+                primary_contact_name: item.primaryContact?.name,
+                primary_contact_phone: item.primaryContact?.phone,
+                primary_contact_email: item.primaryContact?.email,
+                primary_contact_designation: item.primaryContact?.designation,
+              }, { onConflict: "pan" });
+            }
+          }
+        } catch (sbErr) {
+          console.warn("Supabase batch client sync warning:", sbErr);
+        }
+      }
 
       await logAuditEvent(
         body.actorName || "CA Gunjan Jain",
@@ -126,7 +152,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const clientId = `CLI-${crypto.randomUUID().slice(0, 8)}`;
+    if (!isValidPan(pan)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid Indian PAN format '${pan}'. Expected 5 alphabets + 4 digits + 1 alphabet.` },
+        { status: 400 }
+      );
+    }
+
+    if (body.gstin && !isValidGstin(body.gstin)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid 15-digit GSTIN format '${body.gstin}'. Please check state code and checksum.` },
+        { status: 400 }
+      );
+    }
+
+    const clientId = body.id || `CLI-${crypto.randomUUID().slice(0, 8)}`;
     const groupId = body.groupId || `GRP-${crypto.randomUUID().slice(0, 8)}`;
     const groupName = body.groupName || `${entityName} Group`;
 
@@ -161,7 +201,6 @@ export async function POST(req: Request) {
         if (firmId) {
           let targetGroupId: string | null = null;
 
-          // Check if explicit group ID was provided
           if (body.groupId) {
             const { data: gById } = await supabase
               .from("client_groups")
@@ -171,7 +210,6 @@ export async function POST(req: Request) {
             if (gById?.id) targetGroupId = gById.id;
           }
 
-          // Otherwise find by group name within this firm
           if (!targetGroupId && groupName) {
             const { data: gByName } = await supabase
               .from("client_groups")
@@ -182,9 +220,8 @@ export async function POST(req: Request) {
             if (gByName?.id) targetGroupId = gByName.id;
           }
 
-          // If still no matching group, create a dedicated new group
           if (!targetGroupId) {
-            const { data: insertedGroup, error: grpErr } = await supabase
+            const { data: insertedGroup } = await supabase
               .from("client_groups")
               .insert({
                 firm_id: firmId,
@@ -198,13 +235,12 @@ export async function POST(req: Request) {
               .select("id")
               .single();
 
-            if (!grpErr && insertedGroup?.id) {
-              targetGroupId = insertedGroup.id;
-            }
+            if (insertedGroup) targetGroupId = insertedGroup.id;
           }
 
-          if (targetGroupId) {
-            const { data: insertedEntity, error: insErr } = await supabase.from("client_entities").insert({
+          const { data: insertedClient, error: clientErr } = await supabase
+            .from("client_entities")
+            .insert({
               firm_id: firmId,
               group_id: targetGroupId,
               entity_name: newClient.name,
@@ -214,32 +250,38 @@ export async function POST(req: Request) {
               cin: newClient.cin || null,
               turnover_cr: newClient.turnoverCr,
               incorporation_year: newClient.incorporationYear,
-              penalty_risk_accrued: 0,
-            }).select("id").single();
+              primary_contact_name: newClient.primaryContact.name,
+              primary_contact_phone: newClient.primaryContact.phone,
+              primary_contact_email: newClient.primaryContact.email,
+              primary_contact_designation: newClient.primaryContact.designation,
+            })
+            .select("id")
+            .single();
 
-            if (insertedEntity?.id) {
-              newClient.id = insertedEntity.id;
-              newClient.groupId = targetGroupId;
-            }
-            if (insErr) {
-              console.error("Supabase insert client_entities error:", insErr);
-            }
+          if (insertedClient?.id) {
+            newClient.id = insertedClient.id;
+            if (targetGroupId) newClient.groupId = targetGroupId;
           }
         }
-      } catch (sbErr) {
-        console.warn("Supabase insertion warning (synced locally):", sbErr);
+      } catch (sbError) {
+        console.warn("Supabase single client onboarding error (continuing with atomic local fallback):", sbError);
       }
     }
 
-    // 2. Persist to local database & audit log
+    // 2. Persist to local JSON DB
     db.clients.unshift(newClient);
-    
-    // Check if group already in db.groups
-    const hasGroup = db.groups.some((g) => g.id === newClient.groupId);
-    if (!hasGroup) {
+
+    const groupIndex = db.groups.findIndex((g) => g.id === newClient.groupId);
+    if (groupIndex !== -1) {
+      db.groups[groupIndex].totalEntities += 1;
+      db.groups[groupIndex].totalTurnoverCr += newClient.turnoverCr;
+      if (!db.groups[groupIndex].entityIds.includes(newClient.id)) {
+        db.groups[groupIndex].entityIds.push(newClient.id);
+      }
+    } else {
       db.groups.push({
         id: newClient.groupId,
-        name: newClient.groupName || groupName,
+        name: newClient.groupName,
         promoterName: newClient.primaryContact.name,
         promoterPhone: newClient.primaryContact.phone,
         promoterEmail: newClient.primaryContact.email,
@@ -249,19 +291,10 @@ export async function POST(req: Request) {
         overdueFeesTotal: 0,
         entityIds: [newClient.id],
       });
-    } else {
-      const g = db.groups.find((g) => g.id === newClient.groupId);
-      if (g) {
-        g.totalEntities = (g.totalEntities || 0) + 1;
-        g.totalTurnoverCr = (g.totalTurnoverCr || 0) + newClient.turnoverCr;
-        if (!g.entityIds) g.entityIds = [];
-        if (!g.entityIds.includes(newClient.id)) g.entityIds.push(newClient.id);
-      }
     }
 
     db.firmMetrics.totalClients = db.clients.length;
     db.firmMetrics.activeEntities = db.clients.length;
-
     await saveDatabase(db);
 
     await logAuditEvent(
@@ -274,6 +307,115 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ success: true, client: newClient });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json();
+    const db = ensureDatabase();
+    const clientId = body.id;
+    if (!clientId) {
+      return NextResponse.json({ success: false, error: "Client ID required" }, { status: 400 });
+    }
+
+    const idx = db.clients.findIndex((c) => c.id === clientId);
+    if (idx === -1) {
+      return NextResponse.json({ success: false, error: "Client not found" }, { status: 404 });
+    }
+
+    const existing = db.clients[idx];
+    const updated: ClientEntity = {
+      ...existing,
+      ...body,
+      primaryContact: {
+        ...existing.primaryContact,
+        ...(body.primaryContact || {}),
+      },
+    };
+
+    db.clients[idx] = updated;
+    await saveDatabase(db);
+
+    // Bi-Directional Supabase update
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase
+          .from("client_entities")
+          .update({
+            entity_name: updated.name,
+            type: updated.type,
+            pan: updated.pan,
+            gstin: updated.gstin || null,
+            turnover_cr: updated.turnoverCr,
+            primary_contact_name: updated.primaryContact.name,
+            primary_contact_phone: updated.primaryContact.phone,
+            primary_contact_email: updated.primaryContact.email,
+          })
+          .or(`id.eq.${clientId},pan.eq.${updated.pan}`);
+      } catch (sbErr) {
+        console.warn("Supabase client patch warning:", sbErr);
+      }
+    }
+
+    await logAuditEvent(
+      body.actorName || "CA Gunjan Jain",
+      "PARTNER",
+      updated.name,
+      "Client Master Updated",
+      `Updated profile & contact details for ${updated.name} (PAN: ${updated.pan}).`,
+      "SYSTEM"
+    );
+
+    return NextResponse.json({ success: true, client: updated });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const clientId = searchParams.get("id");
+    if (!clientId) {
+      return NextResponse.json({ success: false, error: "Client ID required" }, { status: 400 });
+    }
+
+    const db = ensureDatabase();
+    const idx = db.clients.findIndex((c) => c.id === clientId);
+    if (idx === -1) {
+      return NextResponse.json({ success: false, error: "Client not found" }, { status: 404 });
+    }
+
+    const removed = db.clients.splice(idx, 1)[0];
+    db.firmMetrics.totalClients = db.clients.length;
+    db.firmMetrics.activeEntities = db.clients.length;
+    await saveDatabase(db);
+
+    // Bi-Directional Supabase delete
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase
+          .from("client_entities")
+          .delete()
+          .or(`id.eq.${clientId},pan.eq.${removed.pan}`);
+      } catch (sbErr) {
+        console.warn("Supabase client delete warning:", sbErr);
+      }
+    }
+
+    await logAuditEvent(
+      "CA Gunjan Jain",
+      "PARTNER",
+      removed.name,
+      "Client Archived / Removed",
+      `Removed client entity ${removed.name} (PAN: ${removed.pan}) from active practice directory.`,
+      "SYSTEM"
+    );
+
+    return NextResponse.json({ success: true, removedId: clientId });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

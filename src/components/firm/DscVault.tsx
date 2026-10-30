@@ -128,10 +128,10 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
     <div className="space-y-4">
       {/* Toast Notification */}
       {actionSuccessToast && (
-        <div className="bg-emerald-950 border border-emerald-500 text-emerald-200 p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="bg-white border-l-4 border-l-emerald-600 border border-slate-200 text-slate-800 p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="text-xs font-black text-white">{actionSuccessToast}</span>
+            <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+            <span className="text-xs font-bold text-slate-900">{actionSuccessToast}</span>
           </div>
           <span className="bg-emerald-800 text-white text-[10px] font-black px-2 py-0.5 rounded">
             CUSTODY LOG UPDATED
@@ -163,7 +163,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
           <button
             onClick={() => setActiveFilter("all")}
             className={`px-3 py-1.5 text-xs font-bold rounded-xl transition whitespace-nowrap shrink-0 ${
-              activeFilter === "all" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
+              activeFilter === "all" ? "bg-btred-logo text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
             All Vault ({tokenList.length})
@@ -171,7 +171,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
           <button
             onClick={() => setActiveFilter("checked-out")}
             className={`px-3 py-1.5 text-xs font-bold rounded-xl transition whitespace-nowrap shrink-0 ${
-              activeFilter === "checked-out" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
+              activeFilter === "checked-out" ? "bg-btred-logo text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
             Checked Out ({checkedOutCount})
@@ -190,7 +190,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
       {/* Search Input Bar */}
       <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
         <div className="w-full relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-600 absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search by Company, Director Name, Serial Number, or Vault Locker Bin..."
@@ -204,7 +204,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
       {/* Tokens List Grid */}
       {filtered.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-sm space-y-3">
-          <div className="w-12 h-12 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center text-slate-400">
+          <div className="w-12 h-12 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center text-slate-600">
             <KeyRound className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-slate-800">No Physical DSC Tokens In Vault</h3>
@@ -256,7 +256,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
 
                 <h4 className="text-sm font-black text-slate-900 line-clamp-1">{token.entityName}</h4>
                 <p className="text-xs text-slate-600 font-medium mt-1 flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <User className="w-3.5 h-3.5 text-slate-600" />
                   Signatory: <strong className="text-slate-900">{token.holderName}</strong>
                 </p>
 
@@ -304,7 +304,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
 
               {/* Bottom Card Action */}
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-400 truncate max-w-[130px]">
+                <span className="text-[10px] font-mono text-slate-600 truncate max-w-[130px]">
                   {token.serialNumber}
                 </span>
 
@@ -334,7 +334,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
 
       {/* CHECKOUT MODAL */}
       {checkoutModalToken && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in fade-in zoom-in-95">
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-btred-logo" />
@@ -381,7 +381,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
               </button>
               <button
                 onClick={handleConfirmCheckout}
-                className="bg-btblack hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm"
+                className="bg-btred-logo hover:bg-red-700 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm"
               >
                 Confirm &amp; Start Timer
               </button>

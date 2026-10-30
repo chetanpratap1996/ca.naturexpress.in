@@ -81,6 +81,15 @@ export interface ComplianceTask {
   officialUdin?: string;
   udinGeneratedAt?: string;
   filingDate?: string;
+  pan?: string;
+  gstin?: string;
+  cin?: string;
+  tan?: string;
+  challanCin?: string;
+  taxPayableAmount?: number;
+  section50Interest?: number;
+  clientApprovalStatus?: 'APPROVED' | 'PENDING' | 'NOT_REQUIRED';
+  penaltyNote?: string;
 }
 
 export interface NoticeRecord {
@@ -95,10 +104,17 @@ export interface NoticeRecord {
   issueDate: string;
   statutoryDeadline: string;
   daysRemaining: number;
-  status: "PENDING_TRIAGE" | "DRAFTING_RESPONSE" | "PARTNER_REVIEW" | "SUBMITTED" | "CLOSED";
+  status: "PENDING_TRIAGE" | "DRAFTING_RESPONSE" | "PARTNER_REVIEW" | "SUBMITTED" | "CLOSED" | "ADJOURNMENT_REQUESTED";
   riskLevel: "HIGH" | "CRITICAL" | "MEDIUM";
   assignedPartner: string;
   summary: string;
+  assessmentYear?: string;
+  issuingOfficer?: string;
+  pan?: string;
+  gstin?: string;
+  submittedAt?: string;
+  acknowledgementNo?: string;
+  adjournmentHistory?: { requestedDate: string; reason: string; grantStatus: "PENDING" | "GRANTED" }[];
 }
 
 export interface InvoiceItem {
@@ -170,11 +186,49 @@ export interface AuditTrailLog {
   action: string;
   details: string;
   category: "COMPLIANCE" | "DOCUMENT" | "INVOICE" | "UDIN" | "WHATSAPP" | "SECURITY" | "PEER_REVIEW" | "PAY_RELEASE" | "SYSTEM";
+  previousHash?: string;
+  hash?: string;
 }
 
 // -------------------------------------------------------------
 // ENTERPRISE EXTENSIONS FOR CA FIRM OPERATING SYSTEM
 // -------------------------------------------------------------
+
+export type NotificationCategory = 
+  | "COMPLIANCE"
+  | "BILLING"
+  | "DOCUMENT"
+  | "NOTICE"
+  | "UDIN"
+  | "SECURITY"
+  | "SYSTEM";
+
+export type NotificationPriority = "LOW" | "NORMAL" | "MEDIUM" | "HIGH" | "URGENT" | "CRITICAL";
+
+export interface NotificationItem {
+  id: string;
+  recipientRole?: "PARTNER" | "ARTICLE" | "CLIENT" | "ALL";
+  recipientEntityId?: string;
+  recipientUserId?: string;
+  title: string;
+  message: string;
+  category: NotificationCategory;
+  priority: NotificationPriority;
+  targetTab?: string;
+  actionUrl?: string;
+  isRead: boolean;
+  createdAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface NotificationPreferences {
+  browserPushEnabled: boolean;
+  soundEnabled: boolean;
+  notifyDeadlines: boolean;
+  notifyPayments: boolean;
+  notifyDocuments: boolean;
+  notifyNotices: boolean;
+}
 
 // 1. Pay-to-Release Fee Gatekeeper
 export interface PayToReleaseConfig {

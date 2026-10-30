@@ -90,33 +90,45 @@ export function PeerReviewManager({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-800/40 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full flex items-center gap-1.5">
+              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
                 <Award className="w-3.5 h-3.5 text-indigo-300" /> ICAI Peer Review Board Ready
               </span>
-              <span className="text-xs text-slate-400">FRN: 104523W &bull; SQC-1 Compliant</span>
+              <span className="text-xs text-slate-600">FRN: 022998C &bull; Peer Review: ICAI/PRB/022998C</span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-indigo-400" /> ICAI SQC-1 &amp; SA 230 Peer Review Dossier
+            <div className="flex items-center gap-2 my-1">
+              <Building className="w-4 h-4 text-btred-logo" />
+              <select
+                value={selectedEntityId}
+                onChange={(e) => setSelectedEntityId(e.target.value)}
+                className="text-xs font-bold bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-slate-900 focus:outline-none"
+              >
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.pan})</option>
+                ))}
+              </select>
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-6 h-6 text-btred-logo" /> ICAI SQC-1 &amp; SA 230 Peer Review Dossier
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
+            <p className="text-sm text-slate-600 mt-1 max-w-2xl">
               Standardized electronic audit documentation meeting ICAI Peer Review Board mandates. Includes automated Section 43B(h) MSME 45-day disallowances, Section 40A(2)(b) related-party sampling, and UDIN verification.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => alert("Downloading complete ICAI Peer Review Master Audit Dossier PDF (SA 230 Compliant)...")}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 shadow-md transition flex items-center gap-2"
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition flex items-center gap-2"
             >
               <Download className="w-4 h-4 text-indigo-400" /> Export Peer Review Dossier (ZIP)
             </button>
             <button
               onClick={handlePartnerSignOff}
               disabled={isSigningOff}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2"
             >
               <UserCheck className="w-4 h-4" />
               {isSigningOff ? "Signing Dossier..." : "Partner SQC-1 Sign-Off"}
@@ -126,59 +138,59 @@ export function PeerReviewManager({
       </div>
 
       {successToast && (
-        <div className="bg-emerald-900/50 border border-emerald-500/40 text-emerald-200 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-sm shadow-md">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div className="bg-white border-l-4 border-l-emerald-600 border border-slate-200 text-slate-800 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-sm shadow-md">
+          <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Compliance Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-sm text-slate-900">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">SQC-1 Score</span>
-            <Award className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase truncate">SQC-1 Score</span>
+            <Award className="w-4 h-4 text-emerald-700 shrink-0" />
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-emerald-400 mt-1.5 sm:mt-2">98.4%</div>
-          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Zero Deficiencies</div>
+          <div className="text-lg sm:text-2xl font-bold text-emerald-700 mt-1.5 sm:mt-2">98.4%</div>
+          <div className="text-[10px] sm:text-xs text-slate-600 mt-0.5 truncate">Zero Deficiencies</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-sm text-slate-900">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">Sec 43B(h)</span>
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase truncate">Sec 43B(h)</span>
+            <AlertTriangle className="w-4 h-4 text-btred-logo shrink-0" />
           </div>
-          <div className="text-base sm:text-xl font-bold text-rose-400 mt-1.5 sm:mt-2">₹{totalMsmeDisallowance.toLocaleString("en-IN")}</div>
-          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Form 3CD Disallowance</div>
+          <div className="text-base sm:text-xl font-bold text-btred-logo mt-1.5 sm:mt-2">₹{totalMsmeDisallowance.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-600 mt-0.5 truncate">Form 3CD Disallowance</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-sm text-slate-900">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">Sec 40A(2)(b)</span>
-            <Scale className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase truncate">Sec 40A(2)(b)</span>
+            <Scale className="w-4 h-4 text-amber-800 shrink-0" />
           </div>
-          <div className="text-base sm:text-xl font-bold text-amber-400 mt-1.5 sm:mt-2">₹{totalExcess40a.toLocaleString("en-IN")}</div>
-          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">FMV benchmark excess</div>
+          <div className="text-base sm:text-xl font-bold text-amber-800 mt-1.5 sm:mt-2">₹{totalExcess40a.toLocaleString("en-IN")}</div>
+          <div className="text-[10px] sm:text-xs text-slate-600 mt-0.5 truncate">FMV benchmark excess</div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-sm text-slate-900">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase truncate">ICAI UDIN</span>
-            <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase truncate">ICAI UDIN</span>
+            <CheckCircle2 className="w-4 h-4 text-teal-700 shrink-0" />
           </div>
-          <div className="text-[11px] sm:text-xs font-mono font-bold text-cyan-300 mt-1.5 sm:mt-2 truncate">24049281AAAAAA8912</div>
-          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">Matched with 3CD</div>
+          <div className="text-[11px] sm:text-xs font-mono font-bold text-teal-800 mt-1.5 sm:mt-2 truncate">26518492AAAAAA8912</div>
+          <div className="text-[10px] sm:text-xs text-slate-600 mt-0.5 truncate">Matched with 3CD</div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab("msme")}
           className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
             activeTab === "msme"
-              ? "bg-indigo-600 text-white shadow-md"
-              : "bg-slate-900 text-slate-400 hover:text-white"
+              ? "bg-btred-logo text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:text-slate-900"
           }`}
         >
           <FileCheck2 className="w-4 h-4" /> Section 43B(h) MSME 45-Day Tracker ({msmeRecords.length})
@@ -187,8 +199,8 @@ export function PeerReviewManager({
           onClick={() => setActiveTab("section40a")}
           className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
             activeTab === "section40a"
-              ? "bg-indigo-600 text-white shadow-md"
-              : "bg-slate-900 text-slate-400 hover:text-white"
+              ? "bg-btred-logo text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:text-slate-900"
           }`}
         >
           <Scale className="w-4 h-4" /> Section 40A(2)(b) Related Party Sampling ({section40aSamples.length})
@@ -197,8 +209,8 @@ export function PeerReviewManager({
           onClick={() => setActiveTab("workpapers")}
           className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
             activeTab === "workpapers"
-              ? "bg-indigo-600 text-white shadow-md"
-              : "bg-slate-900 text-slate-400 hover:text-white"
+              ? "bg-btred-logo text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:text-slate-900"
           }`}
         >
           <FolderCheck className="w-4 h-4" /> SA 230 Audit Working Paper Index (SQC-1)
@@ -207,15 +219,15 @@ export function PeerReviewManager({
 
       {/* TAB 1: SECTION 43B(h) MSME COMPLIANCE */}
       {activeTab === "msme" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-lg p-5 space-y-4">
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm p-5 space-y-4 text-slate-900">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white">Section 43B(h) MSME 45-Day Payment Audit Trail</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h3 className="text-sm font-bold text-slate-900">Section 43B(h) MSME 45-Day Payment Audit Trail</h3>
+              <p className="text-xs text-slate-600 mt-0.5">
                 Mandatory disallowance under Income Tax Act for payments to Micro &amp; Small enterprises pending past 15/45 days as on 31-March.
               </p>
             </div>
-            <span className="text-xs text-rose-400 font-semibold bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-xl">
+            <span className="text-xs text-btred-logo font-semibold bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-xl">
               Disallowance: ₹{totalMsmeDisallowance.toLocaleString("en-IN")}
             </span>
           </div>
@@ -223,7 +235,7 @@ export function PeerReviewManager({
           <div className="overflow-x-auto rounded-xl border border-slate-800">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-950 border-b border-slate-800 text-[11px] uppercase font-semibold text-slate-400">
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase font-semibold text-slate-700 font-bold">
                   <th className="py-2.5 px-3">MSME Supplier &amp; Udyam Reg</th>
                   <th className="py-2.5 px-3">Type</th>
                   <th className="py-2.5 px-3">Invoice &amp; Date</th>
@@ -236,37 +248,37 @@ export function PeerReviewManager({
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-sans">
                 {msmeRecords.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={m.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
                     <td className="py-2.5 px-3">
-                      <div className="font-semibold text-white">{m.vendorName}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{m.udyamRegistrationNo}</div>
+                      <div className="font-semibold text-slate-900">{m.vendorName}</div>
+                      <div className="text-[10px] text-slate-600 font-mono">{m.udyamRegistrationNo}</div>
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded font-semibold text-[10px]">
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded font-semibold text-[10px]">
                         {m.vendorCategory}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300">
+                    <td className="py-2.5 px-3 font-mono text-slate-700">
                       <div>{m.invoiceNumber}</div>
                       <div className="text-[10px] text-slate-500">{m.invoiceDate}</div>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-white">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
                       ₹{m.amount.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300">{m.paymentDueDate}</td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300">{m.actualPaymentDate || "UNPAID"}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-700">{m.paymentDueDate}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-700">{m.actualPaymentDate || "UNPAID"}</td>
                     <td className="py-2.5 px-3 text-center">
                       {m.disallowedUnder43Bh ? (
-                        <span className="px-2 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-red-50 text-btred-logo border border-red-200 font-bold rounded text-[10px] font-bold">
                           DISALLOWED (3CD Cl 26)
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold rounded text-[10px] font-bold">
                           ALLOWED
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-amber-400 font-semibold">
+                    <td className="py-2.5 px-3 text-right font-mono text-amber-800 font-semibold">
                       {m.interestUnderMsmedAct > 0 ? `₹${m.interestUnderMsmedAct.toLocaleString("en-IN")}` : "₹0"}
                     </td>
                   </tr>
@@ -279,15 +291,15 @@ export function PeerReviewManager({
 
       {/* TAB 2: SECTION 40A(2)(b) RELATED PARTY SAMPLING */}
       {activeTab === "section40a" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-lg p-5 space-y-4">
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm p-5 space-y-4 text-slate-900">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white">Section 40A(2)(b) Related Party Market Value Sampling</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h3 className="text-sm font-bold text-slate-900">Section 40A(2)(b) Related Party Market Value Sampling</h3>
+              <p className="text-xs text-slate-600 mt-0.5">
                 Evaluation of payments to directors, relatives, and sister concerns against Fair Market Value (FMV) with attached working papers.
               </p>
             </div>
-            <span className="text-xs text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl">
+            <span className="text-xs text-amber-800 font-semibold bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl">
               Excess Payment: ₹{totalExcess40a.toLocaleString("en-IN")}
             </span>
           </div>
@@ -295,7 +307,7 @@ export function PeerReviewManager({
           <div className="overflow-x-auto rounded-xl border border-slate-800">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-950 border-b border-slate-800 text-[11px] uppercase font-semibold text-slate-400">
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase font-semibold text-slate-700 font-bold">
                   <th className="py-2.5 px-3">Related Party &amp; Nature</th>
                   <th className="py-2.5 px-3">Relationship</th>
                   <th className="py-2.5 px-3 text-right">Amount Paid (₹)</th>
@@ -307,27 +319,27 @@ export function PeerReviewManager({
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-sans">
                 {section40aSamples.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={s.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
                     <td className="py-2.5 px-3">
-                      <div className="font-semibold text-white">{s.relatedPartyName}</div>
+                      <div className="font-semibold text-slate-900">{s.relatedPartyName}</div>
                       <div className="text-[10px] text-indigo-400 font-semibold">{s.natureOfPayment}</div>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300 text-[11px]">
+                    <td className="py-2.5 px-3 text-slate-700 text-[11px]">
                       {s.relationship.replace(/_/g, " ")}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-white">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
                       ₹{s.amountPaid.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-300">
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
                       ₹{s.fairMarketValueEstimated.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-400">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-800">
                       ₹{s.excessPaymentDisallowable.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-cyan-300 text-[11px]">
+                    <td className="py-2.5 px-3 font-mono text-teal-800 text-[11px]">
                       {s.justificationWorkpaperRef}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300 text-[11px]">
+                    <td className="py-2.5 px-3 text-slate-700 text-[11px]">
                       {s.articleVerifiedBy}
                     </td>
                   </tr>
@@ -340,11 +352,11 @@ export function PeerReviewManager({
 
       {/* TAB 3: SA 230 AUDIT WORKING PAPER INDEX */}
       {activeTab === "workpapers" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-lg p-5 space-y-4">
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm p-5 space-y-4 text-slate-900">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white">ICAI Standard on Auditing (SA 230) Working Paper Registry</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h3 className="text-sm font-bold text-slate-900">ICAI Standard on Auditing (SA 230) Working Paper Registry</h3>
+              <p className="text-xs text-slate-600 mt-0.5">
                 Audit trial mandatory for ICAI Peer Review Board under SQC-1. Stamped with Partner e-signature and UDIN.
               </p>
             </div>
@@ -388,18 +400,18 @@ export function PeerReviewManager({
                 date: "28-Sep-2026"
               }
             ].map((wp, idx) => (
-              <div key={idx} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+              <div key={idx} className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs text-slate-800">
                 <div className="space-y-1">
-                  <div className="font-semibold text-white flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <div className="font-semibold text-slate-900 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                     <span>{wp.title}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono">
+                  <div className="text-[11px] text-slate-600 font-mono">
                     Ref: {wp.ref} &bull; Standard: <strong className="text-indigo-400">{wp.standard}</strong>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[11px] font-semibold text-slate-200 block">{wp.sign}</span>
+                  <span className="text-[11px] font-semibold text-slate-800 block">{wp.sign}</span>
                   <span className="text-[10px] text-slate-500 font-mono">Signed on {wp.date}</span>
                 </div>
               </div>

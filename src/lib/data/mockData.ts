@@ -8,7 +8,8 @@ import {
   DocumentItem,
   AuditTrailLog,
   ClientPasswordVault,
-  PayToReleaseConfig
+  PayToReleaseConfig,
+  NotificationItem
 } from "../types";
 
 export const FIRM_METRICS = {
@@ -89,3 +90,61 @@ export const INITIAL_MSME_43BH_RECORDS = [];
 export const INITIAL_SECTION_40A2B_SAMPLES = [];
 export const INITIAL_STAFF_SECURITY_LOGS = [];
 export const INITIAL_PARTNER_METRICS = [];
+
+export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: "notif-1",
+    recipientRole: "ALL",
+    title: "GSTR-3B Statutory Deadline Approaching",
+    message: "GSTR-3B for September 2026 is due within 48 hours for Apex AutoTech Private Limited. Review pending workpapers.",
+    category: "COMPLIANCE",
+    priority: "URGENT",
+    targetTab: "calendar",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: "notif-2",
+    recipientRole: "PARTNER",
+    title: "New UTR Submitted for Verification",
+    message: "Apex AutoTech submitted bank payment UTR UPI982341982 for ₹29,500. Pay-to-Release fee gatekeeper ready for settlement.",
+    category: "BILLING",
+    priority: "HIGH",
+    targetTab: "billing",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+  },
+  {
+    id: "notif-3",
+    recipientRole: "ARTICLE",
+    title: "Bank Statement Uploaded by Client",
+    message: "Client uploaded HDFC Bank Current A/c Statement (Oct 2026). Decryption verified via Password Vault.",
+    category: "DOCUMENT",
+    priority: "NORMAL",
+    targetTab: "workbench",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+  {
+    id: "notif-4",
+    recipientRole: "PARTNER",
+    title: "GST Scrutiny Notice ASMT-10 Triaged",
+    message: "GST Portal sync detected ASMT-10 notice for DRC-01A discrepancy under section 61. Statutory response due in 14 days.",
+    category: "NOTICE",
+    priority: "HIGH",
+    targetTab: "notices",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: "notif-5",
+    recipientRole: "CLIENT",
+    title: "Tax Audit Report Form 3CD Certified",
+    message: "Managing Partner CA Gunjan Jain has certified your Form 3CD with official ICAI UDIN. Available in banker docket.",
+    category: "COMPLIANCE",
+    priority: "NORMAL",
+    targetTab: "progress",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 30).toISOString(),
+  }
+];

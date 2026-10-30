@@ -24,17 +24,21 @@ import {
   HelpCircle,
   Check,
   Copy,
-  MessageSquare
+  MessageSquare,
+  X,
+  Zap
 } from "lucide-react";
 
 interface LoginModalProps {
   onLoginSuccess: (user: AuthUser) => void;
+  onClose?: () => void;
   initialRole?: "partner" | "article" | "client";
   clients?: ClientEntity[];
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ 
   onLoginSuccess,
+  onClose,
   initialRole,
   clients: initialClients = [],
 }) => {
@@ -48,11 +52,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const [activeStaffTab, setActiveStaffTab] = useState<"partner" | "article">("partner");
   
-  const [identifier, setIdentifier] = useState(
-    portalMode === "client" ? DEMO_USERS.client.phone : DEMO_USERS.partner.email
-  );
-  const [password, setPassword] = useState("Partner@2026");
-  const [membershipNo, setMembershipNo] = useState("022998C");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [membershipNo, setMembershipNo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -72,8 +74,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   }, [initialClients]);
 
-  // Update form inputs when switching between client and staff modes
-  useEffect(() => {
+  const handleFillDemoCredentials = () => {
     if (portalMode === "client") {
       const activeClient = clientRegistry[0];
       const phone = activeClient?.primaryContact?.phone || "8077170715";
@@ -94,7 +95,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     }
     setErrorMessage(null);
-  }, [portalMode, activeStaffTab, clientRegistry]);
+    toast.info("Demo Credentials Filled", "You can now click 'Secure Sign In' or modify credentials.");
+  };
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -127,11 +129,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // If API returned error (e.g. invalid PIN or wrong password)
       setIsSubmitting(false);
       setErrorMessage(data.error || "Authentication failed. Please verify credentials.");
     } catch (netErr) {
-      // Fallback for offline/local evaluation sandbox
       const result = authenticateUser(identifier, password, clientRegistry);
       setIsSubmitting(false);
       if (!result.success || !result.user) {
@@ -165,32 +165,45 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-3 sm:p-4 selection:bg-red-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-3 sm:p-4 selection:bg-red-500 selection:text-white">
       <div className="absolute inset-0 bg-[radial-gradient(#e52320_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none"></div>
 
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 max-h-[96dvh] overflow-y-auto">
         
         {/* Top Header */}
-        <div className="bg-slate-950 text-white p-5 sm:p-6 pb-5 border-b border-slate-800 text-center relative">
+        <div className="bg-white text-slate-900 p-5 sm:p-6 pb-5 border-b border-slate-200 text-center relative">
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-4 right-4 p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition"
+              title="Return to Home"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
           <div className="flex justify-center mb-2.5">
             <BtLogo size="md" showTagline={false} />
           </div>
           <h2 className="text-base sm:text-lg font-black tracking-tight">
             GPA &amp; Co. Chartered Accountants
           </h2>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             ICAI FRN: 022998C &bull; Practice &amp; Client Compliance Portal
           </p>
 
           {/* Mode Switcher */}
-          <div className="mt-4 p-1 bg-slate-900 border border-slate-800 rounded-2xl flex items-center gap-1">
+          <div className="mt-4 p-1 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setPortalMode("client")}
+              onClick={() => {
+                setPortalMode("client");
+                setErrorMessage(null);
+              }}
               className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                 portalMode === "client"
                   ? "bg-emerald-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
@@ -198,11 +211,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setPortalMode("staff")}
+              onClick={() => {
+                setPortalMode("staff");
+                setErrorMessage(null);
+              }}
               className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                 portalMode === "staff"
-                  ? "bg-slate-800 text-white shadow-md border border-slate-700"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-btred-logo text-white shadow-md"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -215,23 +231,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <div className="mt-2.5 flex items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={() => setActiveStaffTab("partner")}
+                onClick={() => {
+                  setActiveStaffTab("partner");
+                  setErrorMessage(null);
+                }}
                 className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
                   activeStaffTab === "partner"
                     ? "bg-btred-logo text-white"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-600 hover:text-slate-800"
                 }`}
               >
                 Managing Partner
               </button>
-              <span className="text-slate-700">&bull;</span>
+              <span className="text-slate-600">&bull;</span>
               <button
                 type="button"
-                onClick={() => setActiveStaffTab("article")}
+                onClick={() => {
+                  setActiveStaffTab("article");
+                  setErrorMessage(null);
+                }}
                 className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
                   activeStaffTab === "article"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-btred-logo text-white"
+                    : "text-slate-600 hover:text-slate-800"
                 }`}
               >
                 Article Trainee
@@ -265,22 +287,32 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                {portalMode === "client"
-                  ? "Registered Mobile Number, PAN, or Email"
-                  : activeStaffTab === "partner"
-                  ? "Partner Registered Email"
-                  : "Article Assistant Email"}
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  {portalMode === "client"
+                    ? "Registered Mobile Number, PAN, or Email"
+                    : activeStaffTab === "partner"
+                    ? "Partner Registered Email"
+                    : "Article Assistant Email"}
+                </label>
+                <button
+                  type="button"
+                  onClick={handleFillDemoCredentials}
+                  className="text-[10px] text-btred-logo hover:underline font-bold flex items-center gap-1"
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>Fill Demo</span>
+                </button>
+              </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-600">
                   {portalMode === "client" ? <Smartphone className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
                 </div>
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={portalMode === "client" ? "e.g. 9800000003 or PAN" : "partner@firm.com"}
+                  placeholder={portalMode === "client" ? "e.g. 8077170715 or PAN" : "partner@firm.com"}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 transition"
                   required
                 />
@@ -299,7 +331,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 )}
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-600">
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <input
@@ -341,7 +373,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-slate-900 hover:bg-black text-white font-black text-xs py-3 rounded-2xl transition shadow-md flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
+            className="w-full bg-btred-logo hover:bg-red-700 text-white font-black text-xs py-3 rounded-2xl transition shadow-md flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
           >
             {isSubmitting ? (
               <>
@@ -358,7 +390,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           {/* 1-Click Sandbox Evaluation Access */}
           <div className="pt-3 border-t border-slate-100">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block text-center mb-2">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-slate-600 block text-center mb-2">
               Evaluation Sandbox &bull; 1-Click Persona Access
             </span>
 
@@ -366,42 +398,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin("client")}
-                className="w-full p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/70 text-left transition flex items-center justify-between"
+                className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
               >
-                <div>
-                  <span className="text-xs font-extrabold text-emerald-950 block">
-                    Apex Laboratories Private Limited (Client)
-                  </span>
-                  <span className="text-[10px] text-emerald-800 font-medium">
-                    Authorized Director &bull; PAN: AABCA9182K
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200">
-                  Client Sandbox
-                </span>
+                <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Enter as Apex AutoTech Director (Live Client PWA)</span>
               </button>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin("article")}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 text-left transition group"
+                  onClick={() => handleQuickDemoLogin("partner")}
+                  className="py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-btred-logo rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                 >
-                  <span className="text-[10px] font-bold text-slate-800 block truncate group-hover:text-indigo-700">
-                    Kriti Jain (Article)
-                  </span>
-                  <span className="text-[9px] text-slate-400 block font-mono">Article Assistant</span>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Partner Cockpit</span>
                 </button>
-
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin("partner")}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-red-50 hover:border-red-300 text-left transition group"
+                  onClick={() => handleQuickDemoLogin("article")}
+                  className="py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                 >
-                  <span className="text-[10px] font-bold text-slate-800 block truncate group-hover:text-red-700">
-                    CA Gunjan Jain (FCA)
-                  </span>
-                  <span className="text-[9px] text-slate-400 block font-mono">Managing Partner</span>
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Article Desk</span>
                 </button>
               </div>
             )}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ComplianceTask } from "@/lib/types";
 
 export async function GET() {
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     const db = ensureDatabase();
 
     const newTask: ComplianceTask = {
-      id: `TSK-${Date.now().toString().slice(-4)}`,
+      id: body.id || `TSK-${Date.now().toString().slice(-4)}`,
       entityId: body.entityId,
       entityName: body.entityName,
       groupId: body.groupId || "GRP-001",
@@ -35,6 +36,40 @@ export async function POST(req: Request) {
     db.tasks.unshift(newTask);
     await saveDatabase(db);
 
+    // Bi-Directional Supabase Cloud Sync
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: firms } = await supabase.from("firms").select("id").limit(1);
+        const firmId = firms?.[0]?.id;
+
+        // Verify entity exists in Supabase
+        const { data: entityRow } = await supabase
+          .from("client_entities")
+          .select("id")
+          .or(`id.eq.${newTask.entityId},entity_name.ilike.${newTask.entityName}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (firmId && entityRow?.id) {
+          await supabase.from("compliance_tasks").insert({
+            firm_id: firmId,
+            entity_id: entityRow.id,
+            category: newTask.category,
+            title: newTask.title,
+            period: newTask.period,
+            due_date: newTask.dueDate,
+            status: newTask.status,
+            priority: newTask.priority,
+            penalty_risk: newTask.penaltyRisk,
+            accruing_daily_penalty: newTask.accruingDailyPenalty,
+            chase_count: 0
+          });
+        }
+      } catch (sbErr) {
+        console.warn("Supabase compliance task insert warning:", sbErr);
+      }
+    }
+
     await logAuditEvent(
       body.actorName || "CA Gunjan Jain",
       "PARTNER",
@@ -42,6 +77,16 @@ export async function POST(req: Request) {
       "Task Created",
       `Created engagement ${newTask.title} for ${newTask.period} assigned to ${newTask.assignedTo}`,
       "COMPLIANCE"
+    );
+
+    await createNotification(
+      `New Statutory Assignment: ${newTask.title}`,
+      `Assigned to ${newTask.assignedTo} for ${newTask.entityName}. Due Date: ${newTask.dueDate}. Statutory penalty risk: ₹${newTask.penaltyRisk.toLocaleString("en-IN")}.`,
+      "COMPLIANCE",
+      newTask.priority === "CRITICAL" ? "URGENT" : "NORMAL",
+      "calendar",
+      "ALL",
+      newTask.entityId
     );
 
     return NextResponse.json({ success: true, task: newTask });
@@ -91,6 +136,32 @@ export async function PATCH(req: Request) {
 
     db.tasks[taskIndex] = currentTask;
     await saveDatabase(db);
+
+    // Bi-directional Supabase update
+    if (isSupabaseConfigured()) {
+      try {
+        const updatePayload: Record<string, any> = {};
+        if (status) updatePayload.status = status;
+        if (officialUdin) {
+          updatePayload.official_udin = officialUdin;
+          updatePayload.udin_generated_at = new Date().toISOString();
+        }
+        if (chaseCount !== undefined) {
+          updatePayload.chase_count = chaseCount;
+          updatePayload.last_chase_at = new Date().toISOString();
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          // Attempt update by UUID or title match
+          await supabase
+            .from("compliance_tasks")
+            .update(updatePayload)
+            .or(`id.eq.${taskId},title.eq.${currentTask.title}`);
+        }
+      } catch (sbErr) {
+        console.warn("Supabase compliance task update warning:", sbErr);
+      }
+    }
 
     return NextResponse.json({ success: true, task: currentTask });
   } catch (error: any) {

@@ -52,7 +52,10 @@ interface Schedule3AuditEngineProps {
   onExportAuditDossier?: (data: any) => void;
 }
 
-export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clients = [] }) => {
+export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ 
+  clients = [],
+  onExportAuditDossier 
+}) => {
   // State
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "CL-APEX");
   const [division, setDivision] = useState<Schedule3Division>("DIVISION_I");
@@ -295,7 +298,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
           {/* Left: Entity & Statutory Meta */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 flex items-center gap-1">
                 <Layers className="w-3 h-3" />
                 Schedule III Engine (Phase 1 & 2)
               </span>
@@ -309,10 +312,25 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             </div>
 
             <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                {activeClient.name}
-              </h2>
+              <Building2 className="w-5 h-5 text-btred-logo shrink-0" />
+              {clients.length > 0 ? (
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="text-base sm:text-xl font-black text-slate-900 bg-transparent border-b-2 border-slate-300 focus:border-red-600 focus:outline-none cursor-pointer py-0.5"
+                  title="Switch Corporate Audit Client"
+                >
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.pan})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  {activeClient.name}
+                </h2>
+              )}
             </div>
 
             <div className="flex items-center gap-3 text-xs text-slate-500 font-medium flex-wrap">
@@ -336,7 +354,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-3.5 py-2 rounded-xl text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm transition flex items-center gap-1.5"
             >
               <UploadCloud className="w-4 h-4" />
               <span>Import Tally XML</span>
@@ -357,6 +375,23 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             >
               <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
               <span>Reset Demo TB</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (onExportAuditDossier) {
+                  onExportAuditDossier({ client: activeClient, division, ledgers, isBalanced });
+                }
+                toast.success(
+                  "Audit Dossier Exported",
+                  `Exported complete SA 230 Schedule III Workpaper package for ${activeClient.name}.`
+                );
+              }}
+              className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-sm transition flex items-center gap-1.5"
+              title="Export Full SA 230 Audit Lead Schedules and Schedule III Financials"
+            >
+              <Download className="w-4 h-4 text-emerald-700" />
+              <span>Export SA 230 Dossier</span>
             </button>
 
             <select
@@ -420,17 +455,17 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             </span>
           </div>
 
-          <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-3 text-indigo-950">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-slate-800">
             <span className="text-[10px] uppercase font-bold tracking-wider block">
               Mapping Accuracy
             </span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-base sm:text-lg font-black text-indigo-900">
+              <span className="text-base sm:text-lg font-black text-slate-900">
                 {Math.round((ledgers.filter((l) => l.confidence >= 90).length / Math.max(ledgers.length, 1)) * 100)}%
               </span>
-              <span className="text-[10px] font-bold text-indigo-700">High Confidence</span>
+              <span className="text-[10px] font-bold text-btred-logo">High Confidence</span>
             </div>
-            <span className="text-[10px] text-indigo-700 font-medium">
+            <span className="text-[10px] text-btred-logo font-medium">
               {ledgers.filter((l) => l.confidence < 90).length} ledgers need review
             </span>
           </div>
@@ -485,7 +520,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             onClick={() => setActiveSubTab("mapping")}
             className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 ${
               activeSubTab === "mapping"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
             }`}
           >
@@ -497,7 +532,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             onClick={() => setActiveSubTab("financials")}
             className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 ${
               activeSubTab === "financials"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
             }`}
           >
@@ -509,7 +544,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             onClick={() => setActiveSubTab("ratios-disclosures")}
             className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 ${
               activeSubTab === "ratios-disclosures"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
             }`}
           >
@@ -521,7 +556,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             onClick={() => setActiveSubTab("lead-schedules")}
             className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 ${
               activeSubTab === "lead-schedules"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
             }`}
           >
@@ -549,7 +584,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
           {/* Search & Quick Filter Pill Bar */}
           <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-slate-600 absolute left-3 top-2.5" />
               <input
                 type="text"
                 value={searchQuery}
@@ -560,7 +595,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery("")} 
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2.5 top-2.5 text-slate-600 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -571,7 +606,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
               <button
                 onClick={() => setFilterConfidence("ALL")}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                  filterConfidence === "ALL" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  filterConfidence === "ALL" ? "bg-btred-logo text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 All ({ledgers.length})
@@ -608,7 +643,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-900 text-white border-b border-slate-800 font-black tracking-wider uppercase text-[10px]">
+                  <tr className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold tracking-wider uppercase text-[10px]">
                     <th className="py-3 px-4">Tally Ledger Name</th>
                     <th className="py-3 px-3">Tally Parent Group</th>
                     <th className="py-3 px-4 text-right">Closing Balance</th>
@@ -620,7 +655,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                 <tbody className="divide-y divide-slate-100">
                   {filteredLedgers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <td colSpan={6} className="py-12 text-center text-slate-600">
                         No ledgers found matching your search and filter criteria.
                       </td>
                     </tr>
@@ -632,7 +667,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                       return (
                         <tr 
                           key={l.id} 
-                          className={`hover:bg-indigo-50/40 transition group ${
+                          className={`hover:bg-red-50/30 transition group ${
                             hasAnomaly ? "bg-amber-50/30" : ""
                           }`}
                         >
@@ -652,7 +687,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                                 {l.anomalies.some((a) => a.includes("Customer with Credit Balance")) && (
                                   <button
                                     onClick={() => handleQuickReclassify(l, "other_current_liabilities")}
-                                    className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-lg border border-indigo-200"
+                                    className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-btred-logo bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-lg border border-red-200"
                                   >
                                     1-Click: Reclassify to "Advance from Customers" (Note 9)
                                   </button>
@@ -672,7 +707,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                           <td className="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap">
                             <span>{formatCurrencyINR(l.closingBalance)}</span>
                             <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
-                              l.balanceType === "DR" ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
+                              l.balanceType === "DR" ? "bg-red-50 text-btred-logo border border-red-200" : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                             }`}>
                               {l.balanceType}
                             </span>
@@ -685,12 +720,12 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                                 {l.mappedHeadTitle}
                               </span>
                               {l.noteNumber > 0 && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-btred-logo border border-red-200 shrink-0">
                                   Note {l.noteNumber}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-400 block font-medium">
+                            <span className="text-[10px] text-slate-600 block font-medium">
                               {l.statement === "BALANCE_SHEET" ? "Balance Sheet" : "Profit & Loss"}
                             </span>
                           </td>
@@ -701,7 +736,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                               isHighConf 
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
                                 : l.confidence >= 70 
-                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  ? "bg-red-50 text-btred-logo border border-red-200"
                                   : "bg-amber-50 text-amber-700 border border-amber-200"
                             }`}>
                               {isHighConf && <CheckCircle2 className="w-2.5 h-2.5" />}
@@ -716,7 +751,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
                                 setEditingLedger(l);
                                 setNewSelectedHeadId(l.mappedHeadId);
                               }}
-                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 transition"
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-btred-logo hover:text-white text-slate-700 transition"
                             >
                               Remap
                             </button>
@@ -732,7 +767,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
             {/* Footer summary */}
             <div className="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
               <span>Showing <strong>{filteredLedgers.length}</strong> of <strong>{ledgers.length}</strong> ledgers</span>
-              <span className="text-slate-400">All mappings are remembered permanently for this client entity</span>
+              <span className="text-slate-600">All mappings are remembered permanently for this client entity</span>
             </div>
           </div>
         </div>
@@ -780,19 +815,19 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
       {/* 8. REMAP MODAL (PHASE 2 INTERACTIVE MAPPING OVERRIDE)                */}
       {/* -------------------------------------------------------------------- */}
       {editingLedger && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <FolderSync className="w-5 h-5 text-indigo-600" />
+                <FolderSync className="w-5 h-5 text-btred-logo" />
                 <h3 className="text-base font-black text-slate-900">
                   Remap Tally Ledger to Schedule III
                 </h3>
               </div>
               <button
                 onClick={() => setEditingLedger(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1 rounded-xl text-slate-600 hover:text-slate-700 hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -837,7 +872,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
               </button>
               <button
                 onClick={handleConfirmRemap}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-md transition"
               >
                 Confirm &amp; Update Financials
               </button>
@@ -850,19 +885,19 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
       {/* 9. PASTE EXCEL TRIAL BALANCE MODAL                                   */}
       {/* -------------------------------------------------------------------- */}
       {isPasteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Copy className="w-5 h-5 text-indigo-600" />
+                <Copy className="w-5 h-5 text-btred-logo" />
                 <h3 className="text-base font-black text-slate-900">
                   Paste Tabular Trial Balance from Excel / Tally
                 </h3>
               </div>
               <button
                 onClick={() => setIsPasteModalOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1 rounded-xl text-slate-600 hover:text-slate-700 hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -889,7 +924,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({ clie
               </button>
               <button
                 onClick={handleProcessPastedTb}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-md transition"
               >
                 Parse &amp; Auto-Map
               </button>

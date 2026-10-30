@@ -134,7 +134,7 @@ diligence under Section 129 of the Companies Act, 2013.
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
               <FolderLock className="w-3 h-3 text-emerald-600" /> Permanent Master File
             </span>
-            <span className="text-xs text-slate-400 font-semibold">Shared between Client &amp; Brains &amp; Taxes</span>
+            <span className="text-xs text-slate-600 font-semibold">Shared between Client &amp; Brains &amp; Taxes</span>
           </div>
           <h3 className="text-base font-black text-slate-900 mt-1">
             Company Permanent KYC &amp; Master Legal Locker
@@ -156,9 +156,9 @@ diligence under Section 129 of the Companies Act, 2013.
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {docs.length === 0 ? (
           <div className="col-span-full p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-500">
-            <FolderLock className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <FolderLock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
             <div className="font-bold text-slate-800 text-sm">No Permanent Master Documents Enrolled</div>
-            <div className="text-xs text-slate-400 mt-1">Upload incorporation charter or identity certificates to synchronize.</div>
+            <div className="text-xs text-slate-600 mt-1">Upload incorporation charter or identity certificates to synchronize.</div>
           </div>
         ) : (
           docs.map((d) => (
@@ -187,7 +187,7 @@ diligence under Section 129 of the Companies Act, 2013.
             </div>
 
             <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium">{d.fileSize}</span>
+              <span className="text-slate-600 font-medium">{d.fileSize}</span>
               <button
                 onClick={() => handleDownloadDoc(d)}
                 className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"

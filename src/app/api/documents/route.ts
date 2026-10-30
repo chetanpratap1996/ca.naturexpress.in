@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent, UPLOADS_DIR } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, logAuditEvent, createNotification, UPLOADS_DIR } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { DocumentItem } from "@/lib/types";
 import fs from "fs";
@@ -136,6 +136,16 @@ export async function POST(req: Request) {
       "Document Uploaded",
       `Uploaded ${newDoc.fileName} (${newDoc.category}) via ${newDoc.uploadedBy}`,
       "DOCUMENT"
+    );
+
+    await createNotification(
+      `New Document Uploaded: ${newDoc.fileName}`,
+      `${newDoc.entityName} uploaded ${newDoc.fileName} (${newDoc.category}). Pending audit verification.`,
+      "DOCUMENT",
+      "NORMAL",
+      "workbench",
+      uploadedBy === "CLIENT_PWA" ? "ARTICLE" : "PARTNER",
+      newDoc.entityId
     );
 
     return NextResponse.json({ success: true, document: newDoc });

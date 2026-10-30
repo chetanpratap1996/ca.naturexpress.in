@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { PayToReleaseConfig, PaymentReleaseReceipt } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -118,7 +119,40 @@ export async function POST(request: NextRequest) {
         "PAY_RELEASE"
       );
 
+      // Trigger instant unlock notification to Client and Partner
+      await createNotification({
+        title: `Deliverables Unlocked: ${clientName}`,
+        message: `₹${clearedAmount.toLocaleString("en-IN")} received via ${paymentMode || "UPI"}. Deliverables (Audit Reports, Form 3CD, ITR) are now unlocked for download.`,
+        category: "BILLING",
+        priority: "HIGH",
+        targetRoles: ["SUPER_ADMIN", "PARTNER", "CLIENT"],
+        entityId: entityId,
+        link: "/client",
+        actionLabel: "View Deliverables",
+        metadata: { utr: utrRef, clearedAmount }
+      });
+
       await saveDatabase(db);
+
+      // Bi-Directional Supabase Cloud Sync
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase
+            .from("invoices")
+            .update({
+              status: "PAID",
+              client_utr_number: utrRef || `UPI-${Date.now().toString().slice(-8)}`,
+              client_payment_mode: paymentMode || "UPI",
+              client_payment_date: new Date().toISOString().split("T")[0],
+              reconciled_at: new Date().toISOString()
+            })
+            .eq("entity_id", entityId)
+            .neq("status", "PAID");
+        } catch (sbErr) {
+          console.warn("Supabase pay-to-release invoice sync warning:", sbErr);
+        }
+      }
+
       return NextResponse.json({ success: true, message: "Payment processed and deliverables released", receipt, config: db.payToReleaseConfigs[configIndex] });
     }
 
@@ -163,6 +197,19 @@ export async function POST(request: NextRequest) {
         `Deliverables lock status toggled to: ${willLock ? "LOCKED" : "UNLOCKED"}`,
         "PAY_RELEASE"
       );
+
+      await createNotification({
+        title: willLock ? `Deliverables Locked: ${clientName}` : `Deliverables Released: ${clientName}`,
+        message: willLock 
+          ? `Pay-to-Release gate activated for ${clientName} due to outstanding dues.` 
+          : `Deliverables released for ${clientName} by partner override.`,
+        category: "BILLING",
+        priority: willLock ? "HIGH" : "MEDIUM",
+        targetRoles: ["SUPER_ADMIN", "PARTNER"],
+        entityId: entityId,
+        link: "/admin",
+        actionLabel: "View Lock Status"
+      });
 
       await saveDatabase(db);
       return NextResponse.json({ success: true, config: db.payToReleaseConfigs[configIndex] });

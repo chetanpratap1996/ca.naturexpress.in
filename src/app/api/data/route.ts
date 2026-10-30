@@ -196,13 +196,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 2. Default to verified synced database
-    const localData = ensureDatabase();
+    // 2. Default to verified synced database with deep clone to preserve cache immutability
+    const rawData = ensureDatabase();
+    const localData = JSON.parse(JSON.stringify(rawData));
     if (isClientRole && (auth.clientGroupId || auth.clientEntityId)) {
-      localData.clients = localData.clients.filter((c: any) => c.groupId === auth.clientGroupId || c.id === auth.clientEntityId);
-      localData.groups = localData.groups.filter((g: any) => g.id === auth.clientGroupId);
-      localData.tasks = localData.tasks.filter((t: any) => t.groupId === auth.clientGroupId || t.entityId === auth.clientEntityId);
-      localData.invoices = localData.invoices.filter((i: any) => i.groupId === auth.clientGroupId || i.entityId === auth.clientEntityId);
+      localData.clients = (localData.clients || []).filter((c: any) => c.groupId === auth.clientGroupId || c.id === auth.clientEntityId);
+      localData.groups = (localData.groups || []).filter((g: any) => g.id === auth.clientGroupId);
+      localData.tasks = (localData.tasks || []).filter((t: any) => t.groupId === auth.clientGroupId || t.entityId === auth.clientEntityId);
+      localData.invoices = (localData.invoices || []).filter((i: any) => i.groupId === auth.clientGroupId || i.entityId === auth.clientEntityId);
+      localData.documents = (localData.documents || []).filter((d: any) => d.entityId === auth.clientEntityId);
       localData.dscTokens = [];
       localData.notices = [];
     }

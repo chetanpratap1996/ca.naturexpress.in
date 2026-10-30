@@ -142,11 +142,11 @@ export const TaxAuditWorkpaperModal: React.FC<TaxAuditWorkpaperModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="bg-white rounded-3xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in fade-in zoom-in-95 max-h-[90dvh] flex flex-col">
         <button
           onClick={onClose}
-          className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 text-slate-400 hover:text-slate-800 p-1"
+          className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 text-slate-600 hover:text-slate-800 p-1"
         >
           <X className="w-5 h-5" />
         </button>
@@ -274,7 +274,7 @@ export const TaxAuditWorkpaperModal: React.FC<TaxAuditWorkpaperModalProps> = ({
               <button
                 onClick={handleSaveAndSign}
                 disabled={isSaving}
-                className="bg-btblack hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 shrink-0"
+                className="bg-btred-logo hover:bg-red-700 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 shrink-0"
               >
                 {isSaving ? (
                   <>
@@ -283,7 +283,7 @@ export const TaxAuditWorkpaperModal: React.FC<TaxAuditWorkpaperModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                     Record UDIN &amp; Partner Sign-Off
                   </>
                 )}

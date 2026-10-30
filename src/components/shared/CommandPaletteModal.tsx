@@ -86,7 +86,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-3 sm:pt-20 p-2.5 sm:p-4">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-start justify-center pt-3 sm:pt-20 p-2.5 sm:p-4">
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[88dvh]">
         {/* Search Header */}
         <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
@@ -103,7 +103,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">
               ESC to exit
             </span>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1">
+            <button onClick={onClose} className="text-slate-600 hover:text-slate-700 p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -114,7 +114,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Quick Shortcuts if query is empty */}
           {!q && (
             <div className="space-y-2 pb-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+              <span className="text-[10px] font-black uppercase text-slate-600 tracking-wider">
                 Quick Navigation &amp; Workspaces
               </span>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -180,7 +180,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Matched Clients */}
           {matchedClients.length > 0 && (
             <div className="space-y-1.5 pt-3">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+              <span className="text-[10px] font-black uppercase text-slate-600 tracking-wider">
                 Client Entities ({matchedClients.length})
               </span>
               {matchedClients.map((client) => (
@@ -203,7 +203,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                       {client.groupName} &bull; Turnover ₹{client.turnoverCr}Cr &bull; Partner: {client.partnerInCharge}
                     </p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                  <ArrowRight className="w-4 h-4 text-slate-600" />
                 </div>
               ))}
             </div>
@@ -212,7 +212,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Matched Tasks */}
           {matchedTasks.length > 0 && (
             <div className="space-y-1.5 pt-3">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+              <span className="text-[10px] font-black uppercase text-slate-600 tracking-wider">
                 Active Statutory Filings ({matchedTasks.length})
               </span>
               {matchedTasks.map((task) => (
@@ -235,7 +235,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                       {task.entityName} &bull; Due: {task.dueDate} &bull; Status: {task.status}
                     </p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                  <ArrowRight className="w-4 h-4 text-slate-600" />
                 </div>
               ))}
             </div>
@@ -244,7 +244,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Matched DSCs */}
           {matchedDscs.length > 0 && (
             <div className="space-y-1.5 pt-3">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+              <span className="text-[10px] font-black uppercase text-slate-600 tracking-wider">
                 DSC USB Tokens &amp; Physical Vault Slots ({matchedDscs.length})
               </span>
               {matchedDscs.map((dsc) => (
@@ -259,7 +259,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-black text-slate-900">{dsc.holderName}</span>
-                      <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-mono font-bold">
+                      <span className="text-[10px] bg-red-50 text-btred-logo border border-red-200 px-1.5 py-0.2 rounded font-mono font-bold">
                         {dsc.vaultSlot}
                       </span>
                     </div>
@@ -267,7 +267,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                       {dsc.entityName} &bull; Custodian: {dsc.currentCustodian} &bull; Valid till: {dsc.validTill}
                     </p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                  <ArrowRight className="w-4 h-4 text-slate-600" />
                 </div>
               ))}
             </div>

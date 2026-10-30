@@ -14,6 +14,7 @@ export interface FirmBrandingConfig {
   email: string;
   peerReviewNo: string;
   firmUpiVpa: string;
+  gstin?: string;
   bankDetails: {
     bankName: string;
     accountName: string;
@@ -48,6 +49,7 @@ export const DEFAULT_FIRM_BRANDING: FirmBrandingConfig = {
   email: "brainsandtaxes@gmail.com",
   peerReviewNo: "ICAI/PRB/022998C",
   firmUpiVpa: "7999995897@upi",
+  gstin: "23AABCU9821F1ZX",
   bankDetails: {
     bankName: "HDFC Bank",
     accountName: "Brains & Taxes Private Limited",

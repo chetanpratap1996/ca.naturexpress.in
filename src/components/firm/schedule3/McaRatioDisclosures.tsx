@@ -233,7 +233,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
             onClick={() => setActiveTab("ratios")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
               activeTab === "ratios"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 bg-slate-100"
             }`}
           >
@@ -250,7 +250,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
             onClick={() => setActiveTab("ageing")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
               activeTab === "ageing"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 bg-slate-100"
             }`}
           >
@@ -262,7 +262,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
             onClick={() => setActiveTab("statutory-checklist")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
               activeTab === "statutory-checklist"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 bg-slate-100"
             }`}
           >
@@ -274,7 +274,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm transition flex items-center gap-1.5"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Disclosures Pack</span>
@@ -288,13 +288,13 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
       {activeTab === "ratios" && (
         <div className="space-y-4">
           {/* Statutory Guidance Alert Callout */}
-          <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-3 text-slate-800">
+            <Info className="w-5 h-5 text-btred-logo shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h4 className="text-xs font-black text-indigo-950 uppercase tracking-wider">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
                 Mandatory Statutory Requirement &bull; Companies (Accounts) Rules, 2014 &amp; Schedule III
               </h4>
-              <p className="text-xs text-indigo-900">
+              <p className="text-xs text-slate-700">
                 Under the amended Schedule III disclosures, companies must present these <strong>11 standard financial ratios</strong>. Where any ratio demonstrates a <strong>variance exceeding 25%</strong> compared to the preceding financial year, explanatory commentary is mandatory for audit finalization.
               </p>
             </div>
@@ -305,7 +305,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider border-b border-slate-800">
+                  <tr className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
                     <th className="py-3 px-4 w-48">Mandatory Ratio</th>
                     <th className="py-3 px-3">Formula / Numerator &amp; Denominator</th>
                     <th className="py-3 px-3 text-right">FY 25-26 (CY)</th>
@@ -333,19 +333,19 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                         {/* Name */}
                         <td className="py-3.5 px-4 font-black text-slate-900">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-400 font-bold">
+                            <span className="text-[10px] text-slate-600 font-bold">
                               #{idx + 1}
                             </span>
                             <span>{r.name}</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 block font-medium mt-0.5">
+                          <span className="text-[10px] text-slate-600 block font-medium mt-0.5">
                             {r.benchmarkGuidance}
                           </span>
                         </td>
 
                         {/* Formula */}
                         <td className="py-3.5 px-3 text-slate-600 font-medium">
-                          <code className="text-[11px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          <code className="text-[11px] font-mono text-btred-logo bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
                             {r.formula}
                           </code>
                           <div className="text-[10px] text-slate-500 mt-1">
@@ -395,7 +395,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                                 setEditingRatioId(r.id);
                                 setCustomExplanation(r.statutoryExplanation);
                               }}
-                              className="text-slate-400 hover:text-indigo-600 p-1 rounded transition shrink-0"
+                              className="text-slate-600 hover:text-btred-logo p-1 rounded transition shrink-0"
                               title="Edit statutory explanation"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                   Undisputed &amp; Disputed receivables ageing from transaction date.
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-red-50 text-btred-logo border border-red-200">
                 Note 19 Schedule
               </span>
             </div>
@@ -454,12 +454,12 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                     <tr key={idx} className="hover:bg-slate-50">
                       <td className="py-2 px-3 font-bold text-slate-800">{b.range}</td>
                       <td className="py-2 px-3 text-right font-black text-slate-900">{formatCurrencyINR(b.undisputedOthers)}</td>
-                      <td className="py-2 px-3 text-right text-slate-400">₹0.00</td>
-                      <td className="py-2 px-3 text-right text-slate-400">₹0.00</td>
+                      <td className="py-2 px-3 text-right text-slate-600">₹0.00</td>
+                      <td className="py-2 px-3 text-right text-slate-600">₹0.00</td>
                       <td className="py-2 px-3 text-right font-black text-slate-900">{formatCurrencyINR(b.total)}</td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-900 text-white font-black text-xs">
+                  <tr className="bg-red-50/80 text-slate-900 font-black text-xs border-t-2 border-red-200">
                     <td className="py-2.5 px-3 uppercase">Total Trade Receivables</td>
                     <td className="py-2.5 px-3 text-right">{formatCurrencyINR(10920000)}</td>
                     <td className="py-2.5 px-3 text-right">-</td>
@@ -504,13 +504,13 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                       <td className="py-2 px-3 font-bold text-slate-800">{b.range}</td>
                       <td className="py-2 px-3 text-right font-black text-emerald-700">{formatCurrencyINR(b.undisputedMsme)}</td>
                       <td className="py-2 px-3 text-right font-black text-slate-900">{formatCurrencyINR(b.undisputedOthers)}</td>
-                      <td className="py-2 px-3 text-right text-slate-400">₹0.00</td>
+                      <td className="py-2 px-3 text-right text-slate-600">₹0.00</td>
                       <td className="py-2 px-3 text-right font-black text-slate-900">{formatCurrencyINR(b.total)}</td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-900 text-white font-black text-xs">
+                  <tr className="bg-red-50/80 text-slate-900 font-black text-xs border-t-2 border-red-200">
                     <td className="py-2.5 px-3 uppercase">Total Trade Payables</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-400">{formatCurrencyINR(2300000)}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-700">{formatCurrencyINR(2300000)}</td>
                     <td className="py-2.5 px-3 text-right">{formatCurrencyINR(6430000)}</td>
                     <td className="py-2.5 px-3 text-right">-</td>
                     <td className="py-2.5 px-3 text-right">{formatCurrencyINR(8730000)}</td>
@@ -545,7 +545,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                     <tr key={idx} className="hover:bg-slate-50">
                       <td className="py-2 px-3 font-bold text-slate-800">{c.range}</td>
                       <td className="py-2 px-3 text-right font-black text-slate-900">{formatCurrencyINR(c.projectsInProgress)}</td>
-                      <td className="py-2 px-3 text-right text-slate-400">₹0.00</td>
+                      <td className="py-2 px-3 text-right text-slate-600">₹0.00</td>
                       <td className="py-2 px-3 text-right font-black text-slate-900">{formatCurrencyINR(c.total)}</td>
                     </tr>
                   ))}
@@ -592,7 +592,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
                         <span className="text-xs font-black text-slate-900">
                           {c.clauseTitle}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-slate-600 font-mono">
                           {c.statutoryRule}
                         </span>
                       </div>
@@ -630,7 +630,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
       {/* 5. EDIT EXPLANATION MODAL                                            */}
       {/* -------------------------------------------------------------------- */}
       {editingRatioId && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <h3 className="text-sm font-black text-slate-900">
               Edit Statutory Explanation for Ratio Variance
@@ -655,7 +655,7 @@ export const McaRatioDisclosures: React.FC<McaRatioDisclosuresProps> = ({ client
               </button>
               <button
                 onClick={handleSaveExplanation}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm shadow-md"
               >
                 Save Explanation
               </button>

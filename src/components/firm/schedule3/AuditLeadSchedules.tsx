@@ -273,7 +273,7 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
               Standard on Auditing SA 230 &bull; Audit Documentation
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-50 text-btred-logo border border-red-200">
               SA 520 &bull; Analytical Procedures
             </span>
           </div>
@@ -290,14 +290,14 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportFullDossier}
-            className="px-4 py-2 rounded-xl text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm transition flex items-center gap-1.5"
           >
             <FolderDown className="w-4 h-4" />
             <span>Export Peer Review Dossier Pack</span>
           </button>
           <button
             onClick={() => window.print()}
-            className="px-3 py-2 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl text-xs font-black bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition flex items-center gap-1.5"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Lead Sheet</span>
@@ -318,7 +318,7 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
               onClick={() => setSelectedSheetCode(s.code)}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap shrink-0 ${
                 isSelected
-                  ? "bg-slate-900 text-white shadow-sm"
+                  ? "bg-btred-logo text-white shadow-sm"
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
@@ -341,7 +341,7 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-4 border-b border-slate-200 gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-indigo-100 text-indigo-900 font-mono">
+              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-50 text-btred-logo border border-red-200 font-mono">
                 {activeSheet.code}
               </span>
               <h4 className="text-base font-black text-slate-900">
@@ -357,7 +357,7 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
 
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">
+              <span className="text-[10px] uppercase font-bold text-slate-600 block">
                 Total Lead Amount
               </span>
               <span className="text-lg font-black text-slate-900">
@@ -379,25 +379,25 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
         {/* Audit Sign-Off Chain (SA 230 Requirement) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
           <div className="space-y-0.5">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider flex items-center gap-1">
+            <span className="text-[10px] font-extrabold uppercase text-slate-600 tracking-wider flex items-center gap-1">
               <UserCheck className="w-3 h-3 text-indigo-600" /> Prepared By (Article)
             </span>
             <p className="text-xs font-black text-slate-900">{activeSheet.preparedBy.name}</p>
             <p className="text-[10px] text-slate-500">{activeSheet.preparedBy.designation}</p>
-            <p className="text-[10px] text-slate-400 font-mono">{activeSheet.preparedBy.timestamp}</p>
+            <p className="text-[10px] text-slate-600 font-mono">{activeSheet.preparedBy.timestamp}</p>
           </div>
 
           <div className="space-y-0.5 border-t md:border-t-0 md:border-l border-slate-200 md:pl-3 pt-2 md:pt-0">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider flex items-center gap-1">
+            <span className="text-[10px] font-extrabold uppercase text-slate-600 tracking-wider flex items-center gap-1">
               <UserCheck className="w-3 h-3 text-indigo-600" /> Reviewed By (Manager)
             </span>
             <p className="text-xs font-black text-slate-900">{activeSheet.reviewedBy.name}</p>
             <p className="text-[10px] text-slate-500">{activeSheet.reviewedBy.designation}</p>
-            <p className="text-[10px] text-slate-400 font-mono">{activeSheet.reviewedBy.timestamp}</p>
+            <p className="text-[10px] text-slate-600 font-mono">{activeSheet.reviewedBy.timestamp}</p>
           </div>
 
           <div className="space-y-0.5 border-t md:border-t-0 md:border-l border-slate-200 md:pl-3 pt-2 md:pt-0">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider flex items-center gap-1">
+            <span className="text-[10px] font-extrabold uppercase text-slate-600 tracking-wider flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-600" /> Approved By (Partner)
             </span>
             <p className="text-xs font-black text-slate-900">{activeSheet.approvedBy.name}</p>
@@ -437,7 +437,7 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
               <tbody className="divide-y divide-slate-100">
                 {constituentLedgers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400 text-xs">
+                    <td colSpan={5} className="py-8 text-center text-slate-600 text-xs">
                       No ledgers currently mapped to this lead schedule head.
                     </td>
                   </tr>
@@ -450,7 +450,7 @@ export const AuditLeadSchedules: React.FC<AuditLeadSchedulesProps> = ({ client, 
                         {formatCurrencyINR(l.closingBalance)} {l.balanceType}
                       </td>
                       <td className="py-2 px-3 text-center">
-                        <span className="font-mono font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded text-xs">
+                        <span className="font-mono font-black text-btred-logo bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-xs">
                           {activeSheet.auditTickMarks[0]?.symbol || "µ"}
                         </span>
                       </td>

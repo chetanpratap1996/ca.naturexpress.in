@@ -88,35 +88,35 @@ export function ToastContainer() {
           <div
             key={item.id}
             role="status"
-            className={`pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-2xl border backdrop-blur-xl transition-all duration-300 animate-in slide-in-from-top-4 fade-in ${
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-xl border backdrop-blur-xl transition-all duration-300 animate-in slide-in-from-top-4 fade-in bg-white ${
               isSuccess
-                ? "bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-950/20"
+                ? "border-emerald-200 border-l-4 border-l-emerald-500 shadow-emerald-950/5"
                 : isInfo
-                ? "bg-slate-900/95 text-white border-indigo-500/40 shadow-indigo-950/20"
+                ? "border-slate-200 border-l-4 border-l-btred-logo shadow-slate-950/5"
                 : isWarning
-                ? "bg-amber-950/95 text-amber-50 border-amber-500/50 shadow-amber-950/30"
-                : "bg-rose-950/95 text-rose-50 border-rose-500/50 shadow-rose-950/30"
+                ? "border-amber-200 border-l-4 border-l-amber-500 shadow-amber-950/5"
+                : "border-red-200 border-l-4 border-l-red-600 shadow-red-950/5"
             }`}
           >
             {/* Type Icon */}
             <div className="shrink-0 mt-0.5">
               {isSuccess && (
-                <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               )}
               {isInfo && (
-                <div className="w-7 h-7 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                <div className="w-7 h-7 rounded-xl bg-red-50 text-btred-logo flex items-center justify-center border border-red-200">
                   <Info className="w-4 h-4" />
                 </div>
               )}
               {isWarning && (
-                <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
                   <AlertTriangle className="w-4 h-4" />
                 </div>
               )}
               {isError && (
-                <div className="w-7 h-7 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                <div className="w-7 h-7 rounded-xl bg-red-50 text-red-600 flex items-center justify-center border border-red-200">
                   <XCircle className="w-4 h-4" />
                 </div>
               )}
@@ -125,15 +125,15 @@ export function ToastContainer() {
             {/* Content */}
             <div className="flex-1 min-w-0 pr-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs sm:text-sm font-black tracking-tight text-white line-clamp-1">
+                <p className="text-xs sm:text-sm font-black tracking-tight text-slate-900 line-clamp-1">
                   {item.title}
                 </p>
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider shrink-0">
+                <span className="text-[10px] uppercase font-bold text-slate-600 tracking-wider shrink-0">
                   Just now
                 </span>
               </div>
               {item.message && (
-                <p className="text-[11px] sm:text-xs text-slate-300 font-medium mt-0.5 leading-relaxed break-words">
+                <p className="text-[11px] sm:text-xs text-slate-600 font-medium mt-0.5 leading-relaxed break-words">
                   {item.message}
                 </p>
               )}
@@ -142,7 +142,7 @@ export function ToastContainer() {
             {/* Close Button */}
             <button
               onClick={() => removeToast(item.id)}
-              className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition mt-0.5"
+              className="shrink-0 text-slate-600 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition mt-0.5"
               aria-label="Dismiss notification"
             >
               <X className="w-3.5 h-3.5" />

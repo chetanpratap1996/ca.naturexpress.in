@@ -41,7 +41,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
       <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95">
         
         {/* Header */}
@@ -59,7 +59,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-800 p-1.5 rounded-xl hover:bg-slate-100 transition"
+            className="text-slate-600 hover:text-slate-800 p-1.5 rounded-xl hover:bg-slate-100 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -75,7 +75,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
             }}
             className="p-3.5 rounded-2xl border border-slate-200 hover:border-slate-400 bg-slate-50 hover:bg-slate-100/80 transition flex items-start gap-3 group"
           >
-            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 shrink-0">
+            <div className="p-2.5 rounded-xl bg-red-50 text-btred-logo border border-red-200 shrink-0">
               <UploadCloud className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -83,7 +83,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition">
                   Upload Documents
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Bank statements, bills &amp; notices
@@ -97,9 +97,9 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
               onClose();
               onOpenBankerDocket();
             }}
-            className="p-3.5 rounded-2xl border border-slate-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50/80 transition flex items-start gap-3 group"
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-red-400 bg-red-50/30 hover:bg-red-50/70 transition flex items-start gap-3 group"
           >
-            <div className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200 shrink-0">
+            <div className="p-2.5 rounded-xl bg-red-50 text-btred-logo border border-red-200 shrink-0">
               <Briefcase className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -107,7 +107,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 transition">
                   Bank Loan Documents
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 3-year audited reports &amp; ITRs pack
@@ -131,7 +131,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition">
                   Pay Invoices
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Pay via UPI or submit bank UTR
@@ -155,7 +155,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-700 transition">
                   Tax &amp; Cashflow
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Upcoming advance tax &amp; GST liability
@@ -179,7 +179,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-rose-700 transition">
                   Vendor Tax Checks
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Hold payment until vendor files GST
@@ -193,9 +193,9 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
               onClose();
               onNavigateTab("vault");
             }}
-            className="p-3.5 rounded-2xl border border-slate-200 hover:border-cyan-400 bg-cyan-50/40 hover:bg-cyan-50/80 transition flex items-start gap-3 group"
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-red-400 bg-red-50/30 hover:bg-red-50/70 transition flex items-start gap-3 group"
           >
-            <div className="p-2.5 rounded-xl bg-cyan-100 text-cyan-700 border border-cyan-200 shrink-0">
+            <div className="p-2.5 rounded-xl bg-red-50 text-btred-logo border border-red-200 shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -203,7 +203,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-cyan-700 transition">
                   Document Vault
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Download govt filed receipts &amp; returns
@@ -217,9 +217,9 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
               onClose();
               onNavigateTab("director-risk");
             }}
-            className="p-3.5 rounded-2xl border border-slate-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50/80 transition flex items-start gap-3 group"
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-red-400 bg-red-50/30 hover:bg-red-50/70 transition flex items-start gap-3 group"
           >
-            <div className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200 shrink-0">
+            <div className="p-2.5 rounded-xl bg-red-50 text-btred-logo border border-red-200 shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -227,7 +227,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 transition">
                   Director Risk Radar
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 DIN freeze, Sec 164(2) &amp; SFT tax tracking
@@ -241,9 +241,9 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
               onClose();
               onNavigateTab("profile");
             }}
-            className="p-3.5 rounded-2xl border border-slate-200 hover:border-blue-400 bg-blue-50/40 hover:bg-blue-50/80 transition flex items-start gap-3 group"
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-red-400 bg-red-50/30 hover:bg-red-50/70 transition flex items-start gap-3 group"
           >
-            <div className="p-2.5 rounded-xl bg-blue-100 text-blue-700 border border-blue-200 shrink-0">
+            <div className="p-2.5 rounded-xl bg-red-50 text-btred-logo border border-red-200 shrink-0">
               <KeyRound className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -251,7 +251,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition">
                   Profile &amp; Security PIN
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Update 4-digit PIN &amp; director details
@@ -275,7 +275,7 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-700 transition">
                   MSME 45-Day Watchdog
                 </h4>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Section 43B(h) disallowance risk tracker
@@ -285,13 +285,13 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
         </div>
 
         {/* Emergency CA Hotline Banner */}
-        <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+        <div className="bg-slate-50 text-slate-800 border border-slate-200 p-4 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-sm">
           <div className="space-y-0.5">
-            <p className="font-bold flex items-center gap-1.5 text-emerald-400">
+            <p className="font-bold flex items-center gap-1.5 text-emerald-700">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Priority CA Firm Desk
             </p>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-[11px] text-slate-600">
               Direct access to Managing Partner &amp; In-charge Article
             </p>
           </div>

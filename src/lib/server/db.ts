@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { 
   ClientGroup, 
   ClientEntity, 
@@ -16,7 +17,8 @@ import {
   Msme43BhClauseItem,
   Section40A2bSampleItem,
   StaffDataSecurityAudit,
-  PartnerRealizationMetrics
+  PartnerRealizationMetrics,
+  NotificationItem
 } from "@/lib/types";
 import { 
   INITIAL_GROUPS, 
@@ -35,7 +37,8 @@ import {
   INITIAL_MSME_43BH_RECORDS,
   INITIAL_SECTION_40A2B_SAMPLES,
   INITIAL_STAFF_SECURITY_LOGS,
-  INITIAL_PARTNER_METRICS
+  INITIAL_PARTNER_METRICS,
+  INITIAL_NOTIFICATIONS
 } from "@/lib/data/mockData";
 
 export interface DatabaseSchema {
@@ -56,6 +59,7 @@ export interface DatabaseSchema {
   section40a2bSamples: Section40A2bSampleItem[];
   staffSecurityLogs: StaffDataSecurityAudit[];
   partnerMetrics: PartnerRealizationMetrics[];
+  notifications: NotificationItem[];
   lastUpdated: string;
 }
 
@@ -118,6 +122,7 @@ export function ensureDatabase(): DatabaseSchema {
     section40a2bSamples: INITIAL_SECTION_40A2B_SAMPLES as any,
     staffSecurityLogs: INITIAL_STAFF_SECURITY_LOGS as any,
     partnerMetrics: INITIAL_PARTNER_METRICS as any,
+    notifications: INITIAL_NOTIFICATIONS,
     lastUpdated: new Date().toISOString(),
   });
 
@@ -141,6 +146,7 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.section40a2bSamples) { parsed.section40a2bSamples = INITIAL_SECTION_40A2B_SAMPLES as any; modified = true; }
     if (!parsed.staffSecurityLogs) { parsed.staffSecurityLogs = INITIAL_STAFF_SECURITY_LOGS as any; modified = true; }
     if (!parsed.partnerMetrics) { parsed.partnerMetrics = INITIAL_PARTNER_METRICS as any; modified = true; }
+    if (!parsed.notifications) { parsed.notifications = INITIAL_NOTIFICATIONS; modified = true; }
 
     if (modified) {
       fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), "utf-8");
@@ -182,17 +188,114 @@ export async function logAuditEvent(
   category: AuditTrailLog["category"]
 ): Promise<AuditTrailLog> {
   const db = ensureDatabase();
+  const timestamp = new Date().toISOString();
+  const previousLog = (db.auditTrail && db.auditTrail.length > 0) ? db.auditTrail[0] : null;
+  const previousHash = previousLog?.hash || "GENESIS_ROOT_HASH_022998C";
+  const rawPayload = `${previousHash}|${timestamp}|${actorName}|${actorRole}|${entityName}|${action}|${details}|${category}`;
+  const hash = crypto.createHash("sha256").update(rawPayload).digest("hex");
+
   const newLog: AuditTrailLog = {
     id: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    timestamp: new Date().toISOString(),
+    timestamp,
     actorName,
     actorRole,
     entityName,
     action,
     details,
     category,
+    previousHash,
+    hash,
   };
   db.auditTrail.unshift(newLog);
   await saveDatabase(db);
   return newLog;
+}
+
+export interface CreateNotificationInput {
+  title: string;
+  message: string;
+  category: NotificationItem["category"];
+  priority?: NotificationItem["priority"];
+  targetTab?: string;
+  recipientRole?: NotificationItem["recipientRole"];
+  targetRoles?: string[];
+  recipientEntityId?: string;
+  entityId?: string;
+  groupId?: string;
+  link?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Create a persistent notification (supports both object and positional invocations)
+ */
+export async function createNotification(
+  inputOrTitle: CreateNotificationInput | string,
+  message?: string,
+  category?: NotificationItem["category"],
+  priority: NotificationItem["priority"] = "NORMAL",
+  targetTab?: string,
+  recipientRole: NotificationItem["recipientRole"] = "ALL",
+  recipientEntityId?: string,
+  metadata?: Record<string, any>
+): Promise<NotificationItem> {
+  const db = ensureDatabase();
+  let newNotif: NotificationItem;
+
+  if (typeof inputOrTitle === "object") {
+    const input = inputOrTitle;
+    let mappedRole: NotificationItem["recipientRole"] = input.recipientRole || "ALL";
+    if (!input.recipientRole && input.targetRoles) {
+      if (input.targetRoles.includes("CLIENT") && input.targetRoles.length === 1) {
+        mappedRole = "CLIENT";
+      } else if (input.targetRoles.includes("ARTICLE") && input.targetRoles.length === 1) {
+        mappedRole = "ARTICLE";
+      } else if (input.targetRoles.includes("PARTNER") && input.targetRoles.length === 1) {
+        mappedRole = "PARTNER";
+      } else {
+        mappedRole = "ALL";
+      }
+    }
+
+    newNotif = {
+      id: `NOTIF-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      title: input.title,
+      message: input.message,
+      category: input.category,
+      priority: input.priority || "NORMAL",
+      targetTab: input.targetTab || input.link,
+      actionUrl: input.actionUrl || input.link,
+      recipientRole: mappedRole,
+      recipientEntityId: input.recipientEntityId || input.entityId,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      metadata: {
+        ...(input.metadata || {}),
+        groupId: input.groupId,
+        actionLabel: input.actionLabel
+      }
+    };
+  } else {
+    newNotif = {
+      id: `NOTIF-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      title: inputOrTitle,
+      message: message || "",
+      category: category || "COMPLIANCE",
+      priority,
+      targetTab,
+      actionUrl: targetTab,
+      recipientRole,
+      recipientEntityId,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      metadata
+    };
+  }
+
+  if (!db.notifications) db.notifications = [];
+  db.notifications.unshift(newNotif);
+  await saveDatabase(db);
+  return newNotif;
 }

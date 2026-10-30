@@ -27,7 +27,12 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/api/dsc") ||
       pathname.startsWith("/api/pay-to-release") ||
       pathname.startsWith("/api/invoices") ||
-      pathname.startsWith("/api/portal-sync")
+      pathname.startsWith("/api/portal-sync") ||
+      pathname.startsWith("/api/documents") ||
+      pathname.startsWith("/api/audit-trail") ||
+      pathname.startsWith("/api/whatsapp/parser") ||
+      pathname.startsWith("/api/auth/pin") ||
+      pathname.startsWith("/api/notifications")
     );
 
   if (isProtectedApiMutation) {

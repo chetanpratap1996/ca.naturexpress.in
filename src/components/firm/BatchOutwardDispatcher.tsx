@@ -208,19 +208,19 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner & Value Proposition */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-800/40 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-3xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-red-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-500/30">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="inline-flex items-center gap-1.5 bg-red-50 text-btred-logo px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-200">
+              <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
               High-Volume Dispatch Engine
             </div>
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
               Batch Inward / Outward Document Dispatcher
             </h2>
-            <p className="text-xs text-slate-300 leading-relaxed font-normal">
+            <p className="text-xs text-slate-600 leading-relaxed font-normal">
               Drop 50+ filing receipts (GSTR-3B, GSTR-1, ITR-V, Form 3CD, Challans). System auto-parses PAN, GSTIN, and Period, maps to the client master, and shoots out branded WhatsApp delivery links in 60 seconds.
             </p>
           </div>
@@ -228,7 +228,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={handleLoadSampleBatch}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95"
+              className="bg-btred-logo hover:bg-red-700 text-white shadow-sm text-xs font-black px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Load Monthly Filing Batch</span>
@@ -244,9 +244,9 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
           {parsedQueue.length === 0 ? (
             <div
               onClick={handleLoadSampleBatch}
-              className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-3xl p-10 text-center cursor-pointer bg-white hover:bg-indigo-50/20 transition space-y-3 shadow-sm"
+              className="border-2 border-dashed border-slate-300 hover:border-red-500 rounded-3xl p-10 text-center cursor-pointer bg-white hover:bg-red-50/20 transition space-y-3 shadow-sm"
             >
-              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto border border-indigo-100 shadow-sm">
+              <div className="w-14 h-14 bg-red-50 text-btred-logo rounded-2xl flex items-center justify-center mx-auto border border-red-100 shadow-sm">
                 <UploadCloud className="w-7 h-7" />
               </div>
               <div className="space-y-1">
@@ -259,7 +259,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               </div>
               <button
                 type="button"
-                className="bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-800 transition shadow-sm"
+                className="bg-btred-logo text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-700 transition shadow-sm"
               >
                 Load Sample September 2026 Batch (5 Documents)
               </button>
@@ -272,7 +272,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                     type="checkbox"
                     checked={selectedCount === parsedQueue.length && parsedQueue.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded text-btred-logo focus:ring-red-500"
                     id="select-all"
                   />
                   <label htmlFor="select-all" className="text-xs font-extrabold text-slate-800 cursor-pointer">
@@ -305,7 +305,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                         type="checkbox"
                         checked={item.selected}
                         onChange={() => handleToggleSelect(item.id)}
-                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 mt-1 shrink-0"
+                        className="w-4 h-4 rounded text-btred-logo focus:ring-red-500 mt-1 shrink-0"
                       />
 
                       <div className="space-y-1 min-w-0">
@@ -352,7 +352,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                           Sent to WhatsApp
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-btred-logo bg-red-50 px-2 py-0.5 rounded border border-red-200">
                           <Clock className="w-3 h-3" />
                           Ready
                         </span>
@@ -369,14 +369,14 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
             <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-extrabold text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-indigo-600 animate-spin" />
+                  <Sparkles className="w-4 h-4 text-btred-logo animate-spin" />
                   Dispatching documents to clients...
                 </span>
-                <span className="font-mono font-black text-indigo-600">{dispatchProgress}%</span>
+                <span className="font-mono font-black text-btred-logo">{dispatchProgress}%</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                 <div
-                  className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                  className="bg-btred-logo h-2.5 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${dispatchProgress}%` }}
                 ></div>
               </div>
@@ -385,7 +385,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
 
           {/* Live Dispatch Log */}
           {dispatchLogs.length > 0 && (
-            <div className="bg-slate-950 rounded-2xl p-4 text-xs font-mono text-emerald-400 space-y-1 max-h-40 overflow-y-auto border border-slate-800 shadow-inner">
+            <div className="bg-slate-50 rounded-2xl p-4 text-xs font-mono text-slate-800 space-y-1 max-h-40 overflow-y-auto border border-slate-200 shadow-inner">
               {dispatchLogs.map((log, idx) => (
                 <div key={idx} className="flex items-start gap-1.5">
                   <span>&gt;</span>
@@ -400,7 +400,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Send className="w-4 h-4 text-indigo-600" />
+              <Send className="w-4 h-4 text-btred-logo" />
               <span>Dispatch Configuration</span>
             </h3>
 
@@ -415,7 +415,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                   type="checkbox"
                   checked={sendWhatsApp}
                   onChange={(e) => setSendWhatsApp(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  className="w-4 h-4 rounded text-btred-logo focus:ring-red-500"
                 />
                 <div>
                   <span className="font-bold text-slate-900 block">WhatsApp Delivery Link</span>
@@ -428,7 +428,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                   type="checkbox"
                   checked={sendEmail}
                   onChange={(e) => setSendEmail(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  className="w-4 h-4 rounded text-btred-logo focus:ring-red-500"
                 />
                 <div>
                   <span className="font-bold text-slate-900 block">Official Firm Email</span>
@@ -441,7 +441,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                   type="checkbox"
                   checked={autoCompleteTask}
                   onChange={(e) => setAutoCompleteTask(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  className="w-4 h-4 rounded text-btred-logo focus:ring-red-500"
                 />
                 <div>
                   <span className="font-bold text-slate-900 block">Auto-Advance Compliance Task</span>
@@ -454,7 +454,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                   type="checkbox"
                   checked={enforcePayToRelease}
                   onChange={(e) => setEnforcePayToRelease(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  className="w-4 h-4 rounded text-btred-logo focus:ring-red-500"
                 />
                 <div>
                   <span className="font-bold text-slate-900 block">Pay-to-Release Gatekeeper</span>
@@ -481,8 +481,8 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               disabled={isProcessingBatch || selectedCount === 0}
               className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 shadow-xl ${
                 selectedCount > 0 && !isProcessingBatch
-                  ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25 active:scale-95"
-                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  ? "bg-btred-logo hover:bg-red-700 text-white shadow-red-500/25 active:scale-95"
+                  : "bg-slate-200 text-slate-600 cursor-not-allowed"
               }`}
             >
               <Send className="w-4 h-4" />

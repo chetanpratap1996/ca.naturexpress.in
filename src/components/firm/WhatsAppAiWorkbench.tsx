@@ -209,19 +209,19 @@ export function WhatsAppAiWorkbench({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-emerald-950 border border-teal-800/40 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-teal-300" /> WhatsApp Bot + Statement OCR
+              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-teal-800" /> WhatsApp Bot + Statement OCR
               </span>
-              <span className="text-xs text-slate-400">Zero-Friction Document Ingestion</span>
+              <span className="text-xs text-slate-600">Zero-Friction Document Ingestion</span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-emerald-400" /> WhatsApp AI Collector &amp; Auto-Decryption Engine
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <MessageSquare className="w-6 h-6 text-emerald-700" /> WhatsApp AI Collector &amp; Auto-Decryption Engine
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
+            <p className="text-sm text-slate-600 mt-1 max-w-2xl">
               Clients send password-protected bank PDFs on WhatsApp. Brains &amp; Taxes automatically matches client password patterns, bypasses PDF encryption, parses ledger transactions, and tags them for 3CD and GST filing.
             </p>
           </div>
@@ -239,23 +239,23 @@ export function WhatsAppAiWorkbench({
       </div>
 
       {successToast && (
-        <div className="bg-emerald-900/50 border border-emerald-500/40 text-emerald-200 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-sm shadow-md">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div className="bg-white border-l-4 border-l-emerald-600 border border-slate-200 text-slate-800 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-sm shadow-md">
+          <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Entity Selector Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 p-3 rounded-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 p-3 rounded-xl shadow-xs text-slate-900">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase">Selected Entity:</span>
+          <span className="text-xs font-semibold text-slate-600 uppercase">Selected Entity:</span>
           <select
             value={selectedEntityId || selectedClient?.id || ""}
             onChange={(e) => {
               setSelectedEntityId(e.target.value);
               setActiveStatementIndex(0);
             }}
-            className="bg-slate-950 border border-slate-800 text-white text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-teal-500 font-semibold"
+            className="bg-slate-50 border border-slate-200 text-slate-900 text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-red-500 focus:bg-white font-semibold"
           >
             {clients.length === 0 ? (
               <option value="">No clients onboarded</option>
@@ -268,18 +268,18 @@ export function WhatsAppAiWorkbench({
             )}
           </select>
         </div>
-        <div className="text-xs text-slate-400 flex items-center gap-3">
+        <div className="text-xs text-slate-600 flex items-center gap-3">
           <span>Promoter: <strong className="text-white">{selectedClient?.primaryContact?.name || "No Client Selected"}</strong></span>
-          <span>WhatsApp: <strong className="text-emerald-400 font-mono">{selectedClient?.primaryContact?.phone || "N/A"}</strong></span>
+          <span>WhatsApp: <strong className="text-emerald-700 font-mono">{selectedClient?.primaryContact?.phone || "N/A"}</strong></span>
         </div>
       </div>
 
       {/* Mobile View Toggle (screens < lg) */}
-      <div className="flex lg:hidden items-center bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs font-bold w-full">
+      <div className="flex lg:hidden items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold w-full">
         <button
           onClick={() => setMobileView("chat")}
           className={`flex-1 py-2 text-center rounded-xl transition ${
-            mobileView === "chat" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
+            mobileView === "chat" ? "bg-emerald-600 text-white shadow" : "text-slate-600 hover:text-slate-900"
           }`}
         >
           WhatsApp Chat &amp; Rules
@@ -287,7 +287,7 @@ export function WhatsAppAiWorkbench({
         <button
           onClick={() => setMobileView("statement")}
           className={`flex-1 py-2 text-center rounded-xl transition ${
-            mobileView === "statement" ? "bg-teal-600 text-white shadow" : "text-slate-400 hover:text-white"
+            mobileView === "statement" ? "bg-teal-600 text-white shadow" : "text-slate-600 hover:text-slate-900"
           }`}
         >
           Extracted Ledger ({activeStatement?.transactions?.length || 0})
@@ -299,21 +299,21 @@ export function WhatsAppAiWorkbench({
         
         {/* Left Column: Live WhatsApp Escalation Bot (5 cols) */}
         <div className={`lg:col-span-5 space-y-4 ${mobileView === "chat" ? "block" : "hidden lg:block"}`}>
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col h-[640px]">
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-lg flex flex-col h-[640px]">
             {/* Chat Header */}
-            <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-slate-900">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
+                <div className="w-10 h-10 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-700 font-bold text-sm">
                   {selectedClient?.primaryContact?.name ? selectedClient.primaryContact.name.slice(0, 2).toUpperCase() : "CL"}
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white">{selectedClient?.primaryContact?.name || "Client Contact"}</h4>
-                  <p className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                  <p className="text-[11px] text-emerald-700 font-mono flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Verified WhatsApp Line
                   </p>
                 </div>
               </div>
-              <span className="text-xs text-slate-400 font-mono">Brains &amp; Taxes Assistant</span>
+              <span className="text-xs text-slate-500 font-mono">Brains &amp; Taxes Assistant</span>
             </div>
 
             {/* Chat Body */}
@@ -331,9 +331,9 @@ export function WhatsAppAiWorkbench({
                     }`}
                   >
                     <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
-                    <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                    <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-600">
                       <span>{msg.time}</span>
-                      {msg.sender === "BOT" && <Check className="w-3 h-3 text-cyan-400" />}
+                      {msg.sender === "BOT" && <Check className="w-3 h-3 text-teal-700" />}
                     </div>
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export function WhatsAppAiWorkbench({
             </div>
 
             {/* Custom Input & Automated Escalation Dispatchers */}
-            <div className="p-3 bg-slate-950/90 border-t border-slate-800 space-y-2.5">
+            <div className="p-3 bg-slate-50 border-t border-slate-200 space-y-2.5">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -353,7 +353,7 @@ export function WhatsAppAiWorkbench({
                       handleSendCustomMessage();
                     }
                   }}
-                  className="flex-1 bg-slate-900 border border-slate-700 text-xs px-3 py-2 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500"
+                  className="flex-1 bg-white border border-slate-200 text-xs px-3 py-2 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500"
                 />
                 <button
                   type="button"
@@ -364,25 +364,25 @@ export function WhatsAppAiWorkbench({
                 </button>
               </div>
 
-              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                 Automated Escalation Triggers
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
                   onClick={() => handleSendReminder("GENTLE")}
-                  className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg transition text-center"
+                  className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium rounded-lg transition text-center"
                 >
                   L1: Gentle
                 </button>
                 <button
                   onClick={() => handleSendReminder("PENALTY_WARNING")}
-                  className="px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-medium rounded-lg border border-amber-500/30 transition text-center"
+                  className="px-2 py-1.5 bg-amber-500/20 hover:bg-amber-50 text-amber-900 border border-amber-200 font-bold text-[11px] font-medium rounded-lg border border-amber-500/30 transition text-center"
                 >
                   L2: Penalty
                 </button>
                 <button
                   onClick={() => handleSendReminder("PARTNER_ESCALATION")}
-                  className="px-2 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px] font-medium rounded-lg border border-rose-500/30 transition text-center"
+                  className="px-2 py-1.5 bg-rose-500/20 hover:bg-red-50 text-btred-logo border border-red-200 font-bold text-[11px] font-medium rounded-lg border border-rose-500/30 transition text-center"
                 >
                   L3: Partner
                 </button>
@@ -391,31 +391,31 @@ export function WhatsAppAiWorkbench({
           </div>
 
           {/* Decryption Vault Summary for this Client */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-lg space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-teal-400" />
+                <Key className="w-4 h-4 text-teal-700" />
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">Client Password Vault</h4>
               </div>
               <button
                 onClick={() => setIsAddVaultOpen(true)}
-                className="text-[11px] font-bold text-teal-400 hover:text-teal-300"
+                className="text-[11px] font-bold text-teal-700 hover:text-teal-800"
               >
                 + Add Bank Pattern
               </button>
             </div>
             <div className="space-y-2">
               {clientVaults.map((v) => (
-                <div key={v.id} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 text-xs flex items-center justify-between">
+                <div key={v.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs flex items-center justify-between text-slate-800">
                   <div>
                     <span className="font-semibold text-white block">{v.bankName}</span>
-                    <span className="text-[11px] text-slate-400 font-mono">{v.accountNumberMasked}</span>
+                    <span className="text-[11px] text-slate-500 font-mono">{v.accountNumberMasked}</span>
                   </div>
                   <div className="text-right">
-                    <span className="px-2 py-0.5 bg-teal-500/10 text-teal-300 border border-teal-500/20 rounded font-mono text-[10px] block">
+                    <span className="px-2 py-0.5 bg-teal-50 text-teal-800 border border-teal-200 font-bold rounded font-mono text-[10px] block">
                       {v.pdfPasswordPattern}
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-medium">Pattern Verified</span>
+                    <span className="text-[10px] text-emerald-700 font-medium">Pattern Verified</span>
                   </div>
                 </div>
               ))}
@@ -426,45 +426,45 @@ export function WhatsAppAiWorkbench({
         {/* Right Column: Statement Parser & AI Ledger (7 cols) */}
         <div className={`lg:col-span-7 space-y-4 ${mobileView === "statement" ? "block" : "hidden lg:block"}`}>
           {activeStatement ? (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-5">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-lg space-y-5">
               {/* Statement Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-bold uppercase flex items-center gap-1">
-                      <Unlock className="w-3 h-3 text-emerald-400" /> Auto-Decrypted via Vault
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold rounded text-[10px] font-bold uppercase flex items-center gap-1">
+                      <Unlock className="w-3 h-3 text-emerald-700" /> Auto-Decrypted via Vault
                     </span>
-                    <span className="text-xs text-slate-400">{activeStatement.parsedAt.slice(0, 10)}</span>
+                    <span className="text-xs text-slate-600">{activeStatement.parsedAt.slice(0, 10)}</span>
                   </div>
                   <h3 className="text-lg font-bold text-white mt-1">{activeStatement.bankName}</h3>
-                  <p className="text-xs text-slate-400 font-mono">File: {activeStatement.sourceFile} • Period: {activeStatement.statementPeriod}</p>
+                  <p className="text-xs text-slate-500 font-mono">File: {activeStatement.sourceFile} • Period: {activeStatement.statementPeriod}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => alert("Exported TallyPrime XML Voucher Batch successfully!")}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5 shadow-sm"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition flex items-center gap-1.5 shadow-xs"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" /> Push to Tally XML
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" /> Push to Tally XML
                   </button>
                 </div>
               </div>
 
               {/* Financial Metrics Strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase">Opening Balance</span>
-                  <div className="text-sm font-bold text-slate-200 mt-1">₹{activeStatement.openingBalance.toLocaleString("en-IN")}</div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-900">
+                  <span className="text-[10px] font-semibold text-slate-600 uppercase">Opening Balance</span>
+                  <div className="text-sm font-bold text-slate-800 mt-1">₹{activeStatement.openingBalance.toLocaleString("en-IN")}</div>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-[10px] font-semibold text-emerald-400 uppercase">Total Inward (Credits)</span>
-                  <div className="text-sm font-bold text-emerald-400 mt-1">+₹{activeStatement.totalDeposits.toLocaleString("en-IN")}</div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-900">
+                  <span className="text-[10px] font-semibold text-emerald-700 uppercase">Total Inward (Credits)</span>
+                  <div className="text-sm font-bold text-emerald-700 mt-1">+₹{activeStatement.totalDeposits.toLocaleString("en-IN")}</div>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-[10px] font-semibold text-rose-400 uppercase">Total Outward (Debits)</span>
-                  <div className="text-sm font-bold text-rose-400 mt-1">-₹{activeStatement.totalWithdrawals.toLocaleString("en-IN")}</div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-900">
+                  <span className="text-[10px] font-semibold text-btred-logo uppercase">Total Outward (Debits)</span>
+                  <div className="text-sm font-bold text-btred-logo mt-1">-₹{activeStatement.totalWithdrawals.toLocaleString("en-IN")}</div>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-900">
                   <span className="text-[10px] font-semibold text-indigo-400 uppercase">Closing Balance</span>
                   <div className="text-sm font-bold text-indigo-300 mt-1">₹{activeStatement.closingBalance.toLocaleString("en-IN")}</div>
                 </div>
@@ -473,16 +473,16 @@ export function WhatsAppAiWorkbench({
               {/* Extracted Transactions Table */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Extracted &amp; AI-Tagged Tax Transactions ({activeStatement.transactions.length})
                   </h4>
-                  <span className="text-[11px] text-slate-400">Heuristics: TDS 281, PMT-06, B2B</span>
+                  <span className="text-[11px] text-slate-600">Heuristics: TDS 281, PMT-06, B2B</span>
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="bg-slate-950 border-b border-slate-800 text-[11px] uppercase font-semibold text-slate-400">
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase font-semibold text-slate-700">
                         <th className="py-2.5 px-3">Date</th>
                         <th className="py-2.5 px-3">Description / Narration</th>
                         <th className="py-2.5 px-3">AI Tax Tag</th>
@@ -491,34 +491,34 @@ export function WhatsAppAiWorkbench({
                         <th className="py-2.5 px-3 text-center">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 bg-slate-900/60 font-mono">
+                    <tbody className="divide-y divide-slate-100 bg-white font-mono text-slate-900">
                       {activeStatement.transactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-2 px-3 text-slate-300 whitespace-nowrap">{tx.date}</td>
-                          <td className="py-2 px-3 text-slate-200 font-sans max-w-[200px] truncate" title={tx.description}>
+                        <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-2 px-3 text-slate-700 whitespace-nowrap">{tx.date}</td>
+                          <td className="py-2 px-3 text-slate-800 font-sans max-w-[200px] truncate" title={tx.description}>
                             {tx.description}
                           </td>
                           <td className="py-2 px-3 font-sans">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               tx.aiSuggestedCategory === "GST_CHALLAN"
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                ? "bg-amber-50 text-amber-900 border border-amber-200 font-bold"
                                 : tx.aiSuggestedCategory === "SALES_RECEIPT"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                ? "bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold"
                                 : tx.aiSuggestedCategory === "DIRECTOR_REMUNERATION"
-                                ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                                : "bg-slate-800 text-slate-300"
+                                ? "bg-purple-50 text-purple-900 border border-purple-200 font-bold"
+                                : "bg-slate-100 text-slate-700"
                             }`}>
                               {tx.aiSuggestedCategory.replace(/_/g, " ")}
                             </span>
                           </td>
-                          <td className="py-2 px-3 text-right text-rose-400 font-semibold">
+                          <td className="py-2 px-3 text-right text-btred-logo font-semibold">
                             {tx.withdrawal > 0 ? `₹${tx.withdrawal.toLocaleString("en-IN")}` : "-"}
                           </td>
-                          <td className="py-2 px-3 text-right text-emerald-400 font-semibold">
+                          <td className="py-2 px-3 text-right text-emerald-700 font-semibold">
                             {tx.deposit > 0 ? `₹${tx.deposit.toLocaleString("en-IN")}` : "-"}
                           </td>
                           <td className="py-2 px-3 text-center font-sans">
-                            <span className="inline-flex items-center text-[10px] text-teal-400 font-semibold gap-0.5">
+                            <span className="inline-flex items-center text-[10px] text-teal-700 font-semibold gap-0.5">
                               <CheckCircle2 className="w-3 h-3" /> Ready
                             </span>
                           </td>
@@ -530,7 +530,7 @@ export function WhatsAppAiWorkbench({
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-12 text-center text-slate-400">
+            <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-600">
               <FileText className="w-10 h-10 mx-auto text-slate-600 mb-2" />
               <p>No statements parsed yet for this client.</p>
               <button
@@ -546,52 +546,52 @@ export function WhatsAppAiWorkbench({
 
       {/* Add Password Vault Modal */}
       {isAddVaultOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-in space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-in space-y-4 text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Key className="w-5 h-5 text-teal-400" />
+                <Key className="w-5 h-5 text-teal-700" />
                 <h3 className="text-base font-bold text-white">Add Bank Decryption Rule</h3>
               </div>
-              <button onClick={() => setIsAddVaultOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+              <button onClick={() => setIsAddVaultOpen(false)} className="text-slate-600 hover:text-slate-900">✕</button>
             </div>
             
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 font-medium block mb-1">Bank Name</label>
+                <label className="text-slate-600 font-medium block mb-1">Bank Name</label>
                 <input
                   type="text"
                   value={newBankName}
                   onChange={(e) => setNewBankName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:border-red-500"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 font-medium block mb-1">Masked Account Number</label>
+                <label className="text-slate-600 font-medium block mb-1">Masked Account Number</label>
                 <input
                   type="text"
                   value={newAccMask}
                   onChange={(e) => setNewAccMask(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:border-red-500 font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 font-medium block mb-1">PDF Password Rule / Decryption Key</label>
+                <label className="text-slate-600 font-medium block mb-1">PDF Password Rule / Decryption Key</label>
                 <input
                   type="text"
                   value={newPasswordPattern}
                   onChange={(e) => setNewPasswordPattern(e.target.value)}
                   placeholder="e.g. PAN in caps + DDMM"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:border-red-500 font-mono"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">Brains &amp; Taxes will evaluate this pattern automatically whenever the client uploads a statement.</p>
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button onClick={() => setIsAddVaultOpen(false)} className="px-3 py-1.5 text-slate-400 hover:text-white text-xs">
+              <button onClick={() => setIsAddVaultOpen(false)} className="px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs">
                 Cancel
               </button>
               <button

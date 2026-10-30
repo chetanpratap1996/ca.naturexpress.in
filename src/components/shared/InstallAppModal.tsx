@@ -33,7 +33,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
       <div 
         className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 text-slate-900"
       >
@@ -48,7 +48,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-800 p-2 rounded-xl hover:bg-slate-100 transition"
+            className="text-slate-600 hover:text-slate-800 p-2 rounded-xl hover:bg-slate-100 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -88,26 +88,26 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
             {/* Platform-Specific Step-by-Step Instructions */}
             {isIOS ? (
               /* Apple iOS Safari Guide */
-              <div className="border border-indigo-200 bg-indigo-50/50 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-black text-indigo-900">
-                  <Smartphone className="w-4 h-4 text-indigo-600" />
+              <div className="border border-red-200 bg-red-50/50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900">
+                  <Smartphone className="w-4 h-4 text-btred-logo" />
                   <span>How to install on iPhone / iPad:</span>
                 </div>
                 <div className="space-y-2.5 text-xs text-slate-700">
-                  <div className="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-indigo-100">
-                    <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">
+                  <div className="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-red-100">
+                    <div className="p-1.5 rounded-lg bg-red-100 text-btred-logo font-black text-xs shrink-0">
                       1
                     </div>
                     <div>
-                      <span className="font-bold text-slate-900">Tap the Share icon</span> in Safari&apos;s bottom toolbar (the square box with an arrow pointing up <Share className="w-3.5 h-3.5 inline text-indigo-600 -mt-0.5" />).
+                      <span className="font-bold text-slate-900">Tap the Share icon</span> in Safari&apos;s bottom toolbar (the square box with an arrow pointing up <Share className="w-3.5 h-3.5 inline text-btred-logo -mt-0.5" />).
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-indigo-100">
-                    <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">
+                  <div className="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-red-100">
+                    <div className="p-1.5 rounded-lg bg-red-100 text-btred-logo font-black text-xs shrink-0">
                       2
                     </div>
                     <div>
-                      <span className="font-bold text-slate-900">Scroll down &amp; tap &quot;Add to Home Screen&quot;</span> (<PlusSquare className="w-3.5 h-3.5 inline text-indigo-600 -mt-0.5" />), then tap <strong>Add</strong> in the top right.
+                      <span className="font-bold text-slate-900">Scroll down &amp; tap &quot;Add to Home Screen&quot;</span> (<PlusSquare className="w-3.5 h-3.5 inline text-btred-logo -mt-0.5" />), then tap <strong>Add</strong> in the top right.
                     </div>
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs transition shadow-sm"
+              className="w-full py-3 bg-btred-logo hover:bg-red-700 text-white shadow-md font-bold rounded-2xl text-xs transition shadow-sm"
             >
               Got It, Close Window
             </button>

@@ -239,24 +239,24 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 p-1 rounded-xl hover:bg-slate-100 transition"
+          className="absolute right-4 top-4 text-slate-600 hover:text-slate-700 p-1 rounded-xl hover:bg-slate-100 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-red-50 border border-red-200 text-btred-logo flex items-center justify-center shrink-0">
             <Briefcase className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-slate-900">1-Click Banker &amp; Tender Loan Dossier</h3>
-              <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+              <span className="bg-red-50 text-btred-logo border border-red-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                 Credit Ready
               </span>
             </div>
@@ -347,7 +347,7 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
+                className="bg-btred-logo hover:bg-red-700 text-white font-black px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
               >
                 {isGenerating ? (
                   <>
@@ -404,30 +404,29 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
             </div>
 
             {/* Official Certification Card */}
-            <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-2 border border-slate-800 font-mono text-[11px]">
-              <div className="flex justify-between items-center text-slate-300 pb-1.5 border-b border-slate-800">
+            <div className="bg-slate-50 text-slate-800 rounded-2xl p-4 space-y-2 border border-slate-200 font-mono text-[11px]">
+              <div className="flex justify-between items-center text-slate-600 pb-1.5 border-b border-slate-200">
                 <span>Dossier Control ID:</span>
-                <strong className="text-white">{dossierRef}</strong>
+                <strong className="text-slate-900 font-sans">{dossierRef}</strong>
               </div>
-              <div className="flex justify-between items-center text-slate-300 pb-1.5 border-b border-slate-800">
+              <div className="flex justify-between items-center text-slate-600 pb-1.5 border-b border-slate-200">
                 <span>ICAI Unique Doc ID (UDIN):</span>
-                <strong className="text-emerald-400">{udinNumber}</strong>
+                <strong className="text-btred-logo">{udinNumber}</strong>
               </div>
-              <div className="flex justify-between items-center text-slate-300 pb-1.5 border-b border-slate-800">
+              <div className="flex justify-between items-center text-slate-600 pb-1.5 border-b border-slate-200">
                 <span>Target Authority:</span>
-                <span className="text-slate-200 font-sans font-medium truncate max-w-[260px]">{bankName}</span>
+                <span className="text-slate-900 font-sans font-medium truncate max-w-[260px]">{bankName}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-slate-600">
                 <span>Verification Watermark:</span>
-                <span className="text-amber-300 font-sans font-bold">RESTRICTED TO CREDIT COMMITTEE ONLY</span>
+                <span className="text-amber-800 font-sans font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[10px]">RESTRICTED TO CREDIT COMMITTEE ONLY</span>
               </div>
             </div>
-
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
               <button
                 onClick={handlePrintOfficialCover}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                className="bg-btred-logo hover:bg-red-700 text-white font-bold py-3 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5"
                 title="Print Official Certified True Copy Letterhead"
               >
                 <Printer className="w-4 h-4 text-indigo-200" />
@@ -435,9 +434,9 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
               </button>
               <button
                 onClick={handleDownloadZip}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                className="bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold py-3 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
               >
-                <Download className="w-4 h-4 text-emerald-400" />
+                <Download className="w-4 h-4 text-emerald-700" />
                 <span>Download Dossier</span>
               </button>
               <button

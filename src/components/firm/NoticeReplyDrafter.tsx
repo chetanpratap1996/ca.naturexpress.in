@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   FileText, 
   Printer, 
@@ -12,9 +12,16 @@ import {
   BookOpen, 
   Sparkles,
   Scale,
-  Calendar
+  Calendar,
+  Send,
+  Edit3,
+  CheckCircle2,
+  RefreshCw
 } from "lucide-react";
 import { ClientEntity } from "@/lib/types";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { openWhatsAppPreset } from "@/lib/whatsapp";
+import { toast } from "@/components/shared/ToastNotification";
 
 export type NoticeType = 
   | "GST_ASMT_10_MISMATCH" 
@@ -75,7 +82,41 @@ In view of the above factual submissions and settled jurisprudence, it is respec
 Yours faithfully,
 For [CLIENT_NAME]
 
-Authorized Representative / Chartered Accountant`
+Authorized Representative / Chartered Accountant
+[FIRM_NAME] (FRN: [FIRM_FRN])`
+  },
+  {
+    id: "GST_DRC_01C_LIABILITY",
+    title: "Form GST DRC-01C (Part B Reply: GSTR-1 vs GSTR-3B Tax Difference)",
+    authority: "Automated GST Portal System / State Jurisdictional Officer",
+    applicableLaw: "Rule 88C of the Central Goods and Services Tax Rules, 2017",
+    statutoryCitations: [
+      "Rule 88C(2) Explanation for tax differential",
+      "Circular No. 170/02/2022-GST on GSTR-1 vs 3B reporting"
+    ],
+    defaultGrounds: [
+      "Differential liability was caused by typographical data entry error in Table 4 of GSTR-1, corrected in subsequent month.",
+      "Credit note inadvertently reported under forward charge.",
+      "Advance payment received against supply adjusted in the subsequent return."
+    ],
+    replyBodyDraft: `PART B - REPLY BY ASSESSEE UNDER RULE 88C TO FORM GST DRC-01C
+
+Reference No: DRC-01C/[NOTICE_REF]
+Taxpayer: [CLIENT_NAME] | GSTIN: [CLIENT_GSTIN]
+
+1. REASON FOR DIFFERENCE BETWEEN GSTR-1 AND GSTR-3B:
+We refer to the intimation under Rule 88C regarding excess tax liability declared in Form GSTR-1 compared to Form GSTR-3B for [PERIOD].
+
+2. SPECIFIC REASON CODE UNDER RULE 88C:
+The reason for the difference falls under Category: "Typographical / Data Entry Error in GSTR-1 amended in subsequent period".
+
+3. FACTUAL CLARIFICATION:
+An invoice of taxable value [DEMAND_AMOUNT] was punched twice due to ERP transmission glitch in GSTR-1. In GSTR-3B, actual tax liability was correctly computed and discharged in cash/credit ledger. The excess invoice was formally cancelled / credit note was issued in the subsequent tax return.
+
+Hence, no short payment of tax has occurred and no recovery under Section 79 is warranted.
+
+Authorized Signatory / Tax Practitioner
+For [CLIENT_NAME]`
   },
   {
     id: "ITD_143_1_A_PRIMA_FACIE",
@@ -114,39 +155,90 @@ The system proposed an adjustment of [DEMAND_AMOUNT] on account of mismatch betw
 It is most respectfully prayed that the proposed prima facie adjustment be deleted and the return of income be accepted as filed.
 
 Yours faithfully,
+[FIRM_NAME]
 Chartered Accountants for Assessee`
   },
   {
-    id: "GST_DRC_01C_LIABILITY",
-    title: "Form GST DRC-01C (Part B Reply: GSTR-1 vs GSTR-3B Tax Difference)",
-    authority: "Automated GST Portal System / State Jurisdictional Officer",
-    applicableLaw: "Rule 88C of the Central Goods and Services Tax Rules, 2017",
+    id: "ITD_139_9_DEFECTIVE",
+    title: "Income Tax Section 139(9) Notice of Defective Return",
+    authority: "Centralized Processing Centre (CPC), Bengaluru / NFAC",
+    applicableLaw: "Section 139(9) of the Income Tax Act, 1961",
     statutoryCitations: [
-      "Rule 88C(2) Explanation for tax differential",
-      "Circular No. 170/02/2022-GST on GSTR-1 vs 3B reporting"
+      "CBDT Circular No. 9/2006 on defective return rectifications",
+      "Mangalam Organics Ltd vs. DCIT (ITAT Mumbai)",
+      "Section 44AB read with Rule 12(2)"
     ],
     defaultGrounds: [
-      "Differential liability was caused by typographical data entry error in Table 4 of GSTR-1, corrected in subsequent month.",
-      "Credit note inadvertently reported under forward charge.",
-      "Advance payment received against supply adjusted in the subsequent return."
+      "Tax Audit Report in Form 3CA/3CD or 3CB/3CD was successfully filed and accepted with valid UDIN prior to filing return.",
+      "Balance Sheet and Profit & Loss particulars entered in Schedule Part A-BS and Part A-P&L agree with audited financials.",
+      "Gross receipts under Section 44AD/44ADA do not exceed statutory turnover ceiling."
     ],
-    replyBodyDraft: `PART B - REPLY BY ASSESSEE UNDER RULE 88C TO FORM GST DRC-01C
+    replyBodyDraft: `To,
+The Assessing Officer / CPC,
+Income Tax Department, Bengaluru.
 
-Reference No: DRC-01C/[NOTICE_REF]
-Taxpayer: [CLIENT_NAME] | GSTIN: [CLIENT_GSTIN]
+SUBJECT: Compliance & Rectification in Response to Defective Return Notice u/s 139(9) for AY [AY] - PAN: [CLIENT_PAN]
 
-1. REASON FOR DIFFERENCE BETWEEN GSTR-1 AND GSTR-3B:
-We refer to the intimation under Rule 88C regarding excess tax liability declared in Form GSTR-1 compared to Form GSTR-3B for [PERIOD].
+Respected Sir / Madam,
 
-2. SPECIFIC REASON CODE UNDER RULE 88C:
-The reason for the difference falls under Category: "Typographical / Data Entry Error in GSTR-1 amended in subsequent period".
+In reference to notice issued under Section 139(9) stating the return of income filed by [CLIENT_NAME] for AY [AY] is defective:
 
-3. FACTUAL CLARIFICATION:
-An invoice of taxable value ₹[DEMAND_AMOUNT] was punched twice due to ERP transmission glitch in GSTR-1. In GSTR-3B, actual tax liability was correctly computed and discharged in cash/credit ledger. The excess invoice was formally cancelled / credit note was issued in the subsequent tax return.
+1. DEFECT CODE & CLARIFICATION:
+The notice points out an alleged omission regarding tax audit report particulars or Schedule BS/PL disclosure. 
+We submit that the Tax Audit Report under Section 44AB was duly uploaded with ICAI UDIN and acknowledged by the system.
 
-Hence, no short payment of tax has occurred.
+2. SUBMISSION:
+The return of income contains complete and true particulars of income. The audited accounts, along with Notes and Form 3CD, are attached hereto. The alleged defect stands rectified in its entirety.
 
-Authorized Signatory / Tax Practitioner`
+3. PRAYER:
+It is prayed that the defect be treated as cured and the return of income be processed under Section 143(1).
+
+Yours faithfully,
+For [CLIENT_NAME]
+
+Authorized Signatory / Chartered Accountant`
+  },
+  {
+    id: "ITD_148_REASSESSMENT",
+    title: "Income Tax Section 148 / 148A(b) Notice for Escaped Income Reassessment",
+    authority: "National Faceless Assessment Centre (NFAC) / Jurisdictional AO",
+    applicableLaw: "Section 148 read with Section 148A(b) of the Income Tax Act, 1961 (as amended)",
+    statutoryCitations: [
+      "Union of India vs. Ashish Agarwal (2022) 444 ITR 1 (Supreme Court)",
+      "Rajiv Bansal vs. Union of India (2023 Allahabad HC / Supreme Court)",
+      "Section 149 time limitations and Section 151 sanction mandates"
+    ],
+    defaultGrounds: [
+      "No tangible material suggests income chargeable to tax exceeding ₹50 Lakh has escaped assessment under Section 149(1)(b).",
+      "Approval under Section 151 was not obtained from the specified authority competent for the relevant assessment year.",
+      "Transactions flagged in Insight Portal represent routine banking and capital asset sales already disclosed in audited books."
+    ],
+    replyBodyDraft: `To,
+The Assessing Officer,
+National Faceless Assessment Centre (NFAC),
+Income Tax Department, New Delhi.
+
+SUBJECT: Detailed Objections in Response to Notice under Section 148A(b) for AY [AY] - PAN: [CLIENT_PAN]
+
+Respected Sir / Madam,
+
+The Assessee [CLIENT_NAME] (PAN: [CLIENT_PAN]) strongly objects to the proposed initiation of reassessment proceedings under Section 148 on the following statutory and constitutional grounds:
+
+1. JURISDICTIONAL OBJECTIONS:
+(a) The notice is barred by limitation under Section 149 of the Act. As established by the Hon'ble Supreme Court in Union of India vs. Ashish Agarwal, reassessment beyond 3 years can only proceed if the AO possesses tangible material proving escapement of income represented in the form of asset exceeding ₹50,00,000.
+(b) Sanction under Section 151 must be obtained from the specified authority (CCIT/DGIT) and not lower ranking authorities.
+
+2. FACTUAL CLARIFICATION:
+The alleged unexplained transaction of [DEMAND_AMOUNT] represents commercial banking transactions from the assessee's regular audited bank account, which was completely reflected in the audited balance sheet and return of income.
+
+3. PRAYER:
+It is respectfully prayed that the proceedings under Section 148A(b) be dropped and an order under Section 148A(d) holding that this is NOT a fit case for issuance of notice under Section 148 be passed.
+
+Yours faithfully,
+For [CLIENT_NAME]
+
+[FIRM_NAME]
+Chartered Accountants`
   }
 ];
 
@@ -161,24 +253,34 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
   const [demandAmount, setDemandAmount] = useState("₹2,45,000");
   const [period, setPeriod] = useState("FY 2024-25 / Q2");
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [customDraft, setCustomDraft] = useState("");
 
-  const selectedClient = clients.find(c => c.id === selectedClientId) || null;
+  const selectedClient = clients.find(c => c.id === selectedClientId) || clients[0] || null;
   const currentTemplate = STATUTORY_NOTICE_TEMPLATES.find(t => t.id === selectedNoticeType) || STATUTORY_NOTICE_TEMPLATES[0];
 
-  // Dynamic interpolation of draft
-  const generatedDraft = currentTemplate.replyBodyDraft
-    .replace(/\[CLIENT_NAME\]/g, selectedClient?.name || "Messrs ABC Enterprises Ltd")
-    .replace(/\[CLIENT_PAN\]/g, selectedClient?.pan || "AAACB1234F")
-    .replace(/\[CLIENT_GSTIN\]/g, selectedClient?.gstin || "23AAACB1234L1Z2")
+  // Generate dynamic draft
+  const defaultInterpolated = currentTemplate.replyBodyDraft
+    .replace(/\[CLIENT_NAME\]/g, selectedClient?.name || "Apex Laboratories Private Limited")
+    .replace(/\[CLIENT_PAN\]/g, selectedClient?.pan || "AABCA9182K")
+    .replace(/\[CLIENT_GSTIN\]/g, selectedClient?.gstin || "23AABCA9182K1Z5")
     .replace(/\[NOTICE_DATE\]/g, noticeDate)
     .replace(/\[DEMAND_AMOUNT\]/g, demandAmount)
     .replace(/\[PERIOD\]/g, period)
     .replace(/\[AY\]/g, "2025-26")
-    .replace(/\[NOTICE_REF\]/g, "2026/IND/8842");
+    .replace(/\[NOTICE_REF\]/g, "2026/IND/8842")
+    .replace(/\[FIRM_NAME\]/g, DEFAULT_FIRM_BRANDING.firmName)
+    .replace(/\[FIRM_FRN\]/g, DEFAULT_FIRM_BRANDING.frn);
+
+  useEffect(() => {
+    setCustomDraft(defaultInterpolated);
+    setIsEditing(false);
+  }, [selectedNoticeType, selectedClientId, noticeDate, demandAmount, period]);
 
   const handleCopyDraft = () => {
-    navigator.clipboard.writeText(generatedDraft);
+    navigator.clipboard.writeText(customDraft);
     setCopied(true);
+    toast.success("Draft Copied", "Legal notice submissions copied to clipboard.");
     setTimeout(() => setCopied(false), 3000);
   };
 
@@ -186,37 +288,70 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
     window.print();
   };
 
+  const handleWhatsAppShare = () => {
+    const rawPhone = selectedClient?.primaryContact?.phone || "9820044101";
+    const cleanPhone = rawPhone.replace(/\D/g, "");
+    const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+
+    const text = encodeURIComponent(
+      `Dear ${selectedClient?.primaryContact?.name || selectedClient?.name || "Client"},\n\n` +
+      `We have finalized the legal reply submissions for your ${currentTemplate.title} (Demand: ${demandAmount}).\n\n` +
+      `Key Judicial Precedents Cited: ${currentTemplate.statutoryCitations[0]}\n\n` +
+      `Please review the draft submissions on your client portal before we file on the government portal.\n\n` +
+      `Regards,\n${DEFAULT_FIRM_BRANDING.firmName}`
+    );
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-950 via-slate-900 to-rose-950 border border-red-700/40 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30 rounded-full flex items-center gap-1.5">
-                <Scale className="w-3.5 h-3.5 text-red-300" /> High-Margin Litigation Desk
+              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
+                <Scale className="w-3.5 h-3.5 text-btred-logo" /> High-Margin Litigation Desk
               </span>
-              <span className="text-xs text-slate-400 font-mono">1-Click Legal Notice Reply Drafter</span>
+              <span className="text-xs text-slate-500 font-mono">Supreme Court &amp; High Court Grounded</span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <ShieldAlert className="w-6 h-6 text-btred-logo" /> Statutory Tax Scrutiny Legal Reply Drafter
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-              Turn ₹5,000–₹25,000 notice representation into a 2-minute workflow. Automatically drafts citation-backed legal responses for GST ASMT-10, DRC-01C, and Income Tax 143(1)(a) defect intimations with Supreme Court &amp; High Court rulings.
+            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+              Turn ₹5,000–₹50,000 notice representation into a 2-minute workflow. Automatically drafts citation-backed legal responses for GST ASMT-10, DRC-01C, Income Tax 143(1)(a), 139(9) defective returns, and Section 148 reassessment notices.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+              <span>{isEditing ? "Preview Mode" : "Edit Draft"}</span>
+            </button>
+
+            <button
+              onClick={handleWhatsAppShare}
+              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              title="Share draft with client via WhatsApp for approval"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send to Client</span>
+            </button>
+
             <button
               onClick={handleCopyDraft}
-              className="px-4 py-2.5 bg-btred-logo hover:bg-red-600 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2"
+              className="px-4 py-2.5 bg-btred-logo hover:bg-red-700 text-white shadow-sm font-bold text-xs rounded-xl transition flex items-center gap-2"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? "Copied Legal Draft!" : "Copy Legal Submissions"}</span>
+              <span>{copied ? "Copied!" : "Copy Legal Submissions"}</span>
             </button>
+
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5"
+              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Letter</span>
@@ -225,29 +360,31 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
         </div>
 
         {/* Configuration Controls */}
-        <div className="mt-6 pt-6 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Notice Type</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Notice Category</label>
             <select
               value={selectedNoticeType}
               onChange={(e) => setSelectedNoticeType(e.target.value as any)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-red-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             >
               <option value="GST_ASMT_10_MISMATCH">GST ASMT-10 (2B vs 3B ITC)</option>
               <option value="GST_DRC_01C_LIABILITY">GST DRC-01C (GSTR-1 vs 3B)</option>
               <option value="ITD_143_1_A_PRIMA_FACIE">Income Tax 143(1)(a) Defect</option>
+              <option value="ITD_139_9_DEFECTIVE">Income Tax 139(9) Defective Return</option>
+              <option value="ITD_148_REASSESSMENT">Income Tax 148 Reassessment</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Select Client</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Client Entity</label>
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-red-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             >
               {clients.length === 0 ? (
-                <option value="">No clients (Using Tata Steel sample)</option>
+                <option value="">No clients</option>
               ) : (
                 clients.map(c => (
                   <option key={c.id} value={c.id}>{c.name} ({c.pan})</option>
@@ -257,44 +394,71 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Notice / Demand Amount</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Notice / Demand Amount</label>
             <input
               type="text"
               value={demandAmount}
               onChange={(e) => setDemandAmount(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-red-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Assessment Period</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Assessment Period / AY</label>
             <input
               type="text"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-red-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             />
           </div>
         </div>
       </div>
 
       {/* Case Laws & Citations Ribbon */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
-        <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+      <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-2 text-slate-900">
+        <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5">
           <BookOpen className="w-3.5 h-3.5" /> Built-in Judicial Precedents &amp; Statutory Defenses
         </span>
         <div className="flex flex-wrap gap-2 pt-1">
           {currentTemplate.statutoryCitations.map((cite, i) => (
-            <span key={i} className="text-xs font-serif bg-slate-800 text-slate-200 border border-slate-700 px-3 py-1 rounded-xl">
+            <span key={i} className="text-xs font-serif bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-xl">
               ⚖️ {cite}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Draft Document Display */}
-      <div className="bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-12 shadow-2xl font-serif max-w-4xl mx-auto space-y-4 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
-        {generatedDraft}
+      {/* Draft Document Display / Editor */}
+      <div className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-8 sm:p-12 shadow-sm font-serif max-w-4xl mx-auto space-y-4 text-xs sm:text-sm leading-relaxed">
+        {/* Letterhead Header */}
+        <div className="border-b-2 border-slate-800 pb-4 mb-6 text-center">
+          <h1 className="text-xl font-black uppercase tracking-wider text-slate-900">{DEFAULT_FIRM_BRANDING.firmName}</h1>
+          <p className="text-xs text-slate-600 font-sans font-medium">Chartered Accountants &bull; FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer Review: {DEFAULT_FIRM_BRANDING.peerReviewNo}</p>
+          <p className="text-[11px] text-slate-500 font-sans">{DEFAULT_FIRM_BRANDING.headOffice}</p>
+        </div>
+
+        {isEditing ? (
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 text-xs font-sans">
+              <span className="text-slate-600 font-semibold">Editing Legal Draft:</span>
+              <button
+                onClick={() => setCustomDraft(defaultInterpolated)}
+                className="text-btred-logo hover:underline flex items-center gap-1 font-bold text-[11px]"
+              >
+                <RefreshCw className="w-3 h-3" /> Reset to Statutory Template
+              </button>
+            </div>
+            <textarea
+              rows={24}
+              value={customDraft}
+              onChange={(e) => setCustomDraft(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 text-xs font-serif text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 font-normal leading-relaxed"
+            />
+          </div>
+        ) : (
+          <div className="whitespace-pre-wrap">{customDraft}</div>
+        )}
       </div>
     </div>
   );

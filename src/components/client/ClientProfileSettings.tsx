@@ -104,7 +104,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-sm shrink-0">
+            <div className="p-3 rounded-2xl bg-red-50 text-btred-logo border border-red-200 shadow-sm shrink-0">
               <Building2 className="w-6 h-6" />
             </div>
             <div>
@@ -123,7 +123,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
               Permanent Account Number (PAN)
             </span>
             <span className="font-mono font-extrabold text-slate-800 text-sm">
@@ -132,7 +132,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
           </div>
 
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
               GSTIN Identification
             </span>
             <span className="font-mono font-extrabold text-slate-800 text-sm">
@@ -141,7 +141,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
           </div>
 
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
               <User className="w-3 h-3" />
               <span>Authorized Contact Person</span>
             </div>
@@ -154,7 +154,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
           </div>
 
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
               <Smartphone className="w-3 h-3" />
               <span>Registered Mobile for Portal</span>
             </div>
@@ -235,7 +235,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold font-mono tracking-widest text-slate-900 focus:outline-none focus:border-slate-800 transition"
                 required
               />
-              <span className="text-[10px] text-slate-400 mt-1 block">
+              <span className="text-[10px] text-slate-600 mt-1 block">
                 Default: {defaultHintPin} (last 4 digits)
               </span>
             </div>
@@ -254,7 +254,7 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold font-mono tracking-widest text-slate-900 focus:outline-none focus:border-slate-800 transition"
                 required
               />
-              <span className="text-[10px] text-slate-400 mt-1 block">
+              <span className="text-[10px] text-slate-600 mt-1 block">
                 Any 4 numeric digits
               </span>
             </div>
@@ -273,20 +273,20 @@ export const ClientProfileSettings: React.FC<ClientProfileSettingsProps> = ({
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold font-mono tracking-widest text-slate-900 focus:outline-none focus:border-slate-800 transition"
                 required
               />
-              <span className="text-[10px] text-slate-400 mt-1 block">
+              <span className="text-[10px] text-slate-600 mt-1 block">
                 Must match new PIN
               </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-600">
               Forgot PIN? Contact GPA &amp; Co. to reset in 1 click.
             </span>
             <button
               type="submit"
               disabled={isUpdating}
-              className="bg-slate-900 hover:bg-black text-white font-black text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 disabled:opacity-60"
+              className="bg-btred-logo hover:bg-red-700 text-white font-black text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 disabled:opacity-60"
             >
               {isUpdating ? (
                 <>

@@ -46,6 +46,15 @@ import {
   generateDeterministicPassword 
 } from "@/lib/auth/session";
 import { 
+  SANDBOX_FIRM_METRICS,
+  SANDBOX_PASSWORD_VAULTS,
+  SANDBOX_PARSED_STATEMENTS,
+  SANDBOX_MSME_43BH_RECORDS,
+  SANDBOX_SECTION_40A2B_SAMPLES,
+  SANDBOX_STAFF_SECURITY_LOGS,
+  SANDBOX_PARTNER_METRICS
+} from "@/lib/data/sandboxData";
+import { 
   FIRM_METRICS, 
   INITIAL_TASKS, 
   INITIAL_NOTICES, 
@@ -90,7 +99,20 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  // Use persistent hook
+  // Check if entering sandbox directly
+  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("demo") === "true" || params.get("view") === "sandbox";
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  // Use persistent hook - receives sandbox flag
   const {
     tasks,
     invoices,
@@ -101,10 +123,12 @@ export default function Home() {
     payConfigs,
     refreshData,
     createClient,
+    updateClient,
+    deleteClient,
     updateTask,
     createTask,
     reconcileInvoice
-  } = useTaxoData();
+  } = useTaxoData(isDemoSandbox);
 
   // Default to unauthenticated session (require explicit login or sandbox entry)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -112,7 +136,7 @@ export default function Home() {
   const [activePartnerTab, setActivePartnerTab] = useState<string>("calendar");
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
-  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
 
@@ -175,6 +199,7 @@ export default function Home() {
     clearSession();
     setCurrentUser(null);
     setIsDemoSandbox(false);
+    setIsLoginModalOpen(false);
     toast.info("Signed Out", "Your session has been securely closed.");
   };
 
@@ -220,29 +245,45 @@ export default function Home() {
       setIsDemoSandbox(true);
       setCurrentView("article");
     } else {
-      setIsDemoSandbox(false);
+      setIsDemoSandbox(true);
       setCurrentView("client-pwa");
     }
   };
 
-  // If user exits demo and has no active session -> Show Enterprise SaaS Gateway
+  // 1. Explicit Login Modal View (Directly opened via Sign In button)
+  if (isLoginModalOpen && !currentUser) {
+    return (
+      <LoginModal 
+        onLoginSuccess={(user) => {
+          setIsLoginModalOpen(false);
+          handleLoginSuccess(user);
+        }}
+        onClose={() => setIsLoginModalOpen(false)}
+        initialRole={currentView === "client-pwa" ? "client" : "partner"} 
+        clients={clients}
+      />
+    );
+  }
+
+  // 2. If user has no active session and is not in pitch demo -> Show Enterprise SaaS Gateway
   if (!currentUser && !isDemoSandbox) {
     return (
       <SaasGateway 
         onEnterSandbox={(role) => handleSwitchUserRole(role)}
         onOpenLogin={(role) => {
           if (role) handleSwitchUserRole(role);
-          else setCurrentUser(null);
+          else setIsLoginModalOpen(true);
         }}
       />
     );
   }
 
-  // If user explicitly logs out without landing
+  // 3. Fallback: If user is logged out without gateway
   if (!currentUser) {
     return (
       <LoginModal 
         onLoginSuccess={handleLoginSuccess} 
+        onClose={() => setIsLoginModalOpen(false)}
         initialRole={currentView === "client-pwa" ? "client" : "partner"} 
         clients={clients}
       />
@@ -251,33 +292,33 @@ export default function Home() {
 
   const partnerTabs = [
     { id: "calendar", label: `Tax Deadlines (${tasks.length})`, icon: Calendar, iconColor: "text-btred-logo" },
-    { id: "pay-to-release", label: "Fee Release Gate", icon: Lock, iconColor: "text-emerald-400" },
+    { id: "pay-to-release", label: "Fee Release Gate", icon: Lock, iconColor: "text-emerald-700" },
     { id: "notices", label: "Tax Scrutiny Notices", icon: ShieldAlert, iconColor: "text-btred-logo" },
     { id: "vcfo", label: "vCFO Cockpit", icon: TrendingUp, iconColor: "text-indigo-600" },
     { id: "bank-parser", label: "Bank OCR to Tally", icon: FileSpreadsheet, iconColor: "text-emerald-500" },
     { id: "gstr2b", label: "GST Matcher (2B)", icon: FileSpreadsheet, iconColor: "text-blue-500" },
-    { id: "ais-analyzer", label: "AIS / 26AS SFT Inspector", icon: FileSearch, iconColor: "text-cyan-400" },
+    { id: "ais-analyzer", label: "AIS / 26AS SFT Inspector", icon: FileSearch, iconColor: "text-teal-700" },
     { id: "itr-calc", label: "ITR Tax Engine (115BAC)", icon: Calculator, iconColor: "text-amber-500" },
-    { id: "tax-audit-3cd", label: "Tax Audit 3CD Workpapers", icon: ClipboardCheck, iconColor: "text-yellow-400" },
+    { id: "tax-audit-3cd", label: "Tax Audit 3CD Workpapers", icon: ClipboardCheck, iconColor: "text-amber-600" },
     { id: "schedule3-audit", label: "Schedule III & Audit Leads", icon: Layers, iconColor: "text-indigo-400" },
-    { id: "udin-vault", label: "UDIN 60-Day Vault", icon: KeyRound, iconColor: "text-purple-400" },
+    { id: "udin-vault", label: "UDIN 60-Day Vault", icon: KeyRound, iconColor: "text-purple-800" },
     { id: "notice-drafter", label: "Statutory Notice Drafter", icon: Scale, iconColor: "text-btred-logo" },
-    { id: "assessee-approval", label: "Assessee Legal Sign-off", icon: FileCheck, iconColor: "text-teal-400" },
+    { id: "assessee-approval", label: "Assessee Legal Sign-off", icon: FileCheck, iconColor: "text-teal-700" },
     { id: "content-studio", label: "CA Creator Studio", icon: Video, iconColor: "text-pink-500" },
     { id: "engagement-letter", label: "Engagement Letters (SA 210)", icon: FileCheck, iconColor: "text-emerald-500" },
     { id: "billing", label: "Billing & Invoices", icon: DollarSign, iconColor: "text-btred-logo" },
-    { id: "whatsapp-ai", label: "1-Tap WhatsApp Desk", icon: MessageSquare, iconColor: "text-teal-400" },
+    { id: "whatsapp-ai", label: "1-Tap WhatsApp Desk", icon: MessageSquare, iconColor: "text-teal-700" },
     { id: "entity-dna", label: "Entity DNA Engine", icon: Layers, iconColor: "text-purple-600" },
     { id: "dsc", label: "DSC Keys", icon: KeyRound, iconColor: "text-btred-logo" },
     { id: "peer-review", label: "Audit Quality", icon: Award, iconColor: "text-indigo-400" },
-    { id: "anti-poaching", label: "Firm Insights", icon: Fingerprint, iconColor: "text-rose-400" },
+    { id: "anti-poaching", label: "Firm Insights", icon: Fingerprint, iconColor: "text-btred-logo" },
     { id: "inward-outward", label: "Dispatches & Letters", icon: Package, iconColor: "text-amber-500" },
     { id: "batch-dispatch", label: "Batch Dispatcher", icon: Sparkles, iconColor: "text-indigo-300" },
   ];
 
   return (
     <ErrorBoundary fallbackTitle="Client Application Recovered">
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
+      <div className="min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
         {/* Unified Master Navigation Cockpit */}
         <TopNav 
           currentView={currentView} 
@@ -292,15 +333,18 @@ export default function Home() {
             clearSession();
             setCurrentUser(null);
             setIsDemoSandbox(false);
+            setIsLoginModalOpen(false);
           }}
           isSandbox={isDemoSandbox}
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 pb-28 md:pb-20">
+        <main className="flex-1 w-full max-w-[1720px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-28 md:pb-12 min-w-0">
           {/* VIEW 1: CLIENT PWA PORTAL (PRIMARY CLIENT-CENTRIC EXPERIENCE) */}
           {currentView === "client-pwa" && (
             <ClientPortalPwa 
+              currentUser={currentUser}
+              isSandbox={isDemoSandbox}
               externalTab={activeClientTab as any}
               isQuickActionOpen={isClientQuickActionOpen}
               onCloseQuickAction={() => setIsClientQuickActionOpen(false)}
@@ -448,11 +492,7 @@ export default function Home() {
                       key={tab.id}
                       onClick={() => setActivePartnerTab(tab.id)}
                       className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                        isActive
-                          ? tab.id === "batch-dispatch"
-                            ? "bg-indigo-600 text-white shadow-md"
-                            : "bg-btblack text-white shadow-md"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                        isActive ? "bg-btred-logo text-white shadow-md shadow-red-500/25" : "text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/60 border border-transparent hover:border-slate-200"
                       }`}
                     >
                       <Icon className={`w-3.5 h-3.5 ${tab.iconColor}`} />
@@ -474,6 +514,7 @@ export default function Home() {
                 <StatutoryCalendar 
                   tasks={tasks} 
                   clients={clients}
+                  groups={groups}
                   onStatusChange={handleTaskStatusChange} 
                   onAddTask={createTask}
                 />
@@ -504,8 +545,8 @@ export default function Home() {
               {activePartnerTab === "whatsapp-ai" && (
                 <WhatsAppAiWorkbench
                   clients={clients}
-                  initialStatements={INITIAL_PARSED_STATEMENTS as any}
-                  initialVaults={INITIAL_PASSWORD_VAULTS as any}
+                  initialStatements={(isDemoSandbox ? SANDBOX_PARSED_STATEMENTS : INITIAL_PARSED_STATEMENTS) as any}
+                  initialVaults={(isDemoSandbox ? SANDBOX_PASSWORD_VAULTS : INITIAL_PASSWORD_VAULTS) as any}
                   onTaskUpdated={refreshData}
                 />
               )}
@@ -560,15 +601,15 @@ export default function Home() {
               {activePartnerTab === "peer-review" && (
                 <PeerReviewManager
                   clients={clients}
-                  initialMsmeRecords={INITIAL_MSME_43BH_RECORDS as any}
-                  initialSection40a={INITIAL_SECTION_40A2B_SAMPLES as any}
+                  initialMsmeRecords={(isDemoSandbox ? SANDBOX_MSME_43BH_RECORDS : INITIAL_MSME_43BH_RECORDS) as any}
+                  initialSection40a={(isDemoSandbox ? SANDBOX_SECTION_40A2B_SAMPLES : INITIAL_SECTION_40A2B_SAMPLES) as any}
                 />
               )}
 
               {activePartnerTab === "anti-poaching" && (
                 <EnterpriseSecurityAndRealization
-                  partnerMetrics={INITIAL_PARTNER_METRICS as any}
-                  securityLogs={INITIAL_STAFF_SECURITY_LOGS as any}
+                  partnerMetrics={(isDemoSandbox ? SANDBOX_PARTNER_METRICS : INITIAL_PARTNER_METRICS) as any}
+                  securityLogs={(isDemoSandbox ? SANDBOX_STAFF_SECURITY_LOGS : INITIAL_STAFF_SECURITY_LOGS) as any}
                 />
               )}
 
@@ -591,7 +632,7 @@ export default function Home() {
           )}
 
           {/* VIEW 3: ARTICLE WORKBENCH (FOR ARTICLE TRAINEES) */}
-          {currentView === "article" && <ArticleWorkbench />}
+          {currentView === "article" && <ArticleWorkbench isSandbox={isDemoSandbox} />}
         </main>
 
         {/* Floating Bottom Navigation */}
@@ -625,6 +666,14 @@ export default function Home() {
           groups={groups}
           onAddClient={async (newClient) => {
             await createClient(newClient);
+            await refreshData();
+          }}
+          onUpdateClient={async (id, data) => {
+            await updateClient(id, data);
+            await refreshData();
+          }}
+          onDeleteClient={async (id) => {
+            await deleteClient(id);
             await refreshData();
           }}
         />

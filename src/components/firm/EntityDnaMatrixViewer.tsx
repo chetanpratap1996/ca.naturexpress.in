@@ -101,25 +101,25 @@ export const EntityDnaMatrixViewer: React.FC = () => {
       </div>
 
       {/* Profile Overview Card */}
-      <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 rounded-3xl shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="bg-white text-slate-900 border border-slate-200 p-6 rounded-3xl shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <span className="text-[11px] uppercase tracking-wider font-bold text-indigo-300">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-btred-logo">
               Active Constitution Profile
             </span>
-            <h3 className="text-xl font-black text-white mt-0.5">{dnaProfile.label}</h3>
-            <p className="text-xs text-slate-300 mt-1">
+            <h3 className="text-xl font-black text-slate-900 mt-0.5">{dnaProfile.label}</h3>
+            <p className="text-xs text-slate-500 mt-1">
               Governed by: <strong>{dnaProfile.governingBody}</strong>
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="bg-white/10 backdrop-blur px-3 py-1.5 rounded-xl border border-white/10 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Statutory Tax Return</span>
-              <span className="text-sm font-black text-emerald-400">{dnaProfile.taxReturnForm}</span>
+            <div className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center">
+              <span className="text-[10px] text-slate-500 block font-semibold">Statutory Tax Return</span>
+              <span className="text-sm font-black text-emerald-600">{dnaProfile.taxReturnForm}</span>
             </div>
-            <div className="bg-white/10 backdrop-blur px-3 py-1.5 rounded-xl border border-white/10 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">CARO 2020</span>
-              <span className={`text-sm font-black ${dnaProfile.caroApplicability ? "text-amber-400" : "text-slate-400"}`}>
+            <div className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center">
+              <span className="text-[10px] text-slate-500 block font-semibold">CARO 2020</span>
+              <span className={`text-sm font-black ${dnaProfile.caroApplicability ? "text-amber-800" : "text-slate-600"}`}>
                 {dnaProfile.caroApplicability ? "Mandatory" : "Exempt"}
               </span>
             </div>
@@ -128,42 +128,42 @@ export const EntityDnaMatrixViewer: React.FC = () => {
 
         {/* Dynamic Statutory Thresholds Live Evaluation */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
-            <span className="text-[10px] text-slate-400 uppercase font-bold block">Tax Audit u/s 44AB</span>
-            <div className="text-sm font-black mt-1 text-white">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">Tax Audit u/s 44AB</span>
+            <div className="text-sm font-black mt-1 text-slate-900">
               {thresholds.taxAuditApplicable ? "⚠️ Mandatory" : "✅ Exempt"}
             </div>
-            <div className="text-[10px] text-slate-300 mt-1">
+            <div className="text-[10px] text-slate-500 mt-1">
               Threshold: ₹{thresholds.auditThresholdCr} Cr (96% Digital transactions)
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
-            <span className="text-[10px] text-slate-400 uppercase font-bold block">e-Invoicing Mandate</span>
-            <div className="text-sm font-black mt-1 text-white">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">e-Invoicing Mandate</span>
+            <div className="text-sm font-black mt-1 text-slate-900">
               {thresholds.eInvoicingMandatory ? "⚡ Active (₹5 Cr+)" : "⚪ Not Applicable"}
             </div>
-            <div className="text-[10px] text-slate-300 mt-1">
+            <div className="text-[10px] text-slate-500 mt-1">
               Turnover: ₹{currentClient?.turnoverCr || 0} Cr
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
-            <span className="text-[10px] text-slate-400 uppercase font-bold block">Sec 43B(h) MSME Risk</span>
-            <div className="text-sm font-black mt-1 text-amber-400">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">Sec 43B(h) MSME Risk</span>
+            <div className="text-sm font-black mt-1 text-amber-800">
               {thresholds.msmeDisallowanceRisk ? "Active Watchdog" : "No MSME Suppliers"}
             </div>
-            <div className="text-[10px] text-slate-300 mt-1">
+            <div className="text-[10px] text-slate-500 mt-1">
               45-day payment tracking enforced
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
-            <span className="text-[10px] text-slate-400 uppercase font-bold block">Primary Identifier</span>
-            <div className="text-xs font-black mt-1 text-indigo-300 truncate">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">Primary Identifier</span>
+            <div className="text-xs font-black mt-1 text-btred-logo truncate">
               {dnaProfile.primaryIdentifierLabel.split(" ")[0]}
             </div>
-            <div className="text-[10px] text-slate-300 mt-1 font-mono">
+            <div className="text-[10px] text-slate-500 mt-1 font-mono">
               {currentClient?.cin || currentClient?.pan || "N/A"}
             </div>
           </div>
@@ -173,7 +173,7 @@ export const EntityDnaMatrixViewer: React.FC = () => {
       {/* Mandatory Statutory Requirements Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
         <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-indigo-600" />
+          <ShieldCheck className="w-5 h-5 text-btred-logo" />
           Mandatory Legal Compliances for {dnaProfile.label} ({dnaProfile.mandatoryRequirements.length})
         </h3>
 
@@ -192,7 +192,7 @@ export const EntityDnaMatrixViewer: React.FC = () => {
               {dnaProfile.mandatoryRequirements.map((req) => (
                 <tr key={req.code} className="hover:bg-slate-50/80 transition">
                   <td className="p-3 font-bold text-slate-900">
-                    <span className="text-[10px] text-indigo-600 font-mono block">{req.code}</span>
+                    <span className="text-[10px] text-btred-logo font-mono block">{req.code}</span>
                     {req.title}
                   </td>
                   <td className="p-3 font-medium text-slate-600">{req.governingAct}</td>
@@ -232,7 +232,7 @@ export const EntityDnaMatrixViewer: React.FC = () => {
                 )}
               </div>
               <p className="text-xs text-slate-600 mt-1">{vault.description}</p>
-              <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+              <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
                 <span>Accepted Formats:</span>
                 {vault.requiredFileTypes.map((ext) => (
                   <span key={ext} className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-slate-600 font-bold">

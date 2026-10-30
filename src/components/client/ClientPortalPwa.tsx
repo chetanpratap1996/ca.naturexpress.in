@@ -10,6 +10,7 @@ import {
   FIRM_METRICS 
 } from "@/lib/data/mockData";
 import { DocumentItem, InvoiceItem, PayToReleaseConfig, ComplianceTask, ClientEntity } from "@/lib/types";
+import { AuthUser } from "@/lib/auth/session";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
@@ -68,22 +69,26 @@ export type ClientTabType =
   | "profile";
 
 interface ClientPortalPwaProps {
+  currentUser?: AuthUser | null;
   activeTab?: ClientTabType;
   externalTab?: ClientTabType;
   isQuickActionOpen?: boolean;
   onCloseQuickAction?: () => void;
   onOpenQuickAction?: () => void;
+  isSandbox?: boolean;
 }
 
 export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
+  currentUser,
   activeTab = "progress",
   externalTab,
   isQuickActionOpen: externalQuickActionOpen,
   onCloseQuickAction,
   onOpenQuickAction,
+  isSandbox = false,
 }) => {
   // Use persistent hook
-  const dataHook = useTaxoData();
+  const dataHook = useTaxoData(isSandbox);
   const { 
     tasks: hookTasks, 
     documents: hookDocs, 
@@ -151,7 +156,9 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   const currentClient = (clientsList && clientsList.length > 0)
     ? (clientsList.find((c) => c.id === selectedEntityId) || clientsList[0])
     : null;
-  const siblingEntities = currentClient?.groupId 
+  const siblingEntities = currentUser?.clientGroupId
+    ? clientsList.filter((c) => c.groupId === currentUser.clientGroupId || c.id === currentUser.clientEntityId)
+    : currentClient?.groupId 
     ? clientsList.filter((c) => c.groupId === currentClient.groupId)
     : clientsList;
 
@@ -188,51 +195,15 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         if (currentPayConfig.isLocked) {
       setPayLockModalDoc(doc);
     } else {
-      // Valid PDF document payload
-      const pdfHeader = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
-4 0 obj << /Length 280 >> stream
-BT
-/F1 16 Tf
-50 730 Td
-(OFFICIAL STAMPED DELIVERABLE) Tj
-/F1 11 Tf
-0 -30 Td
-(Document: ${doc.fileName}) Tj
-0 -20 Td
-(Entity: ${doc.entityName}) Tj
-0 -20 Td
-(Category: ${doc.category} | Financial Year: ${doc.financialYear}) Tj
-0 -20 Td
-(Certified Digitally by: ${DEFAULT_FIRM_BRANDING.managingPartner} [FRN: ${DEFAULT_FIRM_BRANDING.frn}]) Tj
-0 -20 Td
-(Security: Verified Statutory Compliance Filing Record - Authenticated) Tj
-ET
-endstream endobj
-5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000244 00000 n 
-0000000575 00000 n 
-trailer << /Size 6 /Root 1 0 R >>
-startxref
-646
-%%EOF`;
-      const blob = new Blob([pdfHeader], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
+      const downloadUrl = `/api/documents/download?id=${encodeURIComponent(doc.id)}`;
       const a = document.createElement("a");
-      a.href = url;
-      a.download = doc.fileName.endsWith('.pdf') ? doc.fileName : `${doc.fileName}.pdf`;
+      a.href = downloadUrl;
+      a.download = doc.fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      toast.success("Downloading Deliverable", `Downloading ${doc.fileName}`);
+      return;
     }
   };
 
@@ -338,7 +309,7 @@ startxref
   if (!currentClient) {
     return (
       <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4">
-        <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto text-slate-400">
+        <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto text-slate-600">
           <Building2 className="w-8 h-8" />
         </div>
         <h3 className="text-xl font-black text-slate-900">No Client Profile Loaded</h3>
@@ -352,19 +323,19 @@ startxref
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-28 sm:pb-20">
       {/* 1-Tap App Install Hero Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-4 rounded-3xl shadow-md border border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="bg-white text-slate-900 p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-btred-logo text-white shadow-md shrink-0">
             <Smartphone className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-white flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
               Brains &amp; Taxes Mobile App
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+              <span className="text-[10px] bg-red-50 text-btred-logo font-bold px-2 py-0.5 rounded-full border border-red-200">
                 1-Tap Install
               </span>
             </h3>
-            <p className="text-xs text-slate-300 font-medium mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               Access your document vault, tax filing receipts, and invoices on your phone.
             </p>
           </div>
@@ -376,7 +347,7 @@ startxref
               window.dispatchEvent(event);
             }
           }}
-          className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-500 hover:to-red-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
+          className="w-full sm:w-auto px-4 py-2 bg-btred-logo hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Download App</span>
@@ -404,14 +375,14 @@ startxref
       </div>
 
       {/* Multi-Entity Family Group Bar */}
-      <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-md border border-slate-800 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      <div className="bg-white text-slate-900 rounded-3xl p-5 shadow-sm border border-slate-200 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-bold text-slate-300">Promoter Group:</span>
-            <span className="text-sm font-black text-white">{currentClient.groupName}</span>
+            <Layers className="w-4 h-4 text-emerald-700" />
+            <span className="text-xs font-bold text-slate-700">Promoter Group:</span>
+            <span className="text-sm font-black text-slate-900">{currentClient.groupName}</span>
           </div>
-          <span className="text-xs text-slate-400 font-medium">
+          <span className="text-xs text-slate-600 font-medium">
             {siblingEntities.length} Registered Legal Entities
           </span>
         </div>
@@ -427,7 +398,7 @@ startxref
                 className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
                   isSelected
                     ? "bg-btred-logo text-white shadow-sm"
-                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 }`}
               >
                 <span>{ent.name}</span>
@@ -445,17 +416,17 @@ startxref
         <button
           onClick={() => setCurrentTab("progress")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "progress" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "progress" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
           Filings &amp; Receipts
         </button>
 
         <button
           onClick={() => setCurrentTab("banker-docket")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "banker-docket" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "banker-docket" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
@@ -465,7 +436,7 @@ startxref
         <button
           onClick={() => setCurrentTab("cash-forecast")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "cash-forecast" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "cash-forecast" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
@@ -475,7 +446,7 @@ startxref
         <button
           onClick={() => setCurrentTab("vendor-hold")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "vendor-hold" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "vendor-hold" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <Lock className="w-3.5 h-3.5 text-rose-500" />
@@ -485,7 +456,7 @@ startxref
         <button
           onClick={() => setCurrentTab("kyc-locker")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "kyc-locker" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "kyc-locker" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <FolderLock className="w-3.5 h-3.5 text-emerald-500" />
@@ -495,7 +466,7 @@ startxref
         <button
           onClick={() => setCurrentTab("director-risk")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "director-risk" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "director-risk" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5 text-indigo-500" />
@@ -505,7 +476,7 @@ startxref
         <button
           onClick={() => setCurrentTab("msme-watchdog")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "msme-watchdog" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "msme-watchdog" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -515,7 +486,7 @@ startxref
         <button
           onClick={() => setCurrentTab("upload")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "upload" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "upload" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <UploadCloud className="w-3.5 h-3.5" />
@@ -525,7 +496,7 @@ startxref
         <button
           onClick={() => setCurrentTab("profile")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "profile" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "profile" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <UserCheck className="w-3.5 h-3.5 text-blue-500" />
@@ -535,7 +506,7 @@ startxref
         <button
           onClick={() => setCurrentTab("vault")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "vault" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "vault" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <FileText className="w-3.5 h-3.5 text-cyan-500" />
@@ -545,7 +516,7 @@ startxref
         <button
           onClick={() => setCurrentTab("billing")}
           className={`px-3 py-2 text-center rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
-            currentTab === "billing" ? "bg-btblack text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            currentTab === "billing" ? "bg-btred-logo text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <CreditCard className="w-3.5 h-3.5 text-btred-logo" />
@@ -580,7 +551,7 @@ startxref
                 </span>
                 <button
                   onClick={() => setIsBankerModalOpen(true)}
-                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1"
+                  className="px-3 py-1 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1"
                 >
                   <Briefcase className="w-3 h-3" /> Bank Loan Pack
                 </button>
@@ -589,7 +560,7 @@ startxref
 
             <div className="space-y-4">
               {clientTasks.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-slate-600 text-xs">
                   No statutory tasks found for this entity.
                 </div>
               ) : (
@@ -670,7 +641,7 @@ startxref
                                       : "bg-slate-200"
                                   }`}
                                 />
-                                <span className={isDone ? "text-emerald-700" : isCurrent ? "text-amber-800" : "text-slate-400"}>
+                                <span className={isDone ? "text-emerald-700" : isCurrent ? "text-amber-800" : "text-slate-600"}>
                                   {s.label}
                                 </span>
                               </div>
@@ -738,7 +709,7 @@ startxref
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-50 text-btred-logo border border-red-200">
                 Credit Appraisal Tool
               </span>
               <h3 className="text-lg font-black text-slate-900">
@@ -750,7 +721,7 @@ startxref
             </div>
             <button
               onClick={() => setIsBankerModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg transition flex items-center gap-2 text-xs shrink-0"
+              className="bg-btred-logo hover:bg-red-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg transition flex items-center gap-2 text-xs shrink-0"
             >
               <Briefcase className="w-4 h-4" /> Open Banker Docket Generator
             </button>
@@ -819,7 +790,7 @@ startxref
                       onClick={() => setSelectedCategory(cat.id as any)}
                       className={`text-xs p-2.5 rounded-xl font-bold border transition text-center ${
                         selectedCategory === cat.id
-                          ? "bg-slate-900 text-white border-slate-900"
+                          ? "bg-btred-logo text-white border-btred-logo"
                           : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                       }`}
                     >
@@ -843,7 +814,7 @@ startxref
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-slate-300 hover:border-slate-800 rounded-2xl p-8 text-center cursor-pointer bg-slate-50 transition space-y-2"
               >
-                <UploadCloud className="w-10 h-10 mx-auto text-slate-400" />
+                <UploadCloud className="w-10 h-10 mx-auto text-slate-600" />
                 <div>
                   <span className="text-sm font-black text-slate-900 block">
                     Tap to Choose File from Phone / Computer
@@ -928,7 +899,7 @@ startxref
 
           <div className="space-y-3">
             {clientDocs.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-xs">
+              <div className="text-center py-8 text-slate-600 text-xs">
                 No official deliverables uploaded yet for this entity.
               </div>
             ) : (
@@ -986,17 +957,17 @@ startxref
       {/* TAB 8: FEE INVOICES & PAYMENTS */}
       {currentTab === "billing" && (
         <div className="space-y-4">
-          <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-slate-50 text-slate-800 p-5 rounded-3xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
             <div className="space-y-1 text-xs text-center sm:text-left">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Bank Details for Direct Payment</span>
-              <p className="text-sm font-black text-white">{DEFAULT_FIRM_BRANDING.companyName}</p>
-              <p className="text-slate-300 font-mono text-[11px]">
+              <span className="text-[10px] uppercase font-bold text-slate-500">Bank Details for Direct Payment</span>
+              <p className="text-sm font-black text-slate-900">{DEFAULT_FIRM_BRANDING.companyName}</p>
+              <p className="text-slate-600 font-mono text-[11px]">
                 {DEFAULT_FIRM_BRANDING.bankDetails.bankName} &bull; {DEFAULT_FIRM_BRANDING.bankDetails.branch}
               </p>
-              <p className="text-slate-400 text-[10px]">
+              <p className="text-slate-500 text-[10px]">
                 CIN: {DEFAULT_FIRM_BRANDING.cin} &bull; Head Office: {DEFAULT_FIRM_BRANDING.headOffice}
               </p>
-              <p className="text-emerald-400 font-bold font-mono text-xs pt-0.5">
+              <p className="text-emerald-700 font-bold font-mono text-xs pt-0.5">
                 Direct UPI ID: {DEFAULT_FIRM_BRANDING.firmUpiVpa}
               </p>
             </div>
@@ -1009,7 +980,7 @@ startxref
 
           <div className="space-y-3">
             {clientInvoices.length === 0 ? (
-              <div className="bg-white border border-slate-200 p-8 rounded-3xl text-center text-xs text-slate-400 font-medium">
+              <div className="bg-white border border-slate-200 p-8 rounded-3xl text-center text-xs text-slate-600 font-medium">
                 No invoices found for this entity.
               </div>
             ) : (
@@ -1054,7 +1025,7 @@ startxref
                     {inv.status !== "PAID" && (
                       <button
                         onClick={() => setSelectedInvoiceForUtr(inv)}
-                        className="bg-btblack hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm whitespace-nowrap"
+                        className="bg-btred-logo hover:bg-red-700 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm whitespace-nowrap"
                       >
                         Submit UTR / Ref
                       </button>
@@ -1069,11 +1040,11 @@ startxref
 
       {/* CLIENT UTR SUBMISSION MODAL */}
       {selectedInvoiceForUtr && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setSelectedInvoiceForUtr(null)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-800 p-1"
+              className="absolute right-4 top-4 text-slate-600 hover:text-slate-800 p-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1155,7 +1126,7 @@ startxref
 
       {/* PAY-TO-RELEASE GATEKEEPER MODAL */}
       {payLockModalDoc && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-scale-in">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -1169,7 +1140,7 @@ startxref
               </div>
               <button
                 onClick={() => setPayLockModalDoc(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-600 hover:text-slate-600 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1190,16 +1161,16 @@ startxref
             </div>
 
             {/* Dynamic UPI Payment Options */}
-            <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 text-center space-y-3">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-3">
               <div className="text-xs font-bold text-indigo-950 flex items-center justify-center gap-1.5">
                 <QrCode className="w-4 h-4 text-indigo-600" /> Instant UPI Auto-Release
               </div>
 
               {/* Dynamic QR Simulation */}
-              <div className="mx-auto w-36 h-36 bg-white border-2 border-indigo-200 rounded-2xl p-2 flex flex-col items-center justify-center shadow-inner relative">
-                <div className="w-full h-full bg-slate-900 rounded-lg flex flex-col items-center justify-center p-2 text-white">
-                  <QrCode className="w-16 h-16 text-indigo-400" />
-                  <span className="text-[9px] font-mono mt-1 text-slate-300">Scan via Any UPI App</span>
+              <div className="mx-auto w-36 h-36 bg-white border-2 border-slate-200 rounded-2xl p-2 flex flex-col items-center justify-center shadow-inner relative">
+                <div className="w-full h-full bg-slate-50 border border-slate-200 rounded-lg flex flex-col items-center justify-center p-2 text-slate-800">
+                  <QrCode className="w-16 h-16 text-btred-logo" />
+                  <span className="text-[9px] font-mono mt-1 text-slate-600 font-bold">Scan via Any UPI App</span>
                 </div>
               </div>
 
@@ -1231,7 +1202,7 @@ startxref
             )}
 
             <div className="text-center">
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-600">
                 Facing an issue? Contact Managing Partner {DEFAULT_FIRM_BRANDING.managingPartner} directly on WhatsApp.
               </p>
             </div>

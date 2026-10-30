@@ -11,9 +11,13 @@ import {
   CheckCircle2, 
   ShieldCheck, 
   DollarSign,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Send,
+  ExternalLink
 } from "lucide-react";
 import { ClientEntity } from "@/lib/types";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { toast } from "@/components/shared/ToastNotification";
 
 interface EngagementLetterGeneratorProps {
   clients?: ClientEntity[];
@@ -29,7 +33,7 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
   );
 
   const selectedClient = useMemo(() => {
-    return clients.find((c) => c.id === selectedClientId) || null;
+    return clients.find((c) => c.id === selectedClientId) || clients[0] || null;
   }, [clients, selectedClientId]);
 
   // Engagement Details
@@ -39,12 +43,29 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
 
   const [financialYear, setFinancialYear] = useState<string>("FY 2025-26 (AY 2026-27)");
   const [professionalFee, setProfessionalFee] = useState<number>(45000);
-  const [partnerSignatory, setPartnerSignatory] = useState<string>("CA Sahil Jain, FCA");
-  const [membershipNo, setMembershipNo] = useState<string>("514289");
-  const [firmRegNo, setFirmRegNo] = useState<string>("019284C");
+  const [partnerSignatory, setPartnerSignatory] = useState<string>(DEFAULT_FIRM_BRANDING.managingPartner);
+  const [membershipNo, setMembershipNo] = useState<string>("518492");
+  const [firmRegNo, setFirmRegNo] = useState<string>(DEFAULT_FIRM_BRANDING.frn);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleWhatsAppDispatch = () => {
+    const rawPhone = selectedClient?.primaryContact?.phone || "9820044101";
+    const cleanPhone = rawPhone.replace(/\D/g, "");
+    const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+
+    const text = encodeURIComponent(
+      `Dear ${selectedClient?.primaryContact?.name || selectedClient?.name || "Client"},\n\n` +
+      `Please find our official ICAI SA 210 Engagement Letter for ${getEngagementScopeTitle()} (${financialYear}).\n\n` +
+      `Agreed Professional Retainer: ₹${professionalFee.toLocaleString("en-IN")} + 18% GST.\n` +
+      `Managing Partner: ${partnerSignatory} (${DEFAULT_FIRM_BRANDING.firmName})\n\n` +
+      `Please review and provide your digital acceptance.\n\n` +
+      `Regards,\n${DEFAULT_FIRM_BRANDING.firmName}`
+    );
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
+    toast.success("Engagement Dispatched", `Sent SA 210 agreement link to ${selectedClient?.name} on WhatsApp.`);
   };
 
   const getEngagementScopeTitle = () => {
@@ -63,26 +84,33 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border border-emerald-700/40 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> ICAI SA 210 Standard Compliant
+              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5 font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-800" /> ICAI SA 210 Standard Compliant
               </span>
-              <span className="text-xs text-slate-400 font-mono">1-Click Legal Retainer Generator</span>
+              <span className="text-xs text-slate-600 font-mono">FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; 1-Click Retainer Generator</span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              <FileCheck className="w-6 h-6 text-emerald-400" /> Automated Engagement Letters &amp; Retainer Agreements
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+              <FileCheck className="w-6 h-6 text-btred-logo" /> Automated Engagement Letters &amp; Retainer Agreements
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-              Eliminate professional liability risk and satisfy ICAI Peer Review mandates. Generates official SA-210 letters of engagement with statutory clauses for CARO 2020, UDIN obligations, and fee payment schedules.
+            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+              Eliminate professional liability risk and satisfy ICAI Peer Review mandates. Generates official SA-210 letters of engagement with statutory clauses for CARO 2020, UDIN obligations, and Section 43B(h) payment schedules.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={handleWhatsAppDispatch}
+              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send via WhatsApp</span>
+            </button>
+            <button
               onClick={handlePrint}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
+              className="px-4 py-2.5 bg-btred-logo hover:bg-red-700 text-white shadow-sm font-bold text-xs rounded-xl transition flex items-center gap-2"
             >
               <Printer className="w-4 h-4" />
               <span>Print Official Letter</span>
@@ -91,16 +119,16 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
         </div>
 
         {/* Configuration Controls */}
-        <div className="mt-6 pt-6 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Select Client</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Select Client</label>
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             >
               {clients.length === 0 ? (
-                <option value="">No clients loaded (Manual entry)</option>
+                <option value="">No clients loaded</option>
               ) : (
                 clients.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -112,11 +140,11 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Engagement Scope</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Engagement Scope</label>
             <select
               value={engagementType}
               onChange={(e) => setEngagementType(e.target.value as any)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             >
               <option value="TAX_AUDIT_44AB">Tax Audit (Sec 44AB - 3CD)</option>
               <option value="STATUTORY_AUDIT_COMPANIES_ACT">Statutory Audit (Co. Act 2013)</option>
@@ -126,44 +154,44 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Financial Year</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Financial Year</label>
             <input
               type="text"
               value={financialYear}
               onChange={(e) => setFinancialYear(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Agreed Fee (₹)</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Agreed Professional Fee (₹)</label>
             <input
               type="number"
               value={professionalFee}
               onChange={(e) => setProfessionalFee(Number(e.target.value) || 0)}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-400"
+              className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             />
           </div>
         </div>
       </div>
 
       {/* Engagement Letter Preview Container */}
-      <div className="bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-12 shadow-2xl font-serif max-w-4xl mx-auto space-y-6 text-xs sm:text-sm leading-relaxed">
+      <div className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-8 sm:p-12 shadow-sm font-serif max-w-4xl mx-auto space-y-6 text-xs sm:text-sm leading-relaxed">
         {/* Letterhead Header */}
         <div className="border-b-2 border-slate-900 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-xl font-black uppercase tracking-wider text-slate-900 font-sans">
-              BRAINS &amp; TAXES ASSOCIATES
+              {DEFAULT_FIRM_BRANDING.firmName}
             </h2>
             <p className="text-xs text-slate-600 font-sans mt-0.5">
-              Chartered Accountants | Firm Registration No: {firmRegNo}
+              Chartered Accountants | Firm Registration No: {firmRegNo} | Peer Review: {DEFAULT_FIRM_BRANDING.peerReviewNo}
             </p>
             <p className="text-[11px] text-slate-500 font-sans">
-              305-A Anmol Tower, Old Palasia, Indore, MP 452001 | contact@brainsandtaxes.com
+              {DEFAULT_FIRM_BRANDING.headOffice} | {DEFAULT_FIRM_BRANDING.email}
             </p>
           </div>
           <div className="text-right font-sans text-xs">
-            <span className="font-bold text-slate-700">Ref: BTA/ENG/{new Date().getFullYear()}/042</span>
+            <span className="font-bold text-slate-700">Ref: GPA/ENG/{new Date().getFullYear()}/042</span>
             <div className="text-slate-500 mt-1">Date: {new Date().toLocaleDateString("en-IN")}</div>
           </div>
         </div>
@@ -172,7 +200,7 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
         <div className="space-y-1 font-sans text-xs">
           <p className="font-bold text-slate-900">To,</p>
           <p className="font-bold text-base text-slate-900">{selectedClient?.name || "The Board of Directors / Authorized Partner"}</p>
-          <p className="text-slate-700">{selectedClient?.groupName || "Promoter Office"}</p>
+          <p className="text-slate-700">{selectedClient?.groupName || "Corporate Assessee"}</p>
           <p className="text-slate-700">PAN: {selectedClient?.pan || "ABCDE1234F"} | GSTIN: {selectedClient?.gstin || "23AAACB1234L1Z2"}</p>
         </div>
 
@@ -217,16 +245,16 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
               3. Unique Document Identification Number (UDIN)
             </h4>
             <p>
-              In compliance with ICAI Council Mandates, all tax audit reports (Form 3CA/3CB/3CD) and certificates generated under this engagement will carry a valid system-generated 18-digit UDIN, verifiable by statutory tax authorities on the official ICAI portal.
+              In compliance with ICAI Council Mandates, all tax audit reports (Form 3CA/3CB/3CD) and certificates generated under this engagement will carry a valid system-generated 18-digit UDIN, verifiable by statutory tax authorities on the official ICAI portal (udin.icai.org).
             </p>
           </div>
 
           <div>
             <h4 className="font-bold font-sans text-xs uppercase tracking-wide text-slate-900 mb-1">
-              4. Professional Fees and Billing Terms
+              4. Professional Fees and Section 43B(h) Billing Terms
             </h4>
             <p>
-              Our agreed professional fee for the services described above is fixed at <strong>₹{professionalFee.toLocaleString("en-IN")}</strong> (Rupees {professionalFee.toLocaleString("en-IN")} only), exclusive of applicable Goods &amp; Services Tax (GST @ 18%) and out-of-pocket expenses. Invoices are payable within 15 days of presentation.
+              Our agreed professional fee for the services described above is fixed at <strong>₹{professionalFee.toLocaleString("en-IN")}</strong> (Rupees {professionalFee.toLocaleString("en-IN")} only), exclusive of applicable Goods &amp; Services Tax (GST @ 18%) and out-of-pocket expenses. Under Section 43B(h) of the Income Tax Act, 1961, tax invoices are payable within 15 days (or 45 days under written agreement) of presentation.
             </p>
           </div>
         </div>
@@ -234,7 +262,7 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
         {/* Signatures */}
         <div className="pt-8 grid grid-cols-2 gap-8 font-sans text-xs">
           <div className="border-t border-slate-400 pt-3">
-            <p className="font-bold text-slate-900">For Brains &amp; Taxes Associates</p>
+            <p className="font-bold text-slate-900">For {DEFAULT_FIRM_BRANDING.firmName}</p>
             <p className="text-slate-600">Chartered Accountants (FRN: {firmRegNo})</p>
             <div className="mt-8">
               <p className="font-bold text-slate-900">{partnerSignatory}</p>
@@ -247,7 +275,7 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
             <p className="text-slate-600">For {selectedClient?.name || "Client Entity"}</p>
             <div className="mt-8">
               <p className="font-bold text-slate-900">Authorized Signatory</p>
-              <p className="text-slate-500">Name &amp; Designation / Rubber Stamp</p>
+              <p className="text-slate-500">Name &amp; Designation / Official Seal</p>
             </div>
           </div>
         </div>

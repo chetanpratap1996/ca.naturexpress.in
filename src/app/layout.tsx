@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden selection:bg-btred-logo selection:text-white">
+      <body className="antialiased min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 selection:bg-btred-logo selection:text-white flex flex-col">
         <ToastContainer />
         <ErrorBoundary>
           {children}

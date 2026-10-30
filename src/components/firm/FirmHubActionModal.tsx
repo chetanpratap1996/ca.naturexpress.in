@@ -43,7 +43,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
       title: "Onboard New Client Entity",
       subtitle: "Add Private Ltd, LLP, Trust or HNWI to master list",
       icon: Building2,
-      color: "bg-blue-50 text-blue-600 border-blue-200",
+      color: "bg-red-50 text-btred-logo border-red-200",
       badge: "Master Data",
       onClick: () => {
         onClose();
@@ -98,7 +98,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
       title: "Register Physical DSC Token",
       subtitle: "Log USB dongle serial number and vault safe locker slot",
       icon: KeyRound,
-      color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      color: "bg-slate-100 text-slate-700 border-slate-200",
       badge: "Hardware Custody",
       onClick: () => {
         onClose();
@@ -109,7 +109,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
       title: "Run Govt Portal Sync & Scraper",
       subtitle: "Poll GSTN, ITD 2.0 & MCA for verified DIN notices",
       icon: Globe,
-      color: "bg-cyan-50 text-cyan-700 border-cyan-200",
+      color: "bg-slate-100 text-slate-700 border-slate-200",
       badge: "Portal Scraper",
       onClick: () => {
         onClose();
@@ -120,7 +120,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
       title: "Virtual CFO Advisory Cockpit",
       subtitle: "Runway stress simulator, working capital & debtor aging",
       icon: TrendingUp,
-      color: "bg-purple-50 text-purple-700 border-purple-200",
+      color: "bg-red-50 text-btred-logo border-red-200",
       badge: "High-Margin",
       onClick: () => {
         onClose();
@@ -163,7 +163,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
       <div 
         className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in zoom-in-95 max-h-[90dvh] overflow-y-auto"
         role="dialog"
@@ -216,7 +216,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
                     <span className="font-bold text-xs text-slate-900 group-hover:text-btred-logo transition truncate">
                       {act.title}
                     </span>
-                    <span className="text-[9px] font-black uppercase text-slate-400 group-hover:text-slate-600 shrink-0">
+                    <span className="text-[9px] font-black uppercase text-slate-600 group-hover:text-slate-600 shrink-0">
                       {act.badge}
                     </span>
                   </div>

@@ -32,7 +32,46 @@ interface DocumentMovementItem {
   locationBin: string;
 }
 
-const INITIAL_MOVEMENTS: DocumentMovementItem[] = [];
+const INITIAL_MOVEMENTS: DocumentMovementItem[] = [
+  {
+    id: "MOV-01",
+    type: "INWARD",
+    entityName: "Apex AutoTech Private Limited",
+    documentDescription: "Physical Share Certificate Books & Statutory Minute Books for Statutory Audit",
+    senderOrRecipient: "Rajesh Sharma (Managing Director)",
+    mode: "HAND_DELIVERY",
+    receivedOrHandledBy: "Kriti Jain (Article)",
+    date: "2026-10-24",
+    status: "IN_OFFICE_SAFE",
+    locationBin: "Cabinet A - Safe Locker 02"
+  },
+  {
+    id: "MOV-02",
+    type: "OUTWARD",
+    entityName: "Zenith SaaS Technologies Private Limited",
+    documentDescription: "Banker Loan Credit Appraisal Dossier with Green Seal & ICAI UDIN",
+    senderOrRecipient: "HDFC Bank Credit Dept, Y.N. Road, Indore",
+    mode: "COURIER",
+    courierTrackingNo: "BLUEDART-IND-9928194",
+    receivedOrHandledBy: "CA Gunjan Jain",
+    date: "2026-10-25",
+    status: "DISPATCHED",
+    locationBin: "Outward Dispatched"
+  },
+  {
+    id: "MOV-03",
+    type: "INWARD",
+    entityName: "OmniRetail Hypermarkets Private Limited",
+    documentDescription: "Original Land Title Deeds for Section 148 Cash Scrutiny Justification",
+    senderOrRecipient: "Aditya Singhal (Director)",
+    mode: "REGISTERED_POST",
+    courierTrackingNo: "SPEEDPOST-MP-4481029",
+    receivedOrHandledBy: "Aman Verma (Article)",
+    date: "2026-10-26",
+    status: "IN_OFFICE_SAFE",
+    locationBin: "Cabinet B - Vault Slot 07"
+  }
+];
 
 export const InwardOutwardRegister: React.FC = () => {
   const { clients } = useTaxoData();
@@ -123,7 +162,7 @@ export const InwardOutwardRegister: React.FC = () => {
           <button
             onClick={() => setFilterType("ALL")}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0 ${
-              filterType === "ALL" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
+              filterType === "ALL" ? "bg-btred-logo text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
             All Movement ({movements.length})
@@ -131,7 +170,7 @@ export const InwardOutwardRegister: React.FC = () => {
           <button
             onClick={() => setFilterType("INWARD")}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 whitespace-nowrap shrink-0 ${
-              filterType === "INWARD" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
+              filterType === "INWARD" ? "bg-btred-logo text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
             <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500" />
@@ -140,16 +179,16 @@ export const InwardOutwardRegister: React.FC = () => {
           <button
             onClick={() => setFilterType("OUTWARD")}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 whitespace-nowrap shrink-0 ${
-              filterType === "OUTWARD" ? "bg-btblack text-white shadow-sm" : "bg-slate-100 text-slate-700"
+              filterType === "OUTWARD" ? "bg-btred-logo text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
-            <ArrowUpRight className="w-3.5 h-3.5 text-blue-500" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
             Outward ({movements.filter(m => m.type === "OUTWARD").length})
           </button>
         </div>
 
         <div className="w-full sm:w-64 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-600 absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search document, courier..."
@@ -164,14 +203,14 @@ export const InwardOutwardRegister: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.length === 0 ? (
           <div className="col-span-full bg-white border border-dashed border-slate-200 rounded-3xl p-10 text-center space-y-3">
-            <Package className="w-10 h-10 text-slate-300 mx-auto" />
+            <Package className="w-10 h-10 text-slate-600 mx-auto" />
             <h4 className="text-sm font-black text-slate-700">No Physical Documents Logged</h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               Track incoming original deeds, cheque books, and audited balance sheets dispatched to bank branches or clients with sign-off audit trail.
             </p>
             <button
               onClick={() => setShowNewModal(true)}
-              className="bg-btblack hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition inline-flex items-center gap-2"
+              className="bg-btred-logo hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition inline-flex items-center gap-2"
             >
               <Plus className="w-3.5 h-3.5" /> Log Physical Movement
             </button>
@@ -188,7 +227,7 @@ export const InwardOutwardRegister: React.FC = () => {
                   className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
                     item.type === "INWARD"
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-blue-50 text-blue-700 border-blue-200"
+                      : "bg-red-50 text-btred-logo border border-red-200"
                   }`}
                 >
                   {item.type === "INWARD" ? (
@@ -199,7 +238,7 @@ export const InwardOutwardRegister: React.FC = () => {
                   {item.type} &bull; {item.mode.replace("_", " ")}
                 </span>
 
-                <span className="text-[10px] font-mono text-slate-400 font-bold">{item.id}</span>
+                <span className="text-[10px] font-mono text-slate-600 font-bold">{item.id}</span>
               </div>
 
               <h4 className="text-sm font-black text-slate-900">{item.entityName}</h4>
@@ -249,11 +288,11 @@ export const InwardOutwardRegister: React.FC = () => {
 
       {/* NEW INWARD MODAL */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setShowNewModal(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-800 p-1"
+              className="absolute right-4 top-4 text-slate-600 hover:text-slate-800 p-1"
             >
               <X className="w-5 h-5" />
             </button>

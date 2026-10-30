@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { TopNav } from "@/components/navigation/TopNav";
 import { FloatingBottomNav } from "@/components/navigation/FloatingBottomNav";
@@ -26,6 +26,7 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { 
   AuthUser, 
   DEMO_USERS,
+  getActiveSession,
   setActiveSession,
   clearSession
 } from "@/lib/auth/session";
@@ -75,16 +76,27 @@ export default function AdminPage() {
     payConfigs,
     refreshData,
     createClient,
+    updateClient,
+    deleteClient,
     updateTask,
     createTask,
     reconcileInvoice
   } = useTaxoData();
 
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("calendar");
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
+
+  useEffect(() => {
+    const session = getActiveSession();
+    if (session) {
+      setCurrentUser(session);
+    } else {
+      window.location.href = "/?auth_required=admin";
+    }
+  }, []);
 
   const handleTaskStatusChange = async (taskId: string, newStatus: WorkflowStatus) => {
     await updateTask(taskId, { status: newStatus });
@@ -141,12 +153,12 @@ export default function AdminPage() {
 
   const partnerTabs = [
     { id: "calendar", label: `Tax Deadlines (${tasks.length})`, icon: Calendar, iconColor: "text-btred-logo" },
-    { id: "pay-to-release", label: "Fee Release", icon: Lock, iconColor: "text-emerald-400" },
-    { id: "whatsapp-ai", label: "WhatsApp Helpdesk", icon: MessageSquare, iconColor: "text-teal-400" },
+    { id: "pay-to-release", label: "Fee Release", icon: Lock, iconColor: "text-emerald-700" },
+    { id: "whatsapp-ai", label: "WhatsApp Helpdesk", icon: MessageSquare, iconColor: "text-teal-700" },
     { id: "gstr2b", label: "GST Matcher (2B)", icon: FileSpreadsheet, iconColor: "text-blue-500" },
     { id: "notices", label: "Tax Notices", icon: ShieldAlert, iconColor: "text-btred-logo" },
     { id: "peer-review", label: "Audit Quality", icon: Award, iconColor: "text-indigo-400" },
-    { id: "anti-poaching", label: "Firm Insights", icon: Fingerprint, iconColor: "text-rose-400" },
+    { id: "anti-poaching", label: "Firm Insights", icon: Fingerprint, iconColor: "text-btred-logo" },
     { id: "billing", label: "Billing & Invoices", icon: DollarSign, iconColor: "text-btred-logo" },
     { id: "dsc", label: "DSC Keys", icon: KeyRound, iconColor: "text-btred-logo" },
     { id: "inward-outward", label: "Dispatches & Letters", icon: Package, iconColor: "text-amber-500" },
@@ -170,7 +182,7 @@ export default function AdminPage() {
 
   return (
     <ErrorBoundary fallbackTitle="CA Firm Administration Cockpit">
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
+      <div className="min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
         {/* Master Navigation Cockpit */}
         <TopNav 
           currentView={currentView} 
@@ -189,7 +201,7 @@ export default function AdminPage() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto w-full space-y-4 sm:space-y-6 pb-28 md:pb-20">
+        <main className="flex-1 w-full max-w-[1720px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-28 md:pb-12">
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Top KPI Metrics with Drill-Down Navigation */}
@@ -329,11 +341,7 @@ export default function AdminPage() {
                       key={tab.id}
                       onClick={() => setActivePartnerTab(tab.id)}
                       className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                        isActive
-                          ? tab.id === "batch-dispatch"
-                            ? "bg-indigo-600 text-white shadow-md"
-                            : "bg-btblack text-white shadow-md"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                        isActive ? "bg-btred-logo text-white shadow-md shadow-red-500/25" : "text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/60 border border-transparent hover:border-slate-200"
                       }`}
                     >
                       <Icon className={`w-3.5 h-3.5 ${tab.iconColor}`} />
@@ -452,6 +460,14 @@ export default function AdminPage() {
           groups={groups}
           onAddClient={async (newClient) => {
             await createClient(newClient);
+            await refreshData();
+          }}
+          onUpdateClient={async (id, data) => {
+            await updateClient(id, data);
+            await refreshData();
+          }}
+          onDeleteClient={async (id) => {
+            await deleteClient(id);
             await refreshData();
           }}
         />

@@ -73,10 +73,10 @@ export function TaxCashflowForecaster({ clientName = "Client Entity" }: TaxCashf
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-indigo-600" /> Early Cash Flow Radar
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-50 text-btred-logo border border-red-200 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-btred-logo" /> Early Cash Flow Radar
             </span>
-            <span className="text-xs text-slate-400 font-semibold">Zero 11th-Hour Cash Surprises</span>
+            <span className="text-xs text-slate-600 font-semibold">Zero 11th-Hour Cash Surprises</span>
           </div>
           <h3 className="text-base font-black text-slate-900 mt-1">
             Advance Tax &amp; GST Outflow Forecaster
@@ -172,10 +172,10 @@ export function TaxCashflowForecaster({ clientName = "Client Entity" }: TaxCashf
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-600" />
+                <TrendingUp className="w-4 h-4 text-btred-logo" />
                 <span className="text-xs font-black text-slate-900 uppercase">Advance Tax Q3 (75% Cutoff)</span>
               </div>
-              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-bold text-btred-logo bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
                 Due: 15-Dec
               </span>
             </div>
@@ -215,7 +215,7 @@ export function TaxCashflowForecaster({ clientName = "Client Entity" }: TaxCashf
               <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
                 <div>
                   <span className="font-extrabold text-slate-900 block">Q3 Installment Payable:</span>
-                  <span className="text-[10px] text-slate-400">Section 234C Interest Safe</span>
+                  <span className="text-[10px] text-slate-600">Section 234C Interest Safe</span>
                 </div>
                 <span className="text-lg font-black text-indigo-700 font-mono">
                   ₹{netAdvanceTaxDueQ3.toLocaleString("en-IN")}

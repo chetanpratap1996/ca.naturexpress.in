@@ -62,12 +62,12 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600">
+            <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-btred-logo">
               <Fingerprint className="w-5 h-5" />
             </div>
             <div>
@@ -81,7 +81,7 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+            className="p-2 rounded-xl text-slate-600 hover:text-slate-600 hover:bg-slate-100 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -91,8 +91,8 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
         <div className="p-6 overflow-y-auto space-y-5">
           {step === "SUMMARY" && (
             <div className="space-y-5">
-              <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
-                <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                <span className="text-[10px] font-bold text-btred-logo uppercase tracking-wider block">
                   Filing Package for Approval
                 </span>
                 <div className="text-sm font-black text-slate-900 mt-0.5">{filingTitle}</div>
@@ -108,25 +108,25 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Total Revenue</span>
+                    <span className="text-[10px] text-slate-600 block font-semibold">Total Revenue</span>
                     <span className="text-base font-black text-slate-900">{formatCurrencyINR(24500000)}</span>
                     <span className="text-[10px] text-emerald-600 font-bold block">+18.2% vs FY25</span>
                   </div>
 
                   <div className="p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Net Profit (PAT)</span>
+                    <span className="text-[10px] text-slate-600 block font-semibold">Net Profit (PAT)</span>
                     <span className="text-base font-black text-slate-900">{formatCurrencyINR(3240000)}</span>
                     <span className="text-[10px] text-slate-500 font-semibold block">Margin: 13.2%</span>
                   </div>
 
                   <div className="p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Total Tax Computed</span>
+                    <span className="text-[10px] text-slate-600 block font-semibold">Total Tax Computed</span>
                     <span className="text-base font-black text-slate-900">{formatCurrencyINR(815000)}</span>
                     <span className="text-[10px] text-slate-500 font-semibold block">Sec 115BAA @ 25.17%</span>
                   </div>
 
                   <div className="p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Advance Tax &amp; TDS</span>
+                    <span className="text-[10px] text-slate-600 block font-semibold">Advance Tax &amp; TDS</span>
                     <span className="text-base font-black text-emerald-600">{formatCurrencyINR(815000)}</span>
                     <span className="text-[10px] text-emerald-600 font-bold block">100% Fully Paid (Nil Due)</span>
                   </div>
@@ -146,7 +146,7 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
 
               <button
                 onClick={handleRequestOtp}
-                className="w-full py-3 bg-slate-900 hover:bg-black text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2"
+                className="w-full py-3 bg-btred-logo hover:bg-red-700 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2"
               >
                 Proceed to Aadhaar OTP e-Sign
                 <ArrowRight className="w-4 h-4" />
@@ -157,7 +157,7 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
           {step === "AADHAAR_OTP" && (
             <div className="space-y-5 animate-fadeIn">
               <div className="text-center space-y-1">
-                <div className="w-12 h-12 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <div className="w-12 h-12 bg-red-50 border border-red-200 text-btred-logo rounded-2xl flex items-center justify-center mx-auto mb-2">
                   <Fingerprint className="w-6 h-6" />
                 </div>
                 <h4 className="text-base font-bold text-slate-900">Enter Aadhaar Verification OTP</h4>
@@ -175,16 +175,16 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
                   placeholder="Enter 6-digit OTP (e.g. 782190)"
                   className="w-full text-center tracking-widest text-xl font-mono font-bold py-3 bg-slate-50 border border-slate-300 rounded-2xl outline-none focus:border-indigo-600 focus:bg-white transition"
                 />
-                <div className="flex justify-between text-[11px] text-slate-400">
+                <div className="flex justify-between text-[11px] text-slate-600">
                   <span>Valid for 10 minutes</span>
-                  <button className="text-indigo-600 hover:underline font-semibold">Resend OTP</button>
+                  <button className="text-btred-logo hover:underline font-semibold">Resend OTP</button>
                 </div>
               </div>
 
               <button
                 onClick={handleVerifyOtp}
                 disabled={isVerifying}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-3 bg-btred-logo hover:bg-red-700 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {isVerifying ? (
                   <>
@@ -220,7 +220,7 @@ export const EsignApprovalModal: React.FC<EsignApprovalModalProps> = ({
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
+                  className="flex-1 py-2.5 bg-btred-logo hover:bg-red-700 text-white text-xs font-bold rounded-xl transition"
                 >
                   Done &amp; Return to Portal
                 </button>

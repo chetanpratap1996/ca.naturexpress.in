@@ -32,7 +32,36 @@ export interface VendorHoldItem {
   status: "PAYMENT_HELD" | "NOTICE_SENT" | "RESOLVED_IN_2B";
 }
 
-const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [];
+const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [
+  {
+    id: "hold-1",
+    vendorName: "Tata Projects Limited",
+    vendorGstin: "27AAACT2727Q1ZW",
+    invoiceNo: "TPL/2026/0921",
+    invoiceDate: "2026-09-08",
+    taxableAmount: 1027777,
+    blockedItc: 185000,
+    totalInvoiceValue: 1212777,
+    recommendedWithholdAmount: 185000,
+    vendorContactPhone: "+91 98200 44122",
+    vendorAccountEmail: "accounts.payables@tataprojects.com",
+    status: "PAYMENT_HELD"
+  },
+  {
+    id: "hold-2",
+    vendorName: "Shree Balaji Logistics & Warehousing",
+    vendorGstin: "23AABFS7714C1Z1",
+    invoiceNo: "SBL/IND/4819",
+    invoiceDate: "2026-09-15",
+    taxableAmount: 450000,
+    blockedItc: 81000,
+    totalInvoiceValue: 531000,
+    recommendedWithholdAmount: 81000,
+    vendorContactPhone: "+91 98110 44212",
+    vendorAccountEmail: "billing@balajilogistics.in",
+    status: "NOTICE_SENT"
+  }
+];
 
 export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientName?: string }) {
   const [holds, setHolds] = useState<VendorHoldItem[]>(INITIAL_VENDOR_HOLDS);
@@ -119,7 +148,7 @@ export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientN
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
               <Lock className="w-3 h-3 text-rose-600" /> Cash Protection System
             </span>
-            <span className="text-xs text-slate-400 font-semibold">Section 16(2)(aa) Defense</span>
+            <span className="text-xs text-slate-600 font-semibold">Section 16(2)(aa) Defense</span>
           </div>
           <h3 className="text-base font-black text-slate-900 mt-1">
             Supplier ITC Hold &amp; Cash Recovery Register
@@ -136,7 +165,7 @@ export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientN
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="p-3 bg-btblack hover:bg-slate-800 text-white rounded-2xl shadow transition shrink-0"
+            className="p-3 bg-red-50 text-btred-logo border border-red-200 rounded-2xl shadow-sm hover:bg-red-100 transition shrink-0"
             title="Add Defaulting Vendor"
           >
             <Plus className="w-4 h-4" />
@@ -235,7 +264,7 @@ export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientN
 
       {/* Add Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleAddHold}
             className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in zoom-in-95"
@@ -243,7 +272,7 @@ export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientN
             <button
               type="button"
               onClick={() => setIsAddModalOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-800 p-1"
+              className="absolute right-4 top-4 text-slate-600 hover:text-slate-800 p-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -316,7 +345,7 @@ export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientN
               </button>
               <button
                 type="submit"
-                className="bg-btblack hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-xl transition"
+                className="bg-btred-logo hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl transition"
               >
                 Save Payment Hold
               </button>

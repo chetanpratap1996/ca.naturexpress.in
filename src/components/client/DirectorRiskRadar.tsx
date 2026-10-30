@@ -38,9 +38,48 @@ interface SftTransactionFlag {
   recommendedAction: string;
 }
 
-const SAMPLE_DIRECTORS: DirectorProfile[] = [];
+const SAMPLE_DIRECTORS: DirectorProfile[] = [
+  {
+    name: "Rajesh Sharma",
+    din: "02849102",
+    dinStatus: "ACTIVE",
+    dir3KycStatus: "FILED",
+    disqualificationRisk: "CLEAN",
+    associatedCompanies: [
+      { cin: "U29100MP2015PTC034120", name: "Apex AutoTech Private Limited", status: "COMPLIANT" }
+    ]
+  }
+];
 
-const SAMPLE_SFT_FLAGS: SftTransactionFlag[] = [];
+const SAMPLE_SFT_FLAGS: SftTransactionFlag[] = [
+  {
+    id: "SFT-01",
+    category: "SFT-004: High-Value Cash Deposits in Current/Savings",
+    reportingEntity: "HDFC Bank (Palasia Branch, Indore)",
+    amount: 1450000,
+    date: "2026-09-18",
+    statusInItr: "MISMATCH_ALERT",
+    recommendedAction: "High Scrutiny Alert: Verify cash sales vouchers before filing ITR to prevent Section 68 unexplained cash credit addition."
+  },
+  {
+    id: "SFT-02",
+    category: "SFT-006: Purchase of Mutual Fund Units (> ₹10L)",
+    reportingEntity: "HDFC Mutual Fund Asset Management",
+    amount: 1000000,
+    date: "2026-08-14",
+    statusInItr: "DECLARED",
+    recommendedAction: "Fully matched with director's capital source declaration."
+  },
+  {
+    id: "SFT-03",
+    category: "SFT-005: Credit Card Payments (> ₹10L Aggregated)",
+    reportingEntity: "ICICI Bank Credit Cards",
+    amount: 1120000,
+    date: "2026-07-29",
+    statusInItr: "DECLARED",
+    recommendedAction: "Examined against personal drawings in firm accounts. No unexplained expenditure u/s 69C."
+  }
+];
 
 export interface DirectorRiskRadarProps {
   client?: ClientEntity | null;
@@ -69,7 +108,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
       <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-full flex items-center gap-1.5">
+            <span className="px-3 py-1 bg-red-50 border border-red-200 text-btred-logo text-xs font-bold rounded-full flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5" /> Promoter Liability Protection
             </span>
             <span className="text-xs text-slate-500 font-medium">Companies Act 2013 &amp; SFT Tax Vigilance</span>
@@ -133,7 +172,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
       {/* Directors Board Register */}
       <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
         <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-          <UserCheck className="w-4 h-4 text-indigo-600" />
+          <UserCheck className="w-4 h-4 text-btred-logo" />
           Board of Directors DIN &amp; MCA KYC Status
         </h3>
 
@@ -162,9 +201,9 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-200 text-[10px] text-slate-400 flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-slate-200 text-[10px] text-slate-600 flex items-center justify-between">
                 <span>MCA V3 Portal Synced: 24-Oct-2026</span>
-                <span className="text-indigo-600 font-semibold cursor-pointer hover:underline">
+                <span className="text-btred-logo font-semibold cursor-pointer hover:underline">
                   View MCA Master Data &rarr;
                 </span>
               </div>
@@ -200,7 +239,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
                   <td colSpan={5} className="p-8 text-center text-slate-500">
                     <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                     <div className="font-bold text-slate-800 text-sm">Zero High-Value Transaction Mismatches</div>
-                    <div className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    <div className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
                       All high-value banking and financial transactions reported under AIS/TIS Project Insight are clean and reconciled with annual ITR disclosures.
                     </div>
                   </td>

@@ -133,7 +133,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
             onClick={() => setStatementSubTab("balance-sheet")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition ${
               statementSubTab === "balance-sheet"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 bg-slate-100"
             }`}
           >
@@ -143,7 +143,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
             onClick={() => setStatementSubTab("profit-loss")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition ${
               statementSubTab === "profit-loss"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 bg-slate-100"
             }`}
           >
@@ -153,7 +153,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
             onClick={() => setStatementSubTab("notes")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition ${
               statementSubTab === "notes"
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-btred-logo text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900 bg-slate-100"
             }`}
           >
@@ -167,7 +167,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
           </span>
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm transition flex items-center gap-1.5"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Financials</span>
@@ -187,7 +187,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
             <p className="text-xs text-slate-500 font-bold uppercase mt-1">
               Balance Sheet as at 31st March, 2026 (Schedule III Division I)
             </p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600">
               CIN: {client.cin || "U24231MP2018PTC045812"} &bull; PAN: {client.pan} &bull; Amounts in Indian Rupees (₹)
             </p>
           </div>
@@ -205,7 +205,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 
                 {/* I. EQUITY AND LIABILITIES */}
-                <tr className="bg-indigo-50/70 font-black text-indigo-950">
+                <tr className="bg-slate-100/90 font-black text-slate-900">
                   <td colSpan={4} className="py-2.5 px-4 uppercase text-[11px] tracking-wider">
                     I. EQUITY AND LIABILITIES
                   </td>
@@ -223,7 +223,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                       <td className="py-1.5 px-10 text-slate-800">
                         {entry.head.title}
                         {entry.count > 0 && (
-                          <span className="ml-2 text-[10px] text-slate-400 font-normal">
+                          <span className="ml-2 text-[10px] text-slate-600 font-normal">
                             ({entry.count} ledgers)
                           </span>
                         )}
@@ -325,15 +325,15 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                 })}
 
                 {/* TOTAL EQUITY AND LIABILITIES */}
-                <tr className="bg-slate-900 text-white font-black text-xs border-t-2 border-slate-900">
+                <tr className="bg-red-50/80 text-slate-900 font-black text-xs border-t-2 border-red-300">
                   <td className="py-3 px-4 uppercase">TOTAL EQUITY AND LIABILITIES</td>
                   <td className="py-3 px-2 text-center">-</td>
                   <td className="py-3 px-4 text-right">{formatCurrencyINR(totalCredit)}</td>
-                  <td className="py-3 px-4 text-right text-slate-300">{formatCurrencyINR(totalCredit * pyFactor)}</td>
+                  <td className="py-3 px-4 text-right text-slate-600">{formatCurrencyINR(totalCredit * pyFactor)}</td>
                 </tr>
 
                 {/* II. ASSETS */}
-                <tr className="bg-indigo-50/70 font-black text-indigo-950">
+                <tr className="bg-slate-100/90 font-black text-slate-900">
                   <td colSpan={4} className="py-3 px-4 uppercase text-[11px] tracking-wider">
                     II. ASSETS
                   </td>
@@ -406,11 +406,11 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                 })}
 
                 {/* TOTAL ASSETS */}
-                <tr className="bg-slate-900 text-white font-black text-xs border-t-2 border-slate-900">
+                <tr className="bg-red-50/80 text-slate-900 font-black text-xs border-t-2 border-red-300">
                   <td className="py-3 px-4 uppercase">TOTAL ASSETS</td>
                   <td className="py-3 px-2 text-center">-</td>
                   <td className="py-3 px-4 text-right">{formatCurrencyINR(totalDebit)}</td>
-                  <td className="py-3 px-4 text-right text-slate-300">{formatCurrencyINR(totalDebit * pyFactor)}</td>
+                  <td className="py-3 px-4 text-right text-slate-600">{formatCurrencyINR(totalDebit * pyFactor)}</td>
                 </tr>
               </tbody>
             </table>
@@ -430,7 +430,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
             <p className="text-xs text-slate-500 font-bold uppercase mt-1">
               Statement of Profit and Loss for the year ended 31st March, 2026
             </p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600">
               In accordance with Schedule III Part II of Companies Act, 2013 &bull; Amounts in Indian Rupees (₹)
             </p>
           </div>
@@ -472,7 +472,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                 </tr>
 
                 {/* IV. EXPENSES */}
-                <tr className="bg-indigo-50/70 font-black text-indigo-950">
+                <tr className="bg-slate-100/90 font-black text-slate-900">
                   <td colSpan={4} className="py-2 px-4 uppercase text-[11px] tracking-wider">
                     IV. EXPENSES
                   </td>
@@ -545,11 +545,11 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                 </tr>
 
                 {/* VII. Profit for the period (PAT) */}
-                <tr className="bg-slate-900 text-white font-black text-xs border-t-2 border-slate-900">
+                <tr className="bg-red-50/80 text-slate-900 font-black text-xs border-t-2 border-red-300">
                   <td className="py-3 px-4 uppercase">VII. PROFIT FOR THE PERIOD (PAT)</td>
                   <td className="py-3 px-2 text-center">-</td>
-                  <td className="py-3 px-4 text-right text-emerald-400">{formatCurrencyINR(profitAfterTax)}</td>
-                  <td className="py-3 px-4 text-right text-slate-300">{formatCurrencyINR(profitAfterTax * 0.84)}</td>
+                  <td className="py-3 px-4 text-right text-emerald-700">{formatCurrencyINR(profitAfterTax)}</td>
+                  <td className="py-3 px-4 text-right text-slate-600">{formatCurrencyINR(profitAfterTax * 0.84)}</td>
                 </tr>
               </tbody>
             </table>
@@ -579,7 +579,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                 <div 
                   key={note.noteNumber}
                   className={`border rounded-2xl transition overflow-hidden ${
-                    isExpanded ? "border-indigo-500 bg-indigo-50/20 shadow-xs" : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
+                    isExpanded ? "border-red-500 bg-red-50/20 shadow-xs" : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
                   }`}
                 >
                   {/* Note Accordion Header */}
@@ -588,7 +588,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                     className="p-3.5 flex items-center justify-between cursor-pointer select-none"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-800 text-xs font-black flex items-center justify-center shrink-0">
+                      <span className="w-8 h-8 rounded-xl bg-red-50 text-btred-logo border border-red-200 text-xs font-black flex items-center justify-center shrink-0">
                         {note.noteNumber}
                       </span>
                       <div>
@@ -608,7 +608,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                       {isExpanded ? (
                         <ChevronDown className="w-4 h-4 text-indigo-600" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-600" />
                       )}
                     </div>
                   </div>
@@ -618,7 +618,7 @@ export const FinancialStatementView: React.FC<FinancialStatementViewProps> = ({
                     <div className="p-3.5 bg-white border-t border-slate-200 space-y-2 animate-in fade-in">
                       <table className="w-full text-xs text-left">
                         <thead>
-                          <tr className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                          <tr className="text-[10px] uppercase font-bold text-slate-600 border-b border-slate-100">
                             <th className="py-1.5 px-2">Constituent Tally Ledger</th>
                             <th className="py-1.5 px-2">Tally Group</th>
                             <th className="py-1.5 px-2 text-right">Balance</th>

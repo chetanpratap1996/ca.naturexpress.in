@@ -26,9 +26,9 @@ async function seed() {
       'Compliant (ICAI Certified Validity till 2028)',
       'Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001',
       'HDFC Bank',
-      '50200088921842',
-      'HDFC0000281',
-      '7999995897@upi'
+      '657005601799',
+      'ICIC0006570',
+      'BRAINSANDTAXES@icici'
     ) RETURNING id;
   `);
   const firmId = firmRes.rows[0].id;

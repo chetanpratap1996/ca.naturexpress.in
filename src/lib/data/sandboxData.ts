@@ -36,11 +36,12 @@ export const SANDBOX_FIRM_METRICS = {
   dailyAccruingPenaltyRisk: 2500,
   firmUpiVpa: "BRAINSANDTAXES@icici",
   firmBankDetails: {
-    bankName: "HDFC Bank",
-    branch: "Y.N. Road Branch, Indore",
-    accountNumber: "50200088921842",
-    accountName: "GPA & Co., Chartered Accountants",
-    ifsc: "ICIC0000041"
+    bankName: "ICICI Bank",
+    branch: "New Palasia, Indore",
+    accountType: "Current Account",
+    accountNumber: "657005601799",
+    accountName: "Brains & Taxes Private Limited",
+    ifsc: "ICIC0006570"
   }
 };
 

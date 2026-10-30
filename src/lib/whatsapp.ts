@@ -120,10 +120,13 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
       return `*TAX INVOICE #${params.invoiceNo || "FEE"} & PAYMENT DETAILS*\n\n` +
         `Dear ${params.clientName},\n\n` +
         `Please find attached Invoice *#${params.invoiceNo || "N/A"}* for *${params.serviceName || "Professional Services"}* amounting to *${formatINR(params.invoiceAmount)}*.\n\n` +
-        `🏦 *Bank Transfer Details:*\n` +
-        `• Bank: HDFC Bank, Y.N. Road Branch, Indore\n` +
-        `• A/c Name: Brains & Taxes Private Limited\n` +
-        `• Direct UPI VPA: *${params.firmUpiVpa || "BRAINSANDTAXES@icici"}*\n\n` +
+        `🏦 *Direct Bank Transfer Details:*\n` +
+      `• Beneficiary: Brains & Taxes Private Limited\n` +
+      `• Bank & Branch: ICICI Bank, New Palasia, Indore\n` +
+      `• A/C Type: Current Account\n` +
+      `• A/C Number: 657005601799\n` +
+      `• IFSC Code: ICIC0006570\n` +
+      `• Direct UPI VPA: *${params.firmUpiVpa || "BRAINSANDTAXES@icici"}*\n\n` +
         `Once transferred via NEFT/RTGS/UPI, kindly reply with the *12-digit UTR reference number* or submit it here for instant receipt generation:\n${portalLink}\n\n` +
         `Thank you,\n*Accounts Desk*\n${firm}`;
     }

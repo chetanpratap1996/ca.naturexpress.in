@@ -18,7 +18,7 @@ async function main() {
   if (!firmId) {
     const { rows: newFirm } = await client.query(
       `INSERT INTO firms (frn, firm_name, managing_partner, phone, email, upi_vpa)
-       VALUES ('022998C', 'GPA & Co., Chartered Accountants', 'CA Gunjan Jain', '+91 98937 23639', 'brainsandtaxes@gmail.com', '7999995897@upi')
+       VALUES ('022998C', 'GPA & Co., Chartered Accountants', 'CA Gunjan Jain', '+91 98937 23639', 'brainsandtaxes@gmail.com', 'BRAINSANDTAXES@icici')
        RETURNING id`
     );
     firmId = newFirm[0].id;

@@ -604,8 +604,9 @@ export function PayToReleaseManager({
                 <div className="text-xs font-mono font-black text-slate-900 bg-white border border-slate-200 px-3 py-1 rounded-xl inline-block">
                   {firmUpiVpa}
                 </div>
-                <div className="text-[11px] text-slate-500">
-                  Payee: Brains &amp; Taxes Private Limited &bull; ICICI Bank
+                <div className="text-[11px] text-slate-600 space-y-0.5">
+                  <p className="font-bold">Payee: Brains &amp; Taxes Private Limited &bull; ICICI Bank, New Palasia, Indore</p>
+                  <p className="font-mono text-[10px] text-slate-700">Current A/C: <strong>657005601799</strong> &bull; IFSC: <strong>ICIC0006570</strong></p>
                 </div>
               </div>
             </div>

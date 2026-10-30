@@ -980,8 +980,9 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                     </p>
                     <p>Bank: <strong>{DEFAULT_FIRM_BRANDING.bankDetails.bankName}</strong> ({DEFAULT_FIRM_BRANDING.bankDetails.branch})</p>
                     <p>A/c Name: <strong>{DEFAULT_FIRM_BRANDING.bankDetails.accountName}</strong></p>
-                    <p>A/c Number: <strong className="font-mono text-xs">{DEFAULT_FIRM_BRANDING.bankDetails.accountNumber}</strong></p>
-                    <p>IFSC Code: <strong className="font-mono text-xs">{DEFAULT_FIRM_BRANDING.bankDetails.ifsc}</strong></p>
+                    <p>A/c Type: <strong>{DEFAULT_FIRM_BRANDING.bankDetails.accountType || "Current Account"}</strong></p>
+                    <p>A/c Number: <strong className="font-mono text-xs font-bold">{DEFAULT_FIRM_BRANDING.bankDetails.accountNumber}</strong></p>
+                    <p>IFSC Code: <strong className="font-mono text-xs font-bold">{DEFAULT_FIRM_BRANDING.bankDetails.ifsc}</strong></p>
                     <p className="text-slate-500 pt-1">Direct Firm UPI: <strong className="font-mono text-slate-900">{DEFAULT_FIRM_BRANDING.firmUpiVpa}</strong></p>
                   </div>
 

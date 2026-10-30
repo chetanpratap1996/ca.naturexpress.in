@@ -31,10 +31,11 @@ export const FIRM_METRICS = {
   firmUpiVpa: "BRAINSANDTAXES@icici",
   firmBankDetails: {
     bankName: "ICICI Bank",
-    branch: "Y.N. Road Branch, Indore",
-    accountNumber: "50200088921842",
-    accountName: "GPA & Co., Chartered Accountants",
-    ifsc: "ICIC0000041"
+    branch: "New Palasia, Indore",
+    accountType: "Current Account",
+    accountNumber: "657005601799",
+    accountName: "Brains & Taxes Private Limited",
+    ifsc: "ICIC0006570"
   }
 };
 

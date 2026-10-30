@@ -135,13 +135,13 @@ async function syncToLocalDb() {
       pendingCollections: mappedInvoices.filter(i => i.status !== 'PAID').reduce((acc, i) => acc + i.amount, 0),
       complianceHealthScore: 100,
       dailyAccruingPenaltyRisk: 0,
-      firmUpiVpa: firm?.firm_upi_vpa || '7999995897@upi',
+      firmUpiVpa: firm?.firm_upi_vpa || 'BRAINSANDTAXES@icici',
       firmBankDetails: {
-        bankName: firm?.bank_name || 'HDFC Bank',
+        bankName: firm?.bank_name || 'ICICI Bank',
         branch: 'Y.N. Road Branch, Indore',
-        accountNumber: firm?.bank_account_number || '50200088921842',
+        accountNumber: firm?.bank_account_number || '657005601799',
         accountName: firm?.firm_name || 'GPA & Co., Chartered Accountants',
-        ifsc: firm?.bank_ifsc || 'HDFC0000281'
+        ifsc: firm?.bank_ifsc || 'ICIC0006570'
       }
     },
     groups: mappedGroups,

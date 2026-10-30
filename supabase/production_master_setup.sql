@@ -288,7 +288,7 @@ INSERT INTO public.firms (
     'HDFC Bank Ltd',
     '50200012345678',
     'HDFC0000123',
-    '9893723639@okbizaxis'
+    'BRAINSANDTAXES@icici'
 ) ON CONFLICT (frn) DO UPDATE SET firm_name = EXCLUDED.firm_name;
 
 -- Seed Client Group dynamically linking to existing firm

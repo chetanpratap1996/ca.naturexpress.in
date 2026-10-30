@@ -958,23 +958,25 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
       {currentTab === "billing" && (
         <div className="space-y-4">
           <div className="bg-slate-50 text-slate-800 p-5 rounded-3xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-            <div className="space-y-1 text-xs text-center sm:text-left">
-              <span className="text-[10px] uppercase font-bold text-slate-500">Bank Details for Direct Payment</span>
+            <div className="space-y-1.5 text-xs text-center sm:text-left">
+              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Master Firm &amp; Corporate Bank Details</span>
               <p className="text-sm font-black text-slate-900">{DEFAULT_FIRM_BRANDING.companyName}</p>
-              <p className="text-slate-600 font-mono text-[11px]">
-                {DEFAULT_FIRM_BRANDING.bankDetails.bankName} &bull; {DEFAULT_FIRM_BRANDING.bankDetails.branch}
-              </p>
-              <p className="text-slate-500 text-[10px]">
-                CIN: {DEFAULT_FIRM_BRANDING.cin} &bull; Head Office: {DEFAULT_FIRM_BRANDING.headOffice}
-              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-slate-700 font-mono text-[11px] bg-white/80 p-3 rounded-2xl border border-slate-200 shadow-inner">
+                <p>Bank: <strong className="text-slate-900">{DEFAULT_FIRM_BRANDING.bankDetails.bankName}</strong></p>
+                <p>Branch: <strong className="text-slate-900">{DEFAULT_FIRM_BRANDING.bankDetails.branch}</strong></p>
+                <p>A/c Type: <strong className="text-slate-900">{DEFAULT_FIRM_BRANDING.bankDetails.accountType || "Current Account"}</strong></p>
+                <p>A/c No: <strong className="text-slate-900 text-xs font-black">{DEFAULT_FIRM_BRANDING.bankDetails.accountNumber}</strong></p>
+                <p className="sm:col-span-2">IFSC Code: <strong className="text-slate-900 text-xs font-black">{DEFAULT_FIRM_BRANDING.bankDetails.ifsc}</strong></p>
+              </div>
               <p className="text-emerald-700 font-bold font-mono text-xs pt-0.5">
                 Direct UPI ID: {DEFAULT_FIRM_BRANDING.firmUpiVpa}
               </p>
             </div>
 
-            <div className="text-center p-3 bg-white text-slate-900 rounded-2xl shrink-0 shadow-md">
-              <img src="/brainsandtaxes_qrcode.jpg" alt="Brains & Taxes UPI QR" className="w-20 h-20 mx-auto object-contain rounded-lg border border-slate-200" />
-              <span className="text-[10px] font-black uppercase block mt-1 font-mono tracking-tight text-slate-900">BRAINSANDTAXES@icici</span>
+            <div className="text-center p-3 bg-white text-slate-900 rounded-2xl shrink-0 shadow-md border border-slate-200">
+              <img src="/brainsandtaxes_qrcode.jpg" alt="Brains & Taxes UPI QR" className="w-24 h-24 mx-auto object-contain rounded-lg border border-slate-100" />
+              <span className="text-[10px] font-black uppercase block mt-1.5 font-mono tracking-tight text-slate-900">BRAINSANDTAXES@icici</span>
+              <span className="text-[9px] text-slate-500 block">Scan to Pay via Any UPI App</span>
             </div>
           </div>
 
@@ -1176,7 +1178,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
               <div className="text-xs space-y-0.5">
                 <div className="font-mono font-bold text-slate-800">{DEFAULT_FIRM_BRANDING.firmUpiVpa}</div>
-                <div className="text-[11px] text-slate-500">Payee: {DEFAULT_FIRM_BRANDING.firmName}</div>
+                <div className="text-[11px] text-slate-500">Payee: {DEFAULT_FIRM_BRANDING.companyName} &bull; ICICI Bank, New Palasia, Indore (A/C: {DEFAULT_FIRM_BRANDING.bankDetails.accountNumber})</div>
               </div>
 
               <button

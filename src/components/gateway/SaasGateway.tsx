@@ -270,7 +270,8 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
                     </div>
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                       <span className="text-[10px] text-slate-600 uppercase font-bold block">Direct Bank Deposit</span>
-                      <strong className="text-slate-900 font-bold">Firm HDFC / ICICI Account</strong>
+                      <strong className="text-slate-900 font-bold">ICICI Bank Current Account (New Palasia, Indore)</strong>
+                      <span className="text-[10px] text-slate-500 font-mono block">A/C: 657005601799 &bull; IFSC: ICIC0006570</span>
                     </div>
                   </div>
                 </div>

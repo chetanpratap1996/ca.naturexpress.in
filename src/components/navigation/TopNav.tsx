@@ -141,32 +141,13 @@ export const TopNav: React.FC<TopNavProps> = ({
                 </span>
               </div>
 
-              {/* Pitch Sandbox Toggle Pill */}
-              <button
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    const url = new URL(window.location.href);
-                    if (isSandbox) {
-                      url.searchParams.delete("demo");
-                      url.searchParams.delete("view");
-                      window.location.href = url.pathname;
-                    } else {
-                      url.searchParams.set("demo", "true");
-                      url.searchParams.set("view", "client-pwa");
-                      window.location.href = url.toString();
-                    }
-                  }
-                }}
-                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] font-black transition border ${
-                  isSandbox
-                    ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
-                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                }`}
-                title={isSandbox ? "Click to switch to Real Live Practice" : "Click to launch Pitch Demo Sandbox"}
-              >
-                <Sparkles className={`w-3 h-3 ${isSandbox ? "text-amber-600" : "text-slate-500"}`} />
-                <span>{isSandbox ? "Pitch Sandbox" : "Pitch Demo"}</span>
-              </button>
+              {/* Pitch Preview Pill - ONLY shown if explicitly in sandbox demo mode */}
+              {isSandbox && (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] font-black border bg-amber-50 text-amber-900 border-amber-300">
+                  <Sparkles className="w-3 h-3 text-amber-600" />
+                  <span>Pitch Preview</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-200 shadow-inner shrink-0">

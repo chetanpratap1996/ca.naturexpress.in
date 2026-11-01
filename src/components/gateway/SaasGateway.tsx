@@ -54,28 +54,30 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-red-500 selection:text-white">
       
       {/* 1. Top Enterprise Ticker Bar (Crisp Light Mode) */}
-      <div className="bg-slate-50 border-b border-slate-200/80 text-[11px] px-3 sm:px-8 py-2 flex flex-wrap items-center justify-between gap-2 text-slate-600">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-          </span>
-          <span className="font-extrabold text-slate-800">GPA &amp; Co., Chartered Accountants</span>
-          <span className="text-slate-600 hidden sm:inline">&bull;</span>
-          <span className="hidden sm:inline font-medium">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer-Review Certified Practice</span>
-        </div>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="text-emerald-700 font-semibold hidden md:flex items-center gap-1">
-            <Check className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Zero-SMS OTP Delay &bull; 4-Digit Instant Access</span>
-          </span>
-          <button
-            onClick={() => onOpenLogin()}
-            className="text-btred-logo hover:text-red-700 font-bold flex items-center gap-1 transition text-xs"
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Portal Login &rarr;</span>
-          </button>
+      <div className="bg-slate-50 border-b border-slate-200/80 text-[11px] py-2 text-slate-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+            </span>
+            <span className="font-extrabold text-slate-800">GPA &amp; Co., Chartered Accountants</span>
+            <span className="text-slate-400 hidden sm:inline">&bull;</span>
+            <span className="hidden sm:inline font-medium text-slate-500">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer-Review Certified</span>
+          </div>
+          <div className="flex items-center gap-3 sm:gap-4 text-xs">
+            <span className="text-emerald-700 font-semibold hidden lg:flex items-center gap-1">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Zero-SMS OTP Delay &bull; 4-Digit Instant Access</span>
+            </span>
+            <button
+              onClick={() => onOpenLogin()}
+              className="text-btred-logo hover:text-red-700 font-bold flex items-center gap-1 transition text-xs bg-red-50 hover:bg-red-100 sm:bg-transparent px-2.5 py-1 sm:p-0 rounded-lg sm:rounded-none"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Portal Login &rarr;</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -127,7 +129,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           </div>
 
           {/* Punchy Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.15]">
+          <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.15] text-balance break-words">
             Stop Chasing Clients on WhatsApp. <br />
             <span className="text-btred-logo">
               Lock Deliverables. Recover Fees via UPI.
@@ -168,7 +170,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           </p>
 
           {/* 4 Trust Highlights Strip */}
-          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+          <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left">
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 block">Zero Follow-Up</span>
               <strong className="text-xs text-slate-900 block font-bold">Pay-to-Release Realization</strong>

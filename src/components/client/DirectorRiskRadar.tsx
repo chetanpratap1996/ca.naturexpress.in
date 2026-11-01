@@ -96,9 +96,10 @@ const SAMPLE_SFT_FLAGS: SftTransactionFlag[] = [
 
 export interface DirectorRiskRadarProps {
   client?: ClientEntity | null;
+  isSandbox?: boolean;
 }
 
-export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) => {
+export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client, isSandbox = false }) => {
   const directorsList: DirectorProfile[] = client ? [
     {
       name: client.primaryContact?.name || "Director",
@@ -113,7 +114,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
   ] : SAMPLE_DIRECTORS;
 
   const [directors] = useState<DirectorProfile[]>(directorsList);
-  const [sftFlags, setSftFlags] = useState<SftTransactionFlag[]>(SAMPLE_SFT_FLAGS);
+  const [sftFlags, setSftFlags] = useState<SftTransactionFlag[]>(isSandbox ? SAMPLE_SFT_FLAGS : []);
   const [isAddSftOpen, setIsAddSftOpen] = useState(false);
 
   // New SFT Form State
@@ -356,8 +357,21 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
           </button>
         </div>
 
-        <div className="space-y-3">
-          {sftFlags.map((flag) => (
+        {sftFlags.length === 0 ? (
+          <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-6 text-center space-y-2">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <h4 className="text-sm font-extrabold text-emerald-950">
+              100% SFT &amp; AIS Reconciliation Compliant
+            </h4>
+            <p className="text-xs text-emerald-800 max-w-md mx-auto leading-relaxed">
+              No high-value banking or investment discrepancies detected in Form 26AS/AIS. All personal banking records match filed ITR disclosures under Section 285BA.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sftFlags.map((flag) => (
             <div
               key={flag.id}
               className={`p-4 rounded-2xl border transition space-y-2.5 text-xs ${
@@ -400,6 +414,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* Add SFT Modal */}

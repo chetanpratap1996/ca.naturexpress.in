@@ -11,6 +11,7 @@ export type WhatsAppTemplate =
   | "DOC_CHASE"
   | "ADVANCE_TAX_REMINDER"
   | "FILING_ACKNOWLEDGEMENT"
+  | "FILING_RECEIPT_SHARE"
   | "FEE_INVOICE_UTR"
   | "OTP_CALL_NOTICE"
   | "SCRUTINY_NOTICE_ALERT"
@@ -19,7 +20,6 @@ export type WhatsAppTemplate =
   | "STAFF_CREDENTIALS"
   | "VENDOR_ITC_HOLD"
   | "MSME_43BH_ALERT"
-  | "FILING_RECEIPT_SHARE"
   | "CA_DIRECT_DESK"
   | "ARTICLE_DIRECT_DESK"
   | "PIN_RESET_REQUEST";
@@ -45,7 +45,6 @@ export interface WhatsAppTemplateParams {
   vendorName?: string;
   overdueAmount?: number;
   daysRemaining?: number;
-  filingName?: string;
 }
 
 /**
@@ -237,42 +236,16 @@ Your staff desk access is active on the GPA & Co. Practice Management System.
         `Please process this payment immediately via NetBanking/RTGS to protect business deduction.\n\n` +
         `Regards,\n*Audit & Compliance Team*\n${firm}`;
     }
-
-    case "FILING_RECEIPT_SHARE": {
-      return `*STATUTORY FILING ACKNOWLEDGEMENT RECEIPT*\n\n` +
-        `Dear ${params.clientName},\n\n` +
-        `We are pleased to inform you that your statutory filing for *${params.filingName || "Statutory Return"}* has been successfully submitted to the Department.\n\n` +
-        `📋 *Filing Details:*\n` +
-        `• Return: ${params.filingName || "Statutory Return"}\n` +
-        `• ARN / ACK: *${params.arnNumber || "Verified"}*\n` +
-        `• Certified By: ${firm}\n\n` +
-        `The official stamped departmental acknowledgement receipt is available in your digital vault: ${portalLink}\n\n` +
-        `Regards,\n*Compliance & Filing Desk*\n${firm}`;
-    }
-
-    case "CA_DIRECT_DESK": {
-      return `*CORPORATE TAX ADVISORY DESK - GPA & CO.*\n\n` +
-        `Hello CA Gunjan Jain,\n\n` +
-        `This is from *${params.clientName}*. I am reaching out through the Client SaaS Portal regarding statutory consultation and tax advisory.\n\n` +
-        `Kindly let me know a suitable time for a quick call.\n\n` +
-        `Thank you!`;
-    }
-
-    case "ARTICLE_DIRECT_DESK": {
-      return `*OPERATIONS & FILING DESK - GPA & CO.*\n\n` +
-        `Hello Kriti Jain,\n\n` +
-        `This is from *${params.clientName}*. I am reaching out through the Client SaaS Portal regarding statement uploads and return preparation.\n\n` +
-        `Kindly assist with our pending filings.\n\n` +
-        `Thank you!`;
-    }
-
-    case "PIN_RESET_REQUEST": {
-      return `*SECURITY ACCESS DESK: 4-DIGIT PIN RESET REQUEST*\n\n` +
-        `Dear Support Desk at ${firm},\n\n` +
-        `I am an authorized signatory for *${params.clientName}*. I require a reset of our 4-digit security access PIN for the client portal.\n\n` +
-        `Kindly verify our registered corporate details and issue a reset link.\n\n` +
-        `Thank you!`;
-    }
+    case "FILING_RECEIPT_SHARE":
+      return `*STATUTORY FILING RECEIPT*\n\nDear ${params.clientName},\n\nYour return for ${params.serviceName || "statutory period"} is verified under ICAI seal.\nARN: ${params.arnNumber || "Verified"}\n\n${portalLink}`;
+    case "CA_DIRECT_DESK":
+      return `*CA PARTNER CONSULTATION*\n\nDear CA Gunjan Jain, consultation requested for ${params.clientName}.\n${portalLink}`;
+    case "ARTICLE_DIRECT_DESK":
+      return `*ARTICLE DESK*\n\nFiling query for ${params.clientName}.\n${portalLink}`;
+    case "PIN_RESET_REQUEST":
+      return `*PIN RESET*\n\nPlease reset access PIN for ${params.clientName}.\n${portalLink}`;
+    default:
+      return `Hello ${params.clientName}, greeting from ${firm}. Kindly check your compliance portal: ${portalLink}`;
   }
 }
 

@@ -241,13 +241,15 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 <Settings className="w-3.5 h-3.5 text-slate-600" />
                 <span>Zero-Cost Alert Preferences</span>
               </span>
-              <button
-                onClick={handleTestAlert}
-                className="px-2.5 py-1 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Test Chime &amp; Push</span>
-              </button>
+              {currentUserRole !== "CLIENT" && (
+                <button
+                  onClick={handleTestAlert}
+                  className="px-2.5 py-1 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Test Chime &amp; Push</span>
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 pt-1">

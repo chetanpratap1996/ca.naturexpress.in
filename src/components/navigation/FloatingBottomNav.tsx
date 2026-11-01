@@ -33,7 +33,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
   return (
     <nav 
       aria-label="Mobile Navigation Bar"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-all pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 px-2 w-full max-w-full overflow-hidden"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-all pb-[max(0.45rem,env(safe-area-inset-bottom))] pt-1.5 px-2 w-full max-w-full overflow-visible"
     >
       <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around relative">
         
@@ -41,7 +41,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {isClient ? (
           <button
             onClick={() => onTabChange("progress")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "progress"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -53,7 +53,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         ) : (
           <button
             onClick={() => onTabChange("calendar")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "calendar"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -68,7 +68,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {isClient ? (
           <button
             onClick={() => onTabChange("vendor-hold")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "vendor-hold"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -80,7 +80,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         ) : (
           <button
             onClick={() => onTabChange("notices")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "notices"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -118,7 +118,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {isClient ? (
           <button
             onClick={() => onTabChange("vault")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "vault" || activeTab === "kyc-locker"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -130,7 +130,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         ) : (
           <button
             onClick={() => onTabChange("billing")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "billing" || activeTab === "pay-to-release"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -145,7 +145,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         {isClient ? (
           <button
             onClick={() => onTabChange("billing")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "billing"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
@@ -157,7 +157,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
         ) : (
           <button
             onClick={() => onTabChange("dsc")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors px-1 py-1 flex-1 min-w-0 max-w-[68px] sm:max-w-[76px] min-h-[44px] touch-manipulation ${
               activeTab === "dsc"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"

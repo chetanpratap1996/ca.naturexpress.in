@@ -118,10 +118,11 @@ const SAMPLE_MSME_INVOICES: MsmeInvoiceItem[] = [
 
 export interface Msme43bhWatchdogProps {
   client?: ClientEntity | null;
+  isSandbox?: boolean;
 }
 
-export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client }) => {
-  const [invoices, setInvoices] = useState<MsmeInvoiceItem[]>(SAMPLE_MSME_INVOICES);
+export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client, isSandbox = false }) => {
+  const [invoices, setInvoices] = useState<MsmeInvoiceItem[]>(isSandbox ? SAMPLE_MSME_INVOICES : []);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "CRITICAL" | "OVERDUE" | "COMPLIANT" | "DISPUTED">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<"ALL" | "MICRO" | "SMALL" | "TRADER_EXEMPT">("ALL");

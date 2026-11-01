@@ -92,8 +92,8 @@ const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [
   }
 ];
 
-export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientName?: string }) {
-  const [holds, setHolds] = useState<VendorHoldItem[]>(INITIAL_VENDOR_HOLDS);
+export function VendorItcHoldManager({ clientName = "Client Entity", isSandbox = false }: { clientName?: string; isSandbox?: boolean }) {
+  const [holds, setHolds] = useState<VendorHoldItem[]>(isSandbox ? INITIAL_VENDOR_HOLDS : []);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PAYMENT_HELD" | "NOTICE_SENT" | "RESOLVED_IN_2B">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

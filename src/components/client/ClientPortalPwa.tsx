@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   INITIAL_CLIENTS, 
   INITIAL_TASKS, 
@@ -119,6 +119,22 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   );
   const [isBankerModalOpen, setIsBankerModalOpen] = useState(false);
   const [internalQuickActionOpen, setInternalQuickActionOpen] = useState(false);
+  const [isPwaBannerDismissed, setIsPwaBannerDismissed] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isDismissed = localStorage.getItem("bt_pwa_banner_dismissed") === "true";
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+      setIsPwaBannerDismissed(isDismissed || isStandalone);
+    }
+  }, []);
+
+  const handleDismissPwaBanner = () => {
+    setIsPwaBannerDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bt_pwa_banner_dismissed", "true");
+    }
+  };
 
   const isQuickModalActive = externalQuickActionOpen !== undefined 
     ? externalQuickActionOpen 
@@ -368,7 +384,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         <div className="space-y-2">
           <h3 className="text-xl font-black text-slate-900">Client Compliance Desk</h3>
           <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
-            You are connected to the GPA &amp; Co. Live Practice gateway. To preview features or explore with simulated corporate data, launch the interactive Pitch Sandbox below.
+            Please log in with your registered entity mobile number or PAN and 4-digit PIN to access your real-time statutory desk and document vault.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -376,15 +392,15 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
             onClick={() => {
               if (typeof window !== "undefined") {
                 const url = new URL(window.location.href);
-                url.searchParams.set("demo", "true");
-                url.searchParams.set("view", "client-pwa");
-                window.location.href = url.toString();
+                url.searchParams.delete("view");
+                url.searchParams.delete("demo");
+                window.location.href = url.pathname;
               }
             }}
             className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Launch Interactive Pitch Sandbox</span>
+            <KeyRound className="w-4 h-4" />
+            <span>Go to Portal Login</span>
           </button>
           <a
             href="https://wa.me/917999995897?text=Hello%20CA%20Gunjan%20Jain%2C%20please%20activate%20our%20entity%20compliance%20desk."
@@ -401,8 +417,8 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-28 sm:pb-20">
-      {/* PITCH SANDBOX VS LIVE PRACTICE BANNER */}
-      {isSandbox ? (
+      {/* PITCH SANDBOX BANNER (Only when explicitly in sandbox demo mode) */}
+      {isSandbox && (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/80 text-amber-950 p-3.5 sm:p-4 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-2xl bg-amber-500 text-white shadow-sm shrink-0">
@@ -434,67 +450,55 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
               }}
               className="w-full sm:w-auto px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition shadow-xs whitespace-nowrap"
             >
-              Switch to Live Real Practice
+              Exit Demo Mode
             </button>
           </div>
         </div>
-      ) : (
-        <div className="bg-emerald-50/80 border border-emerald-200/90 text-emerald-950 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-xs">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="text-xs font-extrabold text-emerald-900">
-              🛡️ Live Enterprise Practice Active
-            </span>
-            <span className="text-[10px] text-emerald-700 font-mono hidden sm:inline">
-              &bull; 256-Bit SSL &bull; End-to-End Encrypted &bull; GPA &amp; Co. Master Store
-            </span>
+      )}
+
+      {/* 1-Tap App Install Hero Banner (Dismissible) */}
+      {!isPwaBannerDismissed && (
+        <div className="bg-white text-slate-900 p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 relative animate-in fade-in">
+          <div className="flex items-center gap-3 pr-8 sm:pr-0">
+            <div className="p-2.5 rounded-2xl bg-btred-logo text-white shadow-md shrink-0">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                Brains &amp; Taxes Mobile App
+                <span className="text-[10px] bg-red-50 text-btred-logo font-bold px-2 py-0.5 rounded-full border border-red-200">
+                  1-Tap Install
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Access your document vault, tax filing receipts, and invoices on your phone.
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                const url = new URL(window.location.href);
-                url.searchParams.set("demo", "true");
-                url.searchParams.set("view", "client-pwa");
-                window.location.href = url.toString();
-              }
-            }}
-            className="text-[11px] font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl transition shrink-0"
-          >
-            Launch Pitch Sandbox Demo
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  const event = new CustomEvent("trigger-app-install");
+                  window.dispatchEvent(event);
+                }
+              }}
+              className="w-full sm:w-auto px-4 py-2 bg-btred-logo hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download App</span>
+            </button>
+            <button
+              onClick={handleDismissPwaBanner}
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition absolute top-3 right-3 sm:static"
+              title="Dismiss banner"
+              aria-label="Dismiss banner"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
-      {/* 1-Tap App Install Hero Banner */}
-      <div className="bg-white text-slate-900 p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-btred-logo text-white shadow-md shrink-0">
-            <Smartphone className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              Brains &amp; Taxes Mobile App
-              <span className="text-[10px] bg-red-50 text-btred-logo font-bold px-2 py-0.5 rounded-full border border-red-200">
-                1-Tap Install
-              </span>
-            </h3>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Access your document vault, tax filing receipts, and invoices on your phone.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              const event = new CustomEvent("trigger-app-install");
-              window.dispatchEvent(event);
-            }
-          }}
-          className="w-full sm:w-auto px-4 py-2 bg-btred-logo hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 active:scale-95 shrink-0"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Download App</span>
-        </button>
-      </div>
 
       {/* Mobile Top Indicator */}
       <div className="bg-white border border-slate-200 p-3.5 rounded-2xl flex items-center justify-between text-xs shadow-sm">
@@ -1007,9 +1011,9 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
                             <div className="flex items-center gap-2 shrink-0">
                               <button
                                 onClick={() => {
-                                  openWhatsAppPreset("919823011928", "FILING_RECEIPT_SHARE", {
+                                  openWhatsAppPreset("919823011928", "FILING_ACKNOWLEDGEMENT", {
                                     clientName: currentClient?.name || "Client",
-                                    filingName: task.title,
+                                    serviceName: task.title,
                                     arnNumber: task.arnNumber || "AA2709260194821"
                                   });
                                 }}
@@ -1085,7 +1089,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
       {/* TAB 4: SUPPLIER ITC HOLD & RECOVERY REGISTER */}
       {currentTab === "vendor-hold" && (
-        <VendorItcHoldManager clientName={currentClient.name} />
+        <VendorItcHoldManager clientName={currentClient.name} isSandbox={isSandbox} />
       )}
 
       {/* TAB 5: PERMANENT LEGAL & KYC LOCKER */}
@@ -1095,12 +1099,12 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
       {/* TAB: DIRECTOR RISK & MCA SHIELD */}
       {currentTab === "director-risk" && (
-        <DirectorRiskRadar client={currentClient} />
+        <DirectorRiskRadar client={currentClient} isSandbox={isSandbox} />
       )}
 
       {/* TAB: MSME 43B(H) 45-DAY PAYMENT WATCHDOG */}
       {currentTab === "msme-watchdog" && (
-        <Msme43bhWatchdog client={currentClient} />
+        <Msme43bhWatchdog client={currentClient} isSandbox={isSandbox} />
       )}
 
       {/* TAB: PROFILE & SECURITY PIN */}

@@ -5,7 +5,8 @@
 // ============================================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, generateStandardComplianceSuite } from "@/lib/server/db";
+import { ClientEntity } from "@/lib/types";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { createServerClient } from "@supabase/ssr";

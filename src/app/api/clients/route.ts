@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, logAuditEvent, generateStandardComplianceSuite } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ClientEntity } from "@/lib/types";
 import { isValidPan, isValidGstin } from "@/lib/utils";

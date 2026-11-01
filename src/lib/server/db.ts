@@ -299,3 +299,162 @@ export async function createNotification(
   await saveDatabase(db);
   return newNotif;
 }
+
+
+/**
+ * Enterprise Compliance Suite Generator
+ * Automatically provisions full statutory filing calendar, Pay-to-Release config,
+ * and initial document vault slots whenever a client entity is enrolled.
+ */
+export function generateStandardComplianceSuite(client: ClientEntity): {
+  tasks: ComplianceTask[];
+  payConfig: PayToReleaseConfig;
+  documents: DocumentItem[];
+} {
+  const isCompany = client.type === 'PVT_LTD' || client.type === 'PUBLIC_LTD';
+  const entityShort = client.id.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase();
+
+  const tasks: ComplianceTask[] = [
+    {
+      id: `TSK-G1-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      groupId: client.groupId,
+      category: 'GST',
+      title: 'GSTR-1 (Monthly Outward Supplies)',
+      period: 'October 2026',
+      dueDate: '2026-11-11',
+      status: 'IN_PREPARATION',
+      assignedTo: client.assignedArticle || 'Audit Senior',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+      priority: 'HIGH',
+      penaltyRisk: 2500,
+      missingDocumentsCount: 1,
+      chaseCount: 0,
+      accruingDailyPenalty: 50,
+    },
+    {
+      id: `TSK-G3B-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      groupId: client.groupId,
+      category: 'GST',
+      title: 'GSTR-3B (Summary Return & Tax Payment)',
+      period: 'October 2026',
+      dueDate: '2026-11-20',
+      status: 'MANAGER_REVIEW',
+      assignedTo: client.assignedArticle || 'Audit Senior',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+      priority: 'CRITICAL',
+      penaltyRisk: 5000,
+      missingDocumentsCount: 0,
+      chaseCount: 0,
+      accruingDailyPenalty: 50,
+    },
+    {
+      id: `TSK-ADV3-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      groupId: client.groupId,
+      category: 'INCOME_TAX',
+      title: 'Advance Tax Q3 Instalment (75% Threshold)',
+      period: 'Q3 FY 2026-27',
+      dueDate: '2026-12-15',
+      status: 'IN_PREPARATION',
+      assignedTo: client.assignedArticle || 'Audit Senior',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+      priority: 'HIGH',
+      penaltyRisk: 15000,
+      missingDocumentsCount: 2,
+      chaseCount: 0,
+      accruingDailyPenalty: 50,
+    },
+    {
+      id: `TSK-TDS-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      groupId: client.groupId,
+      category: 'TDS',
+      title: 'Quarterly TDS Statement (Form 26Q)',
+      period: 'Q2 FY 2026-27',
+      dueDate: '2026-10-31',
+      status: 'FILED_AND_COMPLETED',
+      assignedTo: client.assignedArticle || 'Audit Senior',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+      priority: 'MEDIUM',
+      penaltyRisk: 0,
+      missingDocumentsCount: 0,
+      chaseCount: 0,
+      accruingDailyPenalty: 50,
+    },
+    {
+      id: `TSK-ITR-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      groupId: client.groupId,
+      category: 'TAX_AUDIT',
+      title: isCompany ? 'Form 3CD Tax Audit & ITR-6 Corporate Filing' : 'Tax Audit & Annual ITR Filing',
+      period: 'AY 2026-27 (FY 2025-26)',
+      dueDate: '2026-10-31',
+      status: 'FILED_AND_COMPLETED',
+      assignedTo: client.assignedArticle || 'Audit Senior',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+      priority: 'CRITICAL',
+      penaltyRisk: 0,
+      missingDocumentsCount: 0,
+      chaseCount: 0,
+      accruingDailyPenalty: 50,
+    }
+  ];
+
+  const payConfig: PayToReleaseConfig = {
+    entityId: client.id,
+    isLocked: false,
+    totalOutstandingAmount: 0,
+    oldestInvoiceDays: 0,
+    gracePeriodDays: 30,
+    blockedDeliverables: [
+      'FORM_3CD_PDF',
+      'BALANCE_SHEET_SIGNED',
+      'ITR_ACKNOWLEDGMENT'
+    ],
+    instantUpiVpa: 'BRAINSANDTAXES@icici',
+    merchantName: 'GPA & Co., Chartered Accountants',
+    lockReason: 'Account in good standing.'
+  };
+
+  const documents: DocumentItem[] = [
+    {
+      id: `DOC-ITR-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      category: 'TAX_COMPUTATION',
+      fileName: `ITR_Ack_${client.pan || 'ACK'}_AY2026-27.pdf`,
+      fileSize: '420 KB',
+      uploadedAt: new Date().toISOString(),
+      financialYear: 'AY 2026-27',
+      uploadedBy: 'FIRM_STAFF',
+      isPasswordProtected: false,
+      isUnlocked: true,
+      reviewStatus: 'APPROVED',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+    },
+    {
+      id: `DOC-3CD-${entityShort}`,
+      entityId: client.id,
+      entityName: client.name,
+      category: 'AUDIT_REPORT',
+      fileName: `Form_3CD_Audit_Report_${client.pan || '3CD'}.pdf`,
+      fileSize: '1.8 MB',
+      uploadedAt: new Date().toISOString(),
+      financialYear: 'AY 2026-27',
+      uploadedBy: 'FIRM_STAFF',
+      isPasswordProtected: false,
+      isUnlocked: true,
+      reviewStatus: 'APPROVED',
+      reviewedBy: client.partnerInCharge || 'CA Gunjan Jain (FCA)',
+    }
+  ];
+
+  return { tasks, payConfig, documents };
+}

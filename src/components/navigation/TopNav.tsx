@@ -128,16 +128,45 @@ export const TopNav: React.FC<TopNavProps> = ({
 
           {/* CENTER: Role Specific Badge or Switcher */}
           {isClientMode ? (
-            <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
-              <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="font-black text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px] md:max-w-[260px]">
-                {currentUser?.designation?.includes("(")
-                  ? currentUser.designation.split("(")[1].replace(")", "")
-                  : currentUser?.name || "Client Portal"}
-              </span>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200 hidden sm:inline">
-                Verified Portal
-              </span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="font-black text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px] md:max-w-[260px]">
+                  {currentUser?.designation?.includes("(")
+                    ? currentUser.designation.split("(")[1].replace(")", "")
+                    : currentUser?.name || "Client Portal"}
+                </span>
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200 hidden sm:inline">
+                  Verified Portal
+                </span>
+              </div>
+
+              {/* Pitch Sandbox Toggle Pill */}
+              <button
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    const url = new URL(window.location.href);
+                    if (isSandbox) {
+                      url.searchParams.delete("demo");
+                      url.searchParams.delete("view");
+                      window.location.href = url.pathname;
+                    } else {
+                      url.searchParams.set("demo", "true");
+                      url.searchParams.set("view", "client-pwa");
+                      window.location.href = url.toString();
+                    }
+                  }
+                }}
+                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] font-black transition border ${
+                  isSandbox
+                    ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                }`}
+                title={isSandbox ? "Click to switch to Real Live Practice" : "Click to launch Pitch Demo Sandbox"}
+              >
+                <Sparkles className={`w-3 h-3 ${isSandbox ? "text-amber-600" : "text-slate-500"}`} />
+                <span>{isSandbox ? "Pitch Sandbox" : "Pitch Demo"}</span>
+              </button>
             </div>
           ) : (
             <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-200 shadow-inner shrink-0">
@@ -167,6 +196,33 @@ export const TopNav: React.FC<TopNavProps> = ({
                 <Briefcase className="w-3 sm:w-3.5 h-3 sm:h-3.5 shrink-0" />
                 <span className="hidden sm:inline">Staff Desk</span>
                 <span className="sm:hidden">Staff</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    const url = new URL(window.location.href);
+                    if (isSandbox) {
+                      url.searchParams.delete("demo");
+                      url.searchParams.delete("view");
+                      window.location.href = url.pathname;
+                    } else {
+                      url.searchParams.set("demo", "true");
+                      url.searchParams.set("view", "sandbox");
+                      window.location.href = url.toString();
+                    }
+                  }
+                }}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] font-black transition ${
+                  isSandbox
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "text-amber-800 hover:bg-amber-50"
+                }`}
+                title={isSandbox ? "In Pitch Sandbox. Click to switch to Real Live Practice." : "Enter Pitch Sandbox to pitch dummy clients."}
+              >
+                <Sparkles className="w-3 h-3" />
+                <span className="hidden md:inline">Pitch Sandbox</span>
+                <span className="md:hidden">Demo</span>
               </button>
             </div>
           )}

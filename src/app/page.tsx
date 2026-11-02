@@ -271,8 +271,10 @@ export default function Home() {
       <SaasGateway 
         onEnterSandbox={(role) => handleSwitchUserRole(role)}
         onOpenLogin={(role) => {
-          if (role) handleSwitchUserRole(role);
-          else setIsLoginModalOpen(true);
+          if (role) {
+            setCurrentView(role === "client" ? "client-pwa" : role);
+          }
+          setIsLoginModalOpen(true);
         }}
       />
     );

@@ -161,6 +161,28 @@ export async function POST(req: NextRequest) {
 
     db.documents.unshift(newDoc);
 
+    // Persist single client document upload to Supabase PostgreSQL Cloud
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: firms } = await supabase.from("firms").select("id").limit(1);
+        const firmId = firms?.[0]?.id;
+        if (firmId && newDoc.entityId) {
+          await supabase.from("documents").insert({
+            firm_id: firmId,
+            entity_id: newDoc.entityId,
+            category: newDoc.category,
+            file_name: newDoc.fileName,
+            file_size: newDoc.fileSize,
+            financial_year: newDoc.financialYear || "FY 2026-27",
+            uploaded_by: newDoc.uploadedBy,
+            review_status: newDoc.reviewStatus
+          });
+        }
+      } catch (sbDocErr) {
+        console.warn("Supabase single document insert warning:", sbDocErr);
+      }
+    }
+
     if (taskId) {
       const taskIndex = db.tasks.findIndex((t) => t.id === taskId);
       if (taskIndex !== -1) {

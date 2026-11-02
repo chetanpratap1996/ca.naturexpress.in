@@ -569,7 +569,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
 
             <button
-              onClick={() => onOpenLogin()}
+              onClick={() => onOpenLogin("client")}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-sm active:scale-95"
             >
               <span>Sign In to Client Portal (PWA View)</span>
@@ -611,7 +611,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
 
             <button
-              onClick={() => onOpenLogin()}
+              onClick={() => onOpenLogin("partner")}
               className="w-full bg-btred-logo hover:bg-btred-700 text-white font-black py-3.5 rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-sm active:scale-95"
             >
               <span>Sign In to CA Partner Cockpit (GPA &amp; Co.)</span>

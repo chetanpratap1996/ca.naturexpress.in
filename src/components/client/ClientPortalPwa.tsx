@@ -111,6 +111,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   const clientsList = (hookClients && hookClients.length > 0) ? hookClients : INITIAL_CLIENTS;
 
   const [selectedEntityId, setSelectedEntityId] = useState<string>(() => {
+    if (currentUser?.clientEntityId) return currentUser.clientEntityId;
     return hookClients?.[0]?.id || INITIAL_CLIENTS[0]?.id || "";
   });
 
@@ -151,14 +152,18 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
     }
   }, [externalTab]);
 
-  // Keep selectedEntityId properly synchronized to live clients
+  // Keep selectedEntityId properly synchronized to live clients with user isolation
   React.useEffect(() => {
-    if (hookClients && hookClients.length > 0) {
+    if (currentUser?.clientEntityId) {
+      if (selectedEntityId !== currentUser.clientEntityId && hookClients?.some(c => c.id === currentUser.clientEntityId)) {
+        setSelectedEntityId(currentUser.clientEntityId);
+      }
+    } else if (hookClients && hookClients.length > 0) {
       if (!selectedEntityId || !hookClients.some((c) => c.id === selectedEntityId)) {
         setSelectedEntityId(hookClients[0].id);
       }
     }
-  }, [hookClients, selectedEntityId]);
+  }, [currentUser?.clientEntityId, hookClients, selectedEntityId]);
   
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,9 +202,11 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   const [selectedInvoiceForReceipt, setSelectedInvoiceForReceipt] = useState<InvoiceItem | null>(null);
   const [tdsDeductionRate, setTdsDeductionRate] = useState<number>(0);
 
-  const currentClient = (clientsList && clientsList.length > 0)
-    ? (clientsList.find((c) => c.id === selectedEntityId) || clientsList[0])
-    : (currentUser && (currentUser.clientEntityId || currentUser.role === "CLIENT"))
+  const matchedClient = (currentUser?.clientEntityId && clientsList.find((c) => c.id === currentUser.clientEntityId))
+    || (selectedEntityId && clientsList.find((c) => c.id === selectedEntityId))
+    || (clientsList && clientsList.length > 0 ? clientsList[0] : null);
+
+  const currentClient = matchedClient || (currentUser
     ? {
         id: currentUser.clientEntityId || "CLI-PRATWI-01",
         groupId: currentUser.clientGroupId || "GRP-PRATWI-01",
@@ -218,13 +225,13 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         partnerInCharge: "CA Gunjan Jain (FCA)",
         assignedArticle: "Kriti Jain (Article)",
         primaryContact: {
-          name: currentUser.name,
-          phone: currentUser.phone,
-          email: currentUser.email,
+          name: currentUser.name || "Promoter",
+          phone: currentUser.phone || "+91 98000 00000",
+          email: currentUser.email || "accounts@client.com",
           designation: currentUser.designation || "Director / Authorized Signatory",
         },
       }
-    : null;
+    : INITIAL_CLIENTS[0]);
   const siblingEntities = currentUser?.clientGroupId
     ? clientsList.filter((c) => c.groupId === currentUser.clientGroupId || c.id === currentUser.clientEntityId)
     : currentClient?.groupId 

@@ -34,6 +34,7 @@ import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
+import { CaEnterpriseLandingView } from "@/components/landing/CaEnterpriseLandingView";
 import { toast } from "@/components/shared/ToastNotification";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
@@ -265,16 +266,32 @@ export default function Home() {
     );
   }
 
-  // 2. If user has no active session and is not in pitch demo -> Show Enterprise SaaS Gateway
+  // 2. If user has no active session and is not in pitch demo -> Show Enterprise Client-Facing CA Landing Page
   if (!currentUser && !isDemoSandbox) {
+    // If explicitly requested legacy pitch:
+    if (typeof window !== "undefined") {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        if (p.get("view") === "software-pitch" || p.get("pitch") === "true") {
+          return (
+            <SaasGateway 
+              onEnterSandbox={(role) => handleSwitchUserRole(role)}
+              onOpenLogin={(role) => {
+                if (role) handleSwitchUserRole(role);
+                else setIsLoginModalOpen(true);
+              }}
+            />
+          );
+        }
+      } catch (e) {}
+    }
+
     return (
-      <SaasGateway 
+      <CaEnterpriseLandingView 
         onEnterSandbox={(role) => handleSwitchUserRole(role)}
         onOpenLogin={(role) => {
-          if (role) {
-            setCurrentView(role === "client" ? "client-pwa" : role);
-          }
-          setIsLoginModalOpen(true);
+          if (role) handleSwitchUserRole(role);
+          else setIsLoginModalOpen(true);
         }}
       />
     );

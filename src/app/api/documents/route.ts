@@ -64,7 +64,57 @@ export async function POST(req: NextRequest) {
           reviewStatus: "APPROVED",
           reviewedBy: auth.user.name || "CA Gunjan Jain (Partner)",
           reviewedAt: new Date().toISOString(),
+          fileContentBase64: item.fileContentBase64 || undefined,
         };
+
+        // If real base64 file buffer provided, persist to durable disk vault
+        if (item.fileContentBase64) {
+          try {
+            if (!fs.existsSync(UPLOADS_DIR)) {
+              fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+            }
+            const safeBaseName = (newDoc.fileName || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+            const sanitizedFileName = `${newDoc.id}_${safeBaseName}`;
+            const filePath = path.join(UPLOADS_DIR, sanitizedFileName);
+            const buffer = Buffer.from(item.fileContentBase64, "base64");
+            fs.writeFileSync(filePath, buffer);
+          } catch (writeErr) {
+            console.warn("Disk save error for batch deliverable:", writeErr);
+          }
+        }
+
+        // Auto-advance matching compliance tasks to FILED_AND_COMPLETED
+        if (body.autoAdvanceTask !== false && db.tasks && db.tasks.length > 0) {
+          const matchingTasks = db.tasks.filter((t) => {
+            const matchesEntity = t.entityId === newDoc.entityId || t.entityName.toLowerCase() === newDoc.entityName.toLowerCase();
+            if (!matchesEntity) return false;
+            // Match filing type
+            if (newDoc.category === "GST_INVOICES") {
+              return t.category === "GST" && t.status !== "FILED_AND_COMPLETED";
+            }
+            if (newDoc.category === "TAX_COMPUTATION") {
+              return (t.category === "INCOME_TAX" || t.category === "TAX_AUDIT") && t.status !== "FILED_AND_COMPLETED";
+            }
+            if (newDoc.category === "AUDIT_REPORT") {
+              return t.category === "TAX_AUDIT" && t.status !== "FILED_AND_COMPLETED";
+            }
+            if (newDoc.category === "CHALLAN") {
+              return t.category === "TDS" && t.status !== "FILED_AND_COMPLETED";
+            }
+            return t.status !== "FILED_AND_COMPLETED";
+          });
+
+          for (const task of matchingTasks) {
+            task.status = "FILED_AND_COMPLETED";
+            task.arnNumber = item.arnNumber || `AA${Date.now().toString().slice(-6)}${Math.floor(1000 + Math.random() * 9000)}`;
+            task.filingDate = new Date().toISOString().split("T")[0];
+            task.missingDocumentsCount = 0;
+            task.missingDocumentsList = [];
+            task.penaltyRisk = 0;
+            task.accruingDailyPenalty = 0;
+            task.clientApprovalStatus = "APPROVED";
+          }
+        }
 
         db.documents.unshift(newDoc);
         createdDocs.push(newDoc);
@@ -160,28 +210,6 @@ export async function POST(req: NextRequest) {
     };
 
     db.documents.unshift(newDoc);
-
-    // Persist single client document upload to Supabase PostgreSQL Cloud
-    if (isSupabaseConfigured()) {
-      try {
-        const { data: firms } = await supabase.from("firms").select("id").limit(1);
-        const firmId = firms?.[0]?.id;
-        if (firmId && newDoc.entityId) {
-          await supabase.from("documents").insert({
-            firm_id: firmId,
-            entity_id: newDoc.entityId,
-            category: newDoc.category,
-            file_name: newDoc.fileName,
-            file_size: newDoc.fileSize,
-            financial_year: newDoc.financialYear || "FY 2026-27",
-            uploaded_by: newDoc.uploadedBy,
-            review_status: newDoc.reviewStatus
-          });
-        }
-      } catch (sbDocErr) {
-        console.warn("Supabase single document insert warning:", sbDocErr);
-      }
-    }
 
     if (taskId) {
       const taskIndex = db.tasks.findIndex((t) => t.id === taskId);

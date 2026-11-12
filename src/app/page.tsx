@@ -8,6 +8,7 @@ import { StatutoryCalendar } from "@/components/firm/StatutoryCalendar";
 import { NoticeCenter } from "@/components/firm/NoticeCenter";
 import { BillingWip } from "@/components/firm/BillingWip";
 import { DscVault } from "@/components/firm/DscVault";
+import { KeysVault } from "@/components/firm/KeysVault";
 import { ArticleWorkbench } from "@/components/firm/ArticleWorkbench";
 import { ClientPortalPwa } from "@/components/client/ClientPortalPwa";
 import { Gstr2bReconciler } from "@/components/firm/Gstr2bReconciler";
@@ -34,7 +35,6 @@ import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
-import { CaEnterpriseLandingView } from "@/components/landing/CaEnterpriseLandingView";
 import { toast } from "@/components/shared/ToastNotification";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
@@ -119,6 +119,7 @@ export default function Home() {
     invoices,
     notices,
     dscTokens,
+    portalCredentials,
     clients,
     groups,
     payConfigs,
@@ -128,7 +129,15 @@ export default function Home() {
     deleteClient,
     updateTask,
     createTask,
-    reconcileInvoice
+    reconcileInvoice,
+    createPortalCredential,
+    updatePortalCredential,
+    deletePortalCredential,
+    bulkImportCredentials,
+    checkoutDscToken,
+    returnDscToken,
+    createDscToken,
+    deleteDscToken,
   } = useTaxoData(isDemoSandbox);
 
   // Default to unauthenticated session (require explicit login or sandbox entry)
@@ -138,18 +147,86 @@ export default function Home() {
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [loginInitialRole, setLoginInitialRole] = useState<"partner" | "article" | "client">("partner");
+  const [loginInitialPhone, setLoginInitialPhone] = useState<string>("");
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
 
-  // Safe Session Synchronization
+  // Safe Session Synchronization & Query Parameter Handler
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view");
       const demoParam = params.get("demo");
+      const portalParam = params.get("portal");
+      const phoneParam = params.get("phone");
+      const pinParam = params.get("pin");
+      const roleParam = params.get("role");
 
-      // Check existing authenticated session first
       const existing = getActiveSession();
+
+      // CASE 1: Client Portal link clicked (?portal=client OR ?phone=... OR ?role=client OR ?view=client-pwa)
+      if (portalParam === "client" || phoneParam || roleParam === "client" || viewParam === "client-pwa") {
+        const cleanPhone = phoneParam ? phoneParam.replace(/\D/g, "") : "";
+        const cleanPin = pinParam ? pinParam.trim() : "";
+
+        // If previous session is NOT a client (e.g. CA tested on their own browser), CLEAR IT so client view opens!
+        if (existing && existing.role !== "CLIENT") {
+          clearSession();
+        } else if (existing && existing.role === "CLIENT") {
+          // If already signed in as client and phone matches (or no phone specified)
+          if (!cleanPhone || existing.phone?.replace(/\D/g, "").slice(-10) === cleanPhone.slice(-10)) {
+            setCurrentUser(existing);
+            setIsDemoSandbox(false);
+            setCurrentView("client-pwa");
+            return;
+          }
+        }
+
+        // If 1-Tap Login with Phone & PIN in URL
+        if (cleanPhone && cleanPin) {
+          fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              portalMode: "client",
+              identifier: cleanPhone,
+              secret: cleanPin
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data?.success && data?.user) {
+              handleLoginSuccess(data.user);
+            } else {
+              setLoginInitialRole("client");
+              setLoginInitialPhone(cleanPhone);
+              setIsLoginModalOpen(true);
+            }
+          })
+          .catch(() => {
+            setLoginInitialRole("client");
+            setLoginInitialPhone(cleanPhone);
+            setIsLoginModalOpen(true);
+          });
+          return;
+        }
+
+        // Pre-fill phone and open client login
+        setLoginInitialRole("client");
+        if (cleanPhone) setLoginInitialPhone(cleanPhone);
+        setIsLoginModalOpen(true);
+        return;
+      }
+
+      // CASE 2: Staff login explicitly requested (?portal=staff OR ?role=partner OR ?role=article)
+      if (portalParam === "staff" || roleParam === "partner" || roleParam === "article") {
+        setLoginInitialRole(roleParam === "article" ? "article" : "partner");
+        setIsLoginModalOpen(true);
+        return;
+      }
+
+      // CASE 3: Standard Existing Authenticated Session
       if (existing) {
         setCurrentUser(existing);
         setIsDemoSandbox(false);
@@ -159,7 +236,7 @@ export default function Home() {
         return;
       }
 
-      // Explicit Sandbox Evaluation Flag
+      // CASE 4: Explicit Sandbox Evaluation Flag
       if (demoParam === "true" || viewParam === "sandbox") {
         setCurrentUser(DEMO_USERS.partner);
         setCurrentView("partner");
@@ -260,38 +337,24 @@ export default function Home() {
           handleLoginSuccess(user);
         }}
         onClose={() => setIsLoginModalOpen(false)}
-        initialRole={currentView === "client-pwa" ? "client" : "partner"} 
+        initialRole={loginInitialRole}
+        initialPhone={loginInitialPhone} 
         clients={clients}
       />
     );
   }
 
-  // 2. If user has no active session and is not in pitch demo -> Show Enterprise Client-Facing CA Landing Page
+  // 2. If user has no active session and is not in pitch demo -> Show Enterprise SaaS Gateway
   if (!currentUser && !isDemoSandbox) {
-    // If explicitly requested legacy pitch:
-    if (typeof window !== "undefined") {
-      try {
-        const p = new URLSearchParams(window.location.search);
-        if (p.get("view") === "software-pitch" || p.get("pitch") === "true") {
-          return (
-            <SaasGateway 
-              onEnterSandbox={(role) => handleSwitchUserRole(role)}
-              onOpenLogin={(role) => {
-                if (role) handleSwitchUserRole(role);
-                else setIsLoginModalOpen(true);
-              }}
-            />
-          );
-        }
-      } catch (e) {}
-    }
-
     return (
-      <CaEnterpriseLandingView 
+      <SaasGateway 
         onEnterSandbox={(role) => handleSwitchUserRole(role)}
         onOpenLogin={(role) => {
-          if (role) handleSwitchUserRole(role);
-          else setIsLoginModalOpen(true);
+          setLoginInitialRole(role || "partner");
+          setIsLoginModalOpen(true);
+        }}
+        onPracticeRegistered={(user) => {
+          handleLoginSuccess(user);
         }}
       />
     );
@@ -303,7 +366,8 @@ export default function Home() {
       <LoginModal 
         onLoginSuccess={handleLoginSuccess} 
         onClose={() => setIsLoginModalOpen(false)}
-        initialRole={currentView === "client-pwa" ? "client" : "partner"} 
+        initialRole={loginInitialRole}
+        initialPhone={loginInitialPhone} 
         clients={clients}
       />
     );
@@ -328,7 +392,7 @@ export default function Home() {
     { id: "billing", label: "Billing & Invoices", icon: DollarSign, iconColor: "text-btred-logo" },
     { id: "whatsapp-ai", label: "1-Tap WhatsApp Desk", icon: MessageSquare, iconColor: "text-teal-700" },
     { id: "entity-dna", label: "Entity DNA Engine", icon: Layers, iconColor: "text-purple-600" },
-    { id: "dsc", label: "DSC Keys", icon: KeyRound, iconColor: "text-btred-logo" },
+    { id: "dsc", label: "Keys & Vault", icon: KeyRound, iconColor: "text-btred-logo" },
     { id: "peer-review", label: "Audit Quality", icon: Award, iconColor: "text-indigo-400" },
     { id: "anti-poaching", label: "Firm Insights", icon: Fingerprint, iconColor: "text-btred-logo" },
     { id: "inward-outward", label: "Dispatches & Letters", icon: Package, iconColor: "text-amber-500" },
@@ -641,7 +705,19 @@ export default function Home() {
               )}
 
               {activePartnerTab === "dsc" && (
-                <DscVault tokens={dscTokens} />
+                <KeysVault
+                  tokens={dscTokens}
+                  credentials={portalCredentials}
+                  clients={clients}
+                  onCreateCredential={createPortalCredential}
+                  onUpdateCredential={updatePortalCredential}
+                  onDeleteCredential={deletePortalCredential}
+                  onBulkImport={bulkImportCredentials}
+                  onCheckoutDsc={checkoutDscToken}
+                  onReturnDsc={returnDscToken}
+                  onCreateDsc={createDscToken}
+                  onDeleteDsc={deleteDscToken}
+                />
               )}
 
               {activePartnerTab === "inward-outward" && (

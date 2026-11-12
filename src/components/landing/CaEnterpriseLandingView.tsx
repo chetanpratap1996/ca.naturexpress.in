@@ -18,12 +18,10 @@ import { CaBookingModal } from "./CaBookingModal";
 
 interface CaEnterpriseLandingViewProps {
   onOpenLogin: (role?: "partner" | "article" | "client") => void;
-  onEnterSandbox: (role: "partner" | "article" | "client") => void;
 }
 
 export const CaEnterpriseLandingView: React.FC<CaEnterpriseLandingViewProps> = ({
   onOpenLogin,
-  onEnterSandbox,
 }) => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingInitialService, setBookingInitialService] = useState("Corporate Statutory & Tax Audit");
@@ -39,14 +37,12 @@ export const CaEnterpriseLandingView: React.FC<CaEnterpriseLandingViewProps> = (
       <CaLandingNav 
         onOpenBooking={handleOpenBooking}
         onOpenLogin={onOpenLogin}
-        onEnterSandbox={onEnterSandbox}
       />
 
       {/* 2. Master Institutional Hero Section */}
       <CaHeroSection 
         onOpenBooking={handleOpenBooking}
         onOpenLogin={onOpenLogin}
-        onEnterSandbox={onEnterSandbox}
       />
 
       {/* 3. Google Maps Verified 4.9★ Local Authority Strip */}
@@ -67,7 +63,7 @@ export const CaEnterpriseLandingView: React.FC<CaEnterpriseLandingViewProps> = (
       {/* 6. The B&T Digital Advantage (Why We Outperform Traditional CAs) */}
       <CaDigitalAdvantage 
         onOpenLogin={onOpenLogin}
-        onEnterSandbox={onEnterSandbox}
+        onOpenBooking={handleOpenBooking}
       />
 
       {/* 7. Real-world Case Studies & High-Stakes Wins */}
@@ -97,9 +93,8 @@ export const CaEnterpriseLandingView: React.FC<CaEnterpriseLandingViewProps> = (
 
       {/* 12. Institutional Regulatory Footer */}
       <CaEnterpriseFooter 
-        onOpenBooking={() => handleOpenBooking("Engagement Retainer")}
+        onOpenBooking={handleOpenBooking}
         onOpenLogin={onOpenLogin}
-        onEnterSandbox={onEnterSandbox}
       />
 
       {/* 13. Mobile Sticky Bottom Quick-Action Bar */}

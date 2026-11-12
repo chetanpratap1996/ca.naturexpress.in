@@ -10,7 +10,8 @@ import {
   ClientEntity, 
   ClientGroup, 
   AuditTrailLog,
-  PayToReleaseConfig
+  PayToReleaseConfig,
+  PortalCredential
 } from "@/lib/types";
 import { 
   INITIAL_TASKS, 
@@ -21,7 +22,8 @@ import {
   INITIAL_CLIENTS, 
   INITIAL_GROUPS,
   INITIAL_AUDIT_TRAIL,
-  INITIAL_PAY_TO_RELEASE_CONFIGS
+  INITIAL_PAY_TO_RELEASE_CONFIGS,
+  INITIAL_PORTAL_CREDENTIALS
 } from "@/lib/data/mockData";
 import {
   SANDBOX_TASKS,
@@ -32,9 +34,11 @@ import {
   SANDBOX_CLIENTS,
   SANDBOX_GROUPS,
   SANDBOX_AUDIT_TRAIL,
-  SANDBOX_PAY_TO_RELEASE_CONFIGS
+  SANDBOX_PAY_TO_RELEASE_CONFIGS,
+  SANDBOX_PORTAL_CREDENTIALS
 } from "@/lib/data/sandboxData";
 import { toast } from "@/components/shared/ToastNotification";
+import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 
 const OFFLINE_QUEUE_KEY = "bt_offline_mutation_queue";
 
@@ -60,6 +64,7 @@ export function useTaxoData(isSandbox: boolean = false) {
   const [invoices, setInvoices] = useState<InvoiceItem[]>(isSandbox ? SANDBOX_INVOICES : INITIAL_INVOICES);
   const [notices, setNotices] = useState<NoticeRecord[]>(isSandbox ? SANDBOX_NOTICES : INITIAL_NOTICES);
   const [dscTokens, setDscTokens] = useState<DscRecord[]>(isSandbox ? SANDBOX_DSC_TOKENS : INITIAL_DSC_TOKENS);
+  const [portalCredentials, setPortalCredentials] = useState<PortalCredential[]>(isSandbox ? SANDBOX_PORTAL_CREDENTIALS : INITIAL_PORTAL_CREDENTIALS);
   const [clients, setClients] = useState<ClientEntity[]>(isSandbox ? SANDBOX_CLIENTS : INITIAL_CLIENTS);
   const [groups, setGroups] = useState<ClientGroup[]>(isSandbox ? SANDBOX_GROUPS : INITIAL_GROUPS);
   const [auditTrail, setAuditTrail] = useState<AuditTrailLog[]>(isSandbox ? SANDBOX_AUDIT_TRAIL : INITIAL_AUDIT_TRAIL);
@@ -126,6 +131,7 @@ export function useTaxoData(isSandbox: boolean = false) {
           setInvoices(json.data.invoices || INITIAL_INVOICES);
           setNotices(json.data.notices || INITIAL_NOTICES);
           setDscTokens(json.data.dscTokens || INITIAL_DSC_TOKENS);
+          setPortalCredentials(json.data.portalCredentials || INITIAL_PORTAL_CREDENTIALS);
           setClients(json.data.clients || INITIAL_CLIENTS);
           setGroups(json.data.groups || INITIAL_GROUPS);
           setAuditTrail(json.data.auditTrail || INITIAL_AUDIT_TRAIL);
@@ -148,6 +154,7 @@ export function useTaxoData(isSandbox: boolean = false) {
       setInvoices(SANDBOX_INVOICES);
       setNotices(SANDBOX_NOTICES);
       setDscTokens(SANDBOX_DSC_TOKENS);
+      setPortalCredentials(SANDBOX_PORTAL_CREDENTIALS);
       setClients(SANDBOX_CLIENTS);
       setGroups(SANDBOX_GROUPS);
       setAuditTrail(SANDBOX_AUDIT_TRAIL);
@@ -530,6 +537,8 @@ export function useTaxoData(isSandbox: boolean = false) {
         }
       };
       setClients((prev) => [newClient, ...prev]);
+      const clientTasks = generateStatutoryTasksForClient(newClient);
+      setTasks((prev) => [...clientTasks, ...prev]);
       return newClient;
     }
 
@@ -595,12 +604,187 @@ export function useTaxoData(isSandbox: boolean = false) {
     }
   };
 
+  // Portal Credentials Management
+  const createPortalCredential = async (credData: Partial<PortalCredential>) => {
+    const tempId = `CRED-${Date.now()}`;
+    const newCred: PortalCredential = {
+      id: tempId,
+      entityId: credData.entityId || "ENT-01",
+      entityName: credData.entityName || "Practice Client",
+      portalType: credData.portalType || "OTHER",
+      portalName: credData.portalName || "Portal",
+      loginUrl: credData.loginUrl,
+      username: credData.username || "",
+      password: credData.password || "",
+      secondaryIdentifier: credData.secondaryIdentifier,
+      registeredMobile: credData.registeredMobile,
+      registeredEmail: credData.registeredEmail,
+      tokenPin: credData.tokenPin,
+      notes: credData.notes,
+      lastVerifiedAt: new Date().toISOString(),
+      lastChangedDate: new Date().toISOString().split("T")[0],
+    };
+    setPortalCredentials((prev) => [newCred, ...prev]);
+
+    if (isSandbox) return newCred;
+
+    try {
+      const res = await fetch("/api/credentials", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify(credData),
+      });
+      const data = await res.json();
+      if (data.success && data.credential) {
+        setPortalCredentials((prev) => prev.map((c) => (c.id === tempId ? data.credential : c)));
+      }
+      refreshData();
+      return data.credential || newCred;
+    } catch (err) {
+      console.error("Failed to create portal credential", err);
+      return newCred;
+    }
+  };
+
+  const updatePortalCredential = async (credData: Partial<PortalCredential> & { id: string }) => {
+    setPortalCredentials((prev) =>
+      prev.map((c) => (c.id === credData.id ? { ...c, ...credData, lastChangedDate: new Date().toISOString().split("T")[0] } : c))
+    );
+
+    if (isSandbox) return;
+
+    try {
+      await fetch("/api/credentials", {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify(credData),
+      });
+      refreshData();
+    } catch (err) {
+      console.error("Failed to update credential", err);
+    }
+  };
+
+  const deletePortalCredential = async (id: string) => {
+    setPortalCredentials((prev) => prev.filter((c) => c.id !== id));
+
+    if (isSandbox) return;
+
+    try {
+      await fetch(`/api/credentials?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      refreshData();
+    } catch (err) {
+      console.error("Failed to delete credential", err);
+    }
+  };
+
+  const bulkImportCredentials = async (items: Partial<PortalCredential>[]) => {
+    if (isSandbox) {
+      const mapped = items.map((item, idx) => ({
+        id: `SANDBOX-BULK-${Date.now()}-${idx}`,
+        entityId: item.entityId || "CLI-APEX-01",
+        entityName: item.entityName || "Apex AutoTech Private Limited",
+        portalType: item.portalType || "OTHER",
+        portalName: item.portalName || "Govt Portal",
+        loginUrl: item.loginUrl,
+        username: item.username || "",
+        password: item.password || "",
+        secondaryIdentifier: item.secondaryIdentifier,
+        registeredMobile: item.registeredMobile,
+        registeredEmail: item.registeredEmail,
+        tokenPin: item.tokenPin,
+        notes: item.notes || "Imported batch",
+        lastVerifiedAt: new Date().toISOString(),
+        lastChangedDate: new Date().toISOString().split("T")[0],
+      })) as PortalCredential[];
+      setPortalCredentials((prev) => [...mapped, ...prev]);
+      return { success: true, count: mapped.length };
+    }
+
+    try {
+      const res = await fetch("/api/credentials", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ bulk: true, items }),
+      });
+      const data = await res.json();
+      refreshData();
+      return data;
+    } catch (err) {
+      console.error("Failed to bulk import credentials", err);
+      throw err;
+    }
+  };
+
+  const createDscToken = async (tokenData: Partial<DscRecord>) => {
+    const tempId = `DSC-${Date.now()}`;
+    const newToken: DscRecord = {
+      id: tempId,
+      entityId: tokenData.entityId || "ENT-01",
+      entityName: tokenData.entityName || "Practice Client",
+      groupId: tokenData.groupId || "GRP-001",
+      holderName: tokenData.holderName || "Signatory",
+      pan: tokenData.pan || "",
+      serialNumber: tokenData.serialNumber || `USB-${Math.floor(1000 + Math.random() * 9000)}`,
+      tokenType: tokenData.tokenType || "ePass2003",
+      validTill: tokenData.validTill || new Date(Date.now() + 365*24*60*60*1000).toISOString().split("T")[0],
+      daysToExpiry: 365,
+      expiryStatus: "ACTIVE",
+      currentCustodian: "Firm Master Safe",
+      vaultSlot: tokenData.vaultSlot || "Cabinet A - Locker 01",
+      tokenPin: tokenData.tokenPin,
+    };
+    setDscTokens((prev) => [newToken, ...prev]);
+
+    if (isSandbox) return newToken;
+
+    try {
+      const res = await fetch("/api/dsc", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify(tokenData),
+      });
+      const data = await res.json();
+      refreshData();
+      return data.token || newToken;
+    } catch (err) {
+      console.error("Failed to create DSC token", err);
+      return newToken;
+    }
+  };
+
+  const deleteDscToken = async (id: string) => {
+    setDscTokens((prev) => prev.filter((t) => t.id !== id));
+
+    if (isSandbox) return;
+
+    try {
+      await fetch(`/api/dsc?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      refreshData();
+    } catch (err) {
+      console.error("Failed to delete DSC token", err);
+    }
+  };
+
   return {
     tasks,
     documents,
     invoices,
     notices,
     dscTokens,
+    portalCredentials,
     clients,
     groups,
     auditTrail,
@@ -619,5 +803,11 @@ export function useTaxoData(isSandbox: boolean = false) {
     checkoutDscToken,
     returnDscToken,
     instantUpiUnlock,
+    createPortalCredential,
+    updatePortalCredential,
+    deletePortalCredential,
+    bulkImportCredentials,
+    createDscToken,
+    deleteDscToken,
   };
 }

@@ -41,7 +41,6 @@ export async function middleware(request: NextRequest) {
     const firmStaffOnly = [
       "/api/clients",
       "/api/dsc",
-      "/api/pay-to-release",
       "/api/portal-sync",
       "/api/billing/receipt",
       "/api/whatsapp/parser",
@@ -60,6 +59,7 @@ export async function middleware(request: NextRequest) {
         (pathname === "/api/documents" && (request.method === "GET" || request.method === "POST")) ||
         (pathname === "/api/documents/download" && request.method === "GET") ||
         (pathname === "/api/invoices" && (request.method === "GET" || request.method === "PATCH")) ||
+        (pathname === "/api/pay-to-release" && (request.method === "GET" || request.method === "POST")) ||
         (pathname === "/api/auth/pin" && request.method === "POST");
 
       if (!isAllowedClientRoute) {

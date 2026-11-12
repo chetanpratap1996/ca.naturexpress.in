@@ -249,12 +249,12 @@ export const ClientQuickActionModal: React.FC<ClientQuickActionModalProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition">
-                  Profile &amp; Security PIN
+                  Profile &amp; Portal Keys
                 </h4>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:translate-x-0.5 transition" />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Update 4-digit PIN &amp; director details
+                GST/ITR passwords &amp; DSC dongle safe status
               </p>
             </div>
           </button>

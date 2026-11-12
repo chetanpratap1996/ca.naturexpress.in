@@ -9,7 +9,8 @@ import {
   AuditTrailLog,
   ClientPasswordVault,
   PayToReleaseConfig,
-  NotificationItem
+  NotificationItem,
+  PortalCredential
 } from "../types";
 
 export const FIRM_METRICS = {
@@ -67,6 +68,7 @@ export const INITIAL_AUDIT_TRAIL: AuditTrailLog[] = [
 ];
 
 export const INITIAL_PASSWORD_VAULTS: ClientPasswordVault[] = [];
+export const INITIAL_PORTAL_CREDENTIALS: PortalCredential[] = [];
 
 export const INITIAL_PARSED_STATEMENTS = [];
 

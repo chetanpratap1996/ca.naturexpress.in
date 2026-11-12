@@ -155,6 +155,28 @@ export interface DscRecord {
   vaultSlot: string;
   checkedOutAt?: string;
   checkedOutPurpose?: string;
+  tokenPin?: string;
+}
+
+export type PortalType = "GST" | "INCOME_TAX" | "MCA_V3" | "TRACES" | "EPFO" | "ESIC" | "ICEGATE" | "OTHER";
+
+export interface PortalCredential {
+  id: string;
+  entityId: string;
+  entityName: string;
+  groupId?: string;
+  portalType: PortalType;
+  portalName: string;
+  loginUrl?: string;
+  username: string;
+  password: string;
+  secondaryIdentifier?: string; // e.g. TAN, GSTIN, DIN
+  registeredMobile?: string;
+  registeredEmail?: string;
+  tokenPin?: string;
+  notes?: string;
+  lastVerifiedAt?: string;
+  lastChangedDate?: string;
 }
 
 export interface DocumentItem {
@@ -231,16 +253,65 @@ export interface NotificationPreferences {
 }
 
 // 1. Pay-to-Release Fee Gatekeeper
+export type BlockedDeliverableType = 
+  | "ITR_ACKNOWLEDGMENT" 
+  | "FORM_3CD_PDF" 
+  | "BALANCE_SHEET_SIGNED" 
+  | "GSTR_FILED_RECEIPT"
+  | "ROC_MGT7_AOC4"
+  | "STATUTORY_AUDIT_REPORT"
+  | "TRANSFER_PRICING_3CEB"
+  | "15CA_CB_CERTIFICATE";
+
 export interface PayToReleaseConfig {
   entityId: string;
   isLocked: boolean;
   totalOutstandingAmount: number;
   oldestInvoiceDays: number;
   gracePeriodDays: number;
-  blockedDeliverables: Array<"ITR_ACKNOWLEDGMENT" | "FORM_3CD_PDF" | "BALANCE_SHEET_SIGNED" | "GSTR_FILED_RECEIPT">;
+  blockedDeliverables: Array<BlockedDeliverableType | string>;
   instantUpiVpa: string;
   merchantName: string;
   lockReason: string;
+  partnerOverrideUntil?: string | null;
+  partnerOverrideReason?: string | null;
+  partnerOverrideBy?: string | null;
+  appliedTdsRate?: number; // e.g. 10 for 10% TDS u/s 194J
+  netPayableAmount?: number;
+  lastReminderSentAt?: string | null;
+  reminderCount?: number;
+  msmeDaysRemaining?: number;
+}
+
+export interface UtrReconciliationRecord {
+  id: string;
+  entityId: string;
+  clientName: string;
+  invoiceId: string;
+  invoiceNo: string;
+  amount: number;
+  clientUtrNumber: string;
+  clientPaymentMode: string;
+  clientPaymentDate: string;
+  clientPayerNote?: string;
+  status: "PENDING" | "RECONCILED" | "REJECTED";
+  submittedAt: string;
+  reconciledBy?: string;
+  reconciledAt?: string;
+  rejectionReason?: string;
+}
+
+export interface WhatsAppDispatchRecipient {
+  entityId: string;
+  clientName: string;
+  contactName: string;
+  phone: string;
+  email?: string;
+  invoiceNo: string;
+  amount: number;
+  overdueDays: number;
+  status: "READY" | "SENT" | "FAILED" | "SKIPPED";
+  customMessage?: string;
 }
 
 export interface PaymentReleaseReceipt {

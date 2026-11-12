@@ -125,7 +125,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       clientName: client.name,
       loginId: `${phone10 || client.pan}`,
       loginPassword: pin,
-      portalUrl: `https://ca.naturexpress.in/?phone=${phone10}`,
+      portalUrl: `https://ca.naturexpress.in/?portal=client&phone=${phone10}`,
       firmName: DEFAULT_FIRM_BRANDING.firmName,
     });
 
@@ -143,7 +143,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       clientName: client.name,
       loginId: `${phone10 || client.pan}`,
       loginPassword: pin,
-      portalUrl: `https://ca.naturexpress.in/?phone=${phone10}`,
+      portalUrl: `https://ca.naturexpress.in/?portal=client&phone=${phone10}`,
       firmName: DEFAULT_FIRM_BRANDING.firmName,
     });
   };
@@ -230,7 +230,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       const phone = c.primaryContact?.phone || "";
       const phone10 = normalizePhone10(phone);
       const pin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
-      const portalLink = `https://ca.naturexpress.in/?phone=${phone10}`;
+      const portalLink = `https://ca.naturexpress.in/?portal=client&phone=${phone10}`;
       const waLink = generateClientWhatsAppUrl(c);
       return [
         `"${c.name.replace(/"/g, '""')}"`,

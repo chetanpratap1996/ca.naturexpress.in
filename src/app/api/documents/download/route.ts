@@ -30,6 +30,44 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // --- HARD SERVER-SIDE PAY-TO-RELEASE GATEKEEPER CHECK ---
+    // If requester is a client (or unauthenticated attempt), verify fee clearance status
+    const isFirmStaff = auth.isAuthenticated && (auth.role === "PARTNER" || (auth.role as string) === "SUPER_ADMIN" || auth.role === "ARTICLE");
+    const isDraftRequest = searchParams.get("draft") === "true";
+
+    if (!isFirmStaff && !isDraftRequest) {
+      const payConfig = db.payToReleaseConfigs?.find((c) => c.entityId === doc.entityId);
+      
+      if (payConfig && payConfig.isLocked) {
+        // Check for active partner time-bound emergency override
+        const nowMs = Date.now();
+        const overrideExpiry = payConfig.partnerOverrideUntil ? new Date(payConfig.partnerOverrideUntil).getTime() : 0;
+        const isOverrideValid = overrideExpiry > nowMs;
+
+        if (!isOverrideValid) {
+          return NextResponse.json({
+            success: false,
+            error: "PAYMENT_REQUIRED",
+            code: "DELIVERABLE_LOCKED",
+            isLocked: true,
+            entityId: doc.entityId,
+            entityName: doc.entityName,
+            fileName: doc.fileName,
+            totalOutstandingAmount: payConfig.totalOutstandingAmount,
+            lockReason: payConfig.lockReason,
+            firmUpiVpa: payConfig.instantUpiVpa || db.firmMetrics?.firmUpiVpa || "BRAINSANDTAXES@icici",
+            bankDetails: {
+              accountName: "Brains & Taxes Private Limited",
+              bankName: "ICICI Bank, New Palasia, Indore",
+              accountNumber: "657005601799",
+              ifsc: "ICIC0006570"
+            },
+            message: "Official statutory deliverable download is gated pending settlement of professional fee invoice under ICAI SA 210 delivery protocol and Section 43B(h) compliance."
+          }, { status: 402 });
+        }
+      }
+    }
+
     // Check if physical file exists in UPLOADS_DIR
     let physicalFilePath: string | null = null;
     if (fs.existsSync(UPLOADS_DIR)) {
@@ -77,9 +115,11 @@ export async function GET(req: NextRequest) {
       "0 -16 Td",
       `(${`Uploaded Date: ${new Date(doc.uploadedAt).toLocaleDateString("en-IN")}`}) Tj`,
       "0 -16 Td",
-      `(${`Review Status: ${doc.reviewStatus}`}) Tj`,
+      `(${`Review Status: ${isDraftRequest ? "DRAFT_WATERMARKED" : doc.reviewStatus}`}) Tj`,
       "0 -24 Td",
-      "(Digitally certified by GPA & Co., Chartered Accountants under ICAI SQC-1 standard.) Tj",
+      isDraftRequest 
+        ? "(*** DRAFT WATERMARK - FOR DISCUSSION & VERIFICATION ONLY - NOT VALID FOR STATUTORY FILING ***) Tj"
+        : "(Digitally certified by GPA & Co., Chartered Accountants under ICAI SQC-1 standard.) Tj",
       "ET",
       "endstream",
       "endobj",

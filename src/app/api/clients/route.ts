@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent, generateStandardComplianceSuite } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ClientEntity } from "@/lib/types";
 import { isValidPan, isValidGstin } from "@/lib/utils";
+import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 import crypto from "crypto";
 
 export async function GET() {
@@ -69,6 +70,16 @@ export async function POST(req: Request) {
         } else {
           db.clients.unshift(clientRecord);
           inserted.push(clientRecord);
+
+          // Auto-generate statutory compliance obligations for new client
+          if (!db.tasks) db.tasks = [];
+          const hasExistingTasks = db.tasks.some(
+            (t) => t.entityId === clientRecord.id || t.entityName.toLowerCase() === clientRecord.name.toLowerCase()
+          );
+          if (!hasExistingTasks) {
+            const clientTasks = generateStatutoryTasksForClient(clientRecord);
+            db.tasks.push(...clientTasks);
+          }
 
           const grp = db.groups.find((g) => g.id === groupId);
           if (grp) {
@@ -238,9 +249,6 @@ export async function POST(req: Request) {
             if (insertedGroup) targetGroupId = insertedGroup.id;
           }
 
-          const phoneDigits = (newClient.primaryContact?.phone || "").replace(/\D/g, "");
-          const defaultPin = phoneDigits.length >= 4 ? phoneDigits.slice(-4) : "0715";
-
           const { data: insertedClient, error: clientErr } = await supabase
             .from("client_entities")
             .insert({
@@ -253,7 +261,6 @@ export async function POST(req: Request) {
               cin: newClient.cin || null,
               turnover_cr: newClient.turnoverCr,
               incorporation_year: newClient.incorporationYear,
-              auth_pin: defaultPin,
               primary_contact_name: newClient.primaryContact.name,
               primary_contact_phone: newClient.primaryContact.phone,
               primary_contact_email: newClient.primaryContact.email,
@@ -272,45 +279,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Automatically generate complete statutory compliance suite & billing config
-    const complianceSuite = generateStandardComplianceSuite(newClient);
-    if (complianceSuite.tasks && complianceSuite.tasks.length > 0) {
-      db.tasks.unshift(...complianceSuite.tasks);
-    }
-    if (complianceSuite.payConfig) {
-      const existingPayIdx = db.payToReleaseConfigs.findIndex(p => p.entityId === newClient.id);
-      if (existingPayIdx >= 0) db.payToReleaseConfigs[existingPayIdx] = complianceSuite.payConfig;
-      else db.payToReleaseConfigs.push(complianceSuite.payConfig);
-    }
-
-    // Insert statutory tasks into Supabase compliance_tasks
-    if (isSupabaseConfigured() && complianceSuite.tasks?.length > 0) {
-      try {
-        const { data: firms } = await supabase.from("firms").select("id").limit(1);
-        const firmId = firms?.[0]?.id;
-        if (firmId && newClient.id) {
-          const tasksToInsert = complianceSuite.tasks.map(t => ({
-            firm_id: firmId,
-            entity_id: newClient.id,
-            category: t.category,
-            title: t.title,
-            period: t.period,
-            due_date: t.dueDate,
-            status: t.status,
-            priority: t.priority,
-            penalty_risk: t.penaltyRisk,
-            accruing_daily_penalty: t.accruingDailyPenalty,
-            chase_count: 0
-          }));
-          await supabase.from("compliance_tasks").insert(tasksToInsert);
-        }
-      } catch (sbTaskErr) {
-        console.warn("Supabase compliance suite insert warning:", sbTaskErr);
-      }
-    }
-
-    // 3. Persist to local JSON DB
+    // 2. Persist to local JSON DB
     db.clients.unshift(newClient);
+
+    // Auto-generate statutory compliance obligations for new client
+    if (!db.tasks) db.tasks = [];
+    const hasExistingTasks = db.tasks.some(
+      (t) => t.entityId === newClient.id || t.entityName.toLowerCase() === newClient.name.toLowerCase()
+    );
+    if (!hasExistingTasks) {
+      const clientTasks = generateStatutoryTasksForClient(newClient);
+      db.tasks.push(...clientTasks);
+    }
 
     const groupIndex = db.groups.findIndex((g) => g.id === newClient.groupId);
     if (groupIndex !== -1) {

@@ -12,23 +12,21 @@ import {
   ExternalLink, 
   Award,
   ChevronRight,
-  Sparkles
+  MessageSquare
 } from "lucide-react";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 interface CaEnterpriseFooterProps {
-  onOpenBooking: () => void;
+  onOpenBooking: (serviceName?: string) => void;
   onOpenLogin: (role?: "partner" | "article" | "client") => void;
-  onEnterSandbox: (role: "partner" | "article" | "client") => void;
 }
 
 export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
   onOpenBooking,
   onOpenLogin,
-  onEnterSandbox,
 }) => {
   return (
-    <footer className="bg-slate-50 border-t border-slate-200/90 text-slate-700 font-sans">
+    <footer className="bg-slate-50 border-t border-slate-200 text-slate-700 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 sm:py-16">
         
         {/* Main Footer Columns */}
@@ -75,37 +73,37 @@ export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
             </div>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   Corporate Statutory &amp; Tax Audit
                 </a>
               </li>
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   Income Tax Scrutiny &amp; CIT(A) Appeals
                 </a>
               </li>
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   GST Audit &amp; DRC-01 SCN Defense
                 </a>
               </li>
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   Virtual CFO &amp; Bank CMA Reports
                 </a>
               </li>
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   MSME Section 43B(h) Audit Sentinel
                 </a>
               </li>
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   Form 15CA/CB &amp; Cross-Border FEMA
                 </a>
               </li>
               <li>
-                <a href="#practice-areas" className="hover:text-btred-600 transition">
+                <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
                   Startup 80-IAC &amp; Angel Tax Valuation
                 </a>
               </li>
@@ -121,16 +119,16 @@ export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
               <li>
                 <button
                   onClick={() => onOpenLogin("client")}
-                  className="hover:text-btred-600 font-bold text-slate-800 transition flex items-center gap-1"
+                  className="hover:text-btred-600 font-bold text-slate-800 transition-colors flex items-center gap-1.5 text-left"
                 >
-                  <Lock className="w-3 h-3 text-btred-600" />
-                  <span>Client Portal</span>
+                  <Lock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Client Portal (24/7 Vault)</span>
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => onOpenLogin("partner")}
-                  className="hover:text-slate-900 transition text-slate-600"
+                  className="hover:text-slate-900 transition-colors text-slate-600 text-left"
                 >
                   Partner Cockpit
                 </button>
@@ -138,52 +136,63 @@ export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
               <li>
                 <button
                   onClick={() => onOpenLogin("article")}
-                  className="hover:text-slate-900 transition text-slate-600"
+                  className="hover:text-slate-900 transition-colors text-slate-600 text-left"
                 >
                   Article Workbench
                 </button>
               </li>
               <li>
-                <button
-                  onClick={() => onEnterSandbox("client")}
-                  className="hover:text-btred-600 text-btred-600 font-bold transition flex items-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>Demo Sandbox</span>
-                </button>
+                <a href="#tax-deadlines" className="hover:text-slate-900 transition-colors text-slate-600">
+                  Tax Calendar
+                </a>
               </li>
               <li>
-                <a href="#tax-deadlines" className="hover:text-slate-900 transition text-slate-600">
-                  Tax Calendar
+                <a href="#health-check" className="hover:text-slate-900 transition-colors text-slate-600">
+                  Audit Health Check
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Column 4: Head Office & Contact (3 cols) */}
+          {/* Column 4: Contact & Office Location (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
             <div className="text-xs font-black uppercase tracking-wider text-slate-900">
-              Indore Practice Office
+              Indore Practice Headquarters
             </div>
+            
             <div className="space-y-2 text-xs text-slate-600">
               <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-btred-600 flex-shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-btred-600 shrink-0 mt-0.5" />
                 <span>{DEFAULT_FIRM_BRANDING.headOffice}</span>
               </div>
+
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                 <a
                   href={`tel:${DEFAULT_FIRM_BRANDING.partnerPhone.replace(/\s+/g, "")}`}
-                  className="hover:text-btred-600 font-semibold transition"
+                  className="hover:text-btred-600 transition-colors font-bold text-slate-900"
                 >
                   {DEFAULT_FIRM_BRANDING.partnerPhone}
                 </a>
               </div>
+
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
+                <a
+                  href={`https://wa.me/${DEFAULT_FIRM_BRANDING.whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-700 transition-colors font-semibold text-emerald-800"
+                >
+                  WhatsApp: +91 {DEFAULT_FIRM_BRANDING.whatsappNumber}
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                 <a
                   href={`mailto:${DEFAULT_FIRM_BRANDING.email}`}
-                  className="hover:text-btred-600 transition"
+                  className="hover:text-btred-600 transition-colors font-semibold text-slate-800"
                 >
                   {DEFAULT_FIRM_BRANDING.email}
                 </a>
@@ -192,40 +201,39 @@ export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
 
             <div className="pt-2">
               <button
-                onClick={onOpenBooking}
-                className="w-full py-2.5 px-4 rounded-xl bg-btred-600 hover:bg-btred-700 text-white font-bold text-xs shadow-sm transition"
+                onClick={() => onOpenBooking()}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2"
               >
-                Schedule Consultation
+                <span>Book In-Office Appointment</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
-
         </div>
 
-        {/* Regulatory Statutory ICAI Disclaimer */}
-        <div className="border-t border-slate-200 pt-8 pb-6 text-[11px] text-slate-500 leading-relaxed space-y-2">
-          <div className="font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>ICAI Regulatory Compliance Disclaimer</span>
-          </div>
-          <p>
-            As per the rules and guidelines laid down by the Institute of Chartered Accountants of India (ICAI) and the Chartered Accountants Act, 1949, Chartered Accountants and audit firms are not permitted to solicit work or advertise in any form. This website is purely intended to provide public information regarding the professional credentials, practice areas, and technological infrastructure of GPA &amp; Co., Chartered Accountants and Brains &amp; Taxes.
-          </p>
-          <p>
-            Any visitor accessing this platform does so voluntarily for their personal information and knowledge. The material contained herein does not constitute legal or professional advice. Transmission, receipt, or use of this portal does not create any client-auditor relationship.
-          </p>
-        </div>
+        {/* Regulatory Compliance & ICAI Legal Disclaimer Banner */}
+        <div className="pt-8 border-t border-slate-200 text-[11px] text-slate-500 space-y-3">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-slate-700">
+                &copy; {new Date().getFullYear()} GPA &amp; Co., Chartered Accountants. All rights reserved.
+              </span>
+              <span className="text-slate-300 hidden md:inline">•</span>
+              <span>Proprietary Software: Brains &amp; Taxes Practice OS</span>
+            </div>
 
-        {/* Bottom Bar: Copyright & Brand */}
-        <div className="border-t border-slate-200/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>
-            &copy; {new Date().getFullYear()} {DEFAULT_FIRM_BRANDING.firmName} &bull; Brains &amp; Taxes. All rights reserved.
+            <div className="flex items-center gap-3 text-slate-600 font-medium">
+              <a href="#practice-areas" className="hover:underline">Practice Areas</a>
+              <span>•</span>
+              <a href="#faqs" className="hover:underline">FAQs</a>
+              <span>•</span>
+              <a href="#tax-deadlines" className="hover:underline">Statutory Calendar</a>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-xs font-semibold">
-            <span className="text-slate-400">Head Office: Indore, MP</span>
-            <span>&bull;</span>
-            <span className="text-slate-400">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn}</span>
-          </div>
+
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            <strong>Regulatory Disclaimer:</strong> As per the Chartered Accountants Act, 1949 and regulations framed by the Institute of Chartered Accountants of India (ICAI), this portal is intended solely for informing clients and associates regarding the firm&apos;s capabilities, statutory compliance updates, and digital client services. It is not intended to solicit clients, advertise, or induce work. Access to client vaults is restricted to verified retainers of GPA &amp; Co.
+          </p>
         </div>
 
       </div>

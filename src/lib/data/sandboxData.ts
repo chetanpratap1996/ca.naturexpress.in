@@ -15,7 +15,8 @@ import {
   Section40A2bSampleItem,
   StaffDataSecurityAudit,
   PartnerRealizationMetrics,
-  PeerReviewDossier
+  PeerReviewDossier,
+  PortalCredential
 } from "../types";
 
 export const SANDBOX_FIRM_METRICS = {
@@ -1178,6 +1179,97 @@ export const SANDBOX_PARTNER_METRICS: PartnerRealizationMetrics[] = [
 ];
 
 
+export const SANDBOX_PORTAL_CREDENTIALS: PortalCredential[] = [
+  {
+    id: "CRED-01",
+    entityId: "CLI-APEX-01",
+    entityName: "Apex AutoTech Private Limited",
+    groupId: "GRP-APEX",
+    portalType: "GST",
+    portalName: "GST Common Portal",
+    loginUrl: "https://services.gst.gov.in/services/login",
+    username: "APEX_GST_01",
+    password: "ApexGST#Password2026",
+    secondaryIdentifier: "07AABCA8891D1Z8",
+    registeredMobile: "+91 98110 22345",
+    registeredEmail: "accounts@apexautotech.com",
+    tokenPin: "12345678",
+    notes: "Monthly GSTR-1 & 3B filing. Handled by Kriti Jain.",
+    lastVerifiedAt: "2026-10-25T10:00:00Z",
+    lastChangedDate: "2026-09-15"
+  },
+  {
+    id: "CRED-02",
+    entityId: "CLI-APEX-01",
+    entityName: "Apex AutoTech Private Limited",
+    groupId: "GRP-APEX",
+    portalType: "INCOME_TAX",
+    portalName: "Income Tax e-Filing Portal",
+    loginUrl: "https://eportal.incometax.gov.in/iec/foservices/#/login",
+    username: "AABCA8891D",
+    password: "ApexITR@TaxSecure26",
+    secondaryIdentifier: "AABCA8891D",
+    registeredMobile: "+91 98110 22345",
+    registeredEmail: "directors@apexautotech.com",
+    tokenPin: "12345678",
+    notes: "AY 2026-27 Corporate ITR-6 Filing login. DSC Class 3 linked.",
+    lastVerifiedAt: "2026-10-20T14:30:00Z",
+    lastChangedDate: "2026-08-10"
+  },
+  {
+    id: "CRED-03",
+    entityId: "CLI-APEX-01",
+    entityName: "Apex AutoTech Private Limited",
+    groupId: "GRP-APEX",
+    portalType: "MCA_V3",
+    portalName: "MCA V3 Corporate Portal",
+    loginUrl: "https://www.mca.gov.in/mcafoportal/login.html",
+    username: "rajesh.director@apexautotech.com",
+    password: "McaV3#ApexDir99",
+    secondaryIdentifier: "DIN: 08912345",
+    registeredMobile: "+91 98110 22345",
+    registeredEmail: "rajesh.director@apexautotech.com",
+    tokenPin: "12345678",
+    notes: "AOC-4 and MGT-7 annual statutory filings. Uses MD's DSC.",
+    lastVerifiedAt: "2026-10-22T09:15:00Z",
+    lastChangedDate: "2026-07-01"
+  },
+  {
+    id: "CRED-04",
+    entityId: "CLI-OMNI-01",
+    entityName: "OmniRetail Hypermarkets Private Limited",
+    groupId: "GRP-OMNI",
+    portalType: "TRACES",
+    portalName: "TRACES TDS CPC Portal",
+    loginUrl: "https://www.tdscpc.gov.in/app/login.xhtml",
+    username: "DELA12345C",
+    password: "TracesTds@Omni2026",
+    secondaryIdentifier: "TAN: DELA12345C",
+    registeredMobile: "+91 99200 44882",
+    registeredEmail: "tax@omniretail.in",
+    notes: "Quarterly 24Q / 26Q TDS returns & Form 16 generation.",
+    lastVerifiedAt: "2026-10-15T11:00:00Z",
+    lastChangedDate: "2026-06-30"
+  },
+  {
+    id: "CRED-05",
+    entityId: "CLI-ZENITH-01",
+    entityName: "Zenith SaaS Technologies Private Limited",
+    groupId: "GRP-ZENITH",
+    portalType: "EPFO",
+    portalName: "EPFO Unified Employer Portal",
+    loginUrl: "https://unifiedportal-emp.epfindia.gov.in/epfo/",
+    username: "EPFO_ZENITH_DL",
+    password: "EpfoZenith$Payroll9",
+    secondaryIdentifier: "EST: DSNHP0098765000",
+    registeredMobile: "+91 98711 00223",
+    registeredEmail: "hr@zenithsaas.io",
+    notes: "Monthly ECR wage filing before 15th of each month.",
+    lastVerifiedAt: "2026-10-28T16:00:00Z",
+    lastChangedDate: "2026-09-01"
+  }
+];
+
 export const SANDBOX_DATA = {
   firmMetrics: SANDBOX_FIRM_METRICS,
   groups: SANDBOX_GROUPS,
@@ -1187,6 +1279,7 @@ export const SANDBOX_DATA = {
   invoices: SANDBOX_INVOICES,
   payToReleaseConfigs: SANDBOX_PAY_TO_RELEASE_CONFIGS,
   dscTokens: SANDBOX_DSC_TOKENS,
+  portalCredentials: SANDBOX_PORTAL_CREDENTIALS,
   documents: SANDBOX_DOCUMENTS,
   auditTrail: SANDBOX_AUDIT_TRAIL,
   notifications: [],

@@ -5,8 +5,7 @@
 // ============================================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, generateStandardComplianceSuite } from "@/lib/server/db";
-import { ClientEntity } from "@/lib/types";
+import { ensureDatabase } from "@/lib/server/db";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { createServerClient } from "@supabase/ssr";
@@ -34,6 +33,7 @@ export async function GET(request: NextRequest) {
         );
         sandboxPayload.documents = (sandboxPayload.documents || []).filter((d: any) => d.entityId === auth.clientEntityId);
         sandboxPayload.dscTokens = [];
+        sandboxPayload.portalCredentials = [];
         sandboxPayload.notices = [];
       }
       return NextResponse.json({
@@ -131,44 +131,32 @@ export async function GET(request: NextRequest) {
                 period: t.period,
                 dueDate: t.due_date ? new Date(t.due_date).toISOString().split("T")[0] : "2026-10-31",
                 status: t.status,
-                assignedTo: t.assigned_to || "Audit Senior",
-                reviewedBy: t.reviewed_by || "CA Partner",
+                assignedTo: "Audit Senior",
+                reviewedBy: "CA Partner",
                 priority: t.priority,
                 penaltyRisk: Number(t.penalty_risk || 0),
                 accruingDailyPenalty: Number(t.accruing_daily_penalty || 0),
-                missingDocumentsCount: Array.isArray(t.missing_docs_list)
-                  ? t.missing_docs_list.length
-                  : Number(t.missing_documents_count || 0),
-                missingDocumentsList: Array.isArray(t.missing_docs_list) ? t.missing_docs_list : [],
+                missingDocumentsCount: Number(t.missing_documents_count || 0),
                 chaseCount: t.chase_count || 0,
               };
             });
 
             let mappedInvoices = dbInvoices.map((inv: any) => {
               const ent = mappedClients.find((c: any) => c.id === inv.entity_id);
-              const totalAmt = Number(inv.total_amount || inv.amount || 0);
-              const taxableAmt = Number(inv.taxable_amount || (totalAmt > 0 ? Math.round(totalAmt / 1.18) : 0));
-              const gstAmt = Number(inv.gst_amount || (totalAmt - taxableAmt));
               return {
                 id: inv.id,
-                invoiceNo: inv.invoice_no || inv.invoiceNumber || inv.id,
+                invoiceNumber: inv.invoice_number,
                 entityId: inv.entity_id,
                 entityName: ent ? ent.name : "Practice Client",
                 groupId: ent ? ent.groupId : "GRP-001",
-                serviceDescription: inv.service_description || inv.description || "Professional CA Audit & Statutory Retainer",
-                taxableAmount: taxableAmt,
-                gstRate: Number(inv.gst_rate || 18),
-                gstAmount: gstAmt,
-                amount: totalAmt,
                 period: inv.period || "Q3 FY 2026-27",
-                issueDate: inv.issue_date || (inv.created_at ? new Date(inv.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]),
-                dueDate: inv.due_date ? new Date(inv.due_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+                issueDate: inv.issue_date || new Date().toISOString().split("T")[0],
+                dueDate: inv.due_date || new Date().toISOString().split("T")[0],
+                amount: Number(inv.amount || 0),
                 status: inv.status || "PENDING",
-                sacCode: inv.sac_code || "998231",
-                clientUtrNumber: inv.client_utr_number || inv.utrNumber || undefined,
-                clientPaymentMode: inv.client_payment_mode || inv.paymentMode || undefined,
-                clientPaymentDate: inv.client_payment_date ? new Date(inv.client_payment_date).toISOString().split("T")[0] : undefined,
-                clientPayerNote: inv.client_payer_note || undefined,
+                description: inv.description || "Professional CA Audit & Statutory Retainer",
+                utrNumber: inv.utr_number || undefined,
+                paymentMode: inv.payment_mode || undefined,
               };
             });
 
@@ -250,6 +238,7 @@ export async function GET(request: NextRequest) {
                 tasks: mappedTasks,
                 invoices: mappedInvoices,
                 dscTokens: mappedDsc,
+                portalCredentials: [],
                 documents: mappedDocuments,
                 notices: [],
                 auditTrail: [],
@@ -283,6 +272,11 @@ export async function GET(request: NextRequest) {
       );
       localData.documents = (localData.documents || []).filter((d: any) => d.entityId === auth.clientEntityId);
       localData.dscTokens = [];
+      if (localData.portalCredentials) {
+        localData.portalCredentials = localData.portalCredentials.filter(
+          (p: any) => p.entityId === auth.clientEntityId
+        );
+      }
       localData.notices = [];
       localData.auditTrail = [];
       localData.payToReleaseConfigs = [];

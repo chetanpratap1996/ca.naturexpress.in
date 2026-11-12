@@ -1,35 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
-import { ClientEntity, DocumentItem, ComplianceTask } from "@/lib/types";
-import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
-import { formatCurrencyINR } from "@/lib/utils";
+import React, { useState, useRef } from "react";
+import { ClientEntity, DocumentItem } from "@/lib/types";
 import { 
-  FileSpreadsheet, 
   UploadCloud, 
   CheckCircle2, 
   Send, 
   Sparkles, 
-  AlertTriangle, 
   FileText, 
-  Smartphone, 
-  Building2, 
   Lock, 
-  Unlock, 
   Clock, 
-  Layers, 
-  Search, 
   Trash2,
   RefreshCw,
   ExternalLink,
-  ShieldCheck,
-  Check
+  Plus
 } from "lucide-react";
 
 export interface BatchParsedDoc {
   id: string;
   fileName: string;
   fileSizeBytes: number;
+  fileContentBase64?: string;
   detectedPan?: string;
   detectedGstin?: string;
   detectedPeriod: string;
@@ -51,8 +42,6 @@ interface BatchOutwardDispatcherProps {
   onTasksUpdated?: () => void;
 }
 
-const SAMPLE_BATCH_FILES: Omit<BatchParsedDoc, "id" | "status" | "selected">[] = [];
-
 export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
   clients,
   onBatchDispatched,
@@ -67,8 +56,140 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
   const [sendEmail, setSendEmail] = useState(true);
   const [autoCompleteTask, setAutoCompleteTask] = useState(true);
   const [enforcePayToRelease, setEnforcePayToRelease] = useState(true);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Load Demonstration Monthly Batch
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Process Real Selected / Dropped Files
+  const handleProcessFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    const newItems: BatchParsedDoc[] = [];
+
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const name = file.name;
+      const size = file.size;
+
+      // Extract base64
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(",")[1] || result;
+          resolve(base64Data);
+        };
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+      });
+
+      // Regex extraction for Indian GSTIN (15 chars) and PAN (10 chars)
+      const gstinMatch = name.match(/[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}/i);
+      const panMatch = name.match(/[A-Z]{5}[0-9]{4}[A-Z]{1}/i);
+
+      const detectedGstin = gstinMatch ? gstinMatch[0].toUpperCase() : undefined;
+      const detectedPan = panMatch ? panMatch[0].toUpperCase() : undefined;
+
+      // Match client by GSTIN, then PAN, or fallback to first client
+      const matchedClient = clients.find((c) => {
+        if (detectedGstin && c.gstin && c.gstin.toUpperCase() === detectedGstin) return true;
+        if (detectedPan && c.pan && c.pan.toUpperCase() === detectedPan) return true;
+        return false;
+      }) || clients[0];
+
+      // Auto-detect Document Category from filename
+      let detectedCategory: DocumentItem["category"] = "GST_INVOICES";
+      const upperName = name.toUpperCase();
+      if (
+        upperName.includes("ITR") ||
+        upperName.includes("26AS") ||
+        upperName.includes("AIS") ||
+        upperName.includes("COMPUTATION")
+      ) {
+        detectedCategory = "TAX_COMPUTATION";
+      } else if (
+        upperName.includes("AUDIT") ||
+        upperName.includes("3CD") ||
+        upperName.includes("3CA") ||
+        upperName.includes("3CB") ||
+        upperName.includes("BALANCE")
+      ) {
+        detectedCategory = "AUDIT_REPORT";
+      } else if (
+        upperName.includes("CHALLAN") ||
+        upperName.includes("280") ||
+        upperName.includes("281") ||
+        upperName.includes("TAX_PAID")
+      ) {
+        detectedCategory = "CHALLAN";
+      } else if (upperName.includes("BANK") || upperName.includes("STATEMENT")) {
+        detectedCategory = "BANK_STATEMENT";
+      }
+
+      // Auto-detect Period
+      let detectedPeriod = "October 2026";
+      if (upperName.includes("SEP")) detectedPeriod = "September 2026";
+      else if (upperName.includes("OCT")) detectedPeriod = "October 2026";
+      else if (upperName.includes("NOV")) detectedPeriod = "November 2026";
+      else if (upperName.includes("AUG")) detectedPeriod = "August 2026";
+      else if (upperName.includes("Q2")) detectedPeriod = "Q2 FY 2026-27";
+      else if (upperName.includes("Q3")) detectedPeriod = "Q3 FY 2026-27";
+
+      newItems.push({
+        id: `BATCH-REAL-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+        fileName: name,
+        fileSizeBytes: size,
+        fileContentBase64: base64,
+        detectedPan: detectedPan || matchedClient?.pan,
+        detectedGstin: detectedGstin || matchedClient?.gstin,
+        detectedPeriod,
+        detectedFy: "FY 2026-27",
+        detectedCategory,
+        matchedEntityId: matchedClient?.id,
+        matchedEntityName: matchedClient?.name,
+        recipientPhone: matchedClient?.primaryContact?.phone,
+        recipientContactName: matchedClient?.primaryContact?.name,
+        payToReleaseLocked: false,
+        outstandingFeeAmount: 0,
+        status: "MATCHED",
+        selected: true,
+      });
+    }
+
+    setParsedQueue((prev) => [...prev, ...newItems]);
+    setIsCompleted(false);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleProcessFiles(e.target.files);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleProcessFiles(e.dataTransfer.files);
+    }
+  };
+
+  // Load Demonstration Monthly Batch (Fallback for quick simulation)
   const handleLoadSampleBatch = () => {
     if (clients.length === 0) {
       alert("No client entities registered yet. Please onboard clients in Client Master first.");
@@ -76,11 +197,11 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
     }
     const initialized: BatchParsedDoc[] = clients.slice(0, 3).map((c, i) => ({
       id: `BATCH-ITEM-${Date.now()}-${i}`,
-      fileName: `GSTR3B_${c.gstin || c.pan}_SEP2026_ACK.pdf`,
+      fileName: `GSTR3B_${c.gstin || c.pan}_OCT2026_ACK.pdf`,
       fileSizeBytes: 245000,
       detectedPan: c.pan,
       detectedGstin: c.gstin,
-      detectedPeriod: "September 2026",
+      detectedPeriod: "October 2026",
       detectedFy: "FY 2026-27",
       detectedCategory: "GST_INVOICES",
       matchedEntityId: c.id,
@@ -92,7 +213,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
       status: "MATCHED",
       selected: true,
     }));
-    setParsedQueue(initialized);
+    setParsedQueue((prev) => [...prev, ...initialized]);
     setIsCompleted(false);
     setDispatchLogs([]);
   };
@@ -147,8 +268,8 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
       const item = selectedItems[i];
       const stepPercent = Math.round(((i + 1) / selectedItems.length) * 100);
 
-      // Simulate network / OCR / WhatsApp dispatch delay
-      await new Promise((res) => setTimeout(res, 600));
+      // Brief realistic dispatch latency
+      await new Promise((res) => setTimeout(res, 400));
 
       const newDoc: DocumentItem = {
         id: `DOC-${Date.now()}-${i}`,
@@ -165,12 +286,13 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
         reviewStatus: "APPROVED",
         reviewedBy: "CA Gunjan Jain (Partner)",
         reviewedAt: new Date().toISOString(),
+        fileContentBase64: item.fileContentBase64 || undefined,
       };
 
       createdDocs.push(newDoc);
 
       setDispatchLogs((prev) => [
-        `✓ [${i + 1}/${selectedItems.length}] Dispatched "${item.fileName}" to ${item.matchedEntityName} via WhatsApp (${item.recipientPhone})`,
+        `✓ [${i + 1}/${selectedItems.length}] Dispatched "${item.fileName}" to ${item.matchedEntityName} via WhatsApp (${item.recipientPhone || "Registered Contact"})`,
         ...prev,
       ]);
       setDispatchProgress(stepPercent);
@@ -181,15 +303,18 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
       );
     }
 
-    // Persist to server API if available
+    // Persist real binary documents and auto-advance matching tasks
     try {
       await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batch: createdDocs }),
+        body: JSON.stringify({
+          batch: createdDocs,
+          autoAdvanceTask: autoCompleteTask,
+        }),
       });
     } catch (e) {
-      console.warn("Local storage fallback:", e);
+      console.warn("API batch persist error:", e);
     }
 
     if (onBatchDispatched) {
@@ -207,6 +332,16 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Hidden Real File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.zip"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+
       {/* Top Banner & Value Proposition */}
       <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-3xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="absolute right-0 top-0 w-80 h-80 bg-red-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -221,17 +356,25 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               Batch Inward / Outward Document Dispatcher
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed font-normal">
-              Drop 50+ filing receipts (GSTR-3B, GSTR-1, ITR-V, Form 3CD, Challans). System auto-parses PAN, GSTIN, and Period, maps to the client master, and shoots out branded WhatsApp delivery links in 60 seconds.
+              Drop real filing receipts (GSTR-3B, GSTR-1, ITR-V, Form 3CD, Challans). System auto-parses PAN, GSTIN, and Period, maps to the client master, stores files in practice vault, and shoots out branded WhatsApp delivery links.
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             <button
-              onClick={handleLoadSampleBatch}
-              className="bg-btred-logo hover:bg-red-700 text-white shadow-sm text-xs font-black px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95"
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-btred-logo hover:bg-red-700 text-white shadow-sm text-xs font-black px-4 py-2.5 rounded-xl transition shadow-lg shadow-red-500/25 flex items-center gap-2 active:scale-95"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Load Monthly Filing Batch</span>
+              <UploadCloud className="w-4 h-4" />
+              <span>Browse Real PDF Files</span>
+            </button>
+            <button
+              onClick={handleLoadSampleBatch}
+              title="Load test mock documents for rapid demonstration"
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+              <span>Load Demo Batch</span>
             </button>
           </div>
         </div>
@@ -243,26 +386,50 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
         <div className="lg:col-span-2 space-y-4">
           {parsedQueue.length === 0 ? (
             <div
-              onClick={handleLoadSampleBatch}
-              className="border-2 border-dashed border-slate-300 hover:border-red-500 rounded-3xl p-10 text-center cursor-pointer bg-white hover:bg-red-50/20 transition space-y-3 shadow-sm"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition space-y-3 shadow-sm ${
+                isDraggingOver
+                  ? "border-red-500 bg-red-50/50 scale-[0.99]"
+                  : "border-slate-300 hover:border-red-500 bg-white hover:bg-red-50/20"
+              }`}
             >
               <div className="w-14 h-14 bg-red-50 text-btred-logo rounded-2xl flex items-center justify-center mx-auto border border-red-100 shadow-sm">
                 <UploadCloud className="w-7 h-7" />
               </div>
               <div className="space-y-1">
                 <h4 className="text-sm font-black text-slate-900">
-                  Drop Acknowledgment PDFs Here (or Click to Load Test Batch)
+                  Drag &amp; Drop Real Filing PDFs Here (or Click to Browse)
                 </h4>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Automatically extracts PAN/GSTIN from filenames like <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px] font-mono">GSTR3B_27AAACP0192A1Z5.pdf</code> and organizes them into client repositories.
+                  Automatically extracts PAN/GSTIN from filenames like <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px] font-mono">GSTR3B_09AANCP9915B1Z4_OCT2026_ACK.pdf</code> and organizes them into client repositories.
                 </p>
               </div>
-              <button
-                type="button"
-                className="bg-btred-logo text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-700 transition shadow-sm"
-              >
-                Load Sample September 2026 Batch (5 Documents)
-              </button>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className="bg-btred-logo text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-700 transition shadow-sm flex items-center gap-1.5"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  Select Files from Computer
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLoadSampleBatch();
+                  }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition"
+                >
+                  Or Load Demo Samples
+                </button>
+              </div>
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
@@ -281,6 +448,13 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs text-btred-logo hover:text-red-700 font-bold px-2.5 py-1 rounded bg-red-50 border border-red-200 transition flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add More Files</span>
+                  </button>
                   <button
                     onClick={() => setParsedQueue([])}
                     className="text-xs text-slate-500 hover:text-red-600 font-bold px-2 py-1 rounded transition flex items-center gap-1"
@@ -316,6 +490,9 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                           <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                             {item.detectedCategory.replace(/_/g, " ")}
                           </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            ({(item.fileSizeBytes / 1024).toFixed(1)} KB)
+                          </span>
                           {item.payToReleaseLocked && enforcePayToRelease && (
                             <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                               <Lock className="w-2.5 h-2.5" />
@@ -333,11 +510,11 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                           <select
                             value={item.matchedEntityId || ""}
                             onChange={(e) => handleReassignClient(item.id, e.target.value)}
-                            className="bg-slate-50 border border-slate-300 rounded px-1.5 py-0.5 text-[11px] font-bold text-slate-800 focus:ring-1 focus:ring-indigo-500"
+                            className="bg-slate-50 border border-slate-300 rounded px-1.5 py-0.5 text-[11px] font-bold text-slate-800 focus:ring-1 focus:ring-red-500"
                           >
                             {clients.map((c) => (
                               <option key={c.id} value={c.id}>
-                                {c.name}
+                                {c.name} ({c.pan})
                               </option>
                             ))}
                           </select>
@@ -347,10 +524,25 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
 
                     <div className="flex items-center gap-2 shrink-0 sm:self-center">
                       {item.status === "DISPATCHED" ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Sent to WhatsApp
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Dispatched
+                          </span>
+                          {item.recipientPhone && (
+                            <a
+                              href={`https://wa.me/${item.recipientPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                                `Dear ${item.recipientContactName || "Authorized Signatory"}, your official ${item.detectedCategory.replace(/_/g, " ")} (${item.fileName}) for ${item.detectedPeriod} has been filed and uploaded to your vault: https://ca.naturexpress.in/client?phone=${item.recipientPhone.replace(/[^0-9]/g, "").slice(-10)}`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-md transition flex items-center gap-1"
+                            >
+                              WhatsApp
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                        </div>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-btred-logo bg-red-50 px-2 py-0.5 rounded border border-red-200">
                           <Clock className="w-3 h-3" />
@@ -370,7 +562,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               <div className="flex items-center justify-between text-xs">
                 <span className="font-extrabold text-slate-900 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-btred-logo animate-spin" />
-                  Dispatching documents to clients...
+                  Saving deliverables &amp; dispatching to client vaults...
                 </span>
                 <span className="font-mono font-black text-btred-logo">{dispatchProgress}%</span>
               </div>
@@ -469,9 +661,9 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                 Branded WhatsApp Template Preview
               </span>
               <p className="text-[11px] text-slate-700 leading-relaxed font-sans bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
-                &ldquo;Dear <strong className="text-slate-900">Authorized Signatory</strong>, your <strong className="text-emerald-700">GSTR-3B Acknowledgement</strong> for <strong className="text-slate-900">September 2026</strong> has been officially filed by <strong className="text-slate-900">GPA &amp; Co., Chartered Accountants</strong>.<br /><br />
-                🔒 Secure 1-Tap Download: <span className="text-blue-600 underline font-mono text-[10px]">https://ca.naturexpress.in/v/ack_9912</span><br /><br />
-                <em className="text-[10px] text-slate-500">Valid for 30 days &bull; No password needed</em>&rdquo;
+                &ldquo;Dear <strong className="text-slate-900">Authorized Signatory</strong>, your <strong className="text-emerald-700">GSTR-3B Acknowledgement</strong> for <strong className="text-slate-900">October 2026</strong> has been officially filed by <strong className="text-slate-900">GPA &amp; Co., Chartered Accountants</strong>.<br /><br />
+                🔒 Secure 1-Tap Download: <span className="text-blue-600 underline font-mono text-[10px]">https://ca.naturexpress.in/client?phone=8077170715&amp;tab=vault</span><br /><br />
+                <em className="text-[10px] text-slate-500">Filed in Vault &bull; Department Stamped</em>&rdquo;
               </p>
             </div>
 
@@ -488,8 +680,8 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               <Send className="w-4 h-4" />
               <span>
                 {isProcessingBatch
-                  ? "Dispatching Batch..."
-                  : `Dispatch Batch (${selectedCount} Clients)`}
+                  ? "Saving & Dispatching Batch..."
+                  : `Dispatch Deliverables (${selectedCount} Files)`}
               </span>
             </button>
 

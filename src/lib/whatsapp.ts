@@ -11,7 +11,6 @@ export type WhatsAppTemplate =
   | "DOC_CHASE"
   | "ADVANCE_TAX_REMINDER"
   | "FILING_ACKNOWLEDGEMENT"
-  | "FILING_RECEIPT_SHARE"
   | "FEE_INVOICE_UTR"
   | "OTP_CALL_NOTICE"
   | "SCRUTINY_NOTICE_ALERT"
@@ -19,10 +18,7 @@ export type WhatsAppTemplate =
   | "CLIENT_CREDENTIALS"
   | "STAFF_CREDENTIALS"
   | "VENDOR_ITC_HOLD"
-  | "MSME_43BH_ALERT"
-  | "CA_DIRECT_DESK"
-  | "ARTICLE_DIRECT_DESK"
-  | "PIN_RESET_REQUEST";
+  | "MSME_43BH_ALERT";
 
 export interface WhatsAppTemplateParams {
   clientName: string;
@@ -121,18 +117,29 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
     }
 
     case "FEE_INVOICE_UTR": {
-      return `*TAX INVOICE #${params.invoiceNo || "FEE"} & PAYMENT DETAILS*\n\n` +
+      const upiVpa = params.firmUpiVpa || "BRAINSANDTAXES@icici";
+      const invNum = params.invoiceNo || "FEE-INV";
+      const amt = params.invoiceAmount || 0;
+      const dynamicUpiUri = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent("Brains and Taxes")}&am=${amt}&cu=INR&tn=${encodeURIComponent(`Settlement-${invNum}`)}`;
+
+      return `*TAX INVOICE #${invNum} & STATUTORY DELIVERABLE RELEASE*\n\n` +
         `Dear ${params.clientName},\n\n` +
-        `Please find attached Invoice *#${params.invoiceNo || "N/A"}* for *${params.serviceName || "Professional Services"}* amounting to *${formatINR(params.invoiceAmount)}*.\n\n` +
-        `🏦 *Direct Bank Transfer Details:*\n` +
-      `• Beneficiary: Brains & Taxes Private Limited\n` +
-      `• Bank & Branch: ICICI Bank, New Palasia, Indore\n` +
-      `• A/C Type: Current Account\n` +
-      `• A/C Number: 657005601799\n` +
-      `• IFSC Code: ICIC0006570\n` +
-      `• Direct UPI VPA: *${params.firmUpiVpa || "BRAINSANDTAXES@icici"}*\n\n` +
-        `Once transferred via NEFT/RTGS/UPI, kindly reply with the *12-digit UTR reference number* or submit it here for instant receipt generation:\n${portalLink}\n\n` +
-        `Thank you,\n*Accounts Desk*\n${firm}`;
+        `Greetings from *${firm}*.\n` +
+        `This is a formal communication regarding your professional fee invoice *#${invNum}* for *${params.serviceName || "Statutory Audit & Tax Compliances"}* amounting to *${formatINR(amt)}*.\n\n` +
+        `🔒 *STATUTORY DELIVERABLE GATE STATUS:*\n` +
+        `In accordance with ICAI Standard on Auditing (SA 210) and firm delivery protocol, final certified deliverables (*Form 3CD, Digitally Signed Balance Sheet, and ITR-V Acknowledgment*) are held in your secure portal vault pending fee settlement.\n\n` +
+        `⚠️ *STATUTORY MSME COMPLIANCE u/s 43B(h):*\n` +
+        `As a registered MSME entity, delays beyond 15/45 days attract mandatory business expense disallowance under *Section 43B(h) of the Income Tax Act*, resulting in 31.2% additional tax liability on your company.\n\n` +
+        `🏦 *DIRECT SETTLEMENT OPTIONS:*\n` +
+        `• *Instant Dynamic UPI:* ${upiVpa}\n` +
+        `• *Beneficiary:* Brains & Taxes Private Limited\n` +
+        `• *Bank & Branch:* ICICI Bank, New Palasia, Indore\n` +
+        `• *Current A/C:* 657005601799\n` +
+        `• *IFSC Code:* ICIC0006570\n\n` +
+        `⚡ *1-Tap Instant Unlock Portal:*\n` +
+        `${portalLink}\n\n` +
+        `Once paid via RTGS/NEFT, please upload your 12-digit UTR on the portal link above for immediate zero-wait release of your certified documents.\n\n` +
+        `Warm regards,\n*Practice Management & Billing Desk*\n${firm}`;
     }
 
     case "OTP_CALL_NOTICE": {
@@ -164,6 +171,12 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
     }
 
     case "CLIENT_CREDENTIALS": {
+      const clientPortalUrl = params.portalUrl || "https://ca.naturexpress.in/?portal=client";
+      const pin = params.loginPassword || "Last 4 digits of your phone";
+      const oneTapUrl = clientPortalUrl.includes("?") 
+        ? `${clientPortalUrl}&pin=${pin}` 
+        : `${clientPortalUrl}?portal=client&pin=${pin}`;
+
       return `*OFFICIAL CLIENT PORTAL ACCESS — GPA & CO.*
 (Chartered Accountants | ICAI FRN: 022998C)
 
@@ -173,10 +186,10 @@ Greetings from *GPA & Co., Chartered Accountants*.
 Your corporate tax compliance & financial portal is now live for *${params.clientName}*.
 
 🔐 *Your Secure Login Credentials:*
-• *Portal URL:* ${params.portalUrl || "https://ca.naturexpress.in/"}
+• *Portal URL:* ${clientPortalUrl}
 • *User ID (Mobile No or PAN):* ${params.loginId || params.clientName}
-• *4-Digit Access PIN:* ${params.loginPassword || "Last 4 digits of your phone"}
-*(Zero-SMS OTP delay — Instant 1-tap direct login. You can customize your PIN inside Profile anytime).*
+• *4-Digit Access PIN:* ${pin}
+*(Zero SMS delay — Instant direct login without OTP delays. You can customize your PIN inside Profile anytime).*
 
 📌 *Why you should log in today:*
 1. 🏦 *Banker Loan Dockets:* 1-click audited balance sheets & ITR-V for bank credit renewals.
@@ -184,7 +197,9 @@ Your corporate tax compliance & financial portal is now live for *${params.clien
 3. ⏳ *MSME 43B(h) Clock:* 45-day vendor payment deadline countdown.
 4. ✍️ *Paperless E-Sign:* Approve filed returns & financial statements right from mobile.
 
-👉 *Log in now:* https://ca.naturexpress.in/
+👉 *Log in here:* ${clientPortalUrl}
+⚡ *1-Tap Direct Sign In:* ${oneTapUrl}
+
 For direct assistance, reach our audit desk at +91 98937 23639.
 
 Warm regards,
@@ -236,16 +251,6 @@ Your staff desk access is active on the GPA & Co. Practice Management System.
         `Please process this payment immediately via NetBanking/RTGS to protect business deduction.\n\n` +
         `Regards,\n*Audit & Compliance Team*\n${firm}`;
     }
-    case "FILING_RECEIPT_SHARE":
-      return `*STATUTORY FILING RECEIPT*\n\nDear ${params.clientName},\n\nYour return for ${params.serviceName || "statutory period"} is verified under ICAI seal.\nARN: ${params.arnNumber || "Verified"}\n\n${portalLink}`;
-    case "CA_DIRECT_DESK":
-      return `*CA PARTNER CONSULTATION*\n\nDear CA Gunjan Jain, consultation requested for ${params.clientName}.\n${portalLink}`;
-    case "ARTICLE_DIRECT_DESK":
-      return `*ARTICLE DESK*\n\nFiling query for ${params.clientName}.\n${portalLink}`;
-    case "PIN_RESET_REQUEST":
-      return `*PIN RESET*\n\nPlease reset access PIN for ${params.clientName}.\n${portalLink}`;
-    default:
-      return `Hello ${params.clientName}, greeting from ${firm}. Kindly check your compliance portal: ${portalLink}`;
   }
 }
 
@@ -260,6 +265,21 @@ export function createWhatsAppWebLink(
   const sanitized = sanitizeIndianPhoneNumber(phone);
   const text = buildTemplateMessage(template, params);
   return `https://wa.me/${sanitized}?text=${encodeURIComponent(text)}`;
+}
+
+/**
+ * Generate standardized NPCI compliant UPI Intent URI
+ */
+export function generateDynamicUpiUri(
+  vpa: string,
+  payeeName: string,
+  amount: number,
+  invoiceNo?: string
+): string {
+  const cleanVpa = vpa || "BRAINSANDTAXES@icici";
+  const name = payeeName || "Brains and Taxes Private Limited";
+  const note = invoiceNo ? `Settlement of ${invoiceNo}` : "Professional CA Fee Settlement";
+  return `upi://pay?pa=${encodeURIComponent(cleanVpa)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
 }
 
 /**

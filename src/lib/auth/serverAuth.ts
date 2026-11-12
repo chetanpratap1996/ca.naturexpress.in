@@ -60,6 +60,8 @@ export interface ServerAuthContext {
   isAuthenticated: boolean;
   user: AuthUser | null;
   role: UserRole | null;
+  userName?: string;
+  userEmail?: string;
   clientGroupId?: string;
   clientEntityId?: string;
   isSandboxMode: boolean;
@@ -217,6 +219,8 @@ export async function authenticateServerRequest(request: NextRequest): Promise<S
         isAuthenticated: true,
         user,
         role: verified.role,
+        userName: user.name,
+        userEmail: user.email,
         clientGroupId: verified.clientGroupId,
         clientEntityId: verified.clientEntityId,
         isSandboxMode: !!verified.isSandbox,
@@ -252,6 +256,8 @@ export async function authenticateServerRequest(request: NextRequest): Promise<S
       isAuthenticated: true,
       user: sandboxUser,
       role: "PARTNER",
+      userName: sandboxUser.name,
+      userEmail: sandboxUser.email,
       isSandboxMode: true,
     };
   }
@@ -311,6 +317,8 @@ export async function authenticateServerRequest(request: NextRequest): Promise<S
           isAuthenticated: true,
           user,
           role: user.role,
+          userName: user.name,
+          userEmail: user.email,
           clientGroupId: user.clientGroupId,
           clientEntityId: user.clientEntityId,
           isSandboxMode: false,

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { PracticeRegistrationModal } from "./PracticeRegistrationModal";
 import { BtLogo } from "@/components/shared/BtLogo";
 import { 
   ShieldCheck, 
@@ -38,46 +40,58 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 interface SaasGatewayProps {
   onEnterSandbox: (role: "partner" | "article" | "client") => void;
   onOpenLogin: (role?: "partner" | "article" | "client") => void;
+  onPracticeRegistered?: (user: any) => void;
 }
 
 export const SaasGateway: React.FC<SaasGatewayProps> = ({
   onEnterSandbox,
   onOpenLogin,
+  onPracticeRegistered,
 }) => {
   const [activeFeatureTab, setActiveFeatureTab] = useState<
     "pay-to-release" | "banker-docket" | "itc-guard" | "msme-clock" | "dsc-vault" | "tally-xml"
   >("pay-to-release");
 
   const [interactiveUpiPaid, setInteractiveUpiPaid] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-red-500 selection:text-white">
       
       {/* 1. Top Enterprise Ticker Bar (Crisp Light Mode) */}
-      <div className="bg-slate-50 border-b border-slate-200/80 text-[11px] py-2 text-slate-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-            </span>
-            <span className="font-extrabold text-slate-800">GPA &amp; Co., Chartered Accountants</span>
-            <span className="text-slate-400 hidden sm:inline">&bull;</span>
-            <span className="hidden sm:inline font-medium text-slate-500">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer-Review Certified</span>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-4 text-xs">
-            <span className="text-emerald-700 font-semibold hidden lg:flex items-center gap-1">
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Zero-SMS OTP Delay &bull; 4-Digit Instant Access</span>
-            </span>
-            <button
-              onClick={() => onOpenLogin()}
-              className="text-btred-logo hover:text-red-700 font-bold flex items-center gap-1 transition text-xs bg-red-50 hover:bg-red-100 sm:bg-transparent px-2.5 py-1 sm:p-0 rounded-lg sm:rounded-none"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Portal Login &rarr;</span>
-            </button>
-          </div>
+      <div className="bg-slate-50 border-b border-slate-200/80 text-[11px] px-3 sm:px-8 py-2 flex flex-wrap items-center justify-between gap-2 text-slate-600">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+          </span>
+          <span className="font-extrabold text-slate-800">GPA &amp; Co., Chartered Accountants</span>
+          <span className="text-slate-600 hidden sm:inline">&bull;</span>
+          <span className="hidden sm:inline font-medium">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer-Review Certified Practice</span>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-4 text-xs flex-wrap">
+          <Link
+            href="/brainsandtaxes"
+            className="text-slate-700 hover:text-btred-logo font-bold flex items-center gap-1 transition text-[11px]"
+          >
+            <span>Public Firm Site: <strong>ca.naturexpress.in/brainsandtaxes</strong> &rarr;</span>
+          </Link>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <button
+            onClick={() => onOpenLogin("client")}
+            className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 transition text-xs"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Client Portal</span>
+          </button>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <button
+            onClick={() => onOpenLogin("partner")}
+            className="text-btred-logo hover:text-red-700 font-bold flex items-center gap-1 transition text-xs"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>CA Practice Sign In &rarr;</span>
+          </button>
         </div>
       </div>
 
@@ -96,23 +110,41 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Subtle Pitch / Sandbox Button */}
-            <button
-              onClick={() => onEnterSandbox("partner")}
-              className="text-xs text-slate-600 hover:text-slate-900 font-bold px-3 py-2 rounded-xl hover:bg-slate-100 transition hidden sm:inline-flex items-center gap-1.5"
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Link to Brains & Taxes Public Firm Site */}
+            <Link
+              href="/brainsandtaxes"
+              className="text-xs text-slate-700 hover:text-btred-logo font-bold px-3 py-2 rounded-xl hover:bg-slate-100 transition hidden lg:inline-flex items-center gap-1.5 border border-slate-200"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Pitch Preview</span>
+              <span>Brains &amp; Taxes Practice Profile</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            </Link>
+
+            {/* Client Portal Button */}
+            <button
+              onClick={() => onOpenLogin("client")}
+              className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Client Portal</span>
             </button>
 
-            {/* The Main High-Contrast Sign In Button */}
+            {/* Practice Register / Sign Up Button */}
             <button
-              onClick={() => onOpenLogin()}
-              className="bg-btred-logo hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-xs font-black transition shadow-sm hover:shadow-md flex items-center gap-2 active:scale-95"
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="text-xs text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 font-bold px-3 py-2 rounded-xl transition hidden sm:inline-flex items-center gap-1.5"
             >
-              <KeyRound className="w-3.5 h-3.5 text-amber-800" />
-              <span>Sign In to Portal</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>Register Firm</span>
+            </button>
+
+            {/* CA Firm Sign In Button */}
+            <button
+              onClick={() => onOpenLogin("partner")}
+              className="bg-btred-logo hover:bg-red-700 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black transition shadow-sm hover:shadow-md flex items-center gap-2 active:scale-95"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-white" />
+              <span>CA Practice Sign In</span>
             </button>
           </div>
         </div>
@@ -129,7 +161,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           </div>
 
           {/* Punchy Headline */}
-          <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.15] text-balance break-words">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.15]">
             Stop Chasing Clients on WhatsApp. <br />
             <span className="text-btred-logo">
               Lock Deliverables. Recover Fees via UPI.
@@ -144,24 +176,64 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
 
           {/* ONLY 2 Clear CTA Buttons (Eliminating all clutter and confusion) */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-            {/* Primary Action: Sign In */}
+            {/* Primary Action: CA Firm Sign In */}
             <button
-              onClick={() => onOpenLogin()}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-btred-logo hover:bg-btred-700 text-white px-8 py-4 rounded-2xl text-sm font-black transition shadow-lg shadow-red-500/20 active:scale-95"
+              onClick={() => onOpenLogin("partner")}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-btred-logo hover:bg-red-700 text-white px-7 py-3.5 rounded-2xl text-sm font-black transition shadow-lg shadow-red-500/20 active:scale-95"
             >
               <KeyRound className="w-4 h-4" />
-              <span>Sign In to Your Account</span>
+              <span>CA Firm Portal Login (Staff Desk)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            {/* Secondary Action: Pitch Sandbox */}
+            {/* Client Portal Action */}
+            <button
+              onClick={() => onOpenLogin("client")}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-300 px-6 py-3.5 rounded-2xl text-sm font-bold transition active:scale-95 shadow-sm"
+            >
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              <span>Client Portal Sign In (4-Digit PIN)</span>
+            </button>
+
+            {/* Register Practice / Free Trial */}
+            <button
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200 hover:border-slate-300 px-5 py-3.5 rounded-2xl text-sm font-bold transition active:scale-95 shadow-sm"
+            >
+              <Building2 className="w-4 h-4 text-slate-600" />
+              <span>Register Practice / Sign Up</span>
+            </button>
+
+            {/* Pitch Preview Action */}
             <button
               onClick={() => onEnterSandbox("partner")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200 hover:border-slate-300 px-6 py-4 rounded-2xl text-sm font-bold transition active:scale-95 shadow-sm"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3.5 rounded-2xl text-xs font-bold transition active:scale-95"
             >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Explore Live Interactive Preview</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Interactive Sandbox</span>
             </button>
+          </div>
+
+          {/* Prominent Public B&T Site Notification Banner */}
+          <div className="bg-gradient-to-r from-red-50 via-amber-50 to-red-50 border border-red-200 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-btred-logo animate-pulse shrink-0"></span>
+              <div>
+                <strong className="text-xs font-black text-slate-900 block">
+                  Public Client-Facing Website &amp; Google Maps Profile
+                </strong>
+                <span className="text-[11px] text-slate-600">
+                  Looking for the public firm site to share with clients for Indore office consultations &amp; statutory audit inquiries?
+                </span>
+              </div>
+            </div>
+            <Link
+              href="/brainsandtaxes"
+              className="bg-white hover:bg-slate-50 text-btred-logo border border-red-300 font-extrabold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0"
+            >
+              <span>Open ca.naturexpress.in/brainsandtaxes</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
           {/* Simple Login Hint */}
@@ -170,7 +242,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           </p>
 
           {/* 4 Trust Highlights Strip */}
-          <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left">
+          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 block">Zero Follow-Up</span>
               <strong className="text-xs text-slate-900 block font-bold">Pay-to-Release Realization</strong>
@@ -569,7 +641,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
 
             <button
-              onClick={() => onOpenLogin("client")}
+              onClick={() => onOpenLogin()}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-sm active:scale-95"
             >
               <span>Sign In to Client Portal (PWA View)</span>
@@ -611,7 +683,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
 
             <button
-              onClick={() => onOpenLogin("partner")}
+              onClick={() => onOpenLogin()}
               className="w-full bg-btred-logo hover:bg-btred-700 text-white font-black py-3.5 rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-sm active:scale-95"
             >
               <span>Sign In to CA Partner Cockpit (GPA &amp; Co.)</span>

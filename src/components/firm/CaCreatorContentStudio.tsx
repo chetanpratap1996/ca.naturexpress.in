@@ -18,8 +18,18 @@ import {
   MessageCircle,
   TrendingUp,
   FileText,
-  Clock
+  Clock,
+  Flame,
+  Plus,
+  Play,
+  Linkedin,
+  Smartphone
 } from "lucide-react";
+import { LiveTaxNewsRadar, TrendingTaxNews } from "./studio/LiveTaxNewsRadar";
+import { TeleprompterModal } from "./studio/TeleprompterModal";
+import { MultiPlatformRepurposerModal } from "./studio/MultiPlatformRepurposerModal";
+import { CreateCustomScriptModal } from "./studio/CreateCustomScriptModal";
+import { toast } from "@/components/shared/ToastNotification";
 
 export interface TaxReelScript {
   id: string;
@@ -124,6 +134,11 @@ export const CaCreatorContentStudio: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Modals
+  const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
+  const [isRepurposerOpen, setIsRepurposerOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   // ICAI Ethics Compliance Scanner State
   const [customDraft, setCustomDraft] = useState<string>("");
   const [complianceResult, setComplianceResult] = useState<{
@@ -146,6 +161,7 @@ export const CaCreatorContentStudio: React.FC = () => {
 
     navigator.clipboard.writeText(fullText);
     setCopiedId(script.id);
+    toast.success("Script Copied", "Teleprompter text copied to clipboard.");
     setTimeout(() => setCopiedId(null), 3000);
   };
 
@@ -156,6 +172,18 @@ export const CaCreatorContentStudio: React.FC = () => {
     if (selectedScript.id === scriptId) {
       setSelectedScript((prev) => ({ ...prev, status: newStatus }));
     }
+  };
+
+  const handleSaveNewScript = (newScript: TaxReelScript) => {
+    setScripts((prev) => [newScript, ...prev]);
+    setSelectedScript(newScript);
+  };
+
+  const handleNewsToScript = (generatedScript: TaxReelScript) => {
+    setScripts((prev) => [generatedScript, ...prev]);
+    setSelectedScript(generatedScript);
+    // Auto-scroll to studio view
+    window.scrollTo({ top: 500, behavior: "smooth" });
   };
 
   // ICAI Code of Ethics (Rule 7, Part I, First Schedule) Automated Checker
@@ -196,24 +224,34 @@ export const CaCreatorContentStudio: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
-                <Instagram className="w-3.5 h-3.5 text-pink-300" /> CA Content Creator Studio
+                <Instagram className="w-3.5 h-3.5 text-pink-500" /> CA Content Creator Studio
               </span>
-              <span className="text-xs text-slate-500 font-mono">ICAI Rule 7 Compliant</span>
+              <span className="text-xs text-slate-500 font-mono">ICAI Rule 7 Compliant &bull; Zero API Cost</span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <Video className="w-6 h-6 text-btred-logo" /> Viral Tax Reel Scripts &amp; Post Planner
             </h2>
-            <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
               Build your authority on Instagram, YouTube Shorts &amp; LinkedIn. Ready-to-shoot scripts for budget changes, Section 115BAC, MSME 45-day rules, and HRA with automated ICAI ethics compliance scanning.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-center shadow-xs text-slate-900">
-              <div className="text-xs text-slate-600">Total Scripts</div>
-              <div className="text-lg font-black text-pink-400">{scripts.length} Ready</div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4 text-pink-400" />
+              <span>+ Custom Script</span>
+            </button>
+
+            <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 text-center shadow-xs">
+              <div className="text-[10px] text-slate-500 font-bold uppercase">Total Scripts</div>
+              <div className="text-lg font-black text-pink-600">{scripts.length} Ready</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-center shadow-xs text-slate-900">
-              <div className="text-xs text-slate-600">Published</div>
+
+            <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 text-center shadow-xs">
+              <div className="text-[10px] text-slate-500 font-bold uppercase">Published</div>
               <div className="text-lg font-black text-emerald-700">
                 {scripts.filter((s) => s.status === "POSTED").length}
               </div>
@@ -222,10 +260,21 @@ export const CaCreatorContentStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Studio Grid */}
+      {/* SECTION 1: WHAT'S TRENDING TODAY (DAILY STATUTORY RADAR) */}
+      <LiveTaxNewsRadar onGenerateScriptFromNews={handleNewsToScript} />
+
+      {/* SECTION 2: MAIN STUDIO & TELEPROMPTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
         {/* Left Column: Script Directory & Filters (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-pink-600" /> Script Library ({filteredScripts.length})
+            </span>
+            <span className="text-[11px] text-slate-500">Pick to shoot &rarr;</span>
+          </div>
+
           {/* Categories */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
             {["ALL", "SALARIED", "MSME", "FREELANCER", "GST_NOTICES"].map((cat) => (
@@ -234,7 +283,7 @@ export const CaCreatorContentStudio: React.FC = () => {
                 onClick={() => setCategoryFilter(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                   categoryFilter === cat
-                    ? "bg-pink-600 text-white shadow"
+                    ? "bg-pink-600 text-white shadow-xs"
                     : "bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -251,17 +300,17 @@ export const CaCreatorContentStudio: React.FC = () => {
                 <div
                   key={s.id}
                   onClick={() => setSelectedScript(s)}
-                  className={`p-4 rounded-xl border cursor-pointer transition ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition ${
                     isSelected
-                      ? "bg-white border-red-500 shadow-md ring-1 ring-red-500/20"
-                      : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"
+                      ? "bg-white border-pink-500 shadow-md ring-1 ring-pink-500/20"
+                      : "bg-white border-slate-200 hover:border-slate-300 shadow-xs"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-pink-700 bg-pink-50 px-2.5 py-0.5 rounded-full border border-pink-200">
                       {s.category}
                     </span>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                       s.status === "POSTED"
                         ? "bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold"
                         : s.status === "RECORDED"
@@ -274,19 +323,20 @@ export const CaCreatorContentStudio: React.FC = () => {
                     </span>
                   </div>
 
-                  <h4 className="text-sm font-bold text-slate-900 mt-2 leading-tight">
+                  <h4 className="text-sm font-bold text-slate-900 mt-2 leading-snug">
                     {s.title}
                   </h4>
                   <p className="text-xs text-slate-600 mt-1 line-clamp-2 italic">
                     "{s.hook}"
                   </p>
 
-                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-600" /> ~{s.durationSec}s Reel
+                  <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-slate-500" /> ~{s.durationSec}s Reel
                     </span>
-                    <span className="text-pink-400 font-bold group-hover:underline">
-                      View Teleprompter &rarr;
+                    <span className="text-pink-600 font-bold hover:underline flex items-center gap-1">
+                      <span>View Script</span>
+                      <span>&rarr;</span>
                     </span>
                   </div>
                 </div>
@@ -298,30 +348,49 @@ export const CaCreatorContentStudio: React.FC = () => {
         {/* Right Column: Teleprompter & Script Details (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Active Teleprompter Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6 text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5 text-slate-900">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400">
-                  Ready-to-Shoot Teleprompter
+                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1">
+                  <Video className="w-3.5 h-3.5" /> Ready-to-Shoot Teleprompter
                 </span>
-                <h3 className="text-lg font-black text-slate-900 mt-0.5">
+                <h3 className="text-lg font-black text-slate-900 mt-0.5 leading-snug">
                   {selectedScript.title}
                 </h3>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setIsTeleprompterOpen(true)}
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                  title="Open Full-Screen Teleprompter with Auto-Scroll"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Start Teleprompter</span>
+                </button>
+
+                <button
+                  onClick={() => setIsRepurposerOpen(true)}
+                  className="px-3 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                  title="Repurpose into LinkedIn, WhatsApp, and Twitter Formats"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Repurpose (LinkedIn/WA)</span>
+                </button>
+
                 <button
                   onClick={() => handleCopyScript(selectedScript)}
-                  className="px-3.5 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-200"
                 >
                   {copiedId === selectedScript.id ? (
                     <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Copied Script!</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Full Script</span>
+                      <span>Copy</span>
                     </>
                   )}
                 </button>
@@ -329,15 +398,15 @@ export const CaCreatorContentStudio: React.FC = () => {
             </div>
 
             {/* Status Selector */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs text-slate-800">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2.5 rounded-2xl text-xs text-slate-800">
               <span className="text-slate-600 font-semibold">Production Status:</span>
               {(["IDEA", "SCRIPTED", "RECORDED", "POSTED"] as const).map((st) => (
                 <button
                   key={st}
                   onClick={() => handleStatusChange(selectedScript.id, st)}
-                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                  className={`px-3 py-1 rounded-xl font-bold text-[11px] transition ${
                     selectedScript.status === st
-                      ? "bg-pink-600 text-white shadow"
+                      ? "bg-pink-600 text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -346,29 +415,30 @@ export const CaCreatorContentStudio: React.FC = () => {
               ))}
             </div>
 
-            {/* Teleprompter Content */}
+            {/* Teleprompter Content Breakdown */}
             <div className="space-y-4">
               {/* Hook Box */}
-              <div className="bg-pink-50 border border-pink-200 p-4 rounded-xl">
+              <div className="bg-pink-50/70 border border-pink-200 p-4 rounded-2xl space-y-1">
                 <div className="text-[10px] font-black uppercase tracking-wider text-pink-700 flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5 text-pink-600" /> 3-Second Viral Hook (Look directly at camera)
                 </div>
-                <div className="text-base font-bold text-slate-900 mt-1.5 leading-snug">
+                <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
                   "{selectedScript.hook}"
                 </div>
               </div>
 
               {/* Body Points */}
               <div className="space-y-2.5">
-                <div className="text-xs font-bold text-slate-700 uppercase">
-                  Script Breakdown (Deliver with punchy energy)
+                <div className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
+                  <span>Script Breakdown (Deliver with punchy energy)</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Pace: ~130 words/min</span>
                 </div>
                 {selectedScript.body.map((point, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-red-50 text-btred-logo font-black text-xs flex items-center justify-center shrink-0">
+                  <div key={idx} className="flex items-start gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-slate-800">
+                    <span className="w-5 h-5 rounded-full bg-pink-100 text-pink-700 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
                       {idx + 1}
                     </span>
-                    <p className="text-xs text-slate-800 leading-relaxed">
+                    <p className="text-xs sm:text-[13px] text-slate-800 leading-relaxed font-normal">
                       {point}
                     </p>
                   </div>
@@ -376,7 +446,7 @@ export const CaCreatorContentStudio: React.FC = () => {
               </div>
 
               {/* Call to action */}
-              <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-slate-800">
+              <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-slate-800">
                 <div className="text-[10px] font-black uppercase tracking-wider text-amber-800">
                   Call to Action (CTA)
                 </div>
@@ -386,13 +456,13 @@ export const CaCreatorContentStudio: React.FC = () => {
               </div>
 
               {/* Hashtags */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <div className="text-[10px] font-bold text-slate-600 uppercase mb-1.5">
                   Hashtag Pack
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedScript.hashtags.map((h, i) => (
-                    <span key={i} className="text-[11px] font-mono text-pink-700 font-bold bg-pink-50 border border-pink-200 px-2 py-0.5 rounded-md">
+                    <span key={i} className="text-[11px] font-mono text-pink-700 font-bold bg-pink-50 border border-pink-200 px-2.5 py-0.5 rounded-lg">
                       {h}
                     </span>
                   ))}
@@ -402,7 +472,7 @@ export const CaCreatorContentStudio: React.FC = () => {
           </div>
 
           {/* ICAI Code of Ethics Compliance Scanner */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4 text-slate-900">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-700" />
               <h3 className="text-sm font-bold text-slate-900">
@@ -418,7 +488,7 @@ export const CaCreatorContentStudio: React.FC = () => {
               placeholder="Paste draft post caption here (e.g., 'File ITR today and save tax with these 3 tips...')"
               value={customDraft}
               onChange={(e) => setCustomDraft(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl p-3 focus:outline-none focus:border-red-500 focus:bg-white"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl p-3.5 focus:outline-none focus:border-red-500 focus:bg-white"
             />
 
             <div className="flex items-center justify-between">
@@ -431,7 +501,7 @@ export const CaCreatorContentStudio: React.FC = () => {
             </div>
 
             {complianceResult && (
-              <div className={`p-4 rounded-xl text-xs border ${
+              <div className={`p-4 rounded-2xl text-xs border ${
                 complianceResult.compliant
                   ? "bg-emerald-50 border-emerald-300 text-emerald-900 font-bold"
                   : "bg-red-50 border-red-200 text-btred-logo font-bold"
@@ -457,8 +527,30 @@ export const CaCreatorContentStudio: React.FC = () => {
               </div>
             )}
           </div>
+
         </div>
       </div>
+
+      {/* MODAL 1: FULL SCREEN LIVE TELEPROMPTER */}
+      <TeleprompterModal
+        isOpen={isTeleprompterOpen}
+        onClose={() => setIsTeleprompterOpen(false)}
+        script={selectedScript}
+      />
+
+      {/* MODAL 2: MULTI-PLATFORM CONTENT REPURPOSER */}
+      <MultiPlatformRepurposerModal
+        isOpen={isRepurposerOpen}
+        onClose={() => setIsRepurposerOpen(false)}
+        script={selectedScript}
+      />
+
+      {/* MODAL 3: CREATE CUSTOM SCRIPT */}
+      <CreateCustomScriptModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSaveScript={handleSaveNewScript}
+      />
     </div>
   );
 };

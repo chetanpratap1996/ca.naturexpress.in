@@ -46,6 +46,9 @@ import { ClientEntity } from "@/lib/types";
 import { FinancialStatementView } from "./schedule3/FinancialStatementView";
 import { McaRatioDisclosures } from "./schedule3/McaRatioDisclosures";
 import { AuditLeadSchedules } from "./schedule3/AuditLeadSchedules";
+import { TallyXmlUploadModal } from "./schedule3/TallyXmlUploadModal";
+import { TbReconciliationModal } from "./schedule3/TbReconciliationModal";
+import { Sa230AuditDossierModal } from "./schedule3/Sa230AuditDossierModal";
 
 interface Schedule3AuditEngineProps {
   clients?: ClientEntity[];
@@ -74,6 +77,16 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   const [editingLedger, setEditingLedger] = useState<MappedTbLedger | null>(null);
   const [newSelectedHeadId, setNewSelectedHeadId] = useState<string>("");
 
+  // Modal States
+  const [isTallyUploadModalOpen, setIsTallyUploadModalOpen] = useState(false);
+  const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
+  const [isSa230ModalOpen, setIsSa230ModalOpen] = useState(false);
+  const [customClientMeta, setCustomClientMeta] = useState<{ name: string; pan: string; cin: string } | null>({
+    name: "Apex AutoTech Private Limited",
+    pan: "AABCA8891D",
+    cin: "U29100MP2015PTC034120"
+  });
+
   // Paste TB Modal State
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [pastedContent, setPastedContent] = useState("");
@@ -81,15 +94,30 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Active Client Details
-  const activeClient = clients.find((c) => c.id === selectedClientId) || {
-    id: "CL-APEX",
-    name: "Apex Laboratories Private Limited",
-    type: "PVT_LTD",
-    cin: "U24231MP2018PTC045812",
-    pan: "AABCA9182K",
-    partnerInCharge: "CA Gunjan Jain (FCA)",
-    turnoverCr: 73.4
-  };
+  const activeClient = useMemo(() => {
+    if (customClientMeta) {
+      return {
+        id: "CL-ACTIVE",
+        name: customClientMeta.name,
+        type: "PVT_LTD",
+        cin: customClientMeta.cin,
+        pan: customClientMeta.pan,
+        partnerInCharge: "CA Gunjan Jain (FCA)",
+        turnoverCr: 48.5
+      };
+    }
+    const found = clients.find((c) => c.id === selectedClientId);
+    if (found) return found;
+    return {
+      id: "CL-APEX",
+      name: "Apex AutoTech Private Limited",
+      type: "PVT_LTD",
+      cin: "U29100MP2015PTC034120",
+      pan: "AABCA8891D",
+      partnerInCharge: "CA Gunjan Jain (FCA)",
+      turnoverCr: 48.5
+    };
+  }, [clients, selectedClientId, customClientMeta]);
 
   // Recalculate mathematical totals dynamically
   const { totalDebit, totalCredit, netDiff, isBalanced } = useMemo(() => {
@@ -353,7 +381,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
             />
 
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setIsTallyUploadModalOpen(true)}
               className="px-3.5 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm transition flex items-center gap-1.5"
             >
               <UploadCloud className="w-4 h-4" />
@@ -378,15 +406,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
             </button>
 
             <button
-              onClick={() => {
-                if (onExportAuditDossier) {
-                  onExportAuditDossier({ client: activeClient, division, ledgers, isBalanced });
-                }
-                toast.success(
-                  "Audit Dossier Exported",
-                  `Exported complete SA 230 Schedule III Workpaper package for ${activeClient.name}.`
-                );
-              }}
+              onClick={() => setIsSa230ModalOpen(true)}
               className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-sm transition flex items-center gap-1.5"
               title="Export Full SA 230 Audit Lead Schedules and Schedule III Financials"
             >
@@ -453,6 +473,15 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
             <span className="text-[10px] font-bold">
               {isBalanced ? "Math verified to the paisa" : "Out of balance! Rectify required"}
             </span>
+            {!isBalanced && (
+              <button
+                onClick={() => setIsReconcileModalOpen(true)}
+                className="mt-2 w-full py-1 px-2 rounded-lg bg-btred-logo hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition shadow-sm"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Reconcile TB Variance</span>
+              </button>
+            )}
           </div>
 
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-slate-800">
@@ -932,6 +961,52 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
           </div>
         </div>
       )}
+
+      {/* 10. TALLY XML INGESTION MODAL */}
+      <TallyXmlUploadModal
+        isOpen={isTallyUploadModalOpen}
+        onClose={() => setIsTallyUploadModalOpen(false)}
+        onApplyTbData={(res, meta) => {
+          setTbResult(res);
+          setLedgers(res.ledgers);
+          if (meta) {
+            setCustomClientMeta(meta);
+          }
+          toast.success(
+            "Trial Balance Ingested",
+            `Loaded ${res.totalLedgers} ledgers. Status: ${res.isBalanced ? "Balanced (₹0)" : "Unbalanced"}`
+          );
+        }}
+        currentClientName={activeClient.name}
+        currentPan={activeClient.pan}
+      />
+
+      {/* 11. TRIAL BALANCE RECONCILIATION MODAL */}
+      <TbReconciliationModal
+        isOpen={isReconcileModalOpen}
+        onClose={() => setIsReconcileModalOpen(false)}
+        totalDebit={totalDebit}
+        totalCredit={totalCredit}
+        varianceAmount={netDiff}
+        ledgers={ledgers}
+        onApplyAdjustment={(newLedgers, reason) => {
+          setLedgers(newLedgers);
+          toast.success("Adjustment Applied", reason);
+        }}
+        clientName={activeClient.name}
+      />
+
+      {/* 12. SA 230 AUDIT WORKPAPER DOSSIER MODAL */}
+      <Sa230AuditDossierModal
+        isOpen={isSa230ModalOpen}
+        onClose={() => setIsSa230ModalOpen(false)}
+        client={activeClient}
+        division={division}
+        ledgers={ledgers}
+        totalDebit={totalDebit}
+        totalCredit={totalCredit}
+        isBalanced={isBalanced}
+      />
     </div>
   );
 };

@@ -23,7 +23,10 @@ import {
 import { ClientEntity } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
-import { validateIcaUdin } from "@/lib/utils";
+import { validateIcaUdin, formatDate } from "@/lib/utils";
+import { UdinBulkImportModal } from "./udin/UdinBulkImportModal";
+import { UdinVerificationSlipModal } from "./udin/UdinVerificationSlipModal";
+import { UdinPortalPayloadModal } from "./udin/UdinPortalPayloadModal";
 
 export interface UdinEntry {
   id: string;
@@ -119,6 +122,39 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
   const [enteredUdinInput, setEnteredUdinInput] = useState("");
   const [revokingEntry, setRevokingEntry] = useState<UdinEntry | null>(null);
   const [revocationReason, setRevocationReason] = useState("");
+
+  // Regulatory & Assistant Modals
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [slipEntry, setSlipEntry] = useState<UdinEntry | null>(null);
+  const [payloadEntry, setPayloadEntry] = useState<UdinEntry | null>(null);
+
+  // Dynamic 60-Day Countdown Calculator
+  const getEffectiveDaysRemaining = (item: UdinEntry) => {
+    if (item.status === "GENERATED_VALID" || item.status === "REVOKED") return 60;
+    try {
+      const signMs = new Date(item.signingDate).getTime();
+      const nowMs = new Date().getTime();
+      const elapsedDays = Math.floor((nowMs - signMs) / (1000 * 60 * 60 * 24));
+      return Math.max(0, 60 - elapsedDays);
+    } catch {
+      return item.daysRemainingForGeneration || 60;
+    }
+  };
+
+  const handleExportRegister = () => {
+    const headers = "UDIN,Document Title,Document Type,Client Name,Client PAN,Signing Date,Generated Date,Status,Certified Figures\n";
+    const rows = entries.map(e => 
+      `"${e.udin}","${e.documentTitle}","${e.documentType}","${e.clientName}","${e.clientPan}","${e.signingDate}","${e.generatedDate || ''}","${e.status}","${e.financialFigures}"`
+    ).join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ICAI_UDIN_Compliance_Register_${formatDate(new Date().toISOString())}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Register Exported", "Exported official ICAI Peer Review Compliance Register (CSV).");
+  };
 
   // Form State for logging a new signed document
   const [newTitle, setNewTitle] = useState("");
@@ -262,7 +298,25 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => setIsBulkImportOpen(true)}
+              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              title="Bulk Import Signed Documents / ICAI Export CSV"
+            >
+              <FileCheck className="w-4 h-4 text-btred-logo" />
+              <span>Bulk Import</span>
+            </button>
+
+            <button
+              onClick={handleExportRegister}
+              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              title="Export Official ICAI Peer Review Register (CSV)"
+            >
+              <Download className="w-4 h-4 text-emerald-700" />
+              <span>Export Register</span>
+            </button>
+
             <a
               href="https://udin.icai.org/"
               target="_blank"
@@ -272,6 +326,7 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
               <span>ICAI Portal</span>
               <ExternalLink className="w-3.5 h-3.5 text-purple-700" />
             </a>
+
             <button
               onClick={() => setIsAddOpen(true)}
               className="px-4 py-2.5 bg-btred-logo hover:bg-red-700 text-white shadow-sm font-bold text-xs rounded-xl transition flex items-center gap-2"
@@ -367,101 +422,127 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
-                    <td className="py-3 px-4 max-w-xs">
-                      <div className="font-semibold text-slate-900">{item.documentTitle}</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5 flex items-center gap-1">
-                        <Building2 className="w-3 h-3 text-purple-700" /> {item.clientName} ({item.clientPan})
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {item.status === "REVOKED" ? (
-                        <div className="text-[11px] font-mono text-slate-500 line-through bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          {item.udin} (REVOKED)
-                        </div>
-                      ) : item.udin !== "PENDING_GENERATION" ? (
-                        <div className="flex items-center gap-1.5 font-mono text-btred-logo font-bold bg-red-50 px-2 py-1 rounded border border-red-200">
-                          <span>{item.udin}</span>
-                          <button
-                            onClick={() => handleCopyUdin(item.id, item.udin)}
-                            className="text-slate-600 hover:text-slate-900 transition"
-                            title="Copy UDIN"
-                          >
-                            {copiedId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
-                          PENDING GENERATION
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap text-slate-700 font-mono">
-                      {item.signingDate}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {item.status === "GENERATED_VALID" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Validated on Portal
-                        </span>
-                      ) : item.status === "REVOKED" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200" title={item.revocationReason}>
-                          <Ban className="w-3 h-3 text-rose-600" /> Revoked u/s ICAI
-                        </span>
-                      ) : item.status === "EXPIRING_SOON" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-50 text-btred-logo border border-red-200 animate-pulse">
-                          <Clock className="w-3 h-3 text-btred-logo" /> Only {item.daysRemainingForGeneration} Days Left!
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
-                          <Clock className="w-3 h-3 text-amber-800" /> {item.daysRemainingForGeneration} Days Remaining
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-[11px] text-slate-700 max-w-xs truncate">
-                      {item.financialFigures}
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
-                      {(item.status === "PENDING_GENERATION" || item.status === "EXPIRING_SOON") && (
-                        <button
-                          onClick={() => {
-                            setUpdatingEntry(item);
-                            setEnteredUdinInput("");
-                          }}
-                          className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 shadow-sm"
-                          title="Enter 18-digit UDIN from ICAI Portal"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>Enter UDIN</span>
-                        </button>
-                      )}
+                filtered.map((item) => {
+                  const effectiveDays = getEffectiveDaysRemaining(item);
+                  const isUrgent = (item.status === "PENDING_GENERATION" || item.status === "EXPIRING_SOON") && effectiveDays <= 15;
 
-                      {item.status === "GENERATED_VALID" && (
-                        <button
-                          onClick={() => {
-                            setRevokingEntry(item);
-                            setRevocationReason("");
-                          }}
-                          className="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg font-bold text-[10px] transition border border-slate-200"
-                          title="Revoke UDIN on ICAI Portal"
-                        >
-                          Revoke
-                        </button>
-                      )}
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
+                      <td className="py-3 px-4 max-w-xs">
+                        <div className="font-semibold text-slate-900">{item.documentTitle}</div>
+                        <div className="text-[11px] text-slate-600 mt-0.5 flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-purple-700" /> {item.clientName} ({item.clientPan})
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {item.status === "REVOKED" ? (
+                          <div className="text-[11px] font-mono text-slate-500 line-through bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {item.udin} (REVOKED)
+                          </div>
+                        ) : item.udin !== "PENDING_GENERATION" ? (
+                          <div className="flex items-center gap-1.5 font-mono text-btred-logo font-bold bg-red-50 px-2 py-1 rounded border border-red-200">
+                            <span>{item.udin}</span>
+                            <button
+                              onClick={() => handleCopyUdin(item.id, item.udin)}
+                              className="text-slate-600 hover:text-slate-900 transition"
+                              title="Copy UDIN"
+                            >
+                              {copiedId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                            PENDING GENERATION
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap text-slate-700 font-mono">
+                        {item.signingDate}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {item.status === "GENERATED_VALID" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Validated on Portal
+                          </span>
+                        ) : item.status === "REVOKED" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200" title={item.revocationReason}>
+                            <Ban className="w-3 h-3 text-rose-600" /> Revoked u/s ICAI
+                          </span>
+                        ) : isUrgent ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-50 text-btred-logo border border-red-200 animate-pulse">
+                            <Clock className="w-3 h-3 text-btred-logo" /> Only {effectiveDays} Days Left!
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                            <Clock className="w-3 h-3 text-amber-800" /> {effectiveDays} Days Remaining
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-[11px] text-slate-700 max-w-xs truncate">
+                        {item.financialFigures}
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
+                        {(item.status === "PENDING_GENERATION" || item.status === "EXPIRING_SOON") && (
+                          <>
+                            <button
+                              onClick={() => setPayloadEntry(item)}
+                              className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 shadow-sm"
+                              title="Open ICAI Portal Form Pre-Fill Assistant"
+                            >
+                              <ExternalLink className="w-3 h-3 text-purple-600" />
+                              <span>ICAI Assistant</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setUpdatingEntry(item);
+                                setEnteredUdinInput("");
+                              }}
+                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 shadow-sm"
+                              title="Enter 18-digit UDIN from ICAI Portal"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Enter UDIN</span>
+                            </button>
+                          </>
+                        )}
 
-                      <a
-                        href="https://udin.icai.org/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 border border-slate-200"
-                      >
-                        <span>Verify</span>
-                        <ExternalLink className="w-3 h-3 text-purple-700" />
-                      </a>
-                    </td>
-                  </tr>
-                ))
+                        {item.status === "GENERATED_VALID" && (
+                          <>
+                            <button
+                              onClick={() => setSlipEntry(item)}
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 shadow-sm"
+                              title="View & Download Official UDIN Verification Slip & Certificate"
+                            >
+                              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                              <span>Verify Slip</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setRevokingEntry(item);
+                                setRevocationReason("");
+                              }}
+                              className="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg font-bold text-[10px] transition border border-slate-200"
+                              title="Revoke UDIN on ICAI Portal"
+                            >
+                              Revoke
+                            </button>
+                          </>
+                        )}
+
+                        <a
+                          href="https://udin.icai.org/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 border border-slate-200"
+                          title="Open Official ICAI Portal Verification"
+                        >
+                          <span>ICAI Portal</span>
+                          <ExternalLink className="w-3 h-3 text-slate-500" />
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -689,6 +770,35 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
           </div>
         </div>
       )}
+
+      {/* Bulk Import & Reconciliation Modal */}
+      <UdinBulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onApplyImportedEntries={(newEntries) => setEntries(prev => [...newEntries, ...prev])}
+      />
+
+      {/* Official ICAI Verification Slip & Attestation Certificate */}
+      <UdinVerificationSlipModal
+        isOpen={!!slipEntry}
+        onClose={() => setSlipEntry(null)}
+        entry={slipEntry}
+      />
+
+      {/* ICAI Portal Form Auto-Fill Assistant & Direct Generator */}
+      <UdinPortalPayloadModal
+        isOpen={!!payloadEntry}
+        onClose={() => setPayloadEntry(null)}
+        entry={payloadEntry}
+        onUdinGenerated={(id, udinCode) => {
+          setEntries(prev => prev.map(item => item.id === id ? {
+            ...item,
+            udin: udinCode,
+            status: "GENERATED_VALID",
+            generatedDate: new Date().toISOString().split("T")[0]
+          } : item));
+        }}
+      />
     </div>
   );
 };

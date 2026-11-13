@@ -16,12 +16,19 @@ import {
   Send,
   Edit3,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  FileSpreadsheet,
+  Clock,
+  ShieldCheck
 } from "lucide-react";
 import { ClientEntity } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
+import { NoticeUploadModal, ExtractedNoticeData } from "./litigation/NoticeUploadModal";
+import { ReconciliationAnnexureModal } from "./litigation/ReconciliationAnnexureModal";
+import { PrecedentLibraryDrawer } from "./litigation/PrecedentLibraryDrawer";
 
 export type NoticeType = 
   | "GST_ASMT_10_MISMATCH" 
@@ -256,26 +263,42 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
   const [isEditing, setIsEditing] = useState(false);
   const [customDraft, setCustomDraft] = useState("");
 
+  // Statutory Metadata & Modal States
+  const [isNoticeUploadOpen, setIsNoticeUploadOpen] = useState(false);
+  const [isAnnexureOpen, setIsAnnexureOpen] = useState(false);
+  const [isPrecedentDrawerOpen, setIsPrecedentDrawerOpen] = useState(false);
+  const [dinOrRef, setDinOrRef] = useState("CBIC/IND/2026/8891024/ASMT10");
+  const [replyDeadline, setReplyDeadline] = useState("2026-11-14");
+  const [daysRemaining, setDaysRemaining] = useState(21);
+  const [customClientName, setCustomClientName] = useState("Apex AutoTech Private Limited");
+  const [customPan, setCustomPan] = useState("AABCA8891D");
+  const [customGstin, setCustomGstin] = useState("23AABCA8891D1Z4");
+
   const selectedClient = clients.find(c => c.id === selectedClientId) || clients[0] || null;
   const currentTemplate = STATUTORY_NOTICE_TEMPLATES.find(t => t.id === selectedNoticeType) || STATUTORY_NOTICE_TEMPLATES[0];
 
+  // Active Assessee Info
+  const activeClientName = customClientName || selectedClient?.name || "Apex AutoTech Private Limited";
+  const activePan = customPan || selectedClient?.pan || "AABCA8891D";
+  const activeGstin = customGstin || selectedClient?.gstin || "23AABCA8891D1Z4";
+
   // Generate dynamic draft
   const defaultInterpolated = currentTemplate.replyBodyDraft
-    .replace(/\[CLIENT_NAME\]/g, selectedClient?.name || "Apex Laboratories Private Limited")
-    .replace(/\[CLIENT_PAN\]/g, selectedClient?.pan || "AABCA9182K")
-    .replace(/\[CLIENT_GSTIN\]/g, selectedClient?.gstin || "23AABCA9182K1Z5")
+    .replace(/\[CLIENT_NAME\]/g, activeClientName)
+    .replace(/\[CLIENT_PAN\]/g, activePan)
+    .replace(/\[CLIENT_GSTIN\]/g, activeGstin)
     .replace(/\[NOTICE_DATE\]/g, noticeDate)
     .replace(/\[DEMAND_AMOUNT\]/g, demandAmount)
     .replace(/\[PERIOD\]/g, period)
     .replace(/\[AY\]/g, "2025-26")
-    .replace(/\[NOTICE_REF\]/g, "2026/IND/8842")
+    .replace(/\[NOTICE_REF\]/g, dinOrRef)
     .replace(/\[FIRM_NAME\]/g, DEFAULT_FIRM_BRANDING.firmName)
     .replace(/\[FIRM_FRN\]/g, DEFAULT_FIRM_BRANDING.frn);
 
   useEffect(() => {
     setCustomDraft(defaultInterpolated);
     setIsEditing(false);
-  }, [selectedNoticeType, selectedClientId, noticeDate, demandAmount, period]);
+  }, [selectedNoticeType, selectedClientId, noticeDate, demandAmount, period, activeClientName, activePan, activeGstin, dinOrRef]);
 
   const handleCopyDraft = () => {
     navigator.clipboard.writeText(customDraft);
@@ -288,13 +311,69 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
     window.print();
   };
 
+  const handleDownloadHtml = () => {
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Legal Submissions - ${activeClientName}</title>
+  <style>
+    body { font-family: "Times New Roman", Times, serif; color: #0f172a; margin: 40px auto; max-width: 800px; line-height: 1.6; font-size: 13px; }
+    .header { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 24px; text-align: center; }
+    .title { font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase; font-family: sans-serif; }
+    .content { white-space: pre-wrap; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 class="title">${DEFAULT_FIRM_BRANDING.firmName}</h1>
+    <p style="margin:2px 0; font-size:11px; font-family:sans-serif; color:#475569;">Chartered Accountants &bull; FRN: ${DEFAULT_FIRM_BRANDING.frn} &bull; Peer Review: ${DEFAULT_FIRM_BRANDING.peerReviewNo}</p>
+    <p style="margin:2px 0; font-size:11px; font-family:sans-serif; color:#475569;">${DEFAULT_FIRM_BRANDING.headOffice}</p>
+  </div>
+  <div class="content">${customDraft}</div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Legal_Reply_${activePan}_${selectedNoticeType}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded", "Exported legal reply submission document (HTML).");
+  };
+
+  const handleApplyNoticeData = (data: ExtractedNoticeData) => {
+    setSelectedNoticeType(data.noticeType);
+    setNoticeDate(data.noticeDate);
+    setDemandAmount(data.demandAmount);
+    setPeriod(data.period);
+    setDinOrRef(data.dinOrRef);
+    setReplyDeadline(data.replyDeadline);
+    setDaysRemaining(data.daysRemaining);
+    setCustomClientName(data.clientName);
+    setCustomPan(data.pan);
+    if (data.gstin) setCustomGstin(data.gstin);
+  };
+
+  const handleInsertAnnexure = (annexureText: string) => {
+    setCustomDraft(prev => prev + annexureText);
+    toast.success("Annexure Appended", "Annexure A Quantitative table attached to legal reply.");
+  };
+
+  const handleInsertPrecedent = (precedentText: string) => {
+    setCustomDraft(prev => prev + precedentText);
+    toast.success("Precedent Appended", "Judicial precedent injected into written submissions.");
+  };
+
   const handleWhatsAppShare = () => {
     const rawPhone = selectedClient?.primaryContact?.phone || "9820044101";
     const cleanPhone = rawPhone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
 
     const text = encodeURIComponent(
-      `Dear ${selectedClient?.primaryContact?.name || selectedClient?.name || "Client"},\n\n` +
+      `Dear ${selectedClient?.primaryContact?.name || activeClientName || "Client"},\n\n` +
       `We have finalized the legal reply submissions for your ${currentTemplate.title} (Demand: ${demandAmount}).\n\n` +
       `Key Judicial Precedents Cited: ${currentTemplate.statutoryCitations[0]}\n\n` +
       `Please review the draft submissions on your client portal before we file on the government portal.\n\n` +
@@ -325,8 +404,24 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={() => setIsNoticeUploadOpen(true)}
+              className="px-3.5 py-2.5 bg-btred-logo hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload / Scan Notice</span>
+            </button>
+
+            <button
+              onClick={() => setIsAnnexureOpen(true)}
+              className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Build Annexure A</span>
+            </button>
+
+            <button
               onClick={() => setIsEditing(!isEditing)}
-              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
             >
               <Edit3 className="w-3.5 h-3.5 text-slate-600" />
               <span>{isEditing ? "Preview Mode" : "Edit Draft"}</span>
@@ -334,7 +429,7 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
 
             <button
               onClick={handleWhatsAppShare}
-              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
               title="Share draft with client via WhatsApp for approval"
             >
               <Send className="w-3.5 h-3.5" />
@@ -343,7 +438,7 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
 
             <button
               onClick={handleCopyDraft}
-              className="px-4 py-2.5 bg-btred-logo hover:bg-red-700 text-white shadow-sm font-bold text-xs rounded-xl transition flex items-center gap-2"
+              className="px-3.5 py-2 bg-btred-logo hover:bg-red-700 text-white shadow-xs font-bold text-xs rounded-xl transition flex items-center gap-1.5"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? "Copied!" : "Copy Legal Submissions"}</span>
@@ -351,10 +446,18 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
 
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Letter</span>
+            </button>
+
+            <button
+              onClick={handleDownloadHtml}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>HTML</span>
             </button>
           </div>
         </div>
@@ -380,11 +483,19 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
             <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Client Entity</label>
             <select
               value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
+              onChange={(e) => {
+                setSelectedClientId(e.target.value);
+                const found = clients.find(c => c.id === e.target.value);
+                if (found) {
+                  setCustomClientName(found.name);
+                  setCustomPan(found.pan);
+                  if (found.gstin) setCustomGstin(found.gstin);
+                }
+              }}
               className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500"
             >
               {clients.length === 0 ? (
-                <option value="">No clients</option>
+                <option value="">{activeClientName} ({activePan})</option>
               ) : (
                 clients.map(c => (
                   <option key={c.id} value={c.id}>{c.name} ({c.pan})</option>
@@ -413,13 +524,46 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
             />
           </div>
         </div>
+
+        {/* DIN & Statutory Limitation Watchdog Strip */}
+        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+              DIN: {dinOrRef}
+            </span>
+            <span className="text-slate-600">
+              Statutory Deadline: <strong className="text-slate-900">{replyDeadline}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase flex items-center gap-1 ${
+              daysRemaining <= 7 ? "bg-rose-100 text-rose-800 animate-pulse border border-rose-200" : "bg-amber-100 text-amber-900 border border-amber-200"
+            }`}>
+              <Clock className="w-3 h-3" />
+              {daysRemaining} Days Left to Reply
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold">
+              Limitation Period Monitored
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Case Laws & Citations Ribbon */}
       <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-2 text-slate-900">
-        <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5" /> Built-in Judicial Precedents &amp; Statutory Defenses
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5" /> Built-in Judicial Precedents &amp; Statutory Defenses
+          </span>
+          <button
+            onClick={() => setIsPrecedentDrawerOpen(true)}
+            className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 transition"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Explore Precedent Library (5)</span>
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2 pt-1">
           {currentTemplate.statutoryCitations.map((cite, i) => (
             <span key={i} className="text-xs font-serif bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-xl">
@@ -460,6 +604,31 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
           <div className="whitespace-pre-wrap">{customDraft}</div>
         )}
       </div>
+
+      {/* MODAL 1: NOTICE UPLOAD & OCR EXTRACTION */}
+      <NoticeUploadModal
+        isOpen={isNoticeUploadOpen}
+        onClose={() => setIsNoticeUploadOpen(false)}
+        onApplyNoticeData={handleApplyNoticeData}
+      />
+
+      {/* MODAL 2: QUANTITATIVE RECONCILIATION ANNEXURE */}
+      <ReconciliationAnnexureModal
+        isOpen={isAnnexureOpen}
+        onClose={() => setIsAnnexureOpen(false)}
+        clientName={activeClientName}
+        pan={activePan}
+        gstin={activeGstin}
+        demandAmount={demandAmount}
+        onInsertAnnexureIntoDraft={handleInsertAnnexure}
+      />
+
+      {/* DRAWER 3: JUDICIAL PRECEDENT & CITATION LIBRARY */}
+      <PrecedentLibraryDrawer
+        isOpen={isPrecedentDrawerOpen}
+        onClose={() => setIsPrecedentDrawerOpen(false)}
+        onInsertPrecedent={handleInsertPrecedent}
+      />
     </div>
   );
 };

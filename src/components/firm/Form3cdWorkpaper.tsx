@@ -5,6 +5,8 @@ import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
+import { Form3cdUploadModal, ExtractedTaxAuditData } from "./Form3cdUploadModal";
+import { Form3caReportModal } from "./Form3caReportModal";
 import { 
   ClipboardCheck, 
   CheckCircle2, 
@@ -37,7 +39,8 @@ import {
   Calculator, 
   Percent,
   SlidersHorizontal,
-  Table
+  Table,
+  Upload
 } from "lucide-react";
 
 export interface Form3cdClause {
@@ -383,6 +386,7 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isClause44ModalOpen, setIsClause44ModalOpen] = useState(false);
   const [isForm3caModalOpen, setIsForm3caModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [selectedClauseForWhatsApp, setSelectedClauseForWhatsApp] = useState<Form3cdClause | null>(null);
   const [customWhatsAppMsg, setCustomWhatsAppMsg] = useState("");
@@ -396,11 +400,31 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
     return clients.find(c => c.id === selectedEntityId) || clients[0];
   }, [clients, selectedEntityId]);
 
-  // Client Audit Profile
+  // Client Audit Profile (Supports all firm clients dynamically)
   const activeProfile = useMemo<ClientAuditProfile>(() => {
     const entityId = currentEntity?.id || "CLI-APEX-01";
     if (CLIENT_AUDIT_PROFILES[entityId]) {
       return CLIENT_AUDIT_PROFILES[entityId];
+    }
+    // Dynamic profile for any newly selected firm client
+    if (currentEntity) {
+      const isCorp = currentEntity.type === "PVT_LTD" || currentEntity.type === "PUBLIC_LTD";
+      return {
+        entityId: currentEntity.id,
+        clientName: currentEntity.name,
+        pan: currentEntity.pan,
+        cinOrLlp: currentEntity.cin || currentEntity.gstin || "U29100MP2015PTC034120",
+        auditType: isCorp ? "FORM_3CA_3CD" : "FORM_3CB_3CD",
+        turnoverCr: currentEntity.turnoverCr || 15.0,
+        assessmentYear: "AY 2026-27",
+        financialYear: "FY 2025-26",
+        primaryContact: {
+          name: currentEntity.primaryContact?.name || "Authorized Signatory",
+          phone: currentEntity.primaryContact?.phone || "+91 98200 11223",
+          designation: currentEntity.primaryContact?.designation || "Director / Managing Partner"
+        },
+        clauses: CLIENT_AUDIT_PROFILES["CLI-APEX-01"].clauses
+      };
     }
     return CLIENT_AUDIT_PROFILES["CLI-APEX-01"];
   }, [currentEntity]);
@@ -412,6 +436,31 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
   React.useEffect(() => {
     setClauses(activeProfile.clauses);
   }, [activeProfile]);
+
+  // Batch Sign-off: One-click partner approval for compliant clauses
+  const handleBatchSignOff = () => {
+    setClauses(prev => prev.map(c => {
+      if (c.status === "COMPLIANT") {
+        return { ...c, partnerSignedOff: true };
+      }
+      return c;
+    }));
+    toast.success("Batch Sign-off Complete", "All compliant audit clauses approved by Engagement Partner.");
+  };
+
+  // Push disallowances to ITR Computation Engine
+  const handlePushToItr = (disallowanceAmt: number) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("taxo_pushed_3cd_disallowance", String(disallowanceAmt));
+        localStorage.setItem("taxo_pushed_3cd_client_pan", activeProfile.pan);
+      } catch (e) {}
+    }
+    toast.success(
+      "Bridged to ITR Computation",
+      `Transferred ${formatCurrencyINR(disallowanceAmt)} disallowance into PGBP income for ${activeProfile.clientName}. Ready in ITR Dual-Regime Workspace!`
+    );
+  };
 
   // Calculations
   const totalDisallowances = useMemo(() => clauses.reduce((sum, c) => sum + c.disallowanceAmount, 0), [clauses]);
@@ -559,7 +608,25 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition shadow-sm"
+              title="Upload Trial Balance, Tally XML or Form 3CD JSON"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Workpapers</span>
+            </button>
+
+            <button
+              onClick={handleBatchSignOff}
+              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition"
+              title="Approve all compliant clauses in one click"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Batch Sign-off</span>
+            </button>
+
             <button
               onClick={() => setIsClause44ModalOpen(true)}
               className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition"
@@ -572,7 +639,7 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
             <button
               onClick={() => setIsForm3caModalOpen(true)}
               className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition shadow-sm"
-              title="Generate formal Form 3CA Audit Report with Paragraph 3 Qualifications"
+              title="Generate formal Form 3CA/3CB Audit Report with Paragraph 3 Qualifications"
             >
               <Award className="w-3.5 h-3.5 text-amber-400" />
               <span>Form 3CA/3CB Report</span>
@@ -666,6 +733,14 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
           <div className="text-[11px] font-medium text-slate-500">
             Effective corporate tax outflow (31.2%)
           </div>
+          <button
+            onClick={() => handlePushToItr(totalDisallowances)}
+            className="mt-2 w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] rounded-lg transition flex items-center justify-center gap-1 border border-indigo-200"
+            title="Bridge ₹4,43,000 disallowance into PGBP schedule in ITR Computation"
+          >
+            <ArrowRight className="w-3 h-3" />
+            <span>Push to ITR Computation</span>
+          </button>
         </div>
 
         {/* Peer Review Readiness */}
@@ -941,88 +1016,34 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
       {/* ========================================================================= */}
       {/* MODAL 2: Form 3CA / 3CB Statutory Audit Report Generator                   */}
       {/* ========================================================================= */}
-      {isForm3caModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[90vh] flex flex-col font-sans">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
-                  <Award className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Form 3CA / Form 3CD Statutory Audit Report</h3>
-                  <p className="text-[11px] text-slate-500">Report of audit under section 44AB of the Income-tax Act, 1961</p>
-                </div>
-              </div>
-              <button onClick={() => setIsForm3caModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <Form3caReportModal
+        isOpen={isForm3caModalOpen}
+        onClose={() => setIsForm3caModalOpen(false)}
+        clientName={activeProfile.clientName}
+        pan={activeProfile.pan}
+        cinOrLlp={activeProfile.cinOrLlp}
+        turnoverCr={activeProfile.turnoverCr}
+        auditType={activeProfile.auditType}
+        assessmentYear={activeProfile.assessmentYear}
+        financialYear={activeProfile.financialYear}
+        clauses={clauses}
+        udinNumber={udinNumber}
+        onPushToItr={handlePushToItr}
+      />
 
-            <div className="flex-1 overflow-auto space-y-4 p-2 text-xs text-slate-700 leading-relaxed font-serif">
-              <div className="text-center border-b pb-3 font-sans">
-                <h4 className="text-base font-black uppercase text-slate-900">FORM NO. 3CA</h4>
-                <p className="text-[11px] text-slate-500">[See rule 6G(1)(a)]</p>
-                <p className="text-xs font-semibold text-slate-800 mt-1">Audit report under section 44AB of the Income-tax Act, 1961 in a case where the accounts of the business have been audited under any other law</p>
-              </div>
-
-              <p>
-                1. We report that the statutory audit of <strong>{activeProfile.clientName}</strong> (PAN: <strong>{activeProfile.pan}</strong>, CIN: {activeProfile.cinOrLlp}) was conducted by us in accordance with the provisions of the Companies Act, 2013 for the year ended on 31st March 2026.
-              </p>
-
-              <p>
-                2. The statement of particulars required to be furnished under section 44AB is given in <strong>Form No. 3CD</strong> annexed herewith.
-              </p>
-
-              <div className="bg-amber-50/80 p-4 rounded-2xl border border-amber-300 text-slate-900 font-sans space-y-2">
-                <strong className="block text-xs uppercase font-black text-amber-900">
-                  3. In our opinion and to the best of our information and according to explanations given to us, the particulars given in Form 3CD are true and correct subject to the following observations / qualifications:
-                </strong>
-                <ol className="list-decimal pl-4 space-y-1 text-xs">
-                  <li><strong>Clause 21(a):</strong> Fines and penalties aggregating to ₹45,000 paid for late filings under Section 234E &amp; GST have been disallowed under Section 37(1).</li>
-                  <li><strong>Clause 21(d):</strong> Bearer cheque payments for freight aggregating to ₹78,000 have been reported for disallowance under Section 40A(3).</li>
-                  <li><strong>Clause 26:</strong> Sum of ₹2,30,000 payable to micro-supplier ABC Packaging remaining unpaid beyond 45 days has been added back to income under Section 43B(h).</li>
-                  <li><strong>Clause 34(a):</strong> Contractual tooling payment of ₹3,00,000 made without TDS u/s 194C attracts 30% statutory disallowance of ₹90,000 under Section 40(a)(ia).</li>
-                </ol>
-              </div>
-
-              <div className="pt-3 border-t flex justify-between items-center font-sans">
-                <div>
-                  <p><strong>For GPA &amp; Co.</strong></p>
-                  <p className="text-slate-500">Chartered Accountants (FRN: 022998C)</p>
-                  <p className="mt-4 font-bold text-slate-900">CA Gunjan Jain (FCA, Partner)</p>
-                  <p className="text-slate-500">Membership No: 098221</p>
-                </div>
-                <div className="text-right">
-                  <p><strong>Place:</strong> Mumbai</p>
-                  <p><strong>Date:</strong> 30th September 2026</p>
-                  <p className="mt-4 font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200 inline-block">
-                    UDIN: {udinNumber}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200 shrink-0">
-              <span className="text-xs text-slate-400">Total Statutory Disallowances Certified: <strong>{formatCurrencyINR(totalDisallowances)}</strong></span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-                >
-                  <Printer className="w-3.5 h-3.5" /> Print Audit Report
-                </button>
-                <button
-                  onClick={() => setIsForm3caModalOpen(false)}
-                  className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ========================================================================= */}
+      {/* MODAL 2B: Section 44AB Workpapers & Trial Balance Upload Modal             */}
+      {/* ========================================================================= */}
+      <Form3cdUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onApplyData={(data) => {
+          setClauses(data.clauses);
+          toast.success("Workpapers Loaded", `Applied ${data.clauses.length} audit clauses from ${data.sourceDocument}.`);
+        }}
+        activeClientName={activeProfile.clientName}
+        activePan={activeProfile.pan}
+      />
 
       {/* ========================================================================= */}
       {/* MODAL 3: Clause Detail & Workpaper Editing Drawer                         */}

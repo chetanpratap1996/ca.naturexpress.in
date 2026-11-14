@@ -91,6 +91,36 @@ export interface VerificationProof {
   evidenceSummary: string;
 }
 
+export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'IN_PERSON_MEETING';
+
+export type ContactOutcome = 
+  | 'INTERESTED_AUDIT_REQUESTED'
+  | 'WHATSAPP_DOCKET_SENT'
+  | 'FOLLOW_UP_SCHEDULED'
+  | 'PROPOSAL_SHARED'
+  | 'NOT_REACHABLE_BUSY'
+  | 'WRONG_NUMBER'
+  | 'NOT_INTERESTED'
+  | 'RETAINER_SIGNED';
+
+export type ContactStatus = 
+  | 'UNCONTACTED'         // Fresh, never called
+  | 'CONTACTED'           // Outreach conducted
+  | 'FOLLOW_UP_DUE'       // Follow-up scheduled for today or past
+  | 'PROPOSAL_SENT'       // Fee quote shared
+  | 'CONVERTED'           // Retainer signed
+  | 'DORMANT';            // Not interested / non-responsive
+
+export interface ContactActivityLog {
+  id: string;
+  timestamp: string;
+  performedBy: string;
+  channel: ContactChannel;
+  outcome: ContactOutcome;
+  notes?: string;
+  nextFollowUpDate?: string;
+}
+
 export interface TargetEntityLead {
   id: string;
   firmId: string; // Multi-tenant white-label isolation
@@ -136,6 +166,9 @@ export interface TargetEntityLead {
   followUpDate?: string;
   dealValueEstimatedInr?: number;
   hotLead?: boolean;
+  contactStatus?: ContactStatus;
+  contactHistory?: ContactActivityLog[];
+  lastOutcome?: ContactOutcome;
   outreachNotes?: string;
   assignedStaffId?: string;
   lastContactedAt?: string;
@@ -146,6 +179,9 @@ export interface TargetEntityLead {
 
 export interface LeadFilterCriteria {
   state?: string;
+  city?: string;
+  contactStatus?: ContactStatus;
+  salesQueue?: 'ALL' | 'UNCONTACTED_TODAY' | 'FOLLOW_UP_DUE' | 'IN_NEGOTIATION' | 'CONVERTED';
   rocJurisdiction?: string;
   serviceTrack?: ServiceTrack;
   highestSeverity?: StatutorySeverity;

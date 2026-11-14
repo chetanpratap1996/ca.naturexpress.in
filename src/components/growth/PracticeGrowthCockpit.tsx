@@ -446,142 +446,135 @@ export function PracticeGrowthCockpit() {
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          1. HIGH-AUTHORITY DARK COCKPIT BANNER & REGULATORY TELEMETRY
+          1. CLEAN WHITE PRACTICE ACQUISITION HEADER & SURVEILLANCE METRICS
           ========================================================================= */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 relative overflow-hidden">
-        {/* Glow Effects */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-6">
-          {/* Top Line: Telemetry Pill & Quick Actions */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-slate-800/80 pb-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-black uppercase tracking-wider">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>1000% Accuracy Master Statutory Surveillance</span>
-                </div>
-
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] font-mono">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block mr-1" />
-                  <span>MCA21 V3 &bull; CBIC GSTN &bull; SEC 43B(h)</span>
-                </div>
+      <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200 space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-slate-100 pb-5">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-black uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>1000% Statutory Surveillance Active</span>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-3">
-                <span>Practice Growth &amp; High-Authority Acquisition Engine</span>
-              </h1>
-              <p className="text-sm text-slate-300 max-w-3xl leading-relaxed">
-                Continuous surveillance across Pan-India ROC gazettes, GST default registers, and Section 43B(h) MSME compliance triggers. Convert high-value corporate mandates with institutional-grade statutory dockets.
-              </p>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-mono">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1" />
+                <span>MCA21 V3 &bull; CBIC GSTN &bull; Sec 43B(h)</span>
+              </div>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <button
-                onClick={() => setIsScannerOpen(true)}
-                className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition hover:scale-[1.02]"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Live Scrape &amp; Ingest</span>
-              </button>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              Client Acquisition &amp; Statutory Growth Engine
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
+              Real-time surveillance across Pan-India ROC gazettes, GST default registers, and Section 43B(h) MSME triggers.
+            </p>
+          </div>
 
-              <button
-                onClick={() => setIsBulkOpen(true)}
-                className="px-3.5 py-2.5 rounded-2xl bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-indigo-400/30 hover:scale-[1.02]"
-                title="Paste multiple CINs or GSTINs to scrape concurrently"
-              >
-                <Layers className="w-4 h-4" />
-                <span>Bulk Prospector</span>
-              </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Live Scrape &amp; Ingest</span>
+            </button>
 
-              <button
-                onClick={handleExportCsv}
-                disabled={isExporting}
-                className="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-white/10"
-                title="Export filtered verified leads to CSV for CRM sync"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">Export CRM</span>
-              </button>
+            <button
+              onClick={() => setIsBulkOpen(true)}
+              className="px-3.5 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-indigo-200"
+              title="Paste multiple CINs or GSTINs to scrape concurrently"
+            >
+              <Layers className="w-4 h-4 text-indigo-600" />
+              <span>Bulk Prospector</span>
+            </button>
 
-              <button
-                onClick={handleTriggerCadence}
-                disabled={isCadenceRunning}
-                className="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-white/10"
-                title="Trigger automated multi-state rotation and statutory clock recalculation"
-              >
-                <Sparkles className={`w-4 h-4 text-amber-400 ${isCadenceRunning ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">{isCadenceRunning ? "Rotating..." : "Cadence"}</span>
-              </button>
+            <button
+              onClick={handleExportCsv}
+              disabled={isExporting}
+              className="px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-slate-200"
+              title="Export filtered verified leads to CSV for CRM sync"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span className="hidden sm:inline">Export CRM</span>
+            </button>
 
-              <button
-                onClick={() => setIsConfigOpen(true)}
-                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition border border-white/10"
-                title="API & Scraper Sources Configuration"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
+            <button
+              onClick={handleTriggerCadence}
+              disabled={isCadenceRunning}
+              className="px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-slate-200"
+              title="Trigger automated multi-state rotation and statutory clock recalculation"
+            >
+              <Sparkles className={`w-4 h-4 text-amber-500 ${isCadenceRunning ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{isCadenceRunning ? "Rotating..." : "Cadence"}</span>
+            </button>
 
-              <button
-                onClick={fetchLeads}
-                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition border border-white/10"
-                title="Refresh leads and recalculate clocks"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-              </button>
+            <button
+              onClick={() => setIsConfigOpen(true)}
+              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition border border-slate-200"
+              title="API & Scraper Sources Configuration"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={fetchLeads}
+              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition border border-slate-200"
+              title="Refresh leads and recalculate clocks"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Key Metrics Strip */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Monitored Entities</span>
+              <Building2 className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900">{metrics.total}</span>
+              <span className="text-xs text-emerald-600 font-bold">100% Real</span>
             </div>
           </div>
 
-          {/* Key Practice Revenue & Exposure Metrics Strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-inner">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Monitored Entities</span>
-                <Building2 className="w-4 h-4 text-indigo-400" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-white">{metrics.total}</span>
-                <span className="text-xs text-emerald-400 font-bold">100% Real Records</span>
-              </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Statutory Penalty Exposure</span>
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
             </div>
-
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-inner">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Identified Statutory Penalty</span>
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-amber-400">
-                  ₹{(metrics.totalExposure / 100000).toFixed(2)} L
-                </span>
-                <span className="text-xs text-amber-300/80 font-bold">Compounding Daily</span>
-              </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-amber-600">
+                ₹{(metrics.totalExposure / 100000).toFixed(2)} L
+              </span>
+              <span className="text-xs text-slate-500 font-medium">Daily Compounding</span>
             </div>
+          </div>
 
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-inner">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Critical High-Urgency</span>
-                <Flame className="w-4 h-4 text-rose-500 animate-pulse" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-rose-400">{metrics.criticalCount}</span>
-                <span className="text-xs text-rose-300/80 font-bold">&lt; 7 Days Remaining</span>
-              </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Critical Urgency</span>
+              <Flame className="w-4 h-4 text-rose-500" />
             </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-rose-600">{metrics.criticalCount}</span>
+              <span className="text-xs text-rose-600 font-bold">&lt; 7 Days Remaining</span>
+            </div>
+          </div>
 
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-inner">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Est. Practice Fee Pipeline</span>
-                <DollarSign className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-400">
-                  ₹{metrics.totalPipelineValueLakhs} L
-                </span>
-                <span className="text-xs text-emerald-300/80 font-bold">Retainer Potential</span>
-              </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Retainer Fee Pipeline</span>
+              <DollarSign className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-600">
+                ₹{metrics.totalPipelineValueLakhs} L
+              </span>
+              <span className="text-xs text-emerald-700 font-bold">Practice Potential</span>
             </div>
           </div>
         </div>

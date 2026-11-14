@@ -189,7 +189,7 @@ export class LeadStore {
           return true;
         }
 
-        // Basic entity identifiers
+        // Basic entity identifiers & addresses
         if (
           l.legalName.toLowerCase().includes(q) ||
           (l.tradeName && l.tradeName.toLowerCase().includes(q)) ||
@@ -197,8 +197,11 @@ export class LeadStore {
           (l.gstin && l.gstin.toLowerCase().includes(q)) ||
           l.city.toLowerCase().includes(q) ||
           l.state.toLowerCase().includes(q) ||
+          (l.registeredAddress && l.registeredAddress.toLowerCase().includes(q)) ||
+          (l.pincode && l.pincode.includes(q)) ||
           (l.industrialCluster && l.industrialCluster.toLowerCase().includes(q)) ||
-          (l.industrySector && l.industrySector.toLowerCase().includes(q))
+          (l.industrySector && l.industrySector.toLowerCase().includes(q)) ||
+          (l.primaryTrack && l.primaryTrack.toLowerCase().includes(q))
         ) {
           return true;
         }
@@ -215,9 +218,18 @@ export class LeadStore {
             (p) =>
               p.title.toLowerCase().includes(q) ||
               p.legalBasis.toLowerCase().includes(q) ||
+              (p.ruleCode && p.ruleCode.toLowerCase().includes(q)) ||
               p.commercialImpact.toLowerCase().includes(q) ||
               p.actionPlan.toLowerCase().includes(q)
           )
+        ) {
+          return true;
+        }
+
+        // Outreach notes & registry proof
+        if (
+          (l.outreachNotes && l.outreachNotes.toLowerCase().includes(q)) ||
+          (l.proof && l.proof.evidenceSummary && l.proof.evidenceSummary.toLowerCase().includes(q))
         ) {
           return true;
         }

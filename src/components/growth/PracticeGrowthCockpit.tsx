@@ -410,34 +410,30 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          1. HIGH-AUTHORITY DARK COCKPIT BANNER & TELEMETRY
+          1. CLEAN INSTITUTIONAL WHITE BANNER & TELEMETRY
           ========================================================================= */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 relative overflow-hidden">
-        {/* Glow Effects */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 relative overflow-hidden">
         <div className="relative z-10 space-y-6">
           {/* Top Line: Telemetry & Actions */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-slate-800/80 pb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-slate-100 pb-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-black uppercase tracking-wider">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>1000% Accuracy Master Statutory Surveillance</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Statutory Intelligence &amp; Practice Growth</span>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] font-mono">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block mr-1" />
-                  <span>MCA21 V3 &bull; CBIC GSTN &bull; SEC 43B(h)</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-mono font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1" />
+                  <span>MCA21 V3 &bull; CBIC GSTN &bull; Sec 43B(h)</span>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
                 <span>Practice Client Acquisition &amp; Statutory Growth Engine</span>
               </h1>
-              <p className="text-sm text-slate-300 max-w-3xl leading-relaxed">
-                Direct statutory pipeline for CA Partners and Business Development. Surveillance across MCA21 new incorporations, GST defaults, and Section 43B(h) triggers. Convert leads with authoritative compliance diagnostics.
+              <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
+                Direct statutory pipeline for CA Partners and Business Development. Real-time surveillance of MCA filings, GST defaults, and Section 43B(h) compliance exposure. Convert prospects with authoritative statutory diagnostics.
               </p>
             </div>
 
@@ -445,7 +441,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
             <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
               <button
                 onClick={() => setIsScannerOpen(true)}
-                className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition hover:scale-[1.02]"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Live Scrape Any Company</span>
@@ -453,7 +449,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
 
               <button
                 onClick={() => setIsBulkOpen(true)}
-                className="px-3.5 py-2.5 rounded-2xl bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-indigo-400/30"
+                className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 transition shadow-sm"
               >
                 <Layers className="w-4 h-4" />
                 <span>Bulk Import</span>
@@ -462,27 +458,27 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               <button
                 onClick={handleExportCsv}
                 disabled={isExporting}
-                className="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-white/10"
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs sm:text-sm flex items-center gap-2 transition shadow-sm"
                 title="Export filtered verified leads to CSV for CRM sync"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 <span className="hidden sm:inline">Export CSV</span>
               </button>
 
               <button
                 onClick={handleTriggerCadence}
                 disabled={isCadenceRunning}
-                className="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition border border-white/10"
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs sm:text-sm flex items-center gap-2 transition shadow-sm"
                 title="Recalculate statutory clocks across all entities"
               >
-                <Sparkles className={`w-4 h-4 text-amber-400 ${isCadenceRunning ? "animate-spin" : ""}`} />
+                <Sparkles className={`w-4 h-4 text-amber-500 ${isCadenceRunning ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">{isCadenceRunning ? "Syncing..." : "Sync Clocks"}</span>
               </button>
 
               <button
                 onClick={() => setIsConfigOpen(true)}
-                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition border border-white/10"
-                title="API & Scraper Sources Configuration"
+                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition border border-slate-300 shadow-sm"
+                title="API &amp; Scraper Sources Configuration"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -493,56 +489,56 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             <div 
               onClick={() => { setSalesQueue("UNCONTACTED_TODAY"); }}
-              className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/60"
+              className="bg-emerald-50/70 border border-emerald-200 hover:border-emerald-400 rounded-2xl p-4 shadow-sm cursor-pointer transition hover:bg-emerald-50"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Fresh Uncontacted</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Fresh Uncontacted</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               </div>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-400">{metrics.uncontacted}</span>
-                <span className="text-xs text-slate-400 font-bold">Ready to Call Today</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-950">{metrics.uncontacted}</span>
+                <span className="text-xs text-emerald-700 font-medium">Ready to Call Today</span>
               </div>
             </div>
 
             <div 
               onClick={() => { setSalesQueue("FOLLOW_UP_DUE"); }}
-              className="bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/60"
+              className="bg-amber-50/70 border border-amber-200 hover:border-amber-400 rounded-2xl p-4 shadow-sm cursor-pointer transition hover:bg-amber-50"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Follow-ups Due Today</span>
-                <Calendar className="w-4 h-4 text-amber-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Follow-ups Due Today</span>
+                <Calendar className="w-4 h-4 text-amber-600" />
               </div>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-amber-400">{metrics.followUps}</span>
-                <span className="text-xs text-amber-300/80 font-bold">Scheduled Callbacks</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-amber-950">{metrics.followUps}</span>
+                <span className="text-xs text-amber-700 font-medium">Scheduled Callbacks</span>
               </div>
             </div>
 
             <div 
               onClick={() => { setSelectedCity("Indore"); }}
-              className="bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/60"
+              className="bg-indigo-50/70 border border-indigo-200 hover:border-indigo-400 rounded-2xl p-4 shadow-sm cursor-pointer transition hover:bg-indigo-50"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Indore &amp; MP Hub</span>
-                <MapPin className="w-4 h-4 text-rose-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">Indore &amp; MP Hub</span>
+                <MapPin className="w-4 h-4 text-indigo-600" />
               </div>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-white">{metrics.indoreTotal}</span>
-                <span className="text-xs text-indigo-300/80 font-bold">Local Verified Prospects</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-indigo-950">{metrics.indoreTotal}</span>
+                <span className="text-xs text-indigo-700 font-medium">Local Verified Prospects</span>
               </div>
             </div>
 
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-inner">
+            <div className="bg-slate-50/90 border border-slate-200 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Est. Retainer Pipeline</span>
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Est. Retainer Pipeline</span>
+                <DollarSign className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-400">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">
                   ₹{metrics.totalPipelineValueLakhs} L
                 </span>
-                <span className="text-xs text-emerald-300/80 font-bold">Annual Fee Potential</span>
+                <span className="text-xs text-slate-600 font-medium">Annual Fee Potential</span>
               </div>
             </div>
           </div>

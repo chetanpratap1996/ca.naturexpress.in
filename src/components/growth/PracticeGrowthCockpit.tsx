@@ -81,6 +81,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   const [selectedLeadForAudit, setSelectedLeadForAudit] = useState<TargetEntityLead | null>(null);
   const [selectedLeadForPrint, setSelectedLeadForPrint] = useState<TargetEntityLead | null>(null);
   const [selectedLeadForHistory, setSelectedLeadForHistory] = useState<TargetEntityLead | null>(null);
+  const [selectedLeadForScript, setSelectedLeadForScript] = useState<TargetEntityLead | null>(null);
 
   // Fast Call & WhatsApp Logging Modal
   const [selectedLeadForLog, setSelectedLeadForLog] = useState<TargetEntityLead | null>(null);
@@ -410,75 +411,75 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          1. CLEAN INSTITUTIONAL WHITE BANNER & TELEMETRY
+          1. SLEEK EXECUTIVE DARK BANNER & TELEMETRY (Mobile & Tablet Responsive)
           ========================================================================= */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 relative overflow-hidden">
-        <div className="relative z-10 space-y-6">
+      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 lg:p-8 shadow-xl border border-slate-800/80 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/70">
+        <div className="relative z-10 space-y-5 sm:space-y-6">
           {/* Top Line: Telemetry & Actions */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-slate-100 pb-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Statutory Intelligence &amp; Practice Growth</span>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>MCA21 V3 Surveillance Active</span>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-mono font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1" />
-                  <span>MCA21 V3 &bull; CBIC GSTN &bull; Sec 43B(h)</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-[11px] font-mono">
+                  <span>CBIC GSTN &bull; Sec 43B(h) Radar</span>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-                <span>Practice Client Acquisition &amp; Statutory Growth Engine</span>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+                <span>Practice Client Acquisition &amp; Growth Cockpit</span>
               </h1>
-              <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
-                Direct statutory pipeline for CA Partners and Business Development. Real-time surveillance of MCA filings, GST defaults, and Section 43B(h) compliance exposure. Convert prospects with authoritative statutory diagnostics.
+              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+                Autonomous regulatory intelligence for Chartered Accountants. Converts MCA filing gaps, GST defaults, and statutory penalties into high-value retainer clients.
               </p>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            {/* Quick Action Buttons - Fully Responsive */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <button
                 onClick={() => setIsScannerOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition hover:scale-[1.01]"
+                className="px-3.5 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4" />
-                <span>Live Scrape Any Company</span>
+                <span>Live Scrape Company</span>
               </button>
 
               <button
                 onClick={() => setIsBulkOpen(true)}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 transition shadow-sm"
+                className="px-3 py-2 sm:py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
               >
                 <Layers className="w-4 h-4" />
-                <span>Bulk Import</span>
+                <span className="hidden sm:inline">Bulk Import</span>
+                <span className="sm:hidden">Import</span>
               </button>
 
               <button
                 onClick={handleExportCsv}
                 disabled={isExporting}
-                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs sm:text-sm flex items-center gap-2 transition shadow-sm"
-                title="Export filtered verified leads to CSV for CRM sync"
+                className="px-3 py-2 sm:py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
+                title="Export filtered leads to CSV"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                <span className="hidden sm:inline">Export CSV</span>
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Export</span>
               </button>
 
               <button
                 onClick={handleTriggerCadence}
                 disabled={isCadenceRunning}
-                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs sm:text-sm flex items-center gap-2 transition shadow-sm"
-                title="Recalculate statutory clocks across all entities"
+                className="px-3 py-2 sm:py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
+                title="Sync statutory clocks"
               >
-                <Sparkles className={`w-4 h-4 text-amber-500 ${isCadenceRunning ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">{isCadenceRunning ? "Syncing..." : "Sync Clocks"}</span>
+                <Sparkles className={`w-4 h-4 text-amber-400 ${isCadenceRunning ? "animate-spin" : ""}`} />
+                <span className="hidden md:inline">{isCadenceRunning ? "Syncing..." : "Sync"}</span>
               </button>
 
               <button
                 onClick={() => setIsConfigOpen(true)}
-                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition border border-slate-300 shadow-sm"
-                title="API &amp; Scraper Sources Configuration"
+                className="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700"
+                title="API Configuration"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -486,59 +487,59 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           </div>
 
           {/* Key Sales Metrics Strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div 
               onClick={() => { setSalesQueue("UNCONTACTED_TODAY"); }}
-              className="bg-emerald-50/70 border border-emerald-200 hover:border-emerald-400 rounded-2xl p-4 shadow-sm cursor-pointer transition hover:bg-emerald-50"
+              className="bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3 sm:p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/70"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Fresh Uncontacted</span>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400">Calling Queue</span>
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-950">{metrics.uncontacted}</span>
-                <span className="text-xs text-emerald-700 font-medium">Ready to Call Today</span>
+              <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{metrics.uncontacted}</span>
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Ready Today</span>
               </div>
             </div>
 
             <div 
               onClick={() => { setSalesQueue("FOLLOW_UP_DUE"); }}
-              className="bg-amber-50/70 border border-amber-200 hover:border-amber-400 rounded-2xl p-4 shadow-sm cursor-pointer transition hover:bg-amber-50"
+              className="bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-3 sm:p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/70"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Follow-ups Due Today</span>
-                <Calendar className="w-4 h-4 text-amber-600" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-400">Follow-ups Due</span>
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-amber-950">{metrics.followUps}</span>
-                <span className="text-xs text-amber-700 font-medium">Scheduled Callbacks</span>
+              <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{metrics.followUps}</span>
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Scheduled</span>
               </div>
             </div>
 
             <div 
-              onClick={() => { setSelectedCity("Indore"); }}
-              className="bg-indigo-50/70 border border-indigo-200 hover:border-indigo-400 rounded-2xl p-4 shadow-sm cursor-pointer transition hover:bg-indigo-50"
+              onClick={() => { setSearchQuery("Indore"); }}
+              className="bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-3 sm:p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/70"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">Indore &amp; MP Hub</span>
-                <MapPin className="w-4 h-4 text-indigo-600" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-indigo-400">Indore Hub</span>
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-indigo-950">{metrics.indoreTotal}</span>
-                <span className="text-xs text-indigo-700 font-medium">Local Verified Prospects</span>
+              <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{metrics.indoreTotal}</span>
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Indore &amp; Pithampur</span>
               </div>
             </div>
 
-            <div className="bg-slate-50/90 border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-inner">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Est. Retainer Pipeline</span>
-                <DollarSign className="w-4 h-4 text-emerald-600" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Retainer Value</span>
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">
                   ₹{metrics.totalPipelineValueLakhs} L
                 </span>
-                <span className="text-xs text-slate-600 font-medium">Annual Fee Potential</span>
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Annual Potential</span>
               </div>
             </div>
           </div>
@@ -639,6 +640,32 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               );
             })}
           </div>
+
+          {/* Sub-Corridors for Indore Hub */}
+          {selectedCity === "Indore" && (
+            <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Indore Corridors:</span>
+              {[
+                { label: "All Hub (7)", query: "" },
+                { label: "🏢 Vijay Nagar & Scheme 78", query: "Vijay Nagar" },
+                { label: "🏭 Sanwer Road Industrial Area", query: "Sanwer Road" },
+                { label: "🚛 Pithampur Auto & Pharma SEZ", query: "Pithampur" },
+                { label: "📦 Dewas Naka Corridor", query: "Dewas Naka" }
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => setSearchQuery(chip.query)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                    searchQuery === chip.query
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* =========================================================================
@@ -1063,6 +1090,15 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
                       >
                         <Printer className="w-3.5 h-3.5 text-slate-500" />
                         <span>Print Notice</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedLeadForScript(lead)}
+                        className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition flex items-center gap-1.5"
+                        title="Executive telecalling pitch and objection handling script"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Call Pitch &amp; Script</span>
                       </button>
                     </div>
 
@@ -1540,6 +1576,180 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               >
                 Close Audit Inspector
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          11.5 EXECUTIVE CALLING PITCH & OBJECTION HANDLER MODAL
+          ========================================================================= */}
+      {selectedLeadForScript && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Executive Call Pitch &amp; Objection Script</h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Tailored statutory script for {selectedLeadForScript.directors[0]?.name || "Director"} &bull; {selectedLeadForScript.legalName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedLeadForScript(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Entity Snapshot Card */}
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Target Decision Maker</span>
+                <p className="text-sm font-black text-slate-900">
+                  {selectedLeadForScript.directors[0]?.name || "Managing Director"} ({selectedLeadForScript.directors[0]?.designation || "Director"})
+                </p>
+                <p className="text-xs font-mono text-slate-600">
+                  DIN: {selectedLeadForScript.directors[0]?.din || "N/A"} &bull; Phone: {selectedLeadForScript.phone || "Not Listed"}
+                </p>
+              </div>
+              <div className="text-right sm:border-l sm:border-slate-200 sm:pl-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Statutory Exposure</span>
+                <p className="text-sm font-black text-rose-700">
+                  ₹{selectedLeadForScript.totalPenaltyExposureInr ? selectedLeadForScript.totalPenaltyExposureInr.toLocaleString("en-IN") : "0"} Fine Risk
+                </p>
+                <span className="text-[11px] font-bold text-indigo-700">{selectedLeadForScript.city} &bull; {selectedLeadForScript.primaryTrack.replace(/_/g, " ")}</span>
+              </div>
+            </div>
+
+            {/* Step-by-Step Call Pitch */}
+            <div className="space-y-4 text-xs leading-relaxed">
+              {/* Step 1 */}
+              <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-1.5">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold uppercase text-[10px] tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black">1</span>
+                  <span>The 15-Second Executive Opener (Build Authority Instantly)</span>
+                </div>
+                <p className="text-slate-800 text-xs italic pl-7 font-serif">
+                  "Namaste {selectedLeadForScript.directors[0]?.name?.split(" ")[0] || "Sir"} ji. Good morning. I am calling from GPA &amp; Co., Chartered Accountants in {selectedLeadForScript.city}. Congratulations to you and the team on the incorporation of {selectedLeadForScript.tradeName || selectedLeadForScript.legalName}! I am reaching out directly because MCA21 registers indicate your statutory 30-day window for Form ADT-1 auditor appointment under Section 139(6) of the Companies Act is currently active."
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-900 font-bold uppercase text-[10px] tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-black">2</span>
+                  <span>The Commercial Urgency Hook (Why They Need This Solved Now)</span>
+                </div>
+                <p className="text-slate-800 text-xs italic pl-7 font-serif">
+                  "Under Companies Act guidelines, if Form ADT-1 is not filed before your 30-day statutory window closes, ROC late fees compound daily, and the MCA portal prevents Form INC-20A Commencement of Business certification—which legally prevents your bank from allowing debit operations on your corporate current account."
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-1.5">
+                <div className="flex items-center gap-2 text-emerald-900 font-bold uppercase text-[10px] tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">3</span>
+                  <span>The Zero-Friction Soft Close (Offer Value, Not a Sales Pitch)</span>
+                </div>
+                <p className="text-slate-800 text-xs italic pl-7 font-serif">
+                  "We have prepared a complimentary 2-page statutory compliance diagnostic specifically for {selectedLeadForScript.tradeName || selectedLeadForScript.legalName}, covering your ADT-1 schedule, INC-20A certification, and Section 80-IAC startup tax holiday eligibility. Would it be convenient if I send this brief to your WhatsApp right now for your review?"
+                </p>
+              </div>
+            </div>
+
+            {/* Real-World Objection Handlers */}
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                <span>Handling Common Director Objections</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="font-bold text-slate-900 block text-[11px]">🛡️ "We already have a CA / Accountant"</span>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    "That's great! Many growing businesses use local accountants for bookkeeping, but retain GPA &amp; Co. as independent statutory auditors for MCA annual filings, ROC certifications, and tax scrutiny defence. We're happy to share our diagnostic docket directly with your finance team."
+                  </p>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="font-bold text-slate-900 block text-[11px]">💰 "What are your fees / charges?"</span>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    "Our preliminary compliance review and the diagnostic memo I'm sharing today are 100% complimentary. For routine MCA statutory appointment and INC-20A certification, our standard fee is modest (between ₹15,000 to ₹35,000 depending on capital structure)."
+                  </p>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="font-bold text-slate-900 block text-[11px]">📱 "Please send it on WhatsApp"</span>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    "Certainly! I will send the tailored statutory memo with Section 139(6) filing guidelines and my partner contact directly to your mobile right away."
+                  </p>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="font-bold text-slate-900 block text-[11px]">⏳ "I am busy / in a meeting"</span>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    "Understood, {selectedLeadForScript.directors[0]?.name?.split(" ")[0] || "Sir"} ji! Would 4:30 PM this afternoon or 11:00 AM tomorrow work better for a quick 2-minute follow-up?"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                {selectedLeadForScript.phone && (
+                  <a
+                    href={`tel:${selectedLeadForScript.phone}`}
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Dial {selectedLeadForScript.phone}</span>
+                  </a>
+                )}
+
+                <button
+                  onClick={() => {
+                    const lead = selectedLeadForScript;
+                    setSelectedLeadForScript(null);
+                    handleOpenDocket(lead);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Open WhatsApp Memo</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const lead = selectedLeadForScript;
+                    setSelectedLeadForScript(null);
+                    setSelectedLeadForLog(lead);
+                    setLogNotes(lead.outreachNotes || "");
+                    setLogFollowUpDate(lead.followUpDate || "");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-xs flex items-center gap-1.5 transition"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  <span>Log Call Outcome</span>
+                </button>
+
+                <button
+                  onClick={() => setSelectedLeadForScript(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

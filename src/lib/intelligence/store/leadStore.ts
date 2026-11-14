@@ -180,17 +180,50 @@ export class LeadStore {
     }
 
     if (filter.searchQuery) {
-      const q = filter.searchQuery.toLowerCase();
-      leads = leads.filter(
-        (l) =>
+      const q = filter.searchQuery.trim().toLowerCase();
+      const isIndoreQuery = q === "indore" || q === "indore hub" || q.includes("indore") || q.includes("pithampur");
+
+      leads = leads.filter((l) => {
+        // Indore Hub geographic umbrella (includes Pithampur industrial corridor)
+        if (isIndoreQuery && (l.city.toLowerCase().includes("indore") || l.city.toLowerCase().includes("pithampur") || (l.industrialCluster && l.industrialCluster.toLowerCase().includes("pithampur")))) {
+          return true;
+        }
+
+        // Basic entity identifiers
+        if (
           l.legalName.toLowerCase().includes(q) ||
           (l.tradeName && l.tradeName.toLowerCase().includes(q)) ||
           (l.cin && l.cin.toLowerCase().includes(q)) ||
           (l.gstin && l.gstin.toLowerCase().includes(q)) ||
           l.city.toLowerCase().includes(q) ||
-          (l.industrySector && l.industrySector.toLowerCase().includes(q)) ||
-          l.directors.some((d) => d.name.toLowerCase().includes(q) || d.din.includes(q))
-      );
+          l.state.toLowerCase().includes(q) ||
+          (l.industrialCluster && l.industrialCluster.toLowerCase().includes(q)) ||
+          (l.industrySector && l.industrySector.toLowerCase().includes(q))
+        ) {
+          return true;
+        }
+
+        // Board of Directors & DIN search
+        if (l.directors && l.directors.some((d) => d.name.toLowerCase().includes(q) || d.din.includes(q))) {
+          return true;
+        }
+
+        // Statutory pain points & compliance triggers (e.g. ADT-1, AOC-4, MGT-7, Charges, 43B(h))
+        if (
+          l.painPoints &&
+          l.painPoints.some(
+            (p) =>
+              p.title.toLowerCase().includes(q) ||
+              p.legalBasis.toLowerCase().includes(q) ||
+              p.commercialImpact.toLowerCase().includes(q) ||
+              p.actionPlan.toLowerCase().includes(q)
+          )
+        ) {
+          return true;
+        }
+
+        return false;
+      });
     }
 
     const offset = filter.offset || 0;

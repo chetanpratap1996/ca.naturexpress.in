@@ -53,7 +53,8 @@ import {
   History,
   PhoneCall,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Clipboard
 } from "lucide-react";
 
 export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted?: () => void } = {}) {
@@ -111,6 +112,66 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   const [scanWebsite, setScanWebsite] = useState<string>("");
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanResult, setScanResult] = useState<any | null>(null);
+
+  // Smart Paste MCA / GST text extractor
+  const [smartPasteText, setSmartPasteText] = useState<string>("");
+  const [showSmartPaste, setShowSmartPaste] = useState<boolean>(false);
+  const [pasteFeedback, setPasteFeedback] = useState<string | null>(null);
+
+  const handleParseSmartPaste = (rawText: string) => {
+    if (!rawText.trim()) return;
+    
+    // 1. Extract CIN (21 characters)
+    const cinMatch = rawText.match(/\b([UL]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6})\b/i);
+    if (cinMatch) setScanCin(cinMatch[1].toUpperCase());
+
+    // 2. Extract GSTIN (15 characters)
+    const gstinMatch = rawText.match(/\b(\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1})\b/i);
+    if (gstinMatch) setScanGstin(gstinMatch[1].toUpperCase());
+
+    // 3. Extract Email
+    const emailMatch = rawText.match(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/);
+    if (emailMatch) setScanEmail(emailMatch[1].toLowerCase());
+
+    // 4. Extract Indian Phone (+91 or 10-digit, handles spaces/dashes)
+    const phoneMatch = rawText.match(/(?:\+91[\s-]?)?([6-9][\d\s-]{8,12}\d)/);
+    if (phoneMatch) {
+      const cleanDigits = phoneMatch[1].replace(/[\s-]/g, "");
+      if (cleanDigits.length === 10) {
+        setScanPhone(`+91 ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`);
+      }
+    }
+
+    // 5. Extract Company Name
+    const nameMatch = rawText.match(/(?:Company Name|Legal Name|Entity Name|Taxpayer Name)[:\s]+([^\n\r]+)/i);
+    if (nameMatch) {
+      setScanLegalName(nameMatch[1].trim());
+    } else {
+      const lines = rawText.split(/[\r\n]+/);
+      const pvtLine = lines.find(l => /limited|pvt|llp/i.test(l) && !/category|class/i.test(l));
+      if (pvtLine) {
+        setScanLegalName(pvtLine.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9)]+$/g, "").trim());
+      }
+    }
+
+    // 6. City Detection
+    if (/indore|sanwer|pithampur|dewas|scheme 78|scheme 54|vijay nagar/i.test(rawText)) {
+      setScanCity("Indore");
+      setScanStateCode("MP");
+    } else if (/pune|bhosari|chakan|hinjawadi/i.test(rawText)) {
+      setScanCity("Pune");
+      setScanStateCode("MH");
+    } else if (/bengaluru|bangalore|whitefield|electronic city/i.test(rawText)) {
+      setScanCity("Bengaluru");
+      setScanStateCode("KA");
+    } else if (/mumbai|thane|navi mumbai/i.test(rawText)) {
+      setScanCity("Mumbai");
+      setScanStateCode("MH");
+    }
+
+    setPasteFeedback("✓ Extracted identifiers! Review fields below & click Scrape.");
+    setTimeout(() => setPasteFeedback(null), 5000);
+  };
 
   // Bulk input
   const [bulkInputText, setBulkInputText] = useState<string>("");
@@ -1774,6 +1835,50 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Smart Paste Toggle & Extraction Box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Clipboard className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>📋 Smart Paste (MCA / GST Raw Text)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowSmartPaste(!showSmartPaste)}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                >
+                  {showSmartPaste ? "Hide Smart Paste" : "Paste Raw Text"}
+                </button>
+              </div>
+
+              {showSmartPaste && (
+                <div className="space-y-2 animate-in fade-in duration-150">
+                  <textarea
+                    rows={3}
+                    placeholder="Paste raw text copied from MCA21 company master data, GST registration, or email signature..."
+                    value={smartPasteText}
+                    onChange={(e) => setSmartPasteText(e.target.value)}
+                    className="w-full bg-white border border-slate-300 text-xs text-slate-800 rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleParseSmartPaste(smartPasteText)}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Auto-Extract &amp; Fill Fields</span>
+                    </button>
+                    {pasteFeedback && (
+                      <span className="text-[11px] font-bold text-emerald-700 animate-in fade-in">
+                        {pasteFeedback}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleRunScan} className="space-y-3.5">

@@ -3,6 +3,8 @@ import { LeadStore } from "@/lib/intelligence/store/leadStore";
 import { generateAdvisoryDocket } from "@/lib/intelligence/engine/advisoryGenerator";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

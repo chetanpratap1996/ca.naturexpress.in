@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { LeadStore } from "@/lib/intelligence/store/leadStore";
 import { LeadFilterCriteria, LeadStage, ServiceTrack, StatutorySeverity } from "@/lib/intelligence/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

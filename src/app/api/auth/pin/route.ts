@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateClientPin } from "@/lib/auth/enterpriseAuth";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);

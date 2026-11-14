@@ -112,9 +112,18 @@ export class LeadStore {
 
     if (filter.city && filter.city !== "ALL") {
       const targetCity = filter.city.trim().toLowerCase();
-      leads = leads.filter(
-        (l) => l.city.toLowerCase().includes(targetCity) || (l.industrialCluster && l.industrialCluster.toLowerCase().includes(targetCity))
-      );
+      if (targetCity === "indore" || targetCity === "indore_hub" || targetCity.includes("indore") || targetCity.includes("pithampur")) {
+        leads = leads.filter(
+          (l) =>
+            l.city.toLowerCase().includes("indore") ||
+            l.city.toLowerCase().includes("pithampur") ||
+            (l.industrialCluster && (l.industrialCluster.toLowerCase().includes("indore") || l.industrialCluster.toLowerCase().includes("pithampur")))
+        );
+      } else {
+        leads = leads.filter(
+          (l) => l.city.toLowerCase().includes(targetCity) || (l.industrialCluster && l.industrialCluster.toLowerCase().includes(targetCity))
+        );
+      }
     }
 
     if (filter.contactStatus && (filter.contactStatus as string) !== "ALL") {

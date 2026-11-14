@@ -28,7 +28,11 @@ import {
   Globe,
   Hash,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  LayoutDashboard,
+  Video,
+  Package,
+  Fingerprint
 } from "lucide-react";
 
 interface CommandPaletteModalProps {
@@ -60,6 +64,16 @@ interface WorkspaceTool {
 }
 
 const WORKSPACE_TOOLS: WorkspaceTool[] = [
+  {
+    id: "dashboard",
+    name: "Master Executive Dashboard",
+    tabId: "dashboard",
+    category: "Cockpit",
+    description: "4 Master KPI Cards, On-Time Filing Rate, Critical 72h alerts & firm radar",
+    keywords: ["dashboard", "home", "cockpit", "kpi", "overview", "executive", "filing rate", "demands"],
+    icon: LayoutDashboard,
+    accentColor: "text-red-600 bg-red-50 border-red-200"
+  },
   {
     id: "calendar",
     name: "Statutory Compliance Matrix",
@@ -249,6 +263,46 @@ const WORKSPACE_TOOLS: WorkspaceTool[] = [
     keywords: ["peer review", "icai", "quality review", "ethics", "frn: 022998c", "compliance"],
     icon: CheckCircle2,
     accentColor: "text-green-700 bg-green-50 border-green-200"
+  },
+  {
+    id: "anti-poaching",
+    name: "Firm Security & Poaching Sentinel",
+    tabId: "anti-poaching",
+    category: "Security",
+    description: "Staff download velocity monitor, access logs, and realization scores",
+    keywords: ["security", "poaching", "anti-poaching", "download logs", "audit trail", "staff"],
+    icon: Fingerprint,
+    accentColor: "text-red-700 bg-red-50 border-red-200"
+  },
+  {
+    id: "content-studio",
+    name: "CA Creator & Content Studio",
+    tabId: "content-studio",
+    category: "Media",
+    description: "Viral tax reel scripts, teleprompter and ICAI Rule 7 compliance scanner",
+    keywords: ["content", "studio", "creator", "social media", "reels", "teleprompter", "rule 7"],
+    icon: Video,
+    accentColor: "text-pink-600 bg-pink-50 border-pink-200"
+  },
+  {
+    id: "inward-outward",
+    name: "Inward & Outward Register",
+    tabId: "inward-outward",
+    category: "Operations",
+    description: "ICAI mandatory inward/outward documentation and dispatch tracking",
+    keywords: ["inward", "outward", "register", "letters", "dispatch", "physical docs"],
+    icon: Package,
+    accentColor: "text-amber-600 bg-amber-50 border-amber-200"
+  },
+  {
+    id: "batch-dispatch",
+    name: "Batch Outward Dispatcher",
+    tabId: "batch-dispatch",
+    category: "Operations",
+    description: "Bulk automated distribution of filed tax returns and fee receipts",
+    keywords: ["batch", "dispatch", "distribution", "bulk outward", "acknowledgments"],
+    icon: Sparkles,
+    accentColor: "text-indigo-600 bg-indigo-50 border-indigo-200"
   }
 ];
 

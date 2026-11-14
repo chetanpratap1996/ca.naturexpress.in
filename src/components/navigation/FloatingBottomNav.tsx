@@ -11,7 +11,9 @@ import {
   ShieldAlert,
   Plus,
   KeyRound,
-  Lock
+  Lock,
+  LayoutDashboard,
+  Grid
 } from "lucide-react";
 
 interface FloatingBottomNavProps {
@@ -20,6 +22,7 @@ interface FloatingBottomNavProps {
   onTabChange: (tab: string) => void;
   onViewChange?: (view: "partner" | "article" | "client-pwa") => void;
   onQuickAction?: () => void;
+  onOpenAppLauncher?: () => void;
 }
 
 export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
@@ -27,6 +30,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
   activeTab,
   onTabChange,
   onQuickAction,
+  onOpenAppLauncher,
 }) => {
   const isClient = currentView === "client-pwa";
 
@@ -52,15 +56,15 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
           </button>
         ) : (
           <button
-            onClick={() => onTabChange("calendar")}
+            onClick={() => onTabChange("dashboard")}
             className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
-              activeTab === "calendar"
+              activeTab === "dashboard"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <Calendar className={`w-5 h-5 ${activeTab === "calendar" ? "stroke-[2.5]" : ""}`} />
-            <span className="text-[10px] tracking-tight">Deadlines</span>
+            <LayoutDashboard className={`w-5 h-5 ${activeTab === "dashboard" ? "stroke-[2.5]" : ""}`} />
+            <span className="text-[10px] tracking-tight">Cockpit</span>
           </button>
         )}
 
@@ -156,15 +160,18 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
           </button>
         ) : (
           <button
-            onClick={() => onTabChange("dsc")}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
-              activeTab === "dsc"
-                ? "text-btred-logo font-black"
-                : "text-slate-500 hover:text-slate-900 font-medium"
-            }`}
+            onClick={() => {
+              if (onOpenAppLauncher) {
+                onOpenAppLauncher();
+              } else {
+                onTabChange("dashboard");
+              }
+            }}
+            className="flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation text-slate-600 hover:text-slate-900 font-medium"
+            title="Open All 39 Workspaces"
           >
-            <KeyRound className={`w-5 h-5 ${activeTab === "dsc" ? "stroke-[2.5]" : ""}`} />
-            <span className="text-[10px] tracking-tight">DSC Keys</span>
+            <Grid className="w-5 h-5 text-btred-logo" />
+            <span className="text-[10px] tracking-tight font-bold text-slate-800">All Tools</span>
           </button>
         )}
       </div>

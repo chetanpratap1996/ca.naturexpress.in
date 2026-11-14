@@ -32,6 +32,11 @@ import { Schedule3AuditEngine } from "@/components/firm/Schedule3AuditEngine";
 import { UdinVault } from "@/components/firm/UdinVault";
 import { NoticeReplyDrafter } from "@/components/firm/NoticeReplyDrafter";
 import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
+import { SidebarNav } from "@/components/navigation/SidebarNav";
+import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
+import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
+import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
+import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -96,7 +101,8 @@ import {
   FileCheck,
   FileSearch,
   ClipboardCheck,
-  Scale
+  Scale,
+  Grid
 } from "lucide-react";
 
 export default function Home() {
@@ -143,7 +149,7 @@ export default function Home() {
   // Default to unauthenticated session (require explicit login or sandbox entry)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("client-pwa");
-  const [activePartnerTab, setActivePartnerTab] = useState<string>("calendar");
+  const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
@@ -151,6 +157,8 @@ export default function Home() {
   const [loginInitialPhone, setLoginInitialPhone] = useState<string>("");
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
 
   // Safe Session Synchronization & Query Parameter Handler
   useEffect(() => {
@@ -162,6 +170,11 @@ export default function Home() {
       const phoneParam = params.get("phone");
       const pinParam = params.get("pin");
       const roleParam = params.get("role");
+
+      const tabParam = params.get("tab");
+      if (tabParam) {
+        setActivePartnerTab(tabParam);
+      }
 
       const existing = getActiveSession();
 
@@ -252,13 +265,64 @@ export default function Home() {
     await updateTask(taskId, { status: newStatus });
   };
 
+  // Synchronized Tab Navigation with Browser History & Deep Linking
   const handleTabChange = (tab: string) => {
+    if (tab === "client-master") {
+      setIsClientMasterOpen(true);
+      return;
+    }
     if (currentView === "client-pwa") {
       setActiveClientTab(tab as any);
     } else {
       setActivePartnerTab(tab);
+      if (typeof window !== "undefined") {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set("tab", tab);
+          window.history.pushState({ tab }, "", url.toString());
+        } catch (e) {}
+      }
     }
   };
+
+  // Browser Back/Forward navigation listener
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.tab) {
+        setActivePartnerTab(e.state.tab);
+      } else {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const tab = params.get("tab");
+          if (tab) {
+            setActivePartnerTab(tab);
+          } else {
+            setActivePartnerTab("dashboard");
+          }
+        } catch (e) {}
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Global Keyboard Shortcuts Suite (Cmd/Ctrl + M for Mega Menu, Cmd/Ctrl + H for Dashboard)
+  useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + M -> Toggle 6-Column Mega Menu App Launcher
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        setIsAppLauncherOpen((prev) => !prev);
+      }
+      // Cmd/Ctrl + H -> Return to Executive Dashboard
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        handleTabChange("dashboard");
+      }
+    };
+    window.addEventListener("keydown", handleGlobalShortcuts);
+    return () => window.removeEventListener("keydown", handleGlobalShortcuts);
+  }, [currentView]);
 
   const handleLoginSuccess = (user: AuthUser | null) => {
     if (!user) return;
@@ -399,6 +463,9 @@ export default function Home() {
     { id: "batch-dispatch", label: "Batch Dispatcher", icon: Sparkles, iconColor: "text-indigo-300" },
   ];
 
+  const activeNavItem = getNavItemById(activePartnerTab);
+  const ActiveToolIcon = activeNavItem?.icon;
+
   return (
     <ErrorBoundary fallbackTitle="Client Application Recovered">
       <div className="min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
@@ -406,7 +473,7 @@ export default function Home() {
         <TopNav 
           currentView={currentView} 
           onViewChange={setCurrentView}
-          onNavigateTab={(tab) => setActivePartnerTab(tab)}
+          onNavigateTab={(tab) => handleTabChange(tab)}
           currentUser={currentUser}
           onLogout={handleLogout}
           onSwitchUser={handleSwitchUserRole}
@@ -419,10 +486,27 @@ export default function Home() {
             setIsLoginModalOpen(false);
           }}
           isSandbox={isDemoSandbox}
+          onToggleSidebar={() => setIsMobileDrawerOpen((prev) => !prev)}
+          onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full max-w-[1720px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-28 md:pb-12 min-w-0">
+        {/* Master Flex Layout with Left Sidebar */}
+        <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">
+          {/* Collapsible Left Sidebar (Only in Partner View) */}
+          {currentView === "partner" && (
+            <SidebarNav
+              activeTab={activePartnerTab}
+              onNavigateTab={(tab) => handleTabChange(tab)}
+              isMobileDrawerOpen={isMobileDrawerOpen}
+              onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
+              onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
+              onOpenClientMaster={() => setIsClientMasterOpen(true)}
+              clientCount={clients.length}
+            />
+          )}
+
+          {/* Main Content Area */}
+          <main className="flex-1 w-full min-w-0 px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-28 md:pb-12 overflow-x-hidden">
           {/* VIEW 1: CLIENT PWA PORTAL (PRIMARY CLIENT-CENTRIC EXPERIENCE) */}
           {currentView === "client-pwa" && (
             <ClientPortalPwa 
@@ -438,152 +522,32 @@ export default function Home() {
           {/* VIEW 2: PARTNER COCKPIT (FOR CA PARTNERS & MANAGERS) */}
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
-              {/* Top KPI Metrics with Drill-Down Navigation */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-                <div 
-                  onClick={() => setActivePartnerTab("calendar")}
-                  className="bg-white border border-slate-200 hover:border-emerald-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
-                  title="Click to view Statutory Calendar drill-down"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-emerald-700 truncate">
-                      On-Time Filing Rate
-                    </span>
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 shrink-0">
-                      <TrendingUp className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
-                      {tasks.length > 0 ? `${Math.round((tasks.filter(t => t.status === 'FILED_AND_COMPLETED').length / tasks.length) * 100)}%` : "100%"}
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-emerald-600 font-bold">Compliant</span>
-                  </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium truncate">
-                    {clients.length} Clients &bull; {clients.length} Active
-                  </p>
-                  <span className="text-[10px] text-emerald-600 font-bold mt-1.5 inline-flex items-center gap-1 group-hover:underline">
-                    Inspect Calendar &rarr;
-                  </span>
-                </div>
+              {/* 1. EXECUTIVE DASHBOARD (PRIMARY FIRST PAGE WITH 4 MASTER KPI CARDS) */}
+              {activePartnerTab === "dashboard" && (
+                <ExecutiveDashboard
+                  tasks={tasks}
+                  invoices={invoices}
+                  notices={notices}
+                  clients={clients}
+                  groups={groups}
+                  dscTokens={dscTokens}
+                  onNavigateTab={(tab) => handleTabChange(tab)}
+                  onOpenClientMaster={() => setIsClientMasterOpen(true)}
+                  onOpenFirmHub={() => setIsFirmHubOpen(true)}
+                  onStatusChange={handleTaskStatusChange}
+                  isSandbox={isDemoSandbox}
+                />
+              )}
 
-                <div 
-                  onClick={() => setActivePartnerTab("calendar")}
-                  className="bg-white border border-slate-200 hover:border-red-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
-                  title="Click to view 72-Hour Critical Deadlines"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-red-700 truncate">
-                      Due in 72 Hours
-                    </span>
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-red-50 text-btred-logo border border-red-200 shrink-0">
-                      <AlertTriangle className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-xl sm:text-2xl lg:text-3xl font-black text-btred-logo">
-                      {tasks.filter(t => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED").length}
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-btred-logo font-bold">Critical</span>
-                  </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium truncate">
-                    {tasks.length === 0 ? "No pending returns" : "Statutory Returns"}
-                  </p>
-                  <span className="text-[10px] text-btred-logo font-bold mt-1.5 inline-flex items-center gap-1 group-hover:underline">
-                    View Critical &rarr;
-                  </span>
-                </div>
-
-                <div 
-                  onClick={() => setActivePartnerTab("notices")}
-                  className="bg-white border border-slate-200 hover:border-amber-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
-                  title="Click to view Active Scrutiny Notices"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-amber-700 truncate">
-                      Active Tax Notices
-                    </span>
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
-                      <ShieldAlert className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">{notices.length}</span>
-                    <span className="text-[10px] sm:text-xs text-amber-700 font-bold">Cases</span>
-                  </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium truncate">
-                    ₹{(notices.reduce((acc, n) => acc + (n.demandAmount || 0), 0) / 100000).toFixed(2)}L demand risk
-                  </p>
-                  <span className="text-[10px] text-amber-700 font-bold mt-1.5 inline-flex items-center gap-1 group-hover:underline">
-                    Drill down &rarr;
-                  </span>
-                </div>
-
-                <div 
-                  onClick={() => setActivePartnerTab("billing")}
-                  className="bg-white border border-slate-200 hover:border-indigo-400 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm cursor-pointer transition group"
-                  title="Click to view Fee Realization & Unbilled WIP"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-indigo-700 truncate">
-                      Billing &amp; Collections
-                    </span>
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 shrink-0">
-                      <DollarSign className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-btred-logo" />
-                    </div>
-                  </div>
-                  <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
-                      ₹{(invoices.filter(i => i.status !== "PAID").reduce((acc, i) => acc + (i.amount || 0), 0) / 100000).toFixed(2)} L
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-emerald-600 font-bold">Pending Collections</span>
-                  </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium truncate">
-                    ₹{(groups.reduce((acc, g) => acc + (g.unbilledWipTotal || 0), 0) / 100000).toFixed(2)}L Unbilled WIP
-                  </p>
-                  <span className="text-[10px] text-indigo-600 font-bold mt-1.5 inline-flex items-center gap-1 group-hover:underline">
-                    Inspect WIP &rarr;
-                  </span>
-                </div>
-              </div>
-
-              {/* Mobile Partner Tab Select Bar (dropdown on mobile for fast navigation) */}
-              <div className="block sm:hidden bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-600">Active Module:</span>
-                  <select
-                    value={activePartnerTab}
-                    onChange={(e) => setActivePartnerTab(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-900 rounded-xl px-2.5 py-1.5 focus:outline-none"
-                  >
-                    {partnerTabs.map((tab) => (
-                      <option key={tab.id} value={tab.id}>
-                        {tab.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Desktop & Tablet Tabs Header with horizontal touch scroll */}
-              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-3 overflow-x-auto scrollbar-none touch-pan-x">
-                {partnerTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activePartnerTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActivePartnerTab(tab.id)}
-                      className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                        isActive ? "bg-btred-logo text-white shadow-md shadow-red-500/25" : "text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/60 border border-transparent hover:border-slate-200"
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${tab.iconColor}`} />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {/* 2. TOP ACTIVE TOOL HEADER (SHOWN ONLY ON NON-DASHBOARD WORKSPACES) */}
+              {activePartnerTab !== "dashboard" && (
+                <ActiveToolHeader
+                  activeTab={activePartnerTab}
+                  onNavigateTab={(tab) => handleTabChange(tab)}
+                  onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
+                  clients={clients}
+                />
+              )}
 
               {/* Active Content */}
               {activePartnerTab === "batch-dispatch" && (
@@ -678,6 +642,7 @@ export default function Home() {
                 <NoticeCenter 
                   notices={notices} 
                   onNoticeUpdated={refreshData}
+                  onNavigateToDrafter={() => handleTabChange("notice-drafter")}
                 />
               )}
 
@@ -729,50 +694,60 @@ export default function Home() {
           {/* VIEW 3: ARTICLE WORKBENCH (FOR ARTICLE TRAINEES) */}
           {currentView === "article" && <ArticleWorkbench isSandbox={isDemoSandbox} />}
         </main>
-
-        {/* Floating Bottom Navigation */}
-        <FloatingBottomNav
-          currentView={currentView}
-          activeTab={currentView === "client-pwa" ? activeClientTab : activePartnerTab}
-          onTabChange={handleTabChange}
-          onQuickAction={() => {
-            if (currentView === "client-pwa") {
-              setIsClientQuickActionOpen(true);
-            } else {
-              setIsFirmHubOpen(true);
-            }
-          }}
-        />
-
-        {/* Firm Action Hub Modal */}
-        <FirmHubActionModal
-          isOpen={isFirmHubOpen}
-          onClose={() => setIsFirmHubOpen(false)}
-          onOpenClientMaster={() => setIsClientMasterOpen(true)}
-          onOpenNewTask={() => setActivePartnerTab("calendar")}
-          onNavigateTab={(tab) => setActivePartnerTab(tab)}
-        />
-
-        {/* Client Master Modal */}
-        <ClientMasterModal
-          isOpen={isClientMasterOpen}
-          onClose={() => setIsClientMasterOpen(false)}
-          clients={clients}
-          groups={groups}
-          onAddClient={async (newClient) => {
-            await createClient(newClient);
-            await refreshData();
-          }}
-          onUpdateClient={async (id, data) => {
-            await updateClient(id, data);
-            await refreshData();
-          }}
-          onDeleteClient={async (id) => {
-            await deleteClient(id);
-            await refreshData();
-          }}
-        />
       </div>
-    </ErrorBoundary>
-  );
+
+      {/* Floating Bottom Navigation */}
+      <FloatingBottomNav
+        currentView={currentView}
+        activeTab={currentView === "client-pwa" ? activeClientTab : activePartnerTab}
+        onTabChange={handleTabChange}
+        onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
+        onQuickAction={() => {
+          if (currentView === "client-pwa") {
+            setIsClientQuickActionOpen(true);
+          } else {
+            setIsFirmHubOpen(true);
+          }
+        }}
+      />
+
+      {/* 6-Column Panoramic App Launcher Mega Menu */}
+      <AppLauncherMegaMenu
+        isOpen={isAppLauncherOpen}
+        onClose={() => setIsAppLauncherOpen(false)}
+        activeTab={activePartnerTab}
+        onSelectTab={(tab) => handleTabChange(tab)}
+      />
+
+      {/* Firm Action Hub Modal */}
+      <FirmHubActionModal
+        isOpen={isFirmHubOpen}
+        onClose={() => setIsFirmHubOpen(false)}
+        onOpenClientMaster={() => setIsClientMasterOpen(true)}
+        onOpenNewTask={() => handleTabChange("calendar")}
+        onNavigateTab={(tab) => handleTabChange(tab)}
+      />
+
+      {/* Client Master Modal */}
+      <ClientMasterModal
+        isOpen={isClientMasterOpen}
+        onClose={() => setIsClientMasterOpen(false)}
+        clients={clients}
+        groups={groups}
+        onAddClient={async (newClient) => {
+          await createClient(newClient);
+          await refreshData();
+        }}
+        onUpdateClient={async (id, data) => {
+          await updateClient(id, data);
+          await refreshData();
+        }}
+        onDeleteClient={async (id) => {
+          await deleteClient(id);
+          await refreshData();
+        }}
+      />
+    </div>
+  </ErrorBoundary>
+);
 }

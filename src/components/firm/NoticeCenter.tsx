@@ -38,6 +38,7 @@ import {
 interface NoticeCenterProps {
   notices: NoticeRecord[];
   onNoticeUpdated?: () => void;
+  onNavigateToDrafter?: () => void;
 }
 
 // Client-Side Self-Healing Legal Defense Synthesizer
@@ -89,7 +90,11 @@ function generateLocalLegalDefense(notice: NoticeRecord) {
   };
 }
 
-export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNotices, onNoticeUpdated }) => {
+export const NoticeCenter: React.FC<NoticeCenterProps> = ({ 
+  notices: initialNotices, 
+  onNoticeUpdated,
+  onNavigateToDrafter,
+}) => {
   const [notices, setNotices] = useState<NoticeRecord[]>(initialNotices);
   const [selectedNotice, setSelectedNotice] = useState<NoticeRecord | null>(initialNotices[0] || null);
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
@@ -369,6 +374,17 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({ notices: initialNoti
         </div>
 
         <div className="flex items-center gap-2">
+          {onNavigateToDrafter && (
+            <button
+              onClick={onNavigateToDrafter}
+              className="bg-red-50 hover:bg-red-100 text-btred-logo font-bold text-xs px-3.5 py-2 rounded-xl border border-red-200 transition flex items-center gap-1.5 shadow-2xs"
+              title="Launch AI Statutory Notice Reply Drafter with ITAT Precedent Library"
+            >
+              <Scale className="w-3.5 h-3.5 text-btred-logo" />
+              <span>AI Reply Drafter</span>
+            </button>
+          )}
+
           <button
             onClick={() => setShowScraperModal(true)}
             disabled={isScanningPortals}

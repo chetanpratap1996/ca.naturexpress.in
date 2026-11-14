@@ -25,7 +25,10 @@ import {
   ChevronDown, 
   RefreshCw, 
   X,
-  Bell
+  Bell,
+  Grid,
+  Menu,
+  LayoutDashboard
 } from "lucide-react";
 import { CommandPaletteModal } from "@/components/shared/CommandPaletteModal";
 import { InstallAppModal } from "@/components/shared/InstallAppModal";
@@ -44,6 +47,8 @@ interface TopNavProps {
   onOpenFirmHub?: () => void;
   onExitSandbox?: () => void;
   isSandbox?: boolean;
+  onToggleSidebar?: () => void;
+  onOpenAppLauncher?: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({ 
@@ -57,6 +62,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenFirmHub,
   onExitSandbox,
   isSandbox = true,
+  onToggleSidebar,
+  onOpenAppLauncher,
 }) => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -118,8 +125,32 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* Single Unified High-Density Responsive Header matching main container width & padding */}
         <div className="w-full max-w-[1720px] mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
           
-          {/* LEFT: Platform Brand & Firm Identity Badge */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+          {/* LEFT: Platform Brand & Navigation Launchers */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
+            {/* Mobile / Desktop Sidebar Drawer Toggle Button */}
+            {onToggleSidebar && !isClientMode && (
+              <button
+                onClick={onToggleSidebar}
+                className="p-1.5 sm:p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition flex items-center justify-center shrink-0"
+                title="Toggle Sidebar Navigation (⌘B)"
+                aria-label="Toggle Sidebar Navigation"
+              >
+                <Menu className="w-4 h-4 text-slate-700" />
+              </button>
+            )}
+
+            {/* 6-Column Panoramic Mega Menu (3 Dots / Grid Launcher) */}
+            {onOpenAppLauncher && !isClientMode && (
+              <button
+                onClick={onOpenAppLauncher}
+                className="p-1.5 sm:p-2 rounded-xl border border-red-200 bg-red-50/80 hover:bg-red-100 text-btred-logo transition flex items-center justify-center shrink-0 shadow-2xs"
+                title="Open 6-Column Panoramic App Launcher (39 Tools)"
+                aria-label="Open 6-Column App Launcher"
+              >
+                <Grid className="w-4 h-4 text-btred-logo" />
+              </button>
+            )}
+
             <Link href="/" className="flex items-center gap-2 shrink-0">
               <BtLogo size="sm" showTagline={false} />
             </Link>

@@ -181,7 +181,27 @@ export class LeadStore {
 
     if (filter.searchQuery) {
       const q = filter.searchQuery.trim().toLowerCase();
+      const qClean = q.replace(/[\s-]/g, "");
       const isIndoreQuery = q === "indore" || q === "indore hub" || q.includes("indore") || q.includes("pithampur");
+
+      // Check if the query matches a record in master AUTHENTIC_CORPORATE_REGISTRY that is not yet in leads
+      if (qClean.length >= 10) {
+        const masterMatch = AUTHENTIC_CORPORATE_REGISTRY.find(
+          (m) =>
+            (m.gstin && m.gstin.toLowerCase().replace(/[\s-]/g, "").includes(qClean)) ||
+            (m.cin && m.cin.toLowerCase().replace(/[\s-]/g, "").includes(qClean)) ||
+            (m.pan && m.pan.toLowerCase().replace(/[\s-]/g, "").includes(qClean)) ||
+            m.legalName.toLowerCase().includes(q)
+        );
+
+        if (masterMatch && !leads.some((l) => l.id === masterMatch.id || (masterMatch.cin && l.cin === masterMatch.cin) || (masterMatch.gstin && l.gstin === masterMatch.gstin))) {
+          const enriched = enrichLead(masterMatch);
+          leads.unshift(enriched);
+          const allDiskLeads = this.readFromDisk();
+          allDiskLeads.unshift(enriched);
+          this.writeToDisk(allDiskLeads);
+        }
+      }
 
       leads = leads.filter((l) => {
         // Indore Hub geographic umbrella (includes Pithampur industrial corridor)
@@ -189,12 +209,23 @@ export class LeadStore {
           return true;
         }
 
+        // Clean identifier matches (handles spaces, dashes, uppercase/lowercase)
+        const lGstinClean = l.gstin ? l.gstin.toLowerCase().replace(/[\s-]/g, "") : "";
+        const lCinClean = l.cin ? l.cin.toLowerCase().replace(/[\s-]/g, "") : "";
+        const lPanClean = l.pan ? l.pan.toLowerCase().replace(/[\s-]/g, "") : "";
+
+        if (
+          (lGstinClean && lGstinClean.includes(qClean)) ||
+          (lCinClean && lCinClean.includes(qClean)) ||
+          (lPanClean && lPanClean.includes(qClean))
+        ) {
+          return true;
+        }
+
         // Basic entity identifiers & addresses
         if (
           l.legalName.toLowerCase().includes(q) ||
           (l.tradeName && l.tradeName.toLowerCase().includes(q)) ||
-          (l.cin && l.cin.toLowerCase().includes(q)) ||
-          (l.gstin && l.gstin.toLowerCase().includes(q)) ||
           l.city.toLowerCase().includes(q) ||
           l.state.toLowerCase().includes(q) ||
           (l.registeredAddress && l.registeredAddress.toLowerCase().includes(q)) ||

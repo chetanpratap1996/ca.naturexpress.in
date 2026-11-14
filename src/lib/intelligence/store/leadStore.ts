@@ -14,7 +14,8 @@ import {
   LeadStage, 
   ServiceTrack, 
   StatutorySeverity,
-  ReturnFilingStatus
+  ReturnFilingStatus,
+  ContactActivityLog
 } from "../types";
 import { evaluateDeterministicPainPoints } from "../engine/deterministicRules";
 import { AUTHENTIC_CORPORATE_REGISTRY } from "../registry/authenticCorporateRegistry";
@@ -107,6 +108,30 @@ export class LeadStore {
       leads = leads.filter(
         (l) => l.stateCode.toUpperCase() === targetState || l.state.toUpperCase().includes(targetState)
       );
+    }
+
+    if (filter.city && filter.city !== "ALL") {
+      const targetCity = filter.city.trim().toLowerCase();
+      leads = leads.filter(
+        (l) => l.city.toLowerCase().includes(targetCity) || (l.industrialCluster && l.industrialCluster.toLowerCase().includes(targetCity))
+      );
+    }
+
+    if (filter.contactStatus && (filter.contactStatus as string) !== "ALL") {
+      leads = leads.filter((l) => l.contactStatus === filter.contactStatus);
+    }
+
+    if (filter.salesQueue && filter.salesQueue !== "ALL") {
+      const todayStr = new Date().toISOString().split("T")[0];
+      if (filter.salesQueue === "UNCONTACTED_TODAY") {
+        leads = leads.filter((l) => !l.contactStatus || l.contactStatus === "UNCONTACTED");
+      } else if (filter.salesQueue === "FOLLOW_UP_DUE") {
+        leads = leads.filter((l) => l.contactStatus === "FOLLOW_UP_DUE" || (l.followUpDate && l.followUpDate <= todayStr));
+      } else if (filter.salesQueue === "IN_NEGOTIATION") {
+        leads = leads.filter((l) => l.contactStatus === "CONTACTED" || l.contactStatus === "PROPOSAL_SENT" || l.stage === "ENGAGED");
+      } else if (filter.salesQueue === "CONVERTED") {
+        leads = leads.filter((l) => l.contactStatus === "CONVERTED" || l.stage === "CONVERTED");
+      }
     }
 
     if (filter.rocJurisdiction && filter.rocJurisdiction !== "ALL") {
@@ -259,9 +284,47 @@ export class LeadStore {
     if (!lead) return null;
 
     lead.stage = "CONVERTED";
+    lead.contactStatus = "CONVERTED";
     lead.convertedClientId = clientId;
     lead.updatedAt = new Date().toISOString();
 
+    this.writeToDisk(leads);
+    return lead;
+  }
+
+  public static async logContactActivity(
+    id: string,
+    activity: ContactActivityLog
+  ): Promise<TargetEntityLead | null> {
+    const leads = this.readFromDisk();
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return null;
+
+    if (!lead.contactHistory) lead.contactHistory = [];
+    lead.contactHistory.unshift(activity);
+
+    lead.lastContactedAt = activity.timestamp;
+    lead.lastOutcome = activity.outcome;
+    if (activity.notes) lead.outreachNotes = activity.notes;
+    if (activity.nextFollowUpDate) lead.followUpDate = activity.nextFollowUpDate;
+
+    if (activity.outcome === "RETAINER_SIGNED") {
+      lead.contactStatus = "CONVERTED";
+      lead.stage = "CONVERTED";
+    } else if (activity.outcome === "PROPOSAL_SHARED") {
+      lead.contactStatus = "PROPOSAL_SENT";
+      lead.stage = "ENGAGED";
+    } else if (activity.outcome === "FOLLOW_UP_SCHEDULED") {
+      lead.contactStatus = "FOLLOW_UP_DUE";
+      lead.stage = "ENGAGED";
+    } else if (activity.outcome === "NOT_INTERESTED") {
+      lead.contactStatus = "DORMANT";
+    } else {
+      lead.contactStatus = "CONTACTED";
+      lead.stage = "ENGAGED";
+    }
+
+    lead.updatedAt = new Date().toISOString();
     this.writeToDisk(leads);
     return lead;
   }
@@ -286,8 +349,14 @@ export class LeadStore {
     totalActiveDirectorsCount: number;
     totalPipelineValueLakhs: number;
     hotOpportunitiesCount: number;
+    uncontactedCount: number;
+    followUpDueCount: number;
+    inNegotiationCount: number;
+    convertedCount: number;
+    indoreHubCount: number;
   }> {
     const leads = this.readFromDisk();
+    const todayStr = new Date().toISOString().split("T")[0];
 
     const byTrack: Record<ServiceTrack, number> = {
       NEW_INCORPORATION: 0,
@@ -315,6 +384,11 @@ export class LeadStore {
     let totalActiveDirectorsCount = 0;
     let totalEstimatedFeeInr = 0;
     let hotOpportunitiesCount = 0;
+    let uncontactedCount = 0;
+    let followUpDueCount = 0;
+    let inNegotiationCount = 0;
+    let convertedCount = 0;
+    let indoreHubCount = 0;
 
     for (const lead of leads) {
       if (byTrack[lead.primaryTrack] !== undefined) byTrack[lead.primaryTrack]++;
@@ -324,6 +398,22 @@ export class LeadStore {
       totalActiveDirectorsCount += lead.directors.length;
       totalEstimatedFeeInr += (lead.dealValueEstimatedInr || lead.suggestedFeeInr || 35000);
       if (lead.hotLead) hotOpportunitiesCount++;
+
+      // Sales queue counts
+      if (!lead.contactStatus || lead.contactStatus === "UNCONTACTED") {
+        uncontactedCount++;
+      } else if (lead.contactStatus === "FOLLOW_UP_DUE" || (lead.followUpDate && lead.followUpDate <= todayStr)) {
+        followUpDueCount++;
+      } else if (lead.contactStatus === "CONTACTED" || lead.contactStatus === "PROPOSAL_SENT" || lead.stage === "ENGAGED") {
+        inNegotiationCount++;
+      } else if (lead.contactStatus === "CONVERTED" || lead.stage === "CONVERTED") {
+        convertedCount++;
+      }
+
+      // Indore hub count
+      if (lead.city.toLowerCase().includes("indore") || lead.city.toLowerCase().includes("pithampur") || lead.city.toLowerCase().includes("dewas")) {
+        indoreHubCount++;
+      }
     }
 
     return {
@@ -335,6 +425,11 @@ export class LeadStore {
       totalActiveDirectorsCount,
       totalPipelineValueLakhs: parseFloat((totalEstimatedFeeInr / 100000).toFixed(2)),
       hotOpportunitiesCount,
+      uncontactedCount,
+      followUpDueCount,
+      inNegotiationCount,
+      convertedCount,
+      indoreHubCount,
     };
   }
 }

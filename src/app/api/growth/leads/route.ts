@@ -8,6 +8,9 @@ export async function GET(req: NextRequest) {
 
     const filter: LeadFilterCriteria = {
       state: searchParams.get("state") || undefined,
+      city: searchParams.get("city") || undefined,
+      contactStatus: (searchParams.get("contactStatus") as any) || undefined,
+      salesQueue: (searchParams.get("salesQueue") as any) || undefined,
       rocJurisdiction: searchParams.get("roc") || undefined,
       serviceTrack: (searchParams.get("track") as ServiceTrack) || undefined,
       highestSeverity: (searchParams.get("severity") as StatutorySeverity) || undefined,
@@ -114,13 +117,18 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, stage, outreachNotes, followUpDate, dealValueEstimatedInr, phone, email } = body;
+    const { id, stage, outreachNotes, followUpDate, dealValueEstimatedInr, phone, email, activity } = body;
 
     if (!id) {
       return NextResponse.json(
         { success: false, error: "Lead 'id' is required." },
         { status: 400 }
       );
+    }
+
+    if (activity) {
+      const updated = await LeadStore.logContactActivity(id, activity);
+      return NextResponse.json({ success: true, lead: updated });
     }
 
     if (stage) {

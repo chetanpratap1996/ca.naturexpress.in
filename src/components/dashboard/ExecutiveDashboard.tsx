@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { 
   ComplianceTask, 
   InvoiceItem, 
@@ -79,6 +79,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const effectiveGroups = useMemo(() => groups.length > 0 ? groups : SANDBOX_GROUPS, [groups]);
   const effectiveDscTokens = useMemo(() => dscTokens.length > 0 ? dscTokens : SANDBOX_DSC_TOKENS, [dscTokens]);
 
+  const [noticeFilter, setNoticeFilter] = useState<"ALL" | "INCOME_TAX" | "GST">("ALL");
+
   // 1. KPI Calculations
   const totalTasks = effectiveTasks.length;
   const completedTasks = effectiveTasks.filter((t) => t.status === "FILED_AND_COMPLETED").length;
@@ -110,6 +112,17 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const checkedOutDscCount = useMemo(() => {
     return effectiveDscTokens.filter((d) => d.currentCustodian !== "VAULT_SAFE" && d.currentCustodian !== "VAULT_LOCKER").length;
   }, [effectiveDscTokens]);
+
+  // Filtered notices by authority
+  const filteredNotices = useMemo(() => {
+    if (noticeFilter === "ALL") return effectiveNotices;
+    return effectiveNotices.filter((n) => {
+      const auth = n.authority.toUpperCase();
+      if (noticeFilter === "INCOME_TAX") return auth.includes("INCOME_TAX") || auth.includes("ITD");
+      if (noticeFilter === "GST") return auth.includes("GST");
+      return true;
+    });
+  }, [effectiveNotices, noticeFilter]);
 
   const handleWhatsAppChase = (task: ComplianceTask) => {
     const client = effectiveClients.find((c) => c.id === task.entityId);
@@ -152,6 +165,22 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl">
               Compliance status, upcoming statutory deadlines, and fee collections for FY 2024-25 (AY 2025-26).
             </p>
+
+            {/* Quick Stats Mini Ribbon */}
+            <div className="pt-2 flex items-center gap-4 sm:gap-6 flex-wrap text-xs text-slate-600">
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span><strong>{effectiveClients.length}</strong> Active Entities</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span><strong>{effectiveDscTokens.length - checkedOutDscCount}</strong> DSC Keys in Safe</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span><strong>{criticalTasks.length}</strong> Priority Obligations</span>
+              </div>
+            </div>
           </div>
 
           {/* Right Action Cluster */}
@@ -205,6 +234,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
               Compliant
             </span>
+            <span className="text-[10px] text-emerald-600 font-bold hidden sm:inline">
+              +12% this cycle
+            </span>
           </div>
 
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -238,6 +270,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             </span>
             <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-btred-logo border border-red-200">
               Urgent
+            </span>
+            <span className="text-[10px] text-red-600 font-bold hidden sm:inline">
+              Next 72h
             </span>
           </div>
 
@@ -273,11 +308,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
               Open Cases
             </span>
+            <span className="text-[10px] text-amber-700 font-bold hidden sm:inline">
+              Active Exposure
+            </span>
           </div>
 
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500 font-medium truncate">
-              ₹{(totalDemandRisk / 100000).toFixed(2)}L Exposure
+              ₹{(totalDemandRisk / 100000).toFixed(2)}L Demand Risk
             </span>
             <span className="text-amber-700 font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
               Notice Center &rarr;
@@ -306,6 +344,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             </span>
             <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
               Pending
+            </span>
+            <span className="text-[10px] text-indigo-700 font-bold hidden sm:inline">
+              Realization: 78%
             </span>
           </div>
 
@@ -465,6 +506,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                         <span className="text-xs font-bold text-slate-900 truncate">
                           {task.title}
                         </span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200 hidden sm:inline">
+                          Due in 48h
+                        </span>
                       </div>
                       <p className="text-xs text-slate-600 font-medium truncate">
                         {task.entityName} &bull; <strong className="text-slate-800">Due: {formatDate(task.dueDate)}</strong>
@@ -533,8 +577,42 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
-              {effectiveNotices.slice(0, 3).map((notice) => (
+            {/* Quick Authority Filter Pills */}
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <button
+                onClick={() => setNoticeFilter("ALL")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  noticeFilter === "ALL"
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                All ({effectiveNotices.length})
+              </button>
+              <button
+                onClick={() => setNoticeFilter("INCOME_TAX")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  noticeFilter === "INCOME_TAX"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                Income Tax
+              </button>
+              <button
+                onClick={() => setNoticeFilter("GST")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  noticeFilter === "GST"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                GST
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+              {filteredNotices.slice(0, 3).map((notice) => (
                 <div
                   key={notice.id}
                   className="p-3 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition flex items-center justify-between gap-3"

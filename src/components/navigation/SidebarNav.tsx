@@ -312,6 +312,14 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               </div>
             );
           })}
+
+          {filteredItems.length === 0 && (
+            <div className="py-8 px-3 text-center space-y-2">
+              <Search className="w-5 h-5 text-slate-300 mx-auto" />
+              <p className="text-xs font-bold text-slate-600">No matching tools</p>
+              <p className="text-[11px] text-slate-400">Press ⌘K to search all records</p>
+            </div>
+          )}
         </div>
 
         {/* Footer shortcuts */}

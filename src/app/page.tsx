@@ -557,7 +557,7 @@ export default function Home() {
 
               {/* Active Content */}
               {activePartnerTab === "growth-engine" && (
-                <PracticeGrowthCockpit />
+                <PracticeGrowthCockpit onClientConverted={() => refreshData()} />
               )}
               {activePartnerTab === "batch-dispatch" && (
                 <BatchOutwardDispatcher 

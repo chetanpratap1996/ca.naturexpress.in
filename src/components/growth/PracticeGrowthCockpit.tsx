@@ -56,7 +56,7 @@ import {
   HelpCircle
 } from "lucide-react";
 
-export function PracticeGrowthCockpit() {
+export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted?: () => void } = {}) {
   const [leads, setLeads] = useState<TargetEntityLead[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -256,6 +256,7 @@ export function PracticeGrowthCockpit() {
       const data = await res.json();
       if (data.success) {
         alert(`✅ Onboarded!\n${lead.legalName} has been converted into an active Practice Client (ID: ${data.clientId}). All statutory compliance workflows scheduled.`);
+        if (onClientConverted) onClientConverted();
         fetchLeads();
       } else {
         alert(data.error || "Failed to convert lead");

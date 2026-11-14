@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   TargetEntityLead, 
   ServiceTrack, 
@@ -65,11 +65,13 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   // "UNCONTACTED_TODAY" | "FOLLOW_UP_DUE" | "CITY_DIRECTORY" | "URGENT_PENALTY" | "CONVERTED" | "ALL"
   const [salesQueue, setSalesQueue] = useState<string>("ALL");
 
-  // City & Geographic Quick Filter
+  // Unified Search & Smart Suggestions
   const [selectedCity, setSelectedCity] = useState<string>("ALL");
   const [stateFilter, setStateFilter] = useState<string>("ALL");
   const [trackFilter, setTrackFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Modals & Details
   const [selectedLeadForDocket, setSelectedLeadForDocket] = useState<TargetEntityLead | null>(null);
@@ -164,8 +166,21 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   };
 
   useEffect(() => {
-    fetchLeads();
-  }, [salesQueue, selectedCity, stateFilter, trackFilter]);
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchLeads();
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [salesQueue, searchQuery, selectedCity, stateFilter, trackFilter]);
 
   // Aggregate Metrics
   const metrics = useMemo(() => {
@@ -547,18 +562,18 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
       </div>
 
       {/* =========================================================================
-          2. THE NON-TECH SALES WORKFLOW TABS
+          2. DAILY SALES QUEUE TABS (Touch-Scrollable across All Devices)
           ========================================================================= */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
         {/* Sales Action Presets */}
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 flex-wrap">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 -mx-1 px-1 w-full sm:w-auto">
             {[
               { id: "ALL", label: "All Opportunities", icon: Building2, count: leads.length },
               { id: "UNCONTACTED_TODAY", label: "⚡ Today's Calling Queue", icon: PhoneCall, count: metrics.uncontacted, highlight: true },
-              { id: "FOLLOW_UP_DUE", label: "📅 Follow-ups Due Today", icon: Calendar, count: metrics.followUps, urgent: metrics.followUps > 0 },
+              { id: "FOLLOW_UP_DUE", label: "📅 Follow-ups Due", icon: Calendar, count: metrics.followUps, urgent: metrics.followUps > 0 },
               { id: "URGENT_PENALTY", label: "🔥 Urgent Penalties (< 7 Days)", icon: Flame, count: metrics.criticalCount },
-              { id: "IN_NEGOTIATION", label: "📞 In Discussion / Proposals", icon: Briefcase, count: metrics.inNegotiation },
+              { id: "IN_NEGOTIATION", label: "📞 In Discussion", icon: Briefcase, count: metrics.inNegotiation },
               { id: "CONVERTED", label: "🏆 Converted Retainers", icon: CheckCircle, count: metrics.converted },
             ].map((tab) => {
               const active = salesQueue === tab.id;
@@ -567,7 +582,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
                 <button
                   key={tab.id}
                   onClick={() => { setSalesQueue(tab.id); }}
-                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 shrink-0 ${
                     active
                       ? "bg-slate-950 text-white shadow-md shadow-slate-950/20"
                       : "text-slate-700 hover:text-slate-950 hover:bg-slate-100 bg-slate-50 border border-slate-200/80"
@@ -587,168 +602,153 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
             })}
           </div>
 
-          <div className="text-xs text-slate-500 font-medium">
+          <div className="text-xs text-slate-500 font-medium hidden lg:block">
             Workflow: <strong className="text-slate-900">{salesQueue.replace(/_/g, " ")}</strong>
           </div>
         </div>
 
         {/* =========================================================================
-            3. 1-CLICK CITY & ECONOMIC HUB QUICK-BAR (The Indore Problem Solved)
+            3. UNIFIED SMART SEARCH BOX WITH AUTO-RECOMMENDATIONS
             ========================================================================= */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-slate-700 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-rose-500" />
-              <span>1-Click City &amp; Regional Hub:</span>
-            </span>
-            {selectedCity !== "ALL" && (
-              <button
-                onClick={() => setSelectedCity("ALL")}
-                className="text-[11px] font-bold text-indigo-600 hover:underline"
-              >
-                Clear City &bull; Show All India
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-            {[
-              { id: "ALL", label: "Pan-India (All Cities)" },
-              { id: "Indore", label: "📍 Indore & Pithampur Hub", highlight: true },
-              { id: "Pune", label: "📍 Pune (Bhosari & Chakan MIDC)" },
-              { id: "Bengaluru", label: "📍 Bengaluru (Tech Corridor)" },
-              { id: "Mumbai", label: "📍 Mumbai & Thane" },
-              { id: "Delhi", label: "📍 Delhi NCR (Okhla)" },
-              { id: "Ahmedabad", label: "📍 Ahmedabad (Naroda GIDC)" },
-              { id: "Hyderabad", label: "📍 Hyderabad (HITEC City)" },
-            ].map((city) => {
-              const active = selectedCity === city.id;
-              return (
-                <button
-                  key={city.id}
-                  onClick={() => { setSelectedCity(city.id); }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
-                    active
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : city.highlight
-                      ? "bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
-                  }`}
-                >
-                  <span>{city.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sub-Corridors for Indore Hub */}
-          {selectedCity === "Indore" && (
-            <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Indore Corridors:</span>
-              {[
-                { label: "All Hub (7)", query: "" },
-                { label: "🏢 Vijay Nagar & Scheme 78", query: "Vijay Nagar" },
-                { label: "🏭 Sanwer Road Industrial Area", query: "Sanwer Road" },
-                { label: "🚛 Pithampur Auto & Pharma SEZ", query: "Pithampur" },
-                { label: "📦 Dewas Naka Corridor", query: "Dewas Naka" }
-              ].map((chip) => (
-                <button
-                  key={chip.label}
-                  onClick={() => setSearchQuery(chip.query)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                    searchQuery === chip.query
-                      ? "bg-indigo-600 text-white shadow-xs"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* =========================================================================
-            4. PLAIN-ENGLISH SEARCH BAR & INSTANT SMART SUGGESTIONS
-            ========================================================================= */}
-        <div className="space-y-2 pt-2 border-t border-slate-100">
+        <div ref={searchRef} className="relative">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search companies, startups, founders, or sectors in Indore (e.g. Solar, Robotics, Pharma)..."
+              placeholder="Search by company name, director, city (e.g. Indore), or trigger (e.g. Solar, ADT-1)..."
               value={searchQuery}
+              onFocus={() => setIsSearchFocused(true)}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchLeads()}
-              className="w-full bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 rounded-2xl pl-10 pr-24 py-3 focus:outline-none focus:border-indigo-500 shadow-inner"
+              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 focus:border-indigo-600 text-xs sm:text-sm font-semibold text-slate-900 rounded-2xl pl-10 pr-24 py-3 sm:py-3.5 focus:outline-none shadow-xs transition"
             />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-            <button
-              onClick={fetchLeads}
-              className="absolute right-2 top-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition"
-            >
-              Search
-            </button>
-            {searchQuery && (
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 sm:top-4" />
+
+            <div className="absolute right-2.5 top-2 sm:top-2.5 flex items-center gap-1.5">
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-200 transition"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
-                onClick={() => { setSearchQuery(""); fetchLeads(); }}
-                className="absolute right-20 top-3 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                type="button"
+                onClick={() => setIsSearchFocused(!isSearchFocused)}
+                className={`px-2.5 py-1 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${
+                  isSearchFocused 
+                    ? "bg-indigo-600 text-white border-indigo-600" 
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                }`}
               >
-                Clear
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                <span className="hidden sm:inline">Suggestions</span>
               </button>
-            )}
+            </div>
           </div>
 
-          {/* Quick One-Tap Suggestion Chips */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
-            <span className="font-bold text-[11px] text-slate-400">Quick Searches:</span>
-            {[
-              { label: "Indore Startups", query: "Indore" },
-              { label: "Sanwer Road & Pithampur", query: "Sanwer" },
-              { label: "Robotics & AI", query: "Robotics" },
-              { label: "Solar Energy", query: "Solar" },
-              { label: "Form ADT-1 Due", query: "ADT-1" },
-              { label: "Bank Charges > ₹1 Cr", query: "Charge" },
-            ].map((chip) => (
-              <button
-                key={chip.label}
-                onClick={() => { setSearchQuery(chip.query); fetchLeads(); }}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-[11px] font-medium transition border border-slate-200/80"
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
+          {/* Smart Auto-Suggest & Recommendations Popover */}
+          {isSearchFocused && (
+            <div className="absolute z-30 left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Recommended Cities &amp; Statutory Triggers</span>
+                </span>
+                <button
+                  onClick={() => setIsSearchFocused(false)}
+                  className="text-xs text-slate-400 hover:text-slate-700 font-bold"
+                >
+                  Close &times;
+                </button>
+              </div>
+
+              {/* Recommended Economic Hubs */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-semibold text-slate-400 block">📍 Recommended Hubs:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { label: "📍 Indore & Pithampur (7)", query: "Indore", highlight: true },
+                    { label: "📍 Pune MIDC (2)", query: "Pune" },
+                    { label: "📍 Bengaluru Tech (1)", query: "Bengaluru" },
+                    { label: "📍 Mumbai & Thane (1)", query: "Mumbai" },
+                    { label: "📍 Delhi NCR (1)", query: "Delhi" },
+                    { label: "📍 Ahmedabad GIDC (1)", query: "Ahmedabad" },
+                    { label: "📍 Hyderabad HITEC (1)", query: "Hyderabad" },
+                  ].map((rec) => (
+                    <button
+                      key={rec.label}
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery(rec.query);
+                        setIsSearchFocused(false);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                        rec.highlight
+                          ? "bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100"
+                          : "bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200"
+                      }`}
+                    >
+                      {rec.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommended Compliance Triggers */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                <span className="text-[11px] font-semibold text-slate-400 block">⚡ Popular Compliance Triggers:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { label: "🚨 Form ADT-1 Due", query: "ADT-1" },
+                    { label: "⚠️ Bank Charges > ₹1 Cr", query: "Charge" },
+                    { label: "🚀 Startups & Robotics", query: "Robotics" },
+                    { label: "☀️ Clean Energy & Solar", query: "Solar" },
+                    { label: "🏭 Sanwer Road Manufacturing", query: "Sanwer" },
+                  ].map((trig) => (
+                    <button
+                      key={trig.label}
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery(trig.query);
+                        setIsSearchFocused(false);
+                      }}
+                      className="px-2.5 py-1 rounded-xl text-xs font-medium bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 transition"
+                    >
+                      {trig.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* =========================================================================
-          5. SEARCH RESULTS SUMMARY HEADER
+          4. SEARCH RESULTS SUMMARY HEADER
           ========================================================================= */}
-      <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-indigo-950">
+      <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-indigo-950">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-bold">
             Showing <strong className="text-indigo-900 text-sm">{leads.length}</strong> verified corporate prospects
-            {selectedCity !== "ALL" && (
-              <span> in <strong className="text-indigo-900 underline">{selectedCity} &amp; Industrial Corridor</strong></span>
-            )}
             {searchQuery && (
               <span> matching "<strong className="text-indigo-900">{searchQuery}</strong>"</span>
             )}
           </span>
-          <span className="text-slate-400">&bull;</span>
+          <span className="text-slate-400 hidden sm:inline">&bull;</span>
           <span className="text-emerald-700 font-bold">{metrics.uncontacted} uncontacted today</span>
-          <span className="text-slate-400">&bull;</span>
+          <span className="text-slate-400 hidden sm:inline">&bull;</span>
           <span className="text-indigo-700 font-bold">Est. Fee Pipeline: ₹{metrics.totalPipelineValueLakhs} L</span>
         </div>
 
-        {(selectedCity !== "ALL" || searchQuery || salesQueue !== "ALL") && (
+        {(searchQuery || salesQueue !== "ALL") && (
           <button
             onClick={() => {
-              setSelectedCity("ALL");
               setSearchQuery("");
               setSalesQueue("ALL");
             }}
-            className="text-xs font-bold text-indigo-700 hover:text-indigo-900 hover:underline shrink-0"
+            className="text-xs font-bold text-indigo-700 hover:text-indigo-900 hover:underline shrink-0 text-left sm:text-right"
           >
             Reset All Filters
           </button>
@@ -1143,11 +1143,11 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
       </div>
 
       {/* =========================================================================
-          7. FAST 1-TAP CALL & OUTCOME LOGGER MODAL
+          7. FAST 1-TAP CALL & OUTCOME LOGGER MODAL (Responsive Bottom-Sheet)
           ========================================================================= */}
       {selectedLeadForLog && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
@@ -1269,8 +1269,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           8. COMPLETE CONTACT HISTORY AUDIT TRAIL MODAL
           ========================================================================= */}
       {selectedLeadForHistory && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-indigo-600" />
@@ -1325,8 +1325,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           9. 1-CLICK WHATSAPP & EXECUTIVE DOCKET DISPATCH MODAL
           ========================================================================= */}
       {selectedLeadForDocket && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 block">
@@ -1417,8 +1417,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           10. FORMAL PRINTABLE STATUTORY WARNING NOTICE MODAL
           ========================================================================= */}
       {selectedLeadForPrint && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-3xl w-full p-5 sm:p-8 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div className="flex items-center gap-2">
                 <Printer className="w-5 h-5 text-indigo-600" />
@@ -1526,8 +1526,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           11. VERIFICATION AUDIT PROOF MODAL
           ========================================================================= */}
       {selectedLeadForAudit && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -1585,8 +1585,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           11.5 EXECUTIVE CALLING PITCH & OBJECTION HANDLER MODAL
           ========================================================================= */}
       {selectedLeadForScript && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div className="flex items-center gap-2.5">
@@ -1759,8 +1759,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           12. LIVE ON-DEMAND SCRAPER & INGEST MODAL
           ========================================================================= */}
       {isScannerOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 block">
@@ -1920,8 +1920,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           13. BULK PROSPECTOR INGESTION MODAL
           ========================================================================= */}
       {isBulkOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
@@ -1976,8 +1976,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
           14. DATA SOURCES & SCRAPER CONFIG DRAWER
           ========================================================================= */}
       {isConfigOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-indigo-600" />

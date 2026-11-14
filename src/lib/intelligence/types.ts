@@ -125,6 +125,17 @@ export interface TargetEntityLead {
   primaryTrack: ServiceTrack;
   proof: VerificationProof;
   stage: LeadStage;
+  // Decision Maker & Real Contact Intelligence for Sales
+  phone?: string;
+  email?: string;
+  website?: string;
+  googleMapsUrl?: string;
+  suggestedFeeInr?: number;
+  annualTurnoverEstimatedInr?: number;
+  industrySector?: string;
+  followUpDate?: string;
+  dealValueEstimatedInr?: number;
+  hotLead?: boolean;
   outreachNotes?: string;
   assignedStaffId?: string;
   lastContactedAt?: string;
@@ -142,6 +153,8 @@ export interface LeadFilterCriteria {
   searchQuery?: string;
   industrialCluster?: string;
   minPenaltyInr?: number;
+  minCapitalInr?: number;
+  hotOnly?: boolean;
   limit?: number;
   offset?: number;
 }

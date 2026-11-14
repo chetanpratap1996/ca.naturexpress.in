@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
       industrialCluster: searchParams.get("cluster") || undefined,
       searchQuery: searchParams.get("q") || undefined,
       minPenaltyInr: searchParams.get("minPenalty") ? parseInt(searchParams.get("minPenalty")!, 10) : undefined,
-      limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 50,
+      minCapitalInr: searchParams.get("minCapital") ? parseInt(searchParams.get("minCapital")!, 10) : undefined,
+      hotOnly: searchParams.get("hotOnly") === "true",
+      limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 100,
       offset: searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0,
     };
 
@@ -41,6 +43,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    // Support batch insertion
+    if (Array.isArray(body.leads)) {
+      const inserted = await LeadStore.batchUpsertLeads(body.leads);
+      return NextResponse.json({ success: true, count: inserted.length, leads: inserted });
+    }
+
     if (!body.legalName || (!body.cin && !body.gstin)) {
       return NextResponse.json(
         { success: false, error: "Legal Name and either CIN or GSTIN are strictly required for 1000% accuracy." },
@@ -58,8 +66,8 @@ export async function POST(req: NextRequest) {
       tradeName: body.tradeName || body.legalName,
       companyType: body.companyType || "PVT_LTD",
       incorporationDate: body.incorporationDate || new Date().toISOString().split("T")[0],
-      authorizedCapitalInr: body.authorizedCapitalInr || 1000000,
-      paidUpCapitalInr: body.paidUpCapitalInr || 100000,
+      authorizedCapitalInr: body.authorizedCapitalInr || 2500000,
+      paidUpCapitalInr: body.paidUpCapitalInr || 1000000,
       state: body.state || "Madhya Pradesh",
       stateCode: body.stateCode || "MP",
       rocJurisdiction: body.rocJurisdiction || "ROC Gwalior",
@@ -67,6 +75,12 @@ export async function POST(req: NextRequest) {
       pincode: body.pincode || "452001",
       registeredAddress: body.registeredAddress || "Address on MCA Record",
       industrialCluster: body.industrialCluster,
+      industrySector: body.industrySector,
+      phone: body.phone,
+      email: body.email,
+      website: body.website,
+      googleMapsUrl: body.googleMapsUrl,
+      suggestedFeeInr: body.suggestedFeeInr,
       directors: body.directors || [],
       gstDetails: body.gstDetails,
       chargesRegistered: body.chargesRegistered || [],
@@ -100,29 +114,53 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, stage, outreachNotes } = body;
+    const { id, stage, outreachNotes, followUpDate, dealValueEstimatedInr, phone, email } = body;
 
-    if (!id || !stage) {
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: "Lead 'id' and 'stage' are required." },
+        { success: false, error: "Lead 'id' is required." },
         { status: 400 }
       );
     }
 
-    const updated = await LeadStore.updateLeadStage(id, stage as LeadStage, outreachNotes);
-    if (!updated) {
-      return NextResponse.json(
-        { success: false, error: `Lead with ID '${id}' not found.` },
-        { status: 404 }
-      );
+    if (stage) {
+      await LeadStore.updateLeadStage(id, stage as LeadStage, outreachNotes);
     }
 
+    if (outreachNotes !== undefined || followUpDate !== undefined || dealValueEstimatedInr !== undefined || phone || email) {
+      await LeadStore.updateLeadNotes(id, {
+        outreachNotes,
+        followUpDate,
+        dealValueEstimatedInr,
+        phone,
+        email,
+      });
+    }
+
+    const updated = await LeadStore.getLeadById(id);
     return NextResponse.json({ success: true, lead: updated });
   } catch (error: any) {
-    console.error("Failed updating lead stage:", error);
+    console.error("Failed updating lead:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to update lead" },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Lead 'id' is required" }, { status: 400 });
+    }
+
+    const removed = await LeadStore.deleteLead(id);
+    return NextResponse.json({ success: removed });
+  } catch (error: any) {
+    console.error("Failed deleting lead:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

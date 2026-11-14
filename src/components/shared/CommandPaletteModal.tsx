@@ -77,10 +77,10 @@ const WORKSPACE_TOOLS: WorkspaceTool[] = [
   },
   {
     id: "dashboard",
-    name: "Master Executive Dashboard",
+    name: "Executive Dashboard",
     tabId: "dashboard",
     category: "Cockpit",
-    description: "4 Master KPI Cards, On-Time Filing Rate, Critical 72h alerts & firm radar",
+    description: "Practice overview, compliance KPIs, upcoming deadlines, and fee collections",
     keywords: ["dashboard", "home", "cockpit", "kpi", "overview", "executive", "filing rate", "demands"],
     icon: LayoutDashboard,
     accentColor: "text-red-600 bg-red-50 border-red-200"
@@ -140,7 +140,7 @@ const WORKSPACE_TOOLS: WorkspaceTool[] = [
     name: "GSTR-2B vs 3B Reconciler",
     tabId: "gstr2b",
     category: "GST",
-    description: "Automated invoice-level ITC cross-matching & ineligible reversal sentinel",
+    description: "Automated invoice-level ITC matching and ineligible reversal reconciliation",
     keywords: ["2b", "gstr-2b", "gstr-3b", "itc", "gst reco", "reconcile", "reversal", "clause 44"],
     icon: Layers,
     accentColor: "text-purple-600 bg-purple-50 border-purple-200"
@@ -277,10 +277,10 @@ const WORKSPACE_TOOLS: WorkspaceTool[] = [
   },
   {
     id: "anti-poaching",
-    name: "Firm Security & Poaching Sentinel",
+    name: "Firm Security & Access Logs",
     tabId: "anti-poaching",
     category: "Security",
-    description: "Staff download velocity monitor, access logs, and realization scores",
+    description: "Staff activity audit trail, document export logs, and access security",
     keywords: ["security", "poaching", "anti-poaching", "download logs", "audit trail", "staff"],
     icon: Fingerprint,
     accentColor: "text-red-700 bg-red-50 border-red-200"

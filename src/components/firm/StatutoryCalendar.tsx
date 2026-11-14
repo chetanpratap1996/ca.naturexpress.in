@@ -279,48 +279,49 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Real-time Enterprise Penalty & Daily Accrual Radar (High-Contrast Theme) */}
-      <div className="bg-gradient-to-r from-red-50/90 via-white to-amber-50/40 text-slate-900 p-5 rounded-3xl shadow-sm border border-red-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Clean Enterprise Statutory Due Dates & Liabilities Banner */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xs border border-slate-200/90 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-btred-logo to-red-500" />
         <div>
           <div className="flex items-center gap-2">
-            <span className="bg-red-100 text-btred-logo text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-red-200 flex items-center gap-1">
+            <span className="bg-red-50 text-btred-logo text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-red-200 flex items-center gap-1.5">
               <Zap className="w-3 h-3 text-btred-logo" />
-              Real-Time Penalty Engine
+              Statutory Due Dates &amp; Liabilities
             </span>
-            <span className="text-xs text-slate-600 font-semibold">Monitoring {tasks.length} Active Obligations</span>
+            <span className="text-xs text-slate-500 font-medium">Monitoring {tasks.length} Active Obligations</span>
           </div>
-          <h2 className="text-lg md:text-xl font-black mt-1 tracking-tight text-slate-900 flex items-center gap-2">
-            Statutory Compliance Radar &amp; WhatsApp Chase Engine
+          <h2 className="text-lg md:text-xl font-black mt-1.5 tracking-tight text-slate-900 flex items-center gap-2">
+            Statutory Compliance Calendar &amp; Client Communications
           </h2>
-          <p className="text-xs text-slate-600 max-w-2xl mt-0.5">
-            Auto-calculates statutory fines (₹50/day GST u/s 47, Sec 234F ITR cap, Sec 271B audit &amp; MCA late fees) with 1-click WhatsApp document chases.
+          <p className="text-xs text-slate-500 max-w-2xl mt-0.5 font-medium">
+            Real-time statutory deadline tracking across GST, Income Tax, TDS, and MCA with automated client document collection.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="bg-white border border-slate-200 px-4 py-2.5 rounded-2xl text-right shadow-sm">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Daily Accruing Risk</span>
-            <span className="text-xl font-black text-btred-logo">₹{totalAccruingDaily.toLocaleString()}/day</span>
+        <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+          <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-2xl text-right shadow-2xs">
+            <span className="text-[10px] uppercase font-bold text-slate-500 block">Daily Accruing Late Fees</span>
+            <span className="text-lg sm:text-xl font-black text-btred-logo">₹{totalAccruingDaily.toLocaleString()}/day</span>
           </div>
           <button
             onClick={handleBulkChase}
             disabled={bulkChaseProgress || totalMissingDocs === 0}
-            className="flex-1 md:flex-initial bg-btred-logo hover:bg-btred-700 text-white text-xs font-black px-4 py-3 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+            className="flex-1 md:flex-initial bg-btred-logo hover:bg-btred-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
           >
             {bulkChaseProgress ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Chasing {tasks.filter(t => t.missingDocumentsCount > 0).length} Clients...
+                Sending {tasks.filter(t => t.missingDocumentsCount > 0).length} Reminders...
               </>
             ) : bulkChaseSuccess ? (
               <>
                 <Check className="w-4 h-4 text-white" />
-                Dispatched WhatsApp Nudges!
+                Client Reminders Dispatched
               </>
             ) : (
               <>
                 <Send className="w-3.5 h-3.5" />
-                Auto-Chase Missing Docs ({totalMissingDocs})
+                Send Client Reminders ({totalMissingDocs})
               </>
             )}
           </button>
@@ -457,8 +458,8 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-xs font-black uppercase tracking-wider text-amber-900">
-                  Quarterly TDS Radar (Forms 24Q, 26Q, 27Q &amp; Challan 281)
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Quarterly TDS Filings (Forms 24Q, 26Q, 27Q &amp; Challan 281)
                 </span>
               </div>
               <span className="text-[11px] text-slate-500 font-mono">
@@ -759,7 +760,7 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
                                       className="text-btred-logo font-black hover:underline flex items-center gap-0.5"
                                     >
                                       <Send className="w-2.5 h-2.5" />
-                                      WhatsApp Chase ({task.chaseCount})
+                                      Send Reminder ({task.chaseCount})
                                     </button>
                                   </div>
                                   {task.missingDocumentsList && task.missingDocumentsList.length > 0 && (
@@ -893,7 +894,7 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
                 className="px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition flex items-center gap-1"
               >
                 <Send className="w-3 h-3" />
-                Chase WhatsApp First
+                Send Reminder First
               </button>
               <button
                 onClick={() => {

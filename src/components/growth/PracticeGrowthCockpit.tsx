@@ -80,7 +80,9 @@ export function PracticeGrowthCockpit() {
       if (stageFilter !== "ALL") params.set("stage", stageFilter);
       if (searchQuery.trim()) params.set("q", searchQuery.trim());
 
-      const res = await fetch(`/api/growth/leads?${params.toString()}`);
+      const res = await fetch(`/api/growth/leads?${params.toString()}`, {
+        headers: { "x-sandbox-mode": "true" }
+      });
       const data = await res.json();
       if (data.success) {
         setLeads(data.leads || []);
@@ -122,7 +124,10 @@ export function PracticeGrowthCockpit() {
     try {
       const res = await fetch("/api/growth/leads", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-sandbox-mode": "true"
+        },
         body: JSON.stringify({ id: leadId, stage: newStage }),
       });
       const data = await res.json();
@@ -142,7 +147,9 @@ export function PracticeGrowthCockpit() {
     setIsDocketLoading(true);
     setDocketData(null);
     try {
-      const res = await fetch(`/api/growth/docket?leadId=${lead.id}`);
+      const res = await fetch(`/api/growth/docket?leadId=${lead.id}`, {
+        headers: { "x-sandbox-mode": "true" }
+      });
       const data = await res.json();
       if (data.success) {
         setDocketData(data.docket);
@@ -161,7 +168,10 @@ export function PracticeGrowthCockpit() {
   const handleTriggerCadence = async () => {
     setIsCadenceRunning(true);
     try {
-      const res = await fetch("/api/growth/cron?allowDev=true", { method: "POST" });
+      const res = await fetch("/api/growth/cron?allowDev=true", { 
+        method: "POST",
+        headers: { "x-sandbox-mode": "true" }
+      });
       const data = await res.json();
       if (data.success) {
         alert(`✅ Cadence Complete!\n• State Processed: ${data.result.targetStateProcessed}\n• Recalculated Clocks: ${data.result.recalculatedCount}\n• Newly Harvested: ${data.result.newlyHarvestedCount}\n• Execution Time: ${data.result.executionDurationMs}ms`);
@@ -188,7 +198,10 @@ export function PracticeGrowthCockpit() {
     try {
       const res = await fetch("/api/growth/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-sandbox-mode": "true"
+        },
         body: JSON.stringify({
           cin: scanCin.trim() || undefined,
           gstin: scanGstin.trim() || undefined,
@@ -217,7 +230,10 @@ export function PracticeGrowthCockpit() {
 
       const res = await fetch("/api/growth/leads", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-sandbox-mode": "true"
+        },
         body: JSON.stringify({
           cin,
           gstin,

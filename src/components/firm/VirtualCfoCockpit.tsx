@@ -472,7 +472,7 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
               : "text-slate-600 hover:bg-slate-100"
           }`}
         >
-          Debtor Aging &amp; Default Radar
+          Debtor Aging &amp; Overdue Analysis
         </button>
         <button
           onClick={() => setActiveTab("margins")}
@@ -677,7 +677,7 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-black text-slate-900">Debtor Aging &amp; Default Recovery Radar</h3>
+              <h3 className="text-lg font-black text-slate-900">Debtor Aging &amp; Receivables Recovery</h3>
               <p className="text-xs text-slate-500">
                 Identify stuck commercial receivables before they turn into bad debts requiring CARO write-offs.
               </p>

@@ -286,7 +286,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: "GST Matcher (2B vs 3B)",
     shortLabel: "GST 2B Matcher",
     categoryId: "gst-supply",
-    description: "Automated invoice-level ITC matching and ineligible reversal sentinel",
+    description: "Automated invoice-level ITC matching and ineligible reversal verification",
     icon: FileSpreadsheet,
     iconColor: "text-purple-600",
     badge: "ITC Defense",

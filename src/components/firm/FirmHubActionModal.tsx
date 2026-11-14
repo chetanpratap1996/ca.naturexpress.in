@@ -84,11 +84,11 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
       }
     },
     {
-      title: "1-Tap WhatsApp Chase Desk",
-      subtitle: "Dispatch zero-password magic links for missing docs",
+      title: "Client WhatsApp Document Desk",
+      subtitle: "Dispatch document upload links for pending client filings",
       icon: MessageSquare,
       color: "bg-teal-50 text-teal-700 border-teal-200",
-      badge: "Zero-API wa.me",
+      badge: "Direct Link",
       onClick: () => {
         onClose();
         onNavigateTab("whatsapp-ai");
@@ -184,7 +184,7 @@ export const FirmHubActionModal: React.FC<FirmHubActionModalProps> = ({
                 </span>
               </h3>
               <p className="text-xs text-slate-500 font-medium">
-                High-frequency daily practice workflows &amp; instant actions
+                Practice workflows &amp; quick actions
               </p>
             </div>
           </div>

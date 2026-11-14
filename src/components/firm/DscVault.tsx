@@ -147,7 +147,7 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
           </div>
           <div>
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              Physical DSC USB Token Vault &amp; Custody Radar
+              Physical DSC USB Token Vault &amp; Custody Register
               <span className="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">
                 Class 3 FIPS Certified
               </span>

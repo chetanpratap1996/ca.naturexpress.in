@@ -96,7 +96,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
     {
       id: "msme-43bh",
       icon: ShieldCheck,
-      title: "MSME 43B(h) Sentinel & Payment Shield",
+      title: "MSME 43B(h) Audit & Payment Compliance",
       tagline: "15/45-Day Payment Rule • Disallowance Shield • MSME Samadhaan",
       description: "Prevent catastrophic income tax additions under Section 43B(h). We categorize supplier micro/small registrations and ensure 100% tax deduction eligibility.",
       deliverables: [

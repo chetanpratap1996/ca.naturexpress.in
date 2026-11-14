@@ -226,13 +226,13 @@ export const CaCreatorContentStudio: React.FC = () => {
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
                 <Instagram className="w-3.5 h-3.5 text-pink-500" /> CA Content Creator Studio
               </span>
-              <span className="text-xs text-slate-500 font-mono">ICAI Rule 7 Compliant &bull; Zero API Cost</span>
+              <span className="text-xs text-slate-500 font-mono">ICAI Social Media Guidelines Compliant</span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <Video className="w-6 h-6 text-btred-logo" /> Viral Tax Reel Scripts &amp; Post Planner
+              <Video className="w-6 h-6 text-btred-logo" /> Tax Advisory Updates &amp; Post Planner
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Build your authority on Instagram, YouTube Shorts &amp; LinkedIn. Ready-to-shoot scripts for budget changes, Section 115BAC, MSME 45-day rules, and HRA with automated ICAI ethics compliance scanning.
+              Educational client bulletins for LinkedIn, YouTube &amp; newsletters. Structured scripts for budget changes, Section 115BAC, MSME 45-day rules, and corporate tax advisories.
             </p>
           </div>
 
@@ -419,8 +419,8 @@ export const CaCreatorContentStudio: React.FC = () => {
             <div className="space-y-4">
               {/* Hook Box */}
               <div className="bg-pink-50/70 border border-pink-200 p-4 rounded-2xl space-y-1">
-                <div className="text-[10px] font-black uppercase tracking-wider text-pink-700 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-pink-600" /> 3-Second Viral Hook (Look directly at camera)
+                <div className="text-[10px] font-bold uppercase tracking-wider text-pink-700 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-pink-600" /> Opening Summary &amp; Key Message
                 </div>
                 <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
                   "{selectedScript.hook}"

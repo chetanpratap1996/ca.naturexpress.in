@@ -181,18 +181,18 @@ export const LiveTaxNewsRadar: React.FC<LiveTaxNewsRadarProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-btred-logo font-black text-[10px] tracking-wider uppercase flex items-center gap-1 border border-red-200 animate-pulse">
-              <Flame className="w-3.5 h-3.5 text-btred-logo" /> WHAT'S TRENDING TODAY
+            <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-btred-logo font-bold text-[10px] tracking-wider uppercase flex items-center gap-1 border border-red-200">
+              <Flame className="w-3.5 h-3.5 text-btred-logo" /> STATUTORY UPDATES
             </span>
             <span className="text-xs text-slate-500 font-mono">
-              Live Statutory Circulars Radar &bull; Updated Daily
+              Live Statutory Notifications &bull; Updated Daily
             </span>
           </div>
           <h3 className="text-lg font-black text-slate-900 mt-1">
-            Official CBDT, CBIC &amp; MCA Notifications Ready for Viral Reels
+            Official CBDT, CBIC &amp; MCA Statutory Circulars &amp; Bulletins
           </h3>
           <p className="text-xs text-slate-600 mt-0.5">
-            Turn real-time tax circulars into high-authority 45-second video scripts in 1 click (100% Free of Cost &bull; Zero API Fees).
+            Convert latest statutory tax notifications and department circulars into client advisory bulletins and advisory scripts.
           </p>
         </div>
 

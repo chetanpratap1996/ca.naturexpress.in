@@ -524,7 +524,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5 text-indigo-500" />
-          Director Risk Radar
+          Director Compliance &amp; Risk
         </button>
 
         <button

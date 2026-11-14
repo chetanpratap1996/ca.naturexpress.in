@@ -1744,7 +1744,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
         </div>
       )}
 
-      {/* TAB 4: WHATSAPP DESK (1-Tap Zero-API Links) */}
+      {/* TAB 4: WHATSAPP DESK (Direct Client Links) */}
       {activeTab === "chat-hub" && (
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
           {/* Header & Controls */}

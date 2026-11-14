@@ -539,7 +539,7 @@ export const KeysVault: React.FC<KeysVaultProps> = ({
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Zero-chaos client password vault (GST, ITR, MCA, TRACES) plus hardware Class 3 USB dongle radar. No more forgotten passwords or locked tokens.
+              Centralized portal credentials (GST, ITR, MCA, TRACES) and hardware Class 3 USB token custody register.
             </p>
           </div>
         </div>
@@ -854,7 +854,7 @@ export const KeysVault: React.FC<KeysVaultProps> = ({
               <KeyRound className="w-4 h-4 text-btred-logo" />
               Physical USB Hardware Dongle Vault ({filteredDscTokens.length})
             </h4>
-            <span className="text-[11px] text-slate-600 font-medium">Safe Locker Custody &amp; PIN Radar</span>
+            <span className="text-[11px] text-slate-600 font-medium">Safe Locker Custody &amp; PIN Management</span>
           </div>
 
           {filteredDscTokens.length === 0 ? (

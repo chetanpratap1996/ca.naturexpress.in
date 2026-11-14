@@ -114,7 +114,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
             <span className="text-xs text-slate-500 font-medium">Companies Act 2013 &amp; SFT Tax Vigilance</span>
           </div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            Director Personal Risk &amp; MCA Penalty Shield
+            Director Statutory Compliance &amp; Risk Register
           </h2>
           <p className="text-sm text-slate-600 mt-0.5">
             Real-time vigilance against Section 164(2) disqualifications, DIN freezes, MCA compounding daily penalties, and personal tax mismatches.

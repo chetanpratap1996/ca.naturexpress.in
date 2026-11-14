@@ -94,7 +94,7 @@ export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
               </li>
               <li>
                 <a href="#practice-areas" className="hover:text-btred-600 transition-colors">
-                  MSME Section 43B(h) Audit Sentinel
+                  MSME Section 43B(h) Audit &amp; Compliance
                 </a>
               </li>
               <li>

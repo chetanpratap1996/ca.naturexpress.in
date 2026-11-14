@@ -99,7 +99,7 @@ export const CaStatutoryCalendar: React.FC<CaStatutoryCalendarProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-btred-600 text-xs font-bold mb-3">
               <CalendarIcon className="w-3.5 h-3.5" />
-              <span>Real-Time Compliance Sentinel</span>
+              <span>Statutory Compliance Tracking</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
               Statutory Tax &amp; Corporate Deadlines

@@ -108,12 +108,12 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  // Check if entering sandbox directly
+  // Check if entering sandbox directly or via practice tab deep link
   const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       try {
         const params = new URLSearchParams(window.location.search);
-        return params.get("demo") === "true" || params.get("view") === "sandbox";
+        return params.get("demo") === "true" || params.get("view") === "sandbox" || !!params.get("tab");
       } catch (e) {
         return false;
       }
@@ -251,11 +251,14 @@ export default function Home() {
         return;
       }
 
-      // CASE 4: Explicit Sandbox Evaluation Flag
-      if (demoParam === "true" || viewParam === "sandbox") {
+      // CASE 4: Explicit Sandbox Evaluation Flag or Direct Practice Tab Deep Link
+      if (demoParam === "true" || viewParam === "sandbox" || tabParam) {
         setCurrentUser(DEMO_USERS.partner);
         setCurrentView("partner");
         setIsDemoSandbox(true);
+        if (tabParam) {
+          setActivePartnerTab(tabParam);
+        }
         return;
       }
     } catch (e) {

@@ -14,6 +14,7 @@
 import crypto from "crypto";
 import { parseCinStrict, CinParsedMetadata } from "../registry/mcaEngine";
 import { validateGstinStrict, GstinValidationResult } from "../registry/gstValidator";
+import { GstnLiveResolver, LiveGstProfile } from "../registry/gstnLiveResolver";
 import { evaluateDeterministicPainPoints } from "../engine/deterministicRules";
 import { AUTHENTIC_CORPORATE_REGISTRY } from "../registry/authenticCorporateRegistry";
 import { PAN_INDIA_STATES, getStateByCode } from "../panIndiaDirectory";
@@ -141,37 +142,46 @@ export class CorporateScraperEngine {
       }
     }
 
-    // 3. Validate GSTIN if provided
+    // 3. Resolve GSTIN if provided (Live API or CBIC Statutory Decoder)
+    let liveGstProfile: LiveGstProfile | null = null;
     let gstMeta: GstinValidationResult | null = null;
     if (rawGstin) {
-      gstMeta = validateGstinStrict(rawGstin);
-      if (!gstMeta.isValid) {
+      try {
+        liveGstProfile = await GstnLiveResolver.resolveTaxpayer(rawGstin);
+      } catch (err: any) {
         return {
           success: false,
           accuracyScore: 0,
           source: "GSTN_LIVE",
           auditHash: "",
-          error: gstMeta.error || `Invalid GSTIN format: ${rawGstin}`,
+          error: err.message || `Invalid GSTIN format: ${rawGstin}`,
         };
       }
+      gstMeta = validateGstinStrict(rawGstin);
     }
 
     // 4. Derive geographic and statutory parameters
-    const stateCode = cinMeta?.stateCode || gstMeta?.stateCode || input.stateCode || "MP";
+    const stateCode = cinMeta?.stateCode || liveGstProfile?.stateCode || gstMeta?.stateCode || input.stateCode || "MP";
     const stateMeta = PAN_INDIA_STATES[stateCode] || getStateByCode(stateCode);
-    const stateName = stateMeta ? stateMeta.name : "Madhya Pradesh";
+    const stateName = stateMeta ? stateMeta.name : (liveGstProfile?.state || "Madhya Pradesh");
     const rocJurisdiction = cinMeta?.rocJurisdictions[0] || stateMeta?.rocJurisdictions[0] || "ROC Regional";
     const primaryCluster = stateMeta?.keyIndustrialClusters[0];
-    const city = input.city || primaryCluster?.city.split("/")[0].trim() || "Indore";
-    const pincode = primaryCluster?.pinPrefixes[0] || "452001";
+    const city = input.city || liveGstProfile?.city || primaryCluster?.city.split("/")[0].trim() || "Indore";
+    const pincode = liveGstProfile?.pincode || primaryCluster?.pinPrefixes[0] || "452001";
 
     const companyType: CompanyType = cinMeta?.companyType || "PVT_LTD";
-    const incDate = input.incorporationDate || (cinMeta ? `${cinMeta.incorporationYear}-02-15` : new Date(Date.now() - 20 * 86400000).toISOString().split("T")[0]);
-    const legalName = input.legalName || (rawCin ? `Corporate Entity (${rawCin})` : `Taxpayer Enterprise (${rawGstin})`);
+    const incDate = input.incorporationDate || liveGstProfile?.registrationDate || (cinMeta ? `${cinMeta.incorporationYear}-02-15` : new Date(Date.now() - 20 * 86400000).toISOString().split("T")[0]);
 
+    // Authentic legal name determination - Never invent fake company names
+    const legalName = input.legalName || 
+      liveGstProfile?.legalName || 
+      (rawCin ? `Corporate Entity (CIN: ${rawCin})` : `Registered Taxpayer Entity [PAN: ${rawGstin?.substring(2, 12)}]`);
+
+    const tradeName = input.legalName || liveGstProfile?.tradeName || legalName;
     const pan = rawGstin ? rawGstin.substring(2, 12) : `AABC${rawCin ? rawCin.slice(2, 6) : "P123"}`;
+    const panEntityChar = pan[3] || "C";
 
-    // Synthesize verified directors if none provided
+    // Verified directors or authentic role mapping - Never invent fake director names
     const directors = input.directors && input.directors.length > 0 
       ? input.directors.map((name, idx) => ({
           din: `09${Math.floor(100000 + Math.random() * 900000)}`,
@@ -179,9 +189,16 @@ export class CorporateScraperEngine {
           designation: idx === 0 ? "Managing Director" : "Director",
           appointmentDate: incDate,
         }))
+      : panEntityChar === "P"
+      ? [
+          { din: "N/A", name: "Proprietor / Authorised Signatory", designation: "Proprietor", appointmentDate: incDate }
+        ]
+      : panEntityChar === "F"
+      ? [
+          { din: "N/A", name: "Designated Partner", designation: "Partner", appointmentDate: incDate }
+        ]
       : [
-          { din: "09812450", name: "Executive Director", designation: "Managing Director", appointmentDate: incDate },
-          { din: "09812451", name: "Director Nominee", designation: "Director", appointmentDate: incDate }
+          { din: "MCA21_MASTER_DATA", name: "Board of Directors (View MCA21 Gazette)", designation: "Director", appointmentDate: incDate }
         ];
 
     // Evaluate penalty and compliance triggers
@@ -194,12 +211,12 @@ export class CorporateScraperEngine {
       gstDetails: rawGstin ? {
         gstin: rawGstin,
         legalName,
-        tradeName: legalName,
-        status: "Active",
-        taxpayerType: "Regular",
+        tradeName,
+        status: (liveGstProfile?.status === "Cancelled" || liveGstProfile?.status === "Suspended" || liveGstProfile?.status === "Pending") ? liveGstProfile.status : "Active",
+        taxpayerType: liveGstProfile?.taxpayerType || "Regular",
         registrationDate: incDate,
-        stateCode: stateMeta ? stateMeta.gstCode : "23",
-        filingFrequency: "Monthly",
+        stateCode: stateMeta ? stateMeta.gstCode : (liveGstProfile?.stateCode || "23"),
+        filingFrequency: liveGstProfile?.filingFrequency || "Monthly",
         returnFilingHistory: [],
         defaultsCount: 0,
         principalPlace: {

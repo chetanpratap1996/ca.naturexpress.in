@@ -53,7 +53,9 @@ import {
   History,
   PhoneCall,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Clipboard,
+  Zap
 } from "lucide-react";
 
 export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted?: () => void } = {}) {
@@ -111,6 +113,156 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   const [scanWebsite, setScanWebsite] = useState<string>("");
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanResult, setScanResult] = useState<any | null>(null);
+  const [isQuickScraping, setIsQuickScraping] = useState<boolean>(false);
+
+  // Smart Identifier Detection in Search Bar
+  const detectedIdentifier = useMemo(() => {
+    if (!searchQuery) return null;
+    const clean = searchQuery.trim().replace(/[\s-]/g, "").toUpperCase();
+
+    // Check GSTIN pattern (15 chars)
+    if (/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(clean)) {
+      const stateCode = clean.substring(0, 2);
+      const stateMeta = PAN_INDIA_STATES[stateCode] || { name: `State (${stateCode})` };
+      const pan = clean.substring(2, 12);
+      const fourth = pan[3];
+      const entityDesc = fourth === "C" 
+        ? "Private / Public Limited Company" 
+        : fourth === "P" 
+        ? "Proprietorship / Individual" 
+        : fourth === "F" 
+        ? "Partnership Firm / LLP" 
+        : fourth === "T" 
+        ? "Trust / Society" 
+        : "Commercial Entity";
+      return { type: "GSTIN" as const, raw: clean, stateCode, stateName: stateMeta.name, pan, entityDesc };
+    }
+
+    // Check CIN pattern (21 chars)
+    if (/^[UL]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(clean)) {
+      return { type: "CIN" as const, raw: clean, entityDesc: "MCA21 Registered Corporate Body" };
+    }
+
+    // Check PAN pattern (10 chars)
+    if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(clean)) {
+      const fourth = clean[3];
+      const entityDesc = fourth === "C" ? "Company PAN" : fourth === "P" ? "Individual / Proprietor PAN" : fourth === "F" ? "Firm / LLP PAN" : "Income Tax PAN";
+      return { type: "PAN" as const, raw: clean, entityDesc };
+    }
+
+    return null;
+  }, [searchQuery]);
+
+  // Check if detected identifier already exists in loaded leads
+  const isIdentifierAlreadyInLeads = useMemo(() => {
+    if (!detectedIdentifier) return false;
+    return leads.some(l => 
+      (detectedIdentifier.type === "GSTIN" && l.gstin?.replace(/[\s-]/g, "").toUpperCase() === detectedIdentifier.raw) ||
+      (detectedIdentifier.type === "CIN" && l.cin?.replace(/[\s-]/g, "").toUpperCase() === detectedIdentifier.raw) ||
+      (detectedIdentifier.type === "PAN" && l.pan?.replace(/[\s-]/g, "").toUpperCase() === detectedIdentifier.raw)
+    );
+  }, [detectedIdentifier, leads]);
+
+  // Quick scrape handler from search bar
+  const handleQuickScrapeGstin = async (gstinToScrape: string, stateCodeHint?: string) => {
+    setIsQuickScraping(true);
+    try {
+      const res = await fetch("/api/growth/scrape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-sandbox-mode": "true",
+        },
+        body: JSON.stringify({
+          gstin: gstinToScrape,
+          stateCode: stateCodeHint,
+          autoCommit: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.lead) {
+        setSearchQuery(gstinToScrape);
+        await fetchLeads();
+      } else {
+        alert(data.error || "Failed to resolve GSTIN against registries.");
+      }
+    } catch (err: any) {
+      alert("Error resolving GSTIN: " + err.message);
+    } finally {
+      setIsQuickScraping(false);
+    }
+  };
+
+  const handleScanGstinChange = (val: string) => {
+    setScanGstin(val);
+    const clean = val.replace(/[\s-]/g, "").toUpperCase();
+    if (clean.length >= 2) {
+      const stateCode = clean.substring(0, 2);
+      if (PAN_INDIA_STATES[stateCode]) {
+        setScanStateCode(stateCode);
+      }
+    }
+  };
+
+  // Smart Paste MCA / GST text extractor
+  const [smartPasteText, setSmartPasteText] = useState<string>("");
+  const [showSmartPaste, setShowSmartPaste] = useState<boolean>(false);
+  const [pasteFeedback, setPasteFeedback] = useState<string | null>(null);
+
+  const handleParseSmartPaste = (rawText: string) => {
+    if (!rawText.trim()) return;
+    
+    // 1. Extract CIN (21 characters)
+    const cinMatch = rawText.match(/\b([UL]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6})\b/i);
+    if (cinMatch) setScanCin(cinMatch[1].toUpperCase());
+
+    // 2. Extract GSTIN (15 characters)
+    const gstinMatch = rawText.match(/\b(\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1})\b/i);
+    if (gstinMatch) setScanGstin(gstinMatch[1].toUpperCase());
+
+    // 3. Extract Email
+    const emailMatch = rawText.match(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/);
+    if (emailMatch) setScanEmail(emailMatch[1].toLowerCase());
+
+    // 4. Extract Indian Phone (+91 or 10-digit, handles spaces/dashes)
+    const phoneMatch = rawText.match(/(?:\+91[\s-]?)?([6-9][\d\s-]{8,12}\d)/);
+    if (phoneMatch) {
+      const cleanDigits = phoneMatch[1].replace(/[\s-]/g, "");
+      if (cleanDigits.length === 10) {
+        setScanPhone(`+91 ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`);
+      }
+    }
+
+    // 5. Extract Company Name
+    const nameMatch = rawText.match(/(?:Company Name|Legal Name|Entity Name|Taxpayer Name)[:\s]+([^\n\r]+)/i);
+    if (nameMatch) {
+      setScanLegalName(nameMatch[1].trim());
+    } else {
+      const lines = rawText.split(/[\r\n]+/);
+      const pvtLine = lines.find(l => /limited|pvt|llp/i.test(l) && !/category|class/i.test(l));
+      if (pvtLine) {
+        setScanLegalName(pvtLine.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9)]+$/g, "").trim());
+      }
+    }
+
+    // 6. City Detection
+    if (/indore|sanwer|pithampur|dewas|scheme 78|scheme 54|vijay nagar/i.test(rawText)) {
+      setScanCity("Indore");
+      setScanStateCode("MP");
+    } else if (/pune|bhosari|chakan|hinjawadi/i.test(rawText)) {
+      setScanCity("Pune");
+      setScanStateCode("MH");
+    } else if (/bengaluru|bangalore|whitefield|electronic city/i.test(rawText)) {
+      setScanCity("Bengaluru");
+      setScanStateCode("KA");
+    } else if (/mumbai|thane|navi mumbai/i.test(rawText)) {
+      setScanCity("Mumbai");
+      setScanStateCode("MH");
+    }
+
+    setPasteFeedback("✓ Extracted identifiers! Review fields below & click Scrape.");
+    setTimeout(() => setPasteFeedback(null), 5000);
+  };
 
   // Bulk input
   const [bulkInputText, setBulkInputText] = useState<string>("");
@@ -426,37 +578,37 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          1. SLEEK EXECUTIVE DARK BANNER & TELEMETRY (Mobile & Tablet Responsive)
+          1. CLEAN INSTITUTIONAL WHITE BANNER & TELEMETRY
           ========================================================================= */}
-      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 lg:p-8 shadow-xl border border-slate-800/80 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/70">
+      <div className="bg-white text-slate-900 rounded-3xl p-5 sm:p-7 lg:p-8 shadow-sm border border-slate-200 relative overflow-hidden">
         <div className="relative z-10 space-y-5 sm:space-y-6">
           {/* Top Line: Telemetry & Actions */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-5">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>MCA21 V3 Surveillance Active</span>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-[11px] font-mono">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold">
                   <span>CBIC GSTN &bull; Sec 43B(h) Radar</span>
                 </div>
               </div>
 
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 flex items-center gap-2.5">
                 <span>Practice Client Acquisition &amp; Growth Cockpit</span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-                Autonomous regulatory intelligence for Chartered Accountants. Converts MCA filing gaps, GST defaults, and statutory penalties into high-value retainer clients.
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                Autonomous statutory surveillance converting MCA21 filing defaults, GST compliance gaps, and compounding penalty exposures into high-value corporate retainer clients.
               </p>
             </div>
 
-            {/* Quick Action Buttons - Fully Responsive */}
+            {/* Quick Action Buttons - Clean Institutional Theme */}
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <button
                 onClick={() => setIsScannerOpen(true)}
-                className="px-3.5 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition hover:scale-[1.01]"
+                className="px-3.5 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Live Scrape Company</span>
@@ -464,9 +616,9 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
 
               <button
                 onClick={() => setIsBulkOpen(true)}
-                className="px-3 py-2 sm:py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
+                className="px-3 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition"
               >
-                <Layers className="w-4 h-4" />
+                <Layers className="w-4 h-4 text-slate-500" />
                 <span className="hidden sm:inline">Bulk Import</span>
                 <span className="sm:hidden">Import</span>
               </button>
@@ -474,26 +626,26 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               <button
                 onClick={handleExportCsv}
                 disabled={isExporting}
-                className="px-3 py-2 sm:py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
+                className="px-3 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition"
                 title="Export filtered leads to CSV"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 <span className="hidden sm:inline">Export</span>
               </button>
 
               <button
                 onClick={handleTriggerCadence}
                 disabled={isCadenceRunning}
-                className="px-3 py-2 sm:py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
+                className="px-3 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition"
                 title="Sync statutory clocks"
               >
-                <Sparkles className={`w-4 h-4 text-amber-400 ${isCadenceRunning ? "animate-spin" : ""}`} />
+                <Sparkles className={`w-4 h-4 text-amber-500 ${isCadenceRunning ? "animate-spin" : ""}`} />
                 <span className="hidden md:inline">{isCadenceRunning ? "Syncing..." : "Sync"}</span>
               </button>
 
               <button
                 onClick={() => setIsConfigOpen(true)}
-                className="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700"
+                className="p-2 sm:p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 transition border border-slate-200 shadow-sm"
                 title="API Configuration"
               >
                 <Settings className="w-4 h-4" />
@@ -501,60 +653,60 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
             </div>
           </div>
 
-          {/* Key Sales Metrics Strip */}
+          {/* Key Sales Metrics Strip - Clean Pastel Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div 
               onClick={() => { setSalesQueue("UNCONTACTED_TODAY"); }}
-              className="bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3 sm:p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/70"
+              className="bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 rounded-2xl p-3 sm:p-4 shadow-sm cursor-pointer transition"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400">Calling Queue</span>
-                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-700">Calling Queue</span>
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               </div>
               <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
-                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{metrics.uncontacted}</span>
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Ready Today</span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">{metrics.uncontacted}</span>
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Ready Today</span>
               </div>
             </div>
 
             <div 
               onClick={() => { setSalesQueue("FOLLOW_UP_DUE"); }}
-              className="bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-3 sm:p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/70"
+              className="bg-slate-50 hover:bg-amber-50/60 border border-slate-200 hover:border-amber-300 rounded-2xl p-3 sm:p-4 shadow-sm cursor-pointer transition"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-400">Follow-ups Due</span>
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-700">Follow-ups Due</span>
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
               </div>
               <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
-                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{metrics.followUps}</span>
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Scheduled</span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">{metrics.followUps}</span>
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Scheduled</span>
               </div>
             </div>
 
             <div 
               onClick={() => { setSearchQuery("Indore"); }}
-              className="bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-3 sm:p-4 shadow-inner cursor-pointer transition hover:bg-slate-800/70"
+              className="bg-slate-50 hover:bg-indigo-50/60 border border-slate-200 hover:border-indigo-300 rounded-2xl p-3 sm:p-4 shadow-sm cursor-pointer transition"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-indigo-400">Indore Hub</span>
-                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-indigo-700">Indore Hub</span>
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500" />
               </div>
               <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
-                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{metrics.indoreTotal}</span>
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Indore &amp; Pithampur</span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">{metrics.indoreTotal}</span>
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Indore &amp; Pithampur</span>
               </div>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-inner">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Retainer Value</span>
-                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600">Retainer Value</span>
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
               </div>
               <div className="flex items-baseline gap-2 mt-1 sm:mt-2">
-                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-white">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900">
                   ₹{metrics.totalPipelineValueLakhs} L
                 </span>
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Annual Potential</span>
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Annual Potential</span>
               </div>
             </div>
           </div>
@@ -722,6 +874,68 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               </div>
             </div>
           )}
+          {/* Smart GST / CIN Live Detection & 1-Click Intake Card */}
+          {detectedIdentifier && !isIdentifierAlreadyInLeads && (
+            <div className="mt-3 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>Valid Indian {detectedIdentifier.type} Detected</span>
+                    </span>
+                    <span className="font-mono text-xs font-black text-emerald-300">{detectedIdentifier.raw}</span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    {detectedIdentifier.stateName ? <strong className="text-white">{detectedIdentifier.stateName} &bull; </strong> : ""}
+                    {detectedIdentifier.entityDesc}
+                    {detectedIdentifier.pan ? <span> &bull; PAN: <span className="font-mono text-white font-bold">{detectedIdentifier.pan}</span></span> : ""}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Not currently in your firm's local pipeline. Click below to live scrape statutory compliance status and add to calling queue.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <a
+                    href="https://services.gst.gov.in/services/searchtp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+                    title="Verify directly on CBIC portal"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>gst.gov.in</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickScrapeGstin(detectedIdentifier.raw, detectedIdentifier.stateCode)}
+                    disabled={isQuickScraping}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-900/40 transition active:scale-95 disabled:opacity-50"
+                  >
+                    {isQuickScraping ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Resolving Statutory Registries...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Live Scrape &amp; Ingest Lead</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {detectedIdentifier && isIdentifierAlreadyInLeads && (
+            <div className="mt-2.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Exact {detectedIdentifier.type} matched in active pipeline: <strong className="font-mono">{detectedIdentifier.raw}</strong></span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -766,18 +980,87 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
             <p className="text-xs text-slate-400">Filtering across MCA21 gazettes and statutory penalty clocks</p>
           </div>
         ) : leads.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center shadow-sm space-y-3">
-            <Building2 className="w-12 h-12 text-slate-300 mx-auto" />
-            <h3 className="text-lg font-bold text-slate-900">No leads matching this search</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Try clicking "Pan-India (All Cities)" or click "Live Scrape Any Company" to verify any company directly.
-            </p>
-            <button
-              onClick={() => { setSelectedCity("ALL"); setSearchQuery(""); setSalesQueue("ALL"); }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
-            >
-              Show All Leads
-            </button>
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-14 text-center shadow-sm space-y-4 max-w-lg mx-auto">
+            {detectedIdentifier ? (
+              <>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
+                  <Zap className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider">
+                    <span>Valid {detectedIdentifier.type} Detected</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 font-mono">
+                    {detectedIdentifier.raw}
+                  </h3>
+                  <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                    {detectedIdentifier.stateName ? <strong>{detectedIdentifier.stateName} &bull; </strong> : ""}
+                    {detectedIdentifier.entityDesc}
+                    {detectedIdentifier.pan ? <span> &bull; PAN: <strong className="font-mono">{detectedIdentifier.pan}</strong></span> : ""}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    This statutory entity is mathematically verified but not yet imported into your practice calling queue.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickScrapeGstin(detectedIdentifier.raw, detectedIdentifier.stateCode)}
+                    disabled={isQuickScraping}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-900/20 transition active:scale-95 disabled:opacity-50"
+                  >
+                    {isQuickScraping ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Resolving Live Registries...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Live Scrape &amp; Add to Today's Queue</span>
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href="https://services.gst.gov.in/services/searchtp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs flex items-center gap-1.5 transition"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Check on gst.gov.in</span>
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <Building2 className="w-12 h-12 text-slate-300 mx-auto" />
+                <h3 className="text-lg font-bold text-slate-900">No leads matching this search</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  {searchQuery ? `"${searchQuery}" was not found in the local active queue.` : "Try selecting a different sales queue or clearing filters."}
+                </p>
+                <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+                  {searchQuery && (
+                    <button
+                      onClick={() => {
+                        setScanLegalName(searchQuery);
+                        setIsScannerOpen(true);
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Live Scrape "{searchQuery}"</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setSelectedCity("ALL"); setSearchQuery(""); setSalesQueue("ALL"); }}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition"
+                  >
+                    Show All Leads
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5">
@@ -1776,6 +2059,50 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               </button>
             </div>
 
+            {/* Smart Paste Toggle & Extraction Box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Clipboard className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>📋 Smart Paste (MCA / GST Raw Text)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowSmartPaste(!showSmartPaste)}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                >
+                  {showSmartPaste ? "Hide Smart Paste" : "Paste Raw Text"}
+                </button>
+              </div>
+
+              {showSmartPaste && (
+                <div className="space-y-2 animate-in fade-in duration-150">
+                  <textarea
+                    rows={3}
+                    placeholder="Paste raw text copied from MCA21 company master data, GST registration, or email signature..."
+                    value={smartPasteText}
+                    onChange={(e) => setSmartPasteText(e.target.value)}
+                    className="w-full bg-white border border-slate-300 text-xs text-slate-800 rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleParseSmartPaste(smartPasteText)}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Auto-Extract &amp; Fill Fields</span>
+                    </button>
+                    {pasteFeedback && (
+                      <span className="text-[11px] font-bold text-emerald-700 animate-in fade-in">
+                        {pasteFeedback}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <form onSubmit={handleRunScan} className="space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -1790,16 +2117,43 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">GSTIN (15-Character CBIC)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700">GSTIN (15-Character CBIC)</label>
+                    <a
+                      href="https://services.gst.gov.in/services/searchtp"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => scanGstin && navigator.clipboard.writeText(scanGstin.trim())}
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      title="Open official CBIC GST portal"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>gst.gov.in</span>
+                    </a>
+                  </div>
                   <input
                     type="text"
                     placeholder="e.g. 23AABCT9981M1ZK"
                     value={scanGstin}
-                    onChange={(e) => setScanGstin(e.target.value)}
+                    onChange={(e) => handleScanGstinChange(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 text-xs font-mono font-bold text-slate-900 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 uppercase"
                   />
                 </div>
               </div>
+
+              {scanGstin.trim().length >= 15 && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-emerald-900 font-medium">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      {PAN_INDIA_STATES[scanGstin.trim().slice(0, 2)]?.name || "State " + scanGstin.trim().slice(0, 2)} &bull; PAN: <strong className="font-mono">{scanGstin.trim().slice(2, 12)}</strong>
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md border border-emerald-300">
+                    Mod-36 Verified
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700">Registered Legal Entity Name</label>

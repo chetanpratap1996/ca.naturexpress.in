@@ -132,15 +132,15 @@ export const ActiveToolHeader: React.FC<ActiveToolHeaderProps> = ({
           )}
         </button>
 
-        {/* 6-Column Mega Menu Quick Launch Button */}
+        {/* Workspaces Directory Quick Launch Button */}
         <button
           onClick={onOpenAppLauncher}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-btred-logo border border-red-200 text-xs font-black transition shadow-2xs shrink-0"
-          title="Open 6-Column Panoramic App Launcher (⌘M)"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold transition shadow-2xs shrink-0"
+          title="All Workspaces (⌘M)"
         >
           <Grid className="w-3.5 h-3.5 text-btred-logo" />
-          <span className="hidden sm:inline">All Workspaces</span>
-          <span className="sm:hidden">Launcher</span>
+          <span className="hidden sm:inline">Directory</span>
+          <span className="sm:hidden">Modules</span>
         </button>
       </div>
     </div>

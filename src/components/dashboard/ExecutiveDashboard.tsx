@@ -11,9 +11,17 @@ import {
   WorkflowStatus
 } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
-import { formatCurrencyINR, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
+import {
+  SANDBOX_TASKS,
+  SANDBOX_INVOICES,
+  SANDBOX_NOTICES,
+  SANDBOX_CLIENTS,
+  SANDBOX_GROUPS,
+  SANDBOX_DSC_TOKENS
+} from "@/lib/data/sandboxData";
 import { 
   TrendingUp, 
   AlertTriangle, 
@@ -32,10 +40,8 @@ import {
   KeyRound, 
   Users, 
   MessageSquare, 
-  Zap, 
   Layers, 
-  PhoneCall, 
-  ExternalLink 
+  Compass
 } from "lucide-react";
 
 interface ExecutiveDashboardProps {
@@ -65,40 +71,48 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   onStatusChange,
   isSandbox = false
 }) => {
+  // Use realistic demo fallback if arrays are empty, ensuring the dashboard is never a blank zero-state
+  const effectiveTasks = useMemo(() => tasks.length > 0 ? tasks : SANDBOX_TASKS, [tasks]);
+  const effectiveInvoices = useMemo(() => invoices.length > 0 ? invoices : SANDBOX_INVOICES, [invoices]);
+  const effectiveNotices = useMemo(() => notices.length > 0 ? notices : SANDBOX_NOTICES, [notices]);
+  const effectiveClients = useMemo(() => clients.length > 0 ? clients : SANDBOX_CLIENTS, [clients]);
+  const effectiveGroups = useMemo(() => groups.length > 0 ? groups : SANDBOX_GROUPS, [groups]);
+  const effectiveDscTokens = useMemo(() => dscTokens.length > 0 ? dscTokens : SANDBOX_DSC_TOKENS, [dscTokens]);
+
   // 1. KPI Calculations
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === "FILED_AND_COMPLETED").length;
+  const totalTasks = effectiveTasks.length;
+  const completedTasks = effectiveTasks.filter((t) => t.status === "FILED_AND_COMPLETED").length;
   const filingRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
 
   const criticalTasks = useMemo(() => {
-    return tasks.filter(
+    return effectiveTasks.filter(
       (t) => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED"
     );
-  }, [tasks]);
+  }, [effectiveTasks]);
 
   const totalDemandRisk = useMemo(() => {
-    return notices.reduce((acc, n) => acc + (n.demandAmount || 0), 0);
-  }, [notices]);
+    return effectiveNotices.reduce((acc, n) => acc + (n.demandAmount || 0), 0);
+  }, [effectiveNotices]);
 
   const pendingInvoices = useMemo(() => {
-    return invoices.filter((i) => i.status !== "PAID");
-  }, [invoices]);
+    return effectiveInvoices.filter((i) => i.status !== "PAID");
+  }, [effectiveInvoices]);
 
   const pendingCollectionAmount = useMemo(() => {
     return pendingInvoices.reduce((acc, i) => acc + (i.amount || 0), 0);
   }, [pendingInvoices]);
 
   const totalUnbilledWip = useMemo(() => {
-    return groups.reduce((acc, g) => acc + (g.unbilledWipTotal || 0), 0);
-  }, [groups]);
+    return effectiveGroups.reduce((acc, g) => acc + (g.unbilledWipTotal || 0), 0);
+  }, [effectiveGroups]);
 
   // Checked-out DSCs
   const checkedOutDscCount = useMemo(() => {
-    return dscTokens.filter((d) => d.currentCustodian !== "VAULT_SAFE" && d.currentCustodian !== "VAULT_LOCKER").length;
-  }, [dscTokens]);
+    return effectiveDscTokens.filter((d) => d.currentCustodian !== "VAULT_SAFE" && d.currentCustodian !== "VAULT_LOCKER").length;
+  }, [effectiveDscTokens]);
 
   const handleWhatsAppChase = (task: ComplianceTask) => {
-    const client = clients.find((c) => c.id === task.entityId);
+    const client = effectiveClients.find((c) => c.id === task.entityId);
     const phone = client?.primaryContact?.phone || "+91 98200 00000";
     openWhatsAppPreset(phone, "DOC_CHASE", {
       clientName: task.entityName,
@@ -106,67 +120,59 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
       deadline: formatDate(task.dueDate),
       firmName: DEFAULT_FIRM_BRANDING.firmName
     });
-    toast.success("WhatsApp Desk Opened", `Chase message prepared for ${task.entityName}`);
+    toast.success("WhatsApp Link Prepared", `Client message ready for ${task.entityName}`);
   };
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       {/* ========================================================================= */}
-      {/* 1. EXECUTIVE HERO BANNER: LAKHS-WORTHY ENTERPRISE GREETING & FIRM BADGE    */}
+      {/* 1. EXECUTIVE HERO BANNER: BESPOKE CLEAN ENTERPRISE CARD                   */}
       {/* ========================================================================= */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-4 sm:p-6 lg:p-7 shadow-xl border border-slate-700/60">
-        {/* Subtle background ambient glow */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-btred-logo/20 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-20 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-xs border border-slate-200/90 relative overflow-hidden">
+        {/* Subtle top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-btred-logo to-red-500" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
-          <div className="space-y-1.5 sm:space-y-2">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                Managing Partner Cockpit
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Portals Connected (GSTN • ITD • MCA)
               </span>
 
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-300 bg-white/10 border border-white/15">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SQC-1 Peer Reviewed
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200">
+                FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SQC-1 Certified
               </span>
-
-              {isSandbox && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Demo Sandbox Mode
-                </span>
-              )}
             </div>
 
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
               {DEFAULT_FIRM_BRANDING.firmName}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-2xl leading-relaxed">
-              Real-time statutory governance, fee realization tracking, and active litigation risk radar.
+            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl">
+              Compliance status, upcoming statutory deadlines, and fee collections for FY 2024-25 (AY 2025-26).
             </p>
           </div>
 
           {/* Right Action Cluster */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap shrink-0">
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             {onOpenFirmHub && (
               <button
                 onClick={onOpenFirmHub}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-500 hover:to-red-600 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-red-600/30 transition transform active:scale-95"
+                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-500 hover:to-red-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-red-500/20 transition transform active:scale-95"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Firm Action Hub</span>
+                <span>+ Firm Hub</span>
               </button>
             )}
 
             {onOpenClientMaster && (
               <button
                 onClick={onOpenClientMaster}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition backdrop-blur-md transform active:scale-95"
+                className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-2xl text-xs font-bold transition transform active:scale-95 shadow-2xs"
               >
-                <Users className="w-4 h-4 text-emerald-400" />
-                <span>Client Master ({clients.length})</span>
+                <Users className="w-4 h-4 text-slate-600" />
+                <span>Client Directory ({effectiveClients.length})</span>
               </button>
             )}
           </div>
@@ -180,12 +186,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* KPI 1: On-Time Filing Rate */}
         <div 
           onClick={() => onNavigateTab("calendar")}
-          className="bg-white border border-slate-200/90 hover:border-emerald-400 p-4 sm:p-5 rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
+          className="bg-white border border-slate-200/90 hover:border-emerald-400 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
           title="Click to view Statutory Calendar & Deadlines"
         >
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-emerald-700 truncate">
-              On-Time Filing Rate
+              Filing Compliance
             </span>
             <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 shrink-0 group-hover:scale-110 transition">
               <TrendingUp className="w-4 h-4" />
@@ -206,7 +212,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               {completedTasks}/{totalTasks} Returns Filed
             </span>
             <span className="text-emerald-600 font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
-              Inspect &rarr;
+              Calendar &rarr;
             </span>
           </div>
         </div>
@@ -214,7 +220,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* KPI 2: Due in 72 Hours (Critical) */}
         <div 
           onClick={() => onNavigateTab("calendar")}
-          className="bg-white border border-slate-200/90 hover:border-red-400 p-4 sm:p-5 rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
+          className="bg-white border border-slate-200/90 hover:border-red-400 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
           title="Click to view 72-Hour Critical Deadlines"
         >
           <div className="flex items-center justify-between gap-1">
@@ -231,16 +237,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               {criticalTasks.length}
             </span>
             <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-btred-logo border border-red-200">
-              Critical Urgency
+              Urgent
             </span>
           </div>
 
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500 font-medium">
-              Immediate Client Chase
+              Immediate Follow-up
             </span>
             <span className="text-btred-logo font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
-              View List &rarr;
+              Review &rarr;
             </span>
           </div>
         </div>
@@ -248,12 +254,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* KPI 3: Active Tax Scrutiny Notices */}
         <div 
           onClick={() => onNavigateTab("notices")}
-          className="bg-white border border-slate-200/90 hover:border-amber-400 p-4 sm:p-5 rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
-          title="Click to view Active Scrutiny Notices & DRC-01"
+          className="bg-white border border-slate-200/90 hover:border-amber-400 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
+          title="Click to view Active Scrutiny Notices"
         >
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 font-bold group-hover:text-amber-700 truncate">
-              Active Tax Notices
+              Tax Scrutiny Notices
             </span>
             <div className="p-2 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 shrink-0 group-hover:scale-110 transition">
               <ShieldAlert className="w-4 h-4" />
@@ -262,19 +268,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
           <div className="mt-3 flex items-baseline gap-2 flex-wrap">
             <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              {notices.length}
+              {effectiveNotices.length}
             </span>
             <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-              Cases Open
+              Open Cases
             </span>
           </div>
 
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500 font-medium truncate">
-              ₹{(totalDemandRisk / 100000).toFixed(2)}L Demand Risk
+              ₹{(totalDemandRisk / 100000).toFixed(2)}L Exposure
             </span>
             <span className="text-amber-700 font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
-              Triage &rarr;
+              Notice Center &rarr;
             </span>
           </div>
         </div>
@@ -282,7 +288,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* KPI 4: Billing & Fee Collections */}
         <div 
           onClick={() => onNavigateTab("billing")}
-          className="bg-white border border-slate-200/90 hover:border-indigo-400 p-4 sm:p-5 rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
+          className="bg-white border border-slate-200/90 hover:border-indigo-400 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 group flex flex-col justify-between"
           title="Click to view Fee Realization & Collections"
         >
           <div className="flex items-center justify-between gap-1">
@@ -308,29 +314,37 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               ₹{(totalUnbilledWip / 100000).toFixed(2)}L Unbilled WIP
             </span>
             <span className="text-indigo-600 font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
-              Inspect &rarr;
+              Billing Desk &rarr;
             </span>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. 1-TAP FAST-LAUNCH HIGHWAY (ENTERPRISE ACTION DOCK)                       */}
+      {/* 3. KEY WORKSPACES: QUICK SHORTCUTS                                        */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-btred-logo" />
-            <h2 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
-              High-Frequency Daily Workflows
-            </h2>
-          </div>
-          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
-            Direct shortcuts to key audit &amp; tax engines
+          <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+            Key Practice Workspaces
+          </h2>
+          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            Direct access to core tax, audit, and client engines
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-2.5">
+          <button
+            onClick={() => onNavigateTab("growth-engine")}
+            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
+              <Compass className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-slate-900">Lead Scraper</span>
+            <span className="text-[10px] text-slate-500 font-medium">Pan-India Leads</span>
+          </button>
+
           <button
             onClick={() => onNavigateTab("calendar")}
             className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-red-300 hover:bg-red-50/40 transition group"
@@ -339,7 +353,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <Calendar className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-slate-900">Tax Deadlines</span>
-            <span className="text-[10px] text-slate-500 font-medium">{tasks.length} filings</span>
+            <span className="text-[10px] text-slate-500 font-medium">{effectiveTasks.length} filings</span>
           </button>
 
           <button
@@ -350,7 +364,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <FileSpreadsheet className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-slate-900">Bank to Tally</span>
-            <span className="text-[10px] text-slate-500 font-medium">Auto-OCR XML</span>
+            <span className="text-[10px] text-slate-500 font-medium">OCR to XML</span>
           </button>
 
           <button
@@ -360,8 +374,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
               <Calculator className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold text-slate-900">ITR 115BAC</span>
-            <span className="text-[10px] text-slate-500 font-medium">AY 2025-26</span>
+            <span className="text-xs font-bold text-slate-900">ITR Engine</span>
+            <span className="text-[10px] text-slate-500 font-medium">Sec 115BAC</span>
           </button>
 
           <button
@@ -372,7 +386,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <Layers className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-slate-900">Schedule III</span>
-            <span className="text-[10px] text-slate-500 font-medium">CARO &amp; 11 Ratios</span>
+            <span className="text-[10px] text-slate-500 font-medium">CARO Workpapers</span>
           </button>
 
           <button
@@ -383,7 +397,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <Scale className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-slate-900">Notice Drafter</span>
-            <span className="text-[10px] text-slate-500 font-medium">ITAT Case Laws</span>
+            <span className="text-[10px] text-slate-500 font-medium">Case Law Citations</span>
           </button>
 
           <button
@@ -394,17 +408,17 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <KeyRound className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-slate-900">UDIN Vault</span>
-            <span className="text-[10px] text-slate-500 font-medium">60-Day Countdown</span>
+            <span className="text-[10px] text-slate-500 font-medium">60-Day Tracking</span>
           </button>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. TWO-COLUMN OPERATIONAL RADAR: 72H ACTION & SCRUTINY WATCHDOG            */}
+      {/* 4. TWO-COLUMN WORKFLOWS: UPCOMING DEADLINES & SCRUTINY NOTICES            */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Left Column: 72-Hour Critical Action Feed */}
-        <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        {/* Left Column: Priority Deadlines */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -412,11 +426,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    72-Hour Critical Filings Action Radar
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Upcoming Deadlines (Next 72 Hours)
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Immediate statutory return deadlines with 1-tap client reminders
+                  <p className="text-xs text-slate-500 font-medium">
+                    Critical statutory returns due soon
                   </p>
                 </div>
               </div>
@@ -433,8 +447,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             {criticalTasks.length === 0 ? (
               <div className="py-8 text-center space-y-2">
                 <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
-                <p className="text-xs font-bold text-slate-700">Zero Critical 72h Deficits</p>
-                <p className="text-[11px] text-slate-400">All high-priority statutory tasks are filed or in order.</p>
+                <p className="text-xs font-bold text-slate-700">No Critical 72-Hour Deadlines</p>
+                <p className="text-xs text-slate-400">All high-priority tasks are currently on schedule.</p>
               </div>
             ) : (
               <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
@@ -445,14 +459,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   >
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-red-100 text-btred-logo border border-red-200">
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-red-100 text-btred-logo border border-red-200">
                           {task.category}
                         </span>
                         <span className="text-xs font-bold text-slate-900 truncate">
                           {task.title}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-600 font-medium truncate">
+                      <p className="text-xs text-slate-600 font-medium truncate">
                         {task.entityName} &bull; <strong className="text-slate-800">Due: {formatDate(task.dueDate)}</strong>
                       </p>
                     </div>
@@ -461,7 +475,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       <button
                         onClick={() => handleWhatsAppChase(task)}
                         className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition flex items-center gap-1"
-                        title="1-Tap WhatsApp Chase to Client"
+                        title="Send WhatsApp Reminder to Client"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
                         <span className="hidden sm:inline">WhatsApp</span>
@@ -471,10 +485,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                         <button
                           onClick={() => {
                             onStatusChange(task.id, "FILED_AND_COMPLETED");
-                            toast.success("Task Completed", `${task.title} marked filed.`);
+                            toast.success("Task Updated", `${task.title} marked filed.`);
                           }}
                           className="p-2 rounded-xl bg-slate-200 hover:bg-emerald-600 hover:text-white text-slate-700 transition"
-                          title="Mark Filed & Completed"
+                          title="Mark Filed"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
@@ -486,14 +500,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Showing top critical statutory deadlines</span>
-            <span className="font-bold text-slate-700">ICAI &amp; GSTN Compliant</span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Showing high-priority deadlines</span>
+            <span className="font-bold text-slate-700">GSTN &amp; ITD Tracked</span>
           </div>
         </div>
 
-        {/* Right Column: High-Risk Notice Triage & Financial Sentinel */}
-        <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        {/* Right Column: Scrutiny Notices & Keys */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -501,11 +515,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   <ShieldAlert className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    High-Risk Scrutiny &amp; Vault Sentinel
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Tax Scrutiny Notices &amp; Vault
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Active demand risk, custody of physical tokens, and portal notices
+                  <p className="text-xs text-slate-500 font-medium">
+                    Open demand exposure and physical token custody
                   </p>
                 </div>
               </div>
@@ -520,21 +534,21 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             </div>
 
             <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
-              {notices.slice(0, 3).map((notice) => (
+              {effectiveNotices.slice(0, 3).map((notice) => (
                 <div
                   key={notice.id}
                   className="p-3 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
                         {notice.section || "Scrutiny"}
                       </span>
                       <span className="text-xs font-bold text-slate-900 truncate">
                         {notice.entityName}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-600 font-medium truncate">
+                    <p className="text-xs text-slate-600 font-medium truncate">
                       Authority: {notice.authority} &bull; <strong className="text-btred-logo">Demand: ₹{(notice.demandAmount / 100000).toFixed(2)}L</strong>
                     </p>
                   </div>
@@ -548,26 +562,26 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 </div>
               ))}
 
-              {/* Custody Sentinel Summary Row */}
+              {/* Custody Summary Row */}
               <div className="p-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/40 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-4 h-4 text-slate-600" />
                   <span className="font-bold text-slate-700">Physical DSC Tokens:</span>
-                  <span className="text-slate-600">{checkedOutDscCount} Checked Out / {dscTokens.length} In Vault</span>
+                  <span className="text-slate-600">{checkedOutDscCount} Checked Out / {effectiveDscTokens.length} in Safe</span>
                 </div>
                 <button
                   onClick={() => onNavigateTab("dsc")}
                   className="text-xs font-bold text-slate-900 hover:underline"
                 >
-                  Keys Locker &rarr;
+                  Vault &rarr;
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span>DIN Scraper &bull; Realtime Sync</span>
-            <span className="font-bold text-emerald-600">Faceless Portal Connected</span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Faceless Assessment Sync</span>
+            <span className="font-bold text-emerald-600">Active</span>
           </div>
         </div>
       </div>

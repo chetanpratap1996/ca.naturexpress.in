@@ -76,7 +76,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     });
   };
 
-  // Keyboard shortcut: Cmd/Ctrl + B to toggle sidebar collapse
+  // Keyboard shortcut: Cmd/Ctrl + B to toggle sidebar collapse & Custom Event from TopNav
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
@@ -84,8 +84,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         handleToggleCollapse();
       }
     };
+    const handleExternalToggle = () => {
+      handleToggleCollapse();
+    };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("bt-toggle-sidebar", handleExternalToggle);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("bt-toggle-sidebar", handleExternalToggle);
+    };
   }, []);
 
   // Filtered items based on search query
@@ -121,10 +128,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               </div>
               <div className="min-w-0">
                 <span className="font-extrabold text-xs text-slate-900 block truncate leading-tight">
-                  Firm Navigation
+                  Workspaces
                 </span>
                 <span className="text-[10px] text-slate-500 font-mono block truncate">
-                  6-Domain Matrix
+                  Practice Navigation
                 </span>
               </div>
             </div>
@@ -172,17 +179,17 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                 onOpenAppLauncher();
                 if (isMobile) onCloseMobileDrawer();
               }}
-              className={`w-full flex items-center gap-2 rounded-2xl bg-red-50/70 hover:bg-red-100 border border-red-200/80 text-btred-logo font-bold transition text-xs ${
+              className={`w-full flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold transition text-xs ${
                 collapsedMode ? "p-2.5 justify-center" : "px-3 py-2"
               }`}
-              title="Open 6-Column Panoramic App Launcher"
+              title="Open Workspaces Directory (⌘M)"
             >
               <Grid className="w-4 h-4 shrink-0 text-btred-logo" />
               {!collapsedMode && (
                 <div className="flex items-center justify-between w-full">
-                  <span>6-Column Mega Menu</span>
-                  <span className="text-[10px] bg-red-200/60 text-btred-logo px-1.5 py-0.5 rounded font-mono font-black">
-                    39 Tools
+                  <span>Directory &amp; Mega Menu</span>
+                  <span className="text-[10px] bg-slate-200/80 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">
+                    ⌘M
                   </span>
                 </div>
               )}

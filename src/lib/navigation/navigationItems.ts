@@ -23,6 +23,7 @@ import {
   Building2,
   Users,
   Grid,
+  Compass,
   LayoutDashboard
 } from "lucide-react";
 
@@ -52,9 +53,9 @@ export interface NavItem {
 export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: "operations",
-    name: "Executive Cockpit & Operations",
+    name: "Operations & Practice",
     shortName: "Operations",
-    description: "Firm overview, deadlines, WIP and daily registers",
+    description: "Deadlines, calendars, billing and daily dispatch registers",
     accentColor: "from-red-600 to-red-700",
     badgeColor: "bg-red-50 text-btred-logo border-red-200",
     icon: LayoutDashboard
@@ -63,43 +64,43 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: "direct-tax",
     name: "Direct Tax & Scrutiny",
     shortName: "Direct Tax",
-    description: "ITR calculations, AIS/26AS, and faceless notice replies",
+    description: "ITR calculations, AIS/26AS analysis, and notice drafting",
     accentColor: "from-amber-600 to-amber-700",
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
     icon: Calculator
   },
   {
     id: "audit-accounts",
-    name: "Corporate Audit & Financials",
-    shortName: "Audit & Accounts",
-    description: "Schedule III, CARO 2020, 3CD workpapers and Tally parser",
+    name: "Audit & Financials",
+    shortName: "Audit",
+    description: "Schedule III, CARO 2020, 3CD workpapers and Bank OCR",
     accentColor: "from-blue-600 to-indigo-700",
     badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
     icon: Layers
   },
   {
     id: "gst-supply",
-    name: "GST & Working Capital",
-    shortName: "GST & Supply",
-    description: "GSTR-2B vs 3B matcher and vendor credit sentinels",
+    name: "GST & Reconciliations",
+    shortName: "GST",
+    description: "GSTR-2B vs 3B matcher and ITC verification",
     accentColor: "from-purple-600 to-purple-700",
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
     icon: FileSpreadsheet
   },
   {
     id: "governance-vault",
-    name: "Governance, Vault & Compliance",
+    name: "Governance & Vault",
     shortName: "Governance",
-    description: "UDIN 60-day vault, physical DSCs, SA-210, and fee gates",
+    description: "UDIN register, physical DSC tokens, and SA-210 letters",
     accentColor: "from-emerald-600 to-teal-700",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
     icon: KeyRound
   },
   {
     id: "client-desk",
-    name: "Client Desk & Growth",
-    shortName: "Client Desk",
-    description: "1-Tap WhatsApp, client master groups and creator studio",
+    name: "Client Growth & Leads",
+    shortName: "Growth",
+    description: "Lead scraper, WhatsApp communications, and creator studio",
     accentColor: "from-teal-600 to-emerald-700",
     badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
     icon: MessageSquare
@@ -107,25 +108,25 @@ export const NAV_CATEGORIES: NavCategory[] = [
 ];
 
 export const ALL_NAV_ITEMS: NavItem[] = [
-  // --- COLUMN 1: EXECUTIVE COCKPIT & OPERATIONS ---
+  // --- COLUMN 1: OPERATIONS & PRACTICE ---
   {
     id: "dashboard",
     label: "Executive Dashboard",
     shortLabel: "Dashboard",
     categoryId: "operations",
-    description: "Master firm cockpit with 4 core KPIs, alerts and quick-actions",
+    description: "Practice overview, compliance KPIs, upcoming deadlines and collections",
     icon: LayoutDashboard,
     iconColor: "text-btred-logo",
-    badge: "Master",
+    badge: "Overview",
     badgeColor: "bg-red-50 text-btred-logo border-red-200",
     isDashboard: true
   },
   {
     id: "calendar",
-    label: "Statutory Tax Deadlines",
+    label: "Tax Deadlines & Calendar",
     shortLabel: "Deadlines",
     categoryId: "operations",
-    description: "100+ statutory due dates (GST, ITR, TDS, ROC) with assignment",
+    description: "Statutory due dates across GST, Income Tax, TDS, and MCA with staff assignments",
     icon: Calendar,
     iconColor: "text-btred-logo",
     badge: "Filing",
@@ -133,54 +134,54 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   },
   {
     id: "vcfo",
-    label: "vCFO Advisory Cockpit",
-    shortLabel: "vCFO Cockpit",
+    label: "vCFO Advisory & Ratios",
+    shortLabel: "vCFO Advisory",
     categoryId: "operations",
-    description: "Runway stress simulator, bank CMA ratios, and DSCR metrics",
+    description: "Financial modeling, CMA ratios, working capital and debt service coverage",
     icon: TrendingUp,
     iconColor: "text-indigo-600",
-    badge: "High Margin",
+    badge: "Advisory",
     badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
   },
   {
     id: "billing",
-    label: "Billing & Fee Invoices",
-    shortLabel: "Billing & WIP",
+    label: "Billing & Invoices",
+    shortLabel: "Billing",
     categoryId: "operations",
-    description: "Professional fee invoices, unbilled WIP and client direct UTR receipts",
+    description: "Retainer fee billing, unbilled WIP, and client payment realization",
     icon: DollarSign,
     iconColor: "text-emerald-600",
-    badge: "Finance",
+    badge: "Billing",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
   },
   {
     id: "anti-poaching",
-    label: "Firm Security & Poaching Sentinel",
-    shortLabel: "Firm Security",
+    label: "Firm Security & Access Logs",
+    shortLabel: "Security",
     categoryId: "operations",
-    description: "Staff download velocity monitor, access logs, and realization scores",
+    description: "Staff activity audit trail, document export logs, and access security",
     icon: Fingerprint,
     iconColor: "text-btred-logo",
-    badge: "Sentinel",
-    badgeColor: "bg-red-50 text-btred-logo border-red-200"
+    badge: "Security",
+    badgeColor: "bg-slate-100 text-slate-700 border-slate-200"
   },
   {
     id: "inward-outward",
     label: "Inward & Outward Register",
     shortLabel: "Registers",
     categoryId: "operations",
-    description: "ICAI mandatory inward/outward documentation and dispatch tracking",
+    description: "Physical and digital dispatch tracking with client acknowledgment receipts",
     icon: Package,
     iconColor: "text-amber-500",
-    badge: "Mandate",
+    badge: "Records",
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
   },
   {
     id: "batch-dispatch",
-    label: "Batch Outward Dispatcher",
+    label: "Batch Return Dispatcher",
     shortLabel: "Batch Dispatch",
     categoryId: "operations",
-    description: "Bulk automated distribution of filed tax returns and receipts",
+    description: "Bulk automated dispatch of signed acknowledgments and filing summaries",
     icon: Sparkles,
     iconColor: "text-indigo-400",
     badge: "Automated",
@@ -360,27 +361,38 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
   },
 
-  // --- COLUMN 6: CLIENT DESK & GROWTH ---
+  // --- COLUMN 6: CLIENT GROWTH & LEADS ---
+  {
+    id: "growth-engine",
+    label: "Client Acquisition & Leads",
+    shortLabel: "Lead Scraper",
+    categoryId: "client-desk",
+    description: "MCA & GSTN corporate lead scraper with automated statutory penalty risk scoring",
+    icon: Compass,
+    iconColor: "text-emerald-600",
+    badge: "Leads",
+    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
+  },
   {
     id: "whatsapp-ai",
-    label: "1-Tap WhatsApp Desk",
-    shortLabel: "WhatsApp AI",
+    label: "Client WhatsApp Communications",
+    shortLabel: "WhatsApp Desk",
     categoryId: "client-desk",
-    description: "Zero-API WhatsApp client chase for missing bank statements & invoices",
+    description: "Client reminders and document request messages for pending filings",
     icon: MessageSquare,
     iconColor: "text-teal-700",
-    badge: "Zero-API",
+    badge: "Direct",
     badgeColor: "bg-teal-50 text-teal-700 border-teal-200"
   },
   {
     id: "content-studio",
-    label: "CA Creator Studio",
-    shortLabel: "Creator Studio",
+    label: "Tax Content Studio",
+    shortLabel: "Content Studio",
     categoryId: "client-desk",
-    description: "Viral tax reel scripts, teleprompter and ICAI Rule 7 compliance scanner",
+    description: "Tax update drafts, social media scripts, and client advisory bulletins",
     icon: Video,
     iconColor: "text-pink-500",
-    badge: "Social Media",
+    badge: "Updates",
     badgeColor: "bg-pink-50 text-pink-700 border-pink-200"
   },
   {
@@ -388,10 +400,10 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: "Client Master & Groups",
     shortLabel: "Client Master",
     categoryId: "client-desk",
-    description: "Manage client directory, corporate entity groups, and 1-tap WhatsApp broadcast desk",
+    description: "Client entity directory, promoter group relationships, and contact details",
     icon: Users,
     iconColor: "text-emerald-700",
-    badge: "Master Data",
+    badge: "Master",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
   }
 ];

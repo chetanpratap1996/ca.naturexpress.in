@@ -83,15 +83,15 @@ export const AppLauncherMegaMenu: React.FC<AppLauncherMegaMenuProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-slate-900 tracking-tight">
-                  CA Firm Workspace Directory
+                <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                  Workspaces Directory
                 </h2>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-100 text-btred-logo border border-red-200">
-                  6 Domains &bull; 23 Engines
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                  All Modules
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                {DEFAULT_FIRM_BRANDING.firmName} (FRN {DEFAULT_FIRM_BRANDING.frn})
+                {DEFAULT_FIRM_BRANDING.firmName} &bull; Practice Navigation
               </p>
             </div>
           </div>

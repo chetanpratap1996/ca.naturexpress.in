@@ -22,6 +22,7 @@ import { SidebarNav } from "@/components/navigation/SidebarNav";
 import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
 import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
+import { PracticeGrowthCockpit } from "@/components/growth/PracticeGrowthCockpit";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -304,6 +305,9 @@ export default function AdminPage() {
                 )}
 
                 {/* Active Content */}
+                {activePartnerTab === "growth-engine" && (
+                  <PracticeGrowthCockpit />
+                )}
                 {activePartnerTab === "batch-dispatch" && (
                 <BatchOutwardDispatcher 
                   clients={clients.length > 0 ? clients : INITIAL_CLIENTS}

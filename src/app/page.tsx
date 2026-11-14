@@ -32,6 +32,7 @@ import { Schedule3AuditEngine } from "@/components/firm/Schedule3AuditEngine";
 import { UdinVault } from "@/components/firm/UdinVault";
 import { NoticeReplyDrafter } from "@/components/firm/NoticeReplyDrafter";
 import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
+import { PracticeGrowthCockpit } from "@/components/growth/PracticeGrowthCockpit";
 import { SidebarNav } from "@/components/navigation/SidebarNav";
 import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
 import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
@@ -102,7 +103,8 @@ import {
   FileSearch,
   ClipboardCheck,
   Scale,
-  Grid
+  Grid,
+  Compass
 } from "lucide-react";
 
 export default function Home() {
@@ -438,6 +440,7 @@ export default function Home() {
   }
 
   const partnerTabs = [
+    { id: "growth-engine", label: "Client Acquisition & Leads", icon: Compass, iconColor: "text-emerald-600" },
     { id: "calendar", label: `Tax Deadlines (${tasks.length})`, icon: Calendar, iconColor: "text-btred-logo" },
     { id: "pay-to-release", label: "Fee Release Gate", icon: Lock, iconColor: "text-emerald-700" },
     { id: "notices", label: "Tax Scrutiny Notices", icon: ShieldAlert, iconColor: "text-btred-logo" },
@@ -550,6 +553,9 @@ export default function Home() {
               )}
 
               {/* Active Content */}
+              {activePartnerTab === "growth-engine" && (
+                <PracticeGrowthCockpit />
+              )}
               {activePartnerTab === "batch-dispatch" && (
                 <BatchOutwardDispatcher 
                   clients={clients.length > 0 ? clients : INITIAL_CLIENTS}

@@ -32,7 +32,8 @@ import {
   LayoutDashboard,
   Video,
   Package,
-  Fingerprint
+  Fingerprint,
+  Compass
 } from "lucide-react";
 
 interface CommandPaletteModalProps {
@@ -64,6 +65,16 @@ interface WorkspaceTool {
 }
 
 const WORKSPACE_TOOLS: WorkspaceTool[] = [
+  {
+    id: "growth-engine",
+    name: "Client Acquisition & Lead Scraper",
+    tabId: "growth-engine",
+    category: "Growth",
+    description: "Pan-India MCA & GSTN corporate lead scraper with automated statutory penalty risk scoring",
+    keywords: ["leads", "sales", "scraper", "growth", "clients", "acquisition", "mca", "gstn", "prospects", "outreach"],
+    icon: Compass,
+    accentColor: "text-emerald-600 bg-emerald-50 border-emerald-200"
+  },
   {
     id: "dashboard",
     name: "Master Executive Dashboard",

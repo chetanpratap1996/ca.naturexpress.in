@@ -64,7 +64,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             }`}
           >
             <LayoutDashboard className={`w-5 h-5 ${activeTab === "dashboard" ? "stroke-[2.5]" : ""}`} />
-            <span className="text-[10px] tracking-tight">Cockpit</span>
+            <span className="text-[10px] tracking-tight">Dashboard</span>
           </button>
         )}
 

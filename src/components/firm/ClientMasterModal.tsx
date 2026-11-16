@@ -5,6 +5,7 @@ import { ClientEntity, ClientGroup } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { isValidPan, isValidGstin } from "@/lib/utils";
+import { validateClientMasterCsv } from "@/lib/fileIntelligence/documentValidator";
 import { 
   normalizePhone10, 
   DEMO_USERS 
@@ -269,43 +270,42 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     reader.onload = async (evt) => {
       try {
         const text = evt.target?.result as string;
-        const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
-        if (lines.length <= 1) {
-          alert("CSV is empty or missing data rows.");
+        const validation = validateClientMasterCsv(text);
+
+        if (!validation.isValid || validation.validRows.length === 0) {
+          toast.error("Import Rejected", validation.summaryMessage);
+          if (validation.invalidRows.length > 0) {
+            toast.error(
+              "Formatting Errors Found",
+              `Row ${validation.invalidRows[0].rowNumber}: ${validation.invalidRows[0].errors.join(", ")}`
+            );
+          }
           setIsImporting(false);
           return;
         }
 
-        const batchPayload: Partial<ClientEntity>[] = [];
+        const batchPayload: Partial<ClientEntity>[] = validation.validRows.map((v) => ({
+          name: v.name,
+          type: (v.entityType as any) || "PVT_LTD",
+          pan: v.pan,
+          gstin: v.gstin,
+          turnoverCr: 5.0,
+          incorporationYear: 2024,
+          partnerInCharge: "CA Gunjan Jain",
+          assignedArticle: "Kriti Jain (Article)",
+          primaryContact: {
+            name: v.name.split(" ")[0] || "Promoter",
+            phone: v.phone || "+91 98000 00000",
+            email: v.email || "accounts@client.com",
+            designation: "Director / Authorized Signatory",
+          },
+        }));
 
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i];
-          const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-          const cols = matches 
-            ? matches.map((m) => m.replace(/^"|"$/g, "").trim()) 
-            : row.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-          
-          if (cols.length >= 3 && cols[0] && cols[2]) {
-            const rawPhone = cols[5] || "+91 98000 00000";
-            const directorName = cols[4] || "Promoter";
-
-            batchPayload.push({
-              name: cols[0],
-              type: (cols[1] as any) || "PVT_LTD",
-              pan: cols[2].toUpperCase().trim(),
-              gstin: cols[3] ? cols[3].toUpperCase().trim() : undefined,
-              turnoverCr: parseFloat(cols[7]) || 5.0,
-              incorporationYear: 2024,
-              partnerInCharge: "CA Gunjan Jain",
-              assignedArticle: cols[8] || "Kriti Jain (Article)",
-              primaryContact: {
-                name: directorName,
-                phone: rawPhone,
-                email: cols[6] || "accounts@client.com",
-                designation: "Director / Authorized Signatory",
-              },
-            });
-          }
+        if (validation.invalidRows.length > 0) {
+          toast.warning(
+            "Partial Rejection",
+            `${validation.invalidRows.length} rows were skipped due to invalid PAN/GSTIN format.`
+          );
         }
 
         if (batchPayload.length === 0) {

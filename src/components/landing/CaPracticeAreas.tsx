@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   Building2, 
   Scale, 
@@ -16,7 +16,9 @@ import {
   Calendar,
   Lock,
   Calculator,
-  ChevronRight
+  ChevronRight,
+  Filter,
+  FileText
 } from "lucide-react";
 
 interface CaPracticeAreasProps {
@@ -26,11 +28,13 @@ interface CaPracticeAreasProps {
 export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
   onOpenBooking,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<number>(0);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<"all" | "audit" | "litigation" | "cfo" | "corporate">("all");
+  const [selectedPracticeId, setSelectedPracticeId] = useState<string>("corporate-audit");
 
   const practices = [
     {
       id: "corporate-audit",
+      group: "audit",
       icon: Building2,
       title: "Corporate Statutory & Tax Audit",
       tagline: "Companies Act 2013 • Form 3CD • Schedule III • CARO 2020",
@@ -44,9 +48,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Private Limited Companies, Public Unlisted Corporates, LLPs with turnover > ₹1 Cr / ₹10 Cr",
       statutoryStat: "100% Peer-Reviewed Audit Methodology",
+      statuteBadge: "Companies Act Sec 139 & IT Act Sec 44AB",
     },
     {
       id: "tax-litigation",
+      group: "litigation",
       icon: Scale,
       title: "Direct Tax Scrutiny & Faceless Appeals",
       tagline: "Section 148 Reopening • 143(3) Scrutiny • CIT(A) • ITAT",
@@ -60,9 +66,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Corporates, Promoters, HNIs facing income tax department scrutiny",
       statutoryStat: "99.8% Notice Settlement & Penalty Mitigation",
+      statuteBadge: "IT Act Sec 148, 148A, 250 & 253",
     },
     {
       id: "gst-defense",
+      group: "litigation",
       icon: FileSpreadsheet,
       title: "GST Defense, Audits & ITC Protection",
       tagline: "DRC-01 SCN Defense • GSTR-9/9C • Section 16(4) ITC Recovery",
@@ -76,9 +84,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Manufacturing units, Wholesale Distributors, EPC Contractors, Exporters",
       statutoryStat: "Saved ₹12+ Cr in Disputed GST Demands",
+      statuteBadge: "CGST Act Sec 73, 74 & Rule 86A",
     },
     {
       id: "virtual-cfo",
+      group: "cfo",
       icon: TrendingUp,
       title: "Virtual CFO & Working Capital Engineering",
       tagline: "CMA Data for Banks • CC Limits • Monthly MIS • Cashflow",
@@ -92,9 +102,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Growing enterprises (₹10 Cr to ₹250 Cr turnover) seeking strategic scale",
       statutoryStat: "Over ₹450 Cr in Working Capital Limits Facilitated",
+      statuteBadge: "Tandon / Nayak Committee CMA Formats",
     },
     {
       id: "msme-43bh",
+      group: "audit",
       icon: ShieldCheck,
       title: "MSME 43B(h) Audit & Payment Compliance",
       tagline: "15/45-Day Payment Rule • Disallowance Shield • MSME Samadhaan",
@@ -108,9 +120,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Manufacturers, Traders, and Corporates purchasing from MSME suppliers",
       statutoryStat: "Zero 43B(h) Disallowances for Retained Clients",
+      statuteBadge: "Section 43B(h) & MSMED Act Sec 15–16",
     },
     {
       id: "company-law",
+      group: "corporate",
       icon: FileCheck2,
       title: "Company Law, ROC & Corporate Governance",
       tagline: "Pvt Ltd / LLP • Annual ROC Filings • Director KYC • Board Governance",
@@ -124,9 +138,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "All registered Companies and LLPs in India",
       statutoryStat: "100% On-Time MCA V3 Filing Success",
+      statuteBadge: "Companies Act 2013 & MCA V3 Rules",
     },
     {
       id: "cross-border-fema",
+      group: "corporate",
       icon: Globe2,
       title: "Cross-Border, FEMA & NRI Taxation Desk",
       tagline: "Form 15CA & 15CB • DTAA Relief • Section 195 TDS • Inward FDI",
@@ -140,9 +156,11 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Exporters, Software/SaaS companies, NRIs selling Indian property, Importers",
       statutoryStat: "Turnaround within 4 Hours for Urgent 15CBs",
+      statuteBadge: "FEMA 1999 & IT Act Sec 195 / Rule 37BB",
     },
     {
       id: "startup-desk",
+      group: "corporate",
       icon: Rocket,
       title: "Startup Desk, 80-IAC & Angel Tax Desk",
       tagline: "DPIIT Recognition • 80-IAC Tax Holiday • Sec 56(2) Valuation • ESOPs",
@@ -156,51 +174,103 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
       ],
       targetAudience: "Tech Startups, D2C Brands, DeepTech & SaaS Founders",
       statutoryStat: "Guided 65+ Startups through Institutional Due Diligence",
+      statuteBadge: "Section 80-IAC & Rule 11UA Valuation",
     },
   ];
 
-  const active = practices[selectedCategory];
+  const filteredPractices = useMemo(() => {
+    if (activeCategoryFilter === "all") return practices;
+    return practices.filter((p) => p.group === activeCategoryFilter);
+  }, [activeCategoryFilter]);
+
+  const active = practices.find((p) => p.id === selectedPracticeId) || practices[0];
 
   return (
     <section id="practice-areas" className="py-16 sm:py-24 px-4 sm:px-8 bg-white border-b border-slate-200/90">
       <div className="max-w-7xl mx-auto">
+        
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-btred-600 text-xs font-bold mb-3">
-            <span>Specialized Practice Verticals</span>
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-red-50 border border-red-200 text-btred-600 text-xs font-bold mb-3 shadow-2xs">
+            <Building2 className="w-3.5 h-3.5 shrink-0" />
+            <span>Eight Comprehensive Practice Verticals</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
             Institutional Audit, Taxation &amp; CFO Counsel
           </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-600">
-            Every business lifecycle phase demands uncompromising technical precision. Select a practice area to review our statutory scope and client deliverables.
+          <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
+            Every business lifecycle phase demands uncompromising statutory precision. Filter by need to review our scope, regulatory benchmarks, and deliverables.
           </p>
+
+          {/* Category Filter Pills */}
+          <div className="mt-6 inline-flex p-1 bg-slate-50 rounded-2xl border border-slate-200 shadow-2xs flex-wrap justify-center gap-1">
+            <button
+              onClick={() => setActiveCategoryFilter("all")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                activeCategoryFilter === "all" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              All 8 Disciplines
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter("audit")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                activeCategoryFilter === "audit" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Audits &amp; CARO
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter("litigation")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                activeCategoryFilter === "litigation" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Tax Litigation &amp; GST Defense
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter("cfo")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                activeCategoryFilter === "cfo" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Virtual CFO &amp; Bank CMA
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter("corporate")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                activeCategoryFilter === "corporate" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Company Law &amp; Startups
+            </button>
+          </div>
         </div>
 
         {/* Practice Selection Grid / Tabs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-8">
-          {practices.map((p, idx) => {
+          {filteredPractices.map((p) => {
             const Icon = p.icon;
-            const isSelected = selectedCategory === idx;
+            const isSelected = selectedPracticeId === p.id;
             return (
               <button
                 key={p.id}
-                onClick={() => setSelectedCategory(idx)}
+                onClick={() => setSelectedPracticeId(p.id)}
                 className={`p-3 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between ${
                   isSelected
                     ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-red-500/20"
-                    : "bg-slate-50 hover:bg-slate-100/80 text-slate-800 border-slate-200/90"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? "bg-btred-600 text-white" : "bg-white text-btred-600 border border-slate-200"}`}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  {isSelected && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
-                      Active
-                    </span>
-                  )}
+                  <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                    isSelected ? "bg-white/10 text-slate-300" : "bg-slate-200/70 text-slate-600"
+                  }`}>
+                    {p.group.toUpperCase()}
+                  </span>
                 </div>
                 <div>
                   <div className={`text-xs font-bold line-clamp-1 ${isSelected ? "text-white" : "text-slate-900"}`}>
@@ -221,8 +291,13 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
             
             {/* Left 7 Columns: Details, Deliverables & Scope */}
             <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-btred-600 text-xs font-bold">
-                <span>{active.tagline}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-btred-600 text-xs font-bold">
+                  {active.tagline}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-mono font-bold">
+                  {active.statuteBadge}
+                </span>
               </div>
 
               <div>
@@ -235,26 +310,24 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
               </div>
 
               {/* Deliverables List */}
-              <div className="space-y-2.5 pt-1">
+              <div className="space-y-2 pt-1">
                 <div className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  Key Engagement Deliverables:
+                  Mandatory Practice Scope &amp; Audit Workpapers:
                 </div>
                 <div className="grid grid-cols-1 gap-2">
                   {active.deliverables.map((item, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-xs text-slate-700">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Target Profile & Statutory Assurance */}
-              <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div>
-                  <span className="text-slate-500 font-medium">Primary Audience: </span>
-                  <span className="text-slate-800 font-bold">{active.targetAudience}</span>
-                </div>
+              {/* Target Profile */}
+              <div className="pt-2 border-t border-slate-200/80 text-xs">
+                <span className="text-slate-500 font-medium">Applicability: </span>
+                <span className="text-slate-800 font-bold">{active.targetAudience}</span>
               </div>
 
               {/* CTA */}
@@ -264,12 +337,12 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
                   className="px-6 py-3 rounded-xl bg-btred-600 hover:bg-btred-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-2"
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>Consult Partner on {active.title.split(" ")[0]} {active.title.split(" ")[1]}</span>
+                  <span>Request Scope &amp; Checklist for {active.title.split(" ")[0]}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <a
-                  href={`https://wa.me/917999995897?text=${encodeURIComponent(`Hello CA Gunjan Jain, I would like to inquire about your services for: ${active.title}`)}`}
+                  href={`https://wa.me/917999995897?text=${encodeURIComponent(`Hello CA Gunjan Jain, I would like to consult GPA & Co. regarding: ${active.title}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-3 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5"
@@ -286,7 +359,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
                   {React.createElement(active.icon, { className: "w-5 h-5" })}
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-800">Practice Performance Metric</div>
+                  <div className="text-xs font-bold text-slate-800">Practice Proven Standard</div>
                   <div className="text-sm font-extrabold text-btred-600">{active.statutoryStat}</div>
                 </div>
               </div>
@@ -295,26 +368,26 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                   <div className="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>ICAI Audit Trail &amp; Peer-Review</span>
+                    <span>ICAI Audit Trail &amp; Peer-Review Standard</span>
                   </div>
-                  <p className="text-slate-600 text-[11px]">
-                    Every working paper, lead schedule, and UDIN is archived in adherence with SA 230 (Audit Documentation) and peer-review mandates.
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    All workpapers, materiality thresholds, and UDINs adhere to SA 230 (Audit Documentation), SA 315 (Risk Assessment), and ICAI Peer Review Board mandates.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                   <div className="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
                     <Lock className="w-4 h-4 text-btred-600" />
-                    <span>24/7 Digital Docket Delivery</span>
+                    <span>Instant Client Vault &amp; Banker Docket Delivery</span>
                   </div>
-                  <p className="text-slate-600 text-[11px]">
-                    Audited signed statements, tax computation sheets, and acknowledgments are immediately dispatched to your secure Client Portal.
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Signed balance sheets, ITR acknowledgments, Form 3CD, and CMA dockets are permanently archived into your 24/7 Client Portal.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-amber-50 rounded-xl p-3 border border-amber-200/70 text-[11px] text-amber-900">
-                <strong>Statutory Note:</strong> Compliance with Chartered Accountants Act, 1949 and relevant ICAI ethical standards maintained across all engagements.
+              <div className="bg-amber-50 rounded-xl p-3 border border-amber-200/70 text-[11px] text-amber-900 leading-relaxed">
+                <strong>Statutory Governance:</strong> Non-disclosure and attorney/auditor privilege strictly enforced under Section 126 of the Indian Evidence Act.
               </div>
             </div>
 

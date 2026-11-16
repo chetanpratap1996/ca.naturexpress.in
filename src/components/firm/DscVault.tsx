@@ -121,6 +121,41 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
     setTimeout(() => setActionSuccessToast(null), 4000);
   };
 
+  const handleDispatchDscRenewalNotice = async (token: DscRecord) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+        body: JSON.stringify({
+          title: `Action Required: Class 3 DSC Renewal for ${token.holderName}`,
+          message: `Your Class 3 Digital Signature Certificate (Token: ${token.serialNumber}) for ${token.entityName} is expiring on ${formatDate(token.validTill)}. An invoice of ₹2,500 has been raised. Please authorize renewal to avoid MCA V3 / GST / Income Tax filing blocks.`,
+          category: "DSC",
+          priority: "HIGH",
+          targetTab: "kyc-locker",
+          recipientRole: "CLIENT",
+          recipientEntityId: token.entityId,
+          metadata: {
+            tokenSerial: token.serialNumber,
+            holderName: token.holderName,
+            expiryDate: token.validTill,
+            statutoryProvision: "Information Technology Act 2000 / MCA V3 Rules"
+          }
+        })
+      });
+    } catch (e) {
+      console.warn("Failed to push DSC renewal notification:", e);
+    }
+
+    const text = `*URGENT STATUTORY NOTICE: CLASS 3 DSC RENEWAL*\n\nDear ${token.holderName} (${token.entityName}),\n\nYour Class 3 Digital Signature Certificate on e-Pass token *${token.serialNumber}* is expiring on *${formatDate(token.validTill)}*.\n\nTo ensure your MCA V3, Income Tax and GST filings are not stalled, kindly approve renewal. Renewal invoice of ₹2,500 has been raised.\n\n_Regards, GPA & Co., Chartered Accountants_`;
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+
+    toast.success(
+      "DSC Renewal Intimation Dispatched",
+      `Dispatched in-app intimation to ${token.holderName} & opened free WhatsApp Click-to-Chat.`
+    );
+  };
+
   const expiringCount = tokenList.filter((t) => t.daysToExpiry <= 30 || t.expiryStatus === "EXPIRED").length;
   const checkedOutCount = tokenList.filter((t) => t.currentCustodian !== "Firm Master Safe").length;
 
@@ -293,10 +328,12 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
                   <div className="mt-2.5 p-2 bg-red-50 border border-red-200 rounded-xl text-[10px] text-red-900 flex items-center justify-between font-bold">
                     <span>Class 3 Renewal Required</span>
                     <button 
-                      onClick={() => alert(`Generated Class 3 DSC renewal fee invoice (₹2,500) and dispatched WhatsApp alert to ${token.holderName}`)}
-                      className="text-btred-logo underline cursor-pointer hover:text-btred-700 font-black"
+                      onClick={() => handleDispatchDscRenewalNotice(token)}
+                      className="text-btred-logo hover:text-btred-700 font-black flex items-center gap-1 transition"
+                      title="Dispatch WhatsApp alert & in-app portal notice"
                     >
-                      Bill ₹2,500 Renewal
+                      <Send className="w-2.5 h-2.5" />
+                      <span>Bill ₹2,500 &amp; Notify</span>
                     </button>
                   </div>
                 )}

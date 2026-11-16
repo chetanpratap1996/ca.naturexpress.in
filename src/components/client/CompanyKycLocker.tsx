@@ -30,55 +30,70 @@ interface KycDocument {
 
 export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
   const docs: KycDocument[] = client ? [
-    {
-      id: "KYC-01",
-      name: "Certificate of Incorporation (COI)",
-      category: "PERMANENT_CONSTITUTION",
-      numberOrRef: `CIN: ${client.cin || "U24231MP2018PTC045812"}`,
-      validity: "LIFETIME",
-      fileSize: "2.4 MB PDF"
-    },
+    // Entity Constitution Documents based on real legal form
+    ...(client.cin ? [
+      {
+        id: "KYC-01",
+        name: "Certificate of Incorporation (COI)",
+        category: "PERMANENT_CONSTITUTION" as const,
+        numberOrRef: `CIN: ${client.cin}`,
+        validity: "LIFETIME" as const,
+        fileSize: "Certified MCA Record"
+      },
+      {
+        id: "KYC-04",
+        name: "Memorandum & Articles of Association (MOA / AOA)",
+        category: "PERMANENT_CONSTITUTION" as const,
+        numberOrRef: "Registered with Registrar of Companies",
+        validity: "LIFETIME" as const,
+        fileSize: "ROC Stamped"
+      }
+    ] : client.type === "PARTNERSHIP" || client.type === "LLP" ? [
+      {
+        id: "KYC-01",
+        name: client.type === "LLP" ? "LLP Agreement & Incorporation Certificate" : "Registered Partnership Deed",
+        category: "PERMANENT_CONSTITUTION" as const,
+        numberOrRef: `Registered Partnership Form & Deed`,
+        validity: "LIFETIME" as const,
+        fileSize: "Certified Stamp Paper Copy"
+      }
+    ] : [
+      {
+        id: "KYC-01",
+        name: "Proprietorship Constitution & MSME Udyam Registration",
+        category: "PERMANENT_CONSTITUTION" as const,
+        numberOrRef: `Proprietorship Declaration / MSME`,
+        validity: "LIFETIME" as const,
+        fileSize: "Certified Entity File"
+      }
+    ]),
     {
       id: "KYC-02",
       name: "Permanent Account Number (PAN) Card",
-      category: "REGISTRATION_CERTIFICATE",
+      category: "REGISTRATION_CERTIFICATE" as const,
       numberOrRef: `PAN: ${client.pan}`,
-      validity: "LIFETIME",
-      fileSize: "1.1 MB PDF"
+      validity: "LIFETIME" as const,
+      fileSize: "Income Tax Department Record"
     },
-    {
-      id: "KYC-03",
-      name: "GST Registration Certificate (REG-06)",
-      category: "REGISTRATION_CERTIFICATE",
-      numberOrRef: `GSTIN: ${client.gstin || "23AABCA9182K1Z5"}`,
-      validity: "LIFETIME",
-      fileSize: "3.8 MB PDF"
-    },
-    {
-      id: "KYC-04",
-      name: "Memorandum & Articles of Association (MOA / AOA)",
-      category: "PERMANENT_CONSTITUTION",
-      numberOrRef: "Form INC-33 & INC-34 Registered",
-      validity: "LIFETIME",
-      fileSize: "8.2 MB PDF"
-    },
-    {
-      id: "KYC-05",
-      name: "Factory / Registered Office Commercial Lease",
-      category: "STATUTORY_LICENSE",
-      numberOrRef: "Registered Sub-Registrar Indore",
-      validity: "EXPIRES_SOON",
-      expiryDate: "2026-12-31",
-      daysToExpiry: 64,
-      fileSize: "4.5 MB PDF"
-    },
+    ...(client.gstin ? [
+      {
+        id: "KYC-03",
+        name: "GST Registration Certificate (REG-06)",
+        category: "REGISTRATION_CERTIFICATE" as const,
+        numberOrRef: `GSTIN: ${client.gstin}`,
+        validity: "LIFETIME" as const,
+        fileSize: "GSTN Stamped REG-06"
+      }
+    ] : []),
     {
       id: "KYC-06",
-      name: "Director Identification Number (DIR-3 KYC)",
-      category: "DIRECTOR_KYC",
-      numberOrRef: `Verified KYC • ${client.primaryContact?.phone || ""}`,
-      validity: "LIFETIME",
-      fileSize: "MCA V3 Synced"
+      name: client.type === "PVT_LTD" || client.type === "PUBLIC_LTD" 
+        ? "Director Identification (DIR-3 KYC)" 
+        : "Authorized Signatory Identification & KYC",
+      category: "DIRECTOR_KYC" as const,
+      numberOrRef: `Authorized: ${client.primaryContact?.name || "Authorized Person"} (${client.primaryContact?.phone || ""})`,
+      validity: "LIFETIME" as const,
+      fileSize: "Verified Profile"
     }
   ] : [];
 
@@ -92,9 +107,11 @@ MINISTRY OF CORPORATE AFFAIRS / GOVERNMENT OF INDIA
 CERTIFIED STATUTORY KYC MASTER RECORD
 ================================================================================
 Entity Legal Name: ${client.name}
-Corporate Identification Number (CIN): ${client.cin || "U24231MP2018PTC045812"}
+Legal Entity Type: ${client.type}
+Corporate Identification Number (CIN): ${client.cin || "Not Applicable (Non-Corporate Entity)"}
 Permanent Account Number (PAN): ${client.pan}
-Goods & Services Tax (GSTIN): ${client.gstin || "Not Applicable"}
+Goods & Services Tax (GSTIN): ${client.gstin || "Not Applicable / Unregistered"}
+Primary Signatory: ${client.primaryContact?.name || "Authorized Signatory"} (${client.primaryContact?.phone || ""})
 
 Document Category: ${doc.category}
 Document Title: ${doc.name}

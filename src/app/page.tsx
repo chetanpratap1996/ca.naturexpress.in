@@ -20,6 +20,7 @@ import { EnterpriseSecurityAndRealization } from "@/components/firm/EnterpriseSe
 import { BatchOutwardDispatcher } from "@/components/firm/BatchOutwardDispatcher";
 import { ClientMasterModal } from "@/components/firm/ClientMasterModal";
 import { FirmHubActionModal } from "@/components/firm/FirmHubActionModal";
+import { ClientNotificationBroadcasterModal } from "@/components/notifications/ClientNotificationBroadcasterModal";
 import { VirtualCfoCockpit } from "@/components/firm/VirtualCfoCockpit";
 import { BankStatementParser } from "@/components/firm/BankStatementParser";
 import { EntityDnaMatrixViewer } from "@/components/firm/EntityDnaMatrixViewer";
@@ -39,7 +40,6 @@ import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
 import { toast } from "@/components/shared/ToastNotification";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
@@ -159,6 +159,7 @@ export default function Home() {
   const [loginInitialPhone, setLoginInitialPhone] = useState<string>("");
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
+  const [isClientBroadcasterOpen, setIsClientBroadcasterOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
 
@@ -473,8 +474,7 @@ export default function Home() {
   const ActiveToolIcon = activeNavItem?.icon;
 
   return (
-    <ErrorBoundary fallbackTitle="Client Application Recovered">
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
+    <div className="min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-500 selection:text-white">
         {/* Unified Master Navigation Cockpit */}
         <TopNav 
           currentView={currentView} 
@@ -485,6 +485,7 @@ export default function Home() {
           onSwitchUser={handleSwitchUserRole}
           onOpenClientMaster={() => setIsClientMasterOpen(true)}
           onOpenFirmHub={() => setIsFirmHubOpen(true)}
+          onOpenClientBroadcaster={() => setIsClientBroadcasterOpen(true)}
           onExitSandbox={() => {
             clearSession();
             setCurrentUser(null);
@@ -494,6 +495,9 @@ export default function Home() {
           isSandbox={isDemoSandbox}
           onToggleSidebar={() => setIsMobileDrawerOpen((prev) => !prev)}
           onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
+          activeClientEntityId={currentUser?.clientEntityId || clients[0]?.id || "client-pratwi"}
+          activeClientName={clients.find(c => c.id === (currentUser?.clientEntityId || clients[0]?.id))?.name || "Pratwi Solutions Private Limited"}
+          isClientMode={currentView === "client-pwa" || (currentView as any) === "client"}
         />
 
         {/* Master Flex Layout with Left Sidebar */}
@@ -522,6 +526,7 @@ export default function Home() {
               isQuickActionOpen={isClientQuickActionOpen}
               onCloseQuickAction={() => setIsClientQuickActionOpen(false)}
               onOpenQuickAction={() => setIsClientQuickActionOpen(true)}
+              hasTopNav={true}
             />
           )}
 
@@ -735,6 +740,18 @@ export default function Home() {
         onOpenClientMaster={() => setIsClientMasterOpen(true)}
         onOpenNewTask={() => handleTabChange("calendar")}
         onNavigateTab={(tab) => handleTabChange(tab)}
+        onOpenClientBroadcaster={() => {
+          setIsFirmHubOpen(false);
+          setIsClientBroadcasterOpen(true);
+        }}
+      />
+
+      {/* Enterprise Zero-Cost Client Notification Broadcaster */}
+      <ClientNotificationBroadcasterModal
+        isOpen={isClientBroadcasterOpen}
+        onClose={() => setIsClientBroadcasterOpen(false)}
+        clients={clients}
+        currentUser={currentUser}
       />
 
       {/* Client Master Modal */}
@@ -757,6 +774,5 @@ export default function Home() {
         }}
       />
     </div>
-  </ErrorBoundary>
 );
 }

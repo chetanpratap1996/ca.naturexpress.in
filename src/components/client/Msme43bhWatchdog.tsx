@@ -79,7 +79,19 @@ export interface Msme43bhWatchdogProps {
 }
 
 export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client }) => {
-  const [invoices, setInvoices] = useState<MsmeInvoiceItem[]>(SAMPLE_MSME_INVOICES);
+  const [invoices, setInvoices] = useState<MsmeInvoiceItem[]>(() => {
+    if (typeof window !== "undefined" && client?.id) {
+      try {
+        const saved = localStorage.getItem(`bt_msme_invoices_${client.id}`);
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    // For newly onboarded clients start with authentic clean state
+    if (client && client.id.startsWith("CLI-")) {
+      return [];
+    }
+    return SAMPLE_MSME_INVOICES;
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const totalAtRiskAmount = invoices

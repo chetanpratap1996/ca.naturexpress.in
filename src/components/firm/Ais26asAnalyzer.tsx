@@ -6,6 +6,7 @@ import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
+import { validateAndExtractAisRecords } from "@/lib/fileIntelligence/documentValidator";
 import { 
   FileSearch, 
   Upload, 
@@ -468,6 +469,8 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
   // File Upload & Drag-and-Drop State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [missingAisCriteria, setMissingAisCriteria] = useState<string[]>([]);
   const [uploadedFileStats, setUploadedFileStats] = useState<{
     name: string;
     size: number;
@@ -519,96 +522,47 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
 
   // Real ITD AIS & 26AS JSON / CSV Parser Engine
   const parseAisText = (text: string, fileName: string) => {
+    setUploadError(null);
+    setMissingAisCriteria([]);
+
     try {
-      if (text.trim().startsWith("{") || text.trim().startsWith("[")) {
-        const data = JSON.parse(text);
-        let extracted: AisRecord[] = [];
-
-        if (Array.isArray(data)) {
-          extracted = data.map((item, idx) => ({
-            id: item.id || `ais-up-${idx}-${Date.now()}`,
-            sourceType: item.sourceType || "SFT_HIGH_VALUE",
-            partCategory: item.partCategory || "PART_B2_SFT",
-            reportingEntity: item.reportingEntity || item.entityName || "Reporting Bank / Agency",
-            description: item.description || item.txnDesc || "High-Value Transaction / TDS Entry",
-            pan: item.pan || activeProfile.pan,
-            financialYear: item.financialYear || activeProfile.financialYear,
-            assessmentYear: item.assessmentYear || activeProfile.assessmentYear,
-            reportedAmount: Number(item.reportedAmount || item.amount || 0),
-            taxDeducted: Number(item.taxDeducted || item.tds || 0),
-            informationCode: item.informationCode || item.code || "SFT-004",
-            rule114eThreshold: item.rule114eThreshold || "Rule 114E Statutory Compliance",
-            itrStatus: item.itrStatus || "UNREPORTED_INCOME_RISK",
-            targetItrSchedule: item.targetItrSchedule || "Schedule OS",
-            recommendation: item.recommendation || "Verify transaction details against client bank statements & books."
-          }));
-        } else if (data.aisDetails || data.partB || data.records) {
-          const list = data.records || data.aisDetails?.records || [];
-          extracted = list.map((r: any, idx: number) => ({
-            id: `ais-itd-${idx}-${Date.now()}`,
-            sourceType: r.sourceType || "SFT_HIGH_VALUE",
-            partCategory: r.partCategory || "PART_B2_SFT",
-            reportingEntity: r.reportingEntity || r.source || "Reporting Depository / Bank",
-            description: r.description || "Official ITD AIS Reported Transaction",
-            pan: activeProfile.pan,
-            financialYear: activeProfile.financialYear,
-            assessmentYear: activeProfile.assessmentYear,
-            reportedAmount: Number(r.reportedAmount || r.amount || 0),
-            taxDeducted: Number(r.taxDeducted || r.tds || 0),
-            informationCode: r.informationCode || r.sftCode || "SFT-004",
-            rule114eThreshold: r.threshold || "Rule 114E Threshold Check",
-            itrStatus: r.itrStatus || "UNREPORTED_INCOME_RISK",
-            targetItrSchedule: r.targetItrSchedule || "Schedule BP",
-            recommendation: r.recommendation || "Cross-verify with books to prevent Section 143(1)(a) defect."
-          }));
-        }
-
-        if (extracted.length === 0) {
-          extracted = activeProfile.records;
-        }
-
-        setUploadedFileStats({
-          name: fileName,
-          size: text.length,
-          recordsCount: extracted.length,
-          parsedRecords: extracted
-        });
-        toast.success("AIS File Processed", `Extracted ${extracted.length} records from ${fileName}. Ready to apply.`);
-      } else {
-        // Parse CSV format
-        const lines = text.split("\n").filter(l => l.trim().length > 0);
-        const extracted: AisRecord[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(",").map(p => p.trim().replace(/^"|"$/g, ""));
-          if (parts.length >= 3) {
-            extracted.push({
-              id: `ais-csv-${i}-${Date.now()}`,
-              sourceType: "SFT_HIGH_VALUE",
-              partCategory: "PART_B2_SFT",
-              reportingEntity: parts[0] || "Reporting Entity",
-              description: parts[1] || "SFT Reported Transaction",
-              pan: activeProfile.pan,
-              financialYear: activeProfile.financialYear,
-              assessmentYear: activeProfile.assessmentYear,
-              reportedAmount: parseFloat(parts[2]) || 100000,
-              taxDeducted: parseFloat(parts[3]) || 0,
-              informationCode: parts[4] || "SFT-004",
-              itrStatus: "UNREPORTED_INCOME_RISK",
-              targetItrSchedule: "Schedule OS",
-              recommendation: "Reconcile with client books to satisfy tax audit requirements."
-            });
-          }
-        }
-        const finalRecords = extracted.length > 0 ? extracted : activeProfile.records;
-        setUploadedFileStats({
-          name: fileName,
-          size: text.length,
-          recordsCount: finalRecords.length,
-          parsedRecords: finalRecords
-        });
-        toast.success("CSV Ingested", `Loaded ${finalRecords.length} records from CSV.`);
+      const validation = validateAndExtractAisRecords(text, fileName, activeProfile.pan);
+      if (!validation.isValid || !validation.data) {
+        setUploadError(validation.diagnostics.errorMessage || `Document Rejected: "${fileName}" is not a recognized AIS or Form 26AS file.`);
+        setMissingAisCriteria(validation.diagnostics.missingRequirements || []);
+        setUploadedFileStats(null);
+        toast.error("Document Rejected", validation.diagnostics.errorMessage || "Validation failed.");
+        return;
       }
-    } catch (err) {
+
+      const extracted: AisRecord[] = validation.data.map((r, idx) => ({
+        id: r.id || `ais-up-${idx}-${Date.now()}`,
+        sourceType: r.sourceType as any,
+        partCategory: r.partCategory as any,
+        reportingEntity: r.reportingEntity,
+        description: r.description,
+        pan: r.pan || activeProfile.pan,
+        financialYear: r.financialYear || activeProfile.financialYear,
+        assessmentYear: r.assessmentYear || activeProfile.assessmentYear,
+        reportedAmount: r.reportedAmount,
+        taxDeducted: r.taxDeducted,
+        informationCode: r.informationCode,
+        rule114eThreshold: r.rule114eThreshold,
+        itrStatus: r.itrStatus as any,
+        targetItrSchedule: r.targetItrSchedule as any,
+        recommendation: r.recommendation
+      }));
+
+      setUploadedFileStats({
+        name: fileName,
+        size: text.length,
+        recordsCount: extracted.length,
+        parsedRecords: extracted
+      });
+      toast.success("AIS File Verified", `Extracted ${extracted.length} records from ${fileName} (${validation.confidenceScore}% confidence).`);
+    } catch (err: any) {
+      setUploadError("Could not parse file: " + (err.message || "Unknown error"));
+      setUploadedFileStats(null);
       toast.error("Parsing Error", "Could not parse AIS file. Please upload a valid ITD JSON or CSV.");
     }
   };
@@ -1506,6 +1460,32 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
                   Supports .JSON, .CSV, Form 26AS Text
                 </span>
               </div>
+
+              {/* Diagnostic Error Card on Unrelated/Dummy File Upload */}
+              {uploadError && (
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-xs space-y-2 animate-fadeIn text-left">
+                  <div className="flex items-center gap-2 text-rose-800 font-bold">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>AIS Document Validation Failed</span>
+                  </div>
+                  <p className="text-xs text-rose-700 font-medium leading-relaxed">{uploadError}</p>
+                  {missingAisCriteria.length > 0 && (
+                    <div className="bg-white/90 p-2.5 rounded-xl border border-rose-200 text-[11px] space-y-1">
+                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">
+                        Missing Statutory Elements:
+                      </span>
+                      <ul className="list-disc list-inside space-y-0.5 text-slate-600">
+                        {missingAisCriteria.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-slate-600">
+                    Please upload an authentic Annual Information Statement (AIS) JSON or Form 26AS CSV exported from the ITD e-filing portal.
+                  </p>
+                </div>
+              )}
 
               {/* Uploaded File Statistics Badge */}
               {uploadedFileStats && (

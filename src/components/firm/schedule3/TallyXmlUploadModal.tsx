@@ -30,6 +30,7 @@ import {
   cleanTbNumber
 } from "@/lib/parsers/tallyTbParser";
 import { MappedTbLedger } from "@/lib/parsers/tallyTbParser";
+import { validateTallyXmlOrTb } from "@/lib/fileIntelligence/documentValidator";
 
 export interface TallyUploadPreset {
   id: string;
@@ -261,6 +262,14 @@ Audit & Legal Fees (GPA & Co.)\tIndirect Expenses\t200000\t0
       if (!content) return;
 
       try {
+        // Validate format & reject unrelated documents (e.g. dummy PDFs, images)
+        const formatCheck = validateTallyXmlOrTb(content, file.name);
+        if (!formatCheck.isValid) {
+          toast.error("Document Rejected", formatCheck.diagnostics.errorMessage || "File is not a valid Tally XML or Trial Balance export.");
+          setParsedPreview(null);
+          return;
+        }
+
         let res: TbParseResult;
         if (file.name.endsWith(".xml") || content.trim().startsWith("<")) {
           res = parseTallyXmlContent(content);

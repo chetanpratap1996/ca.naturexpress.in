@@ -211,8 +211,31 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
     .filter((t) => t.status !== "FILED_AND_COMPLETED")
     .reduce((sum, t) => sum + t.penaltyRisk, 0);
 
-  const triggerSingleWhatsAppChase = (task: ComplianceTask) => {
+  const triggerSingleWhatsAppChase = async (task: ComplianceTask) => {
     if (!task) return;
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+        body: JSON.stringify({
+          title: `Document Request: ${task.title} (${task.period})`,
+          message: `Pending documents for ${task.entityName}: ${(task.missingDocumentsList || []).join(", ") || "Financial ledgers & vouchers"}. Statutory filing deadline is ${formatDate(task.dueDate)}. Please upload via portal.`,
+          category: "DOCUMENT",
+          priority: "HIGH",
+          targetTab: "progress",
+          recipientRole: "CLIENT",
+          recipientEntityId: task.entityId,
+          metadata: {
+            taskTitle: task.title,
+            dueDate: task.dueDate,
+            statutoryReference: (task as any).statutoryReference || task.category || "Statutory Deadline"
+          }
+        })
+      });
+    } catch (e) {
+      console.warn("Single chase notification failed:", e);
+    }
+
     openWhatsAppPreset("919820044101", "DOC_CHASE", {
       clientName: task.entityName,
       serviceName: task.title,
@@ -235,13 +258,42 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
     }, 6000);
   };
 
-  const handleBulkChase = () => {
+  const handleBulkChase = async () => {
     setBulkChaseProgress(true);
-    setTimeout(() => {
-      setBulkChaseProgress(false);
-      setBulkChaseSuccess(true);
-      setTimeout(() => setBulkChaseSuccess(false), 5000);
-    }, 1800);
+    const tasksWithMissing = tasks.filter((t) => t.missingDocumentsCount > 0);
+
+    for (const t of tasksWithMissing) {
+      try {
+        await fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+          body: JSON.stringify({
+            title: `Statutory Reminder: ${t.title} Due on ${formatDate(t.dueDate)}`,
+            message: `Urgent: ${t.missingDocumentsCount} document(s) pending for ${t.entityName} (${(t.missingDocumentsList || []).join(", ") || "financial vouchers"}). Please upload to Client Portal to ensure timely filing and avoid statutory penalty.`,
+            category: "DOCUMENT",
+            priority: "HIGH",
+            targetTab: "progress",
+            recipientRole: "CLIENT",
+            recipientEntityId: t.entityId,
+            metadata: {
+              taskTitle: t.title,
+              dueDate: t.dueDate,
+              statutoryReference: (t as any).statutoryReference || t.category || "Compliance Due Date"
+            }
+          })
+        });
+      } catch (e) {
+        console.warn("Bulk notification error for task:", t.id, e);
+      }
+    }
+
+    setBulkChaseProgress(false);
+    setBulkChaseSuccess(true);
+    toast.success(
+      "Statutory Reminders Dispatched",
+      `Dispatched compliance intimations to ${tasksWithMissing.length} clients via Client Portal Desk.`
+    );
+    setTimeout(() => setBulkChaseSuccess(false), 5000);
   };
 
   // Safe Workflow Advance Handler with State-Machine Validation

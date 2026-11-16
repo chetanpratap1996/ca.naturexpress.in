@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { ToastContainer } from "@/components/shared/ToastNotification";
+import ChunkErrorRecovery from "@/components/shared/ChunkErrorRecovery";
 
 export const metadata: Metadata = {
   title: "Brains & Taxes - Client & Practice Portal",
@@ -32,11 +32,45 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Early FOUC & Stale Chunk Safeguard (runs before any bundles execute)
+              window.addEventListener('error', function(e) {
+                var target = e.target || e.srcElement;
+                if (target && target.tagName === 'LINK' && target.rel === 'stylesheet') {
+                  if (target.href && target.href.indexOf('/_next/static/') !== -1) {
+                    console.warn('[FOUC Safeguard] Stale stylesheet detected. Purging cache and refreshing...');
+                    if ('caches' in window) {
+                      caches.keys().then(function(keys) {
+                        return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                      });
+                    }
+                    var count = parseInt(sessionStorage.getItem('bt_fouc_reload') || '0', 10);
+                    if (count < 2) {
+                      sessionStorage.setItem('bt_fouc_reload', (count + 1).toString());
+                      var url = new URL(window.location.href);
+                      url.searchParams.set('_v', Date.now().toString());
+                      window.location.replace(url.toString());
+                    }
+                  }
+                }
+              }, true);
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 selection:bg-btred-logo selection:text-white flex flex-col">
+        {/*
+          ChunkErrorRecovery: client component that attaches a window-level
+          'error' listener to intercept ChunkLoadErrors BEFORE they bubble to
+          ErrorBoundary. This covers errors thrown outside React's render tree
+          (e.g. dynamic import() calls in event handlers or useEffect).
+        */}
+        <ChunkErrorRecovery />
         <ToastContainer />
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
+        {children}
       </body>
     </html>
   );

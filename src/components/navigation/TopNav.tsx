@@ -28,6 +28,7 @@ import {
   Bell,
   Grid,
   Menu,
+  Send,
   LayoutDashboard
 } from "lucide-react";
 import { CommandPaletteModal } from "@/components/shared/CommandPaletteModal";
@@ -45,10 +46,14 @@ interface TopNavProps {
   onSwitchUser?: (role: "partner" | "article" | "client") => void;
   onOpenClientMaster?: () => void;
   onOpenFirmHub?: () => void;
+  onOpenClientBroadcaster?: () => void;
   onExitSandbox?: () => void;
   isSandbox?: boolean;
   onToggleSidebar?: () => void;
   onOpenAppLauncher?: () => void;
+  activeClientEntityId?: string;
+  activeClientName?: string;
+  isClientMode?: boolean;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({ 
@@ -60,18 +65,30 @@ export const TopNav: React.FC<TopNavProps> = ({
   onSwitchUser,
   onOpenClientMaster,
   onOpenFirmHub,
+  onOpenClientBroadcaster,
   onExitSandbox,
   isSandbox = true,
   onToggleSidebar,
   onOpenAppLauncher,
+  activeClientEntityId,
+  activeClientName,
+  isClientMode: isClientModeProp,
 }) => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const isClientView = Boolean(isClientModeProp) || currentView === "client-pwa" || (currentView as any) === "client";
+
   useEffect(() => {
-    fetch("/api/notifications")
+    const params = new URLSearchParams();
+    if (isClientView) {
+      params.set("role", "CLIENT");
+      if (activeClientEntityId) params.set("clientEntityId", activeClientEntityId);
+    }
+    const queryStr = params.toString() ? `?${params.toString()}` : "";
+    fetch(`/api/notifications${queryStr}`)
       .then((res) => res.json())
       .then((data) => {
         if (data?.unreadCount !== undefined) {
@@ -85,7 +102,7 @@ export const TopNav: React.FC<TopNavProps> = ({
     };
     window.addEventListener("bt_notification_received", handler);
     return () => window.removeEventListener("bt_notification_received", handler);
-  }, []);
+  }, [isClientView, activeClientEntityId]);
 
   // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -101,12 +118,14 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const {
     isInstalled,
+    isIOS,
+    isAndroid,
     showInstallModal,
     setShowInstallModal,
     triggerInstall,
   } = usePwaInstall();
 
-  const isClientMode = currentView === "client-pwa" || currentUser?.role === "CLIENT";
+  const isClientMode = Boolean(isClientModeProp) || currentView === "client-pwa" || currentUser?.role === "CLIENT";
 
   const getInitials = (name?: string) => {
     if (!name) return "BT";
@@ -318,6 +337,19 @@ export const TopNav: React.FC<TopNavProps> = ({
                     </button>
                   )}
 
+                  {onOpenClientBroadcaster && !isClientMode && (
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onOpenClientBroadcaster();
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 flex items-center gap-2 text-emerald-800 font-bold transition text-xs border border-transparent hover:border-emerald-200"
+                    >
+                      <Send className="w-4 h-4 text-emerald-600" />
+                      <span>Broadcast Intimation to Clients (₹0)</span>
+                    </button>
+                  )}
+
                   <div className="border-t border-slate-100 pt-2 flex items-center justify-between gap-2">
                     {onExitSandbox && isSandbox && (
                       <button
@@ -364,6 +396,9 @@ export const TopNav: React.FC<TopNavProps> = ({
       <InstallAppModal
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
+        isIOS={isIOS}
+        isAndroid={isAndroid}
+        isInstalled={isInstalled}
       />
 
       {/* Realtime Notification Center Modal */}
@@ -371,7 +406,10 @@ export const TopNav: React.FC<TopNavProps> = ({
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         onNavigateTab={onNavigateTab}
-        currentUserRole={currentUser?.role}
+        onOpenClientBroadcaster={isClientView ? undefined : onOpenClientBroadcaster}
+        currentUserRole={isClientView ? "CLIENT" : (currentUser?.role || "PARTNER")}
+        clientEntityId={activeClientEntityId}
+        clientName={activeClientName}
       />
     </>
   );

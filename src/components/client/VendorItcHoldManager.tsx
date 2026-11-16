@@ -16,6 +16,7 @@ import {
   Check
 } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
+import { ClientEntity } from "@/lib/types";
 
 export interface VendorHoldItem {
   id: string;
@@ -63,8 +64,26 @@ const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [
   }
 ];
 
-export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientName?: string }) {
-  const [holds, setHolds] = useState<VendorHoldItem[]>(INITIAL_VENDOR_HOLDS);
+export function VendorItcHoldManager({ 
+  clientName = "Client Entity", 
+  client 
+}: { 
+  clientName?: string; 
+  client?: ClientEntity | null; 
+}) {
+  const [holds, setHolds] = useState<VendorHoldItem[]>(() => {
+    if (typeof window !== "undefined" && client?.id) {
+      try {
+        const saved = localStorage.getItem(`bt_vendor_holds_${client.id}`);
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    // For newly onboarded clients start with authentic clean state
+    if (client && client.id.startsWith("CLI-")) {
+      return [];
+    }
+    return INITIAL_VENDOR_HOLDS;
+  });
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -128,7 +147,11 @@ export function VendorItcHoldManager({ clientName = "Client Entity" }: { clientN
       status: "PAYMENT_HELD",
     };
 
-    setHolds([newHold, ...holds]);
+    const updated = [newHold, ...holds];
+    setHolds(updated);
+    if (typeof window !== "undefined" && client?.id) {
+      localStorage.setItem(`bt_vendor_holds_${client.id}`, JSON.stringify(updated));
+    }
     setIsAddModalOpen(false);
     setNewVendorName("");
     setNewVendorGstin("");

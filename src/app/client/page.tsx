@@ -104,10 +104,11 @@ export default function ClientPortalDedicatedPage() {
         <ClientPortalPwa
           currentUser={currentUser}
           isSandbox={false}
-          externalTab="progress"
+          activeTab="director-risk"
           isQuickActionOpen={isClientQuickActionOpen}
           onCloseQuickAction={() => setIsClientQuickActionOpen(false)}
           onOpenQuickAction={() => setIsClientQuickActionOpen(true)}
+          hasTopNav={false}
         />
       </div>
     );

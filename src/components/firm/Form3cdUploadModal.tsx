@@ -379,12 +379,10 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
           });
           toast.success("File Parsed", `Extracted ${parsed.clauses.length} audit clauses from ${file.name}.`);
         } else {
-          // Fallback to manufacturing preset with file name
-          loadSampleAuditData("MANUFACTURING_CORP");
+          toast.error("Document Rejected", `"${file.name}" does not contain Section 44AB tax audit clauses. Please upload an authentic Form 3CD JSON/XML or choose a verified preset.`);
         }
       } catch (err) {
-        // Text/XML/CSV fallback
-        loadSampleAuditData("MANUFACTURING_CORP");
+        toast.error("Document Rejected", `"${file.name}" could not be parsed as valid Form 3CD audit data. Please use verified sample presets to test.`);
       }
     };
     reader.readAsText(file);

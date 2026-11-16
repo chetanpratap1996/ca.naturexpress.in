@@ -189,9 +189,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <button
                 onClick={onOpenFirmHub}
                 className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-500 hover:to-red-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-red-500/20 transition transform active:scale-95"
+                title="CA Practice Command Hub (Calculators & Quick Actions)"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>+ Firm Hub</span>
+                <Scale className="w-4 h-4 text-amber-200" />
+                <span>CA Command Hub</span>
               </button>
             )}
 

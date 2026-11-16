@@ -23,22 +23,22 @@ export const CaHeroSection: React.FC<CaHeroSectionProps> = ({
   onOpenLogin,
 }) => {
   return (
-    <section className="relative pt-8 pb-16 sm:pt-14 sm:pb-24 px-4 sm:px-8 bg-gradient-to-b from-white via-slate-50/70 to-white overflow-hidden border-b border-slate-200">
+    <section className="relative pt-8 pb-16 sm:pt-14 sm:pb-24 px-4 sm:px-8 bg-gradient-to-b from-white via-slate-50/70 to-white overflow-hidden border-b border-slate-200 w-full max-w-full">
       {/* Decorative Warm Light Glowing Highlights */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[360px] bg-gradient-to-br from-red-100/35 via-amber-100/20 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[360px] bg-gradient-to-br from-red-100/35 via-amber-100/20 to-transparent blur-3xl pointer-events-none -z-10 overflow-hidden" />
 
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto w-full min-w-0">
+        <div className="flex flex-col items-center text-center max-w-4xl mx-auto w-full min-w-0">
           {/* 1. Regulatory Authority Kicker */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100/90 border border-slate-200 text-slate-800 text-[11px] sm:text-xs font-bold shadow-xs mb-6 flex-wrap justify-center">
-            <span className="flex items-center gap-1 text-btred-600 font-extrabold">
+          <div className="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-slate-100/90 border border-slate-200 text-slate-800 text-[10px] sm:text-xs font-bold shadow-xs mb-6 max-w-full text-center">
+            <span className="flex items-center gap-1 text-btred-600 font-extrabold shrink-0">
               <Award className="w-3.5 h-3.5 shrink-0" />
               <span>GPA &amp; CO.</span>
             </span>
+            <span className="text-slate-300 hidden sm:inline">•</span>
+            <span className="text-slate-700 hidden sm:inline">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn}</span>
             <span className="text-slate-300">•</span>
-            <span className="text-slate-700">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn}</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-emerald-700 font-extrabold flex items-center gap-1">
+            <span className="text-emerald-700 font-extrabold flex items-center gap-1 shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>Peer Review Certified</span>
             </span>
@@ -145,18 +145,31 @@ export const CaHeroSection: React.FC<CaHeroSectionProps> = ({
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-            <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight flex items-baseline gap-1">
-              <span>35+</span>
-              <span className="text-base sm:text-lg font-bold text-btred-600">Years</span>
+          <a 
+            href="#senior-partner"
+            className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs hover:shadow-md hover:border-red-300 transition-all block group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight flex items-baseline gap-1">
+                <span>35+</span>
+                <span className="text-base sm:text-lg font-bold text-btred-600">Years</span>
+              </div>
+              <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-btred-500 shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                <img 
+                  src="/images/ca-gunjan-jain.png" 
+                  alt="CA Gunjan Jain, FCA" 
+                  className="w-full h-full object-cover object-top"
+                />
+              </div>
             </div>
-            <div className="mt-1.5 text-xs sm:text-sm font-bold text-slate-800">
-              Institutional Heritage
+            <div className="mt-1.5 text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between">
+              <span>Institutional Heritage</span>
+              <span className="text-[10px] text-btred-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">&rarr; Profile</span>
             </div>
             <div className="mt-1 text-[11px] text-slate-500">
-              Steered by CA Gunjan Jain (FCA) with multi-generational legacy.
+              Steered by Senior Partner CA Gunjan Jain (FCA).
             </div>
-          </div>
+          </a>
         </div>
 
         {/* 6. Live Statutory Vigilance Card */}

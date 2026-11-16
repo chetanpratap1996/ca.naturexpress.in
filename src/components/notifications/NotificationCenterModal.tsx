@@ -18,7 +18,8 @@ import {
   CheckCheck,
   AlertCircle,
   HelpCircle,
-  Info
+  Info,
+  Send
 } from "lucide-react";
 import { NotificationItem, NotificationCategory, NotificationPreferences } from "@/lib/types";
 import { 
@@ -35,14 +36,20 @@ interface NotificationCenterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateTab?: (tab: string) => void;
+  onOpenClientBroadcaster?: () => void;
   currentUserRole?: string;
+  clientEntityId?: string;
+  clientName?: string;
 }
 
 export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = ({
   isOpen,
   onClose,
   onNavigateTab,
+  onOpenClientBroadcaster,
   currentUserRole = "PARTNER",
+  clientEntityId,
+  clientName,
 }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<"ALL" | NotificationCategory>("ALL");
@@ -53,7 +60,11 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/notifications");
+      const params = new URLSearchParams();
+      if (currentUserRole) params.set("role", currentUserRole);
+      if (clientEntityId) params.set("clientEntityId", clientEntityId);
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
+      const res = await fetch(`/api/notifications${queryStr}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.notifications) {
@@ -71,7 +82,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     if (isOpen) {
       fetchNotifications();
     }
-  }, [isOpen]);
+  }, [isOpen, currentUserRole, clientEntityId]);
 
   useEffect(() => {
     const handleReceived = (e: any) => {
@@ -100,7 +111,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "MARK_READ", id }),
+        body: JSON.stringify({ action: "MARK_READ", id, clientEntityId, role: currentUserRole }),
       });
     } catch {}
   };
@@ -112,7 +123,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "MARK_ALL_READ" }),
+        body: JSON.stringify({ action: "MARK_ALL_READ", clientEntityId, role: currentUserRole }),
       });
     } catch {}
   };
@@ -123,7 +134,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "DELETE", id }),
+        body: JSON.stringify({ action: "DELETE", id, clientEntityId, role: currentUserRole }),
       });
     } catch {}
   };
@@ -136,30 +147,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
       onNavigateTab(item.targetTab);
       onClose();
     }
-  };
-
-  const handleTestAlert = async () => {
-    const perm = await requestBrowserNotificationPermission();
-    playNotificationChime();
-
-    const testItem: NotificationItem = {
-      id: `TEST-${Date.now()}`,
-      title: "Statutory Filing Verification Alert",
-      message: "GSTR-3B filed successfully. Ack ARN: AA081026019284F verified under ICAI seal.",
-      category: "COMPLIANCE",
-      priority: "HIGH",
-      targetTab: "calendar",
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    dispatchClientNotification(testItem);
-    toast.success(
-      "Test Notification Fired",
-      perm === "granted"
-        ? "Audio chime played + Native browser notification triggered!"
-        : "Audio chime played! (Grant browser notification permission for system popups)"
-    );
   };
 
   const handleSavePref = (key: keyof NotificationPreferences, value: boolean) => {
@@ -200,14 +187,18 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             </div>
             <div>
               <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Compliance Notifications</span>
+                <span>{currentUserRole === "CLIENT" ? "CA Firm Intimations & Updates" : "Compliance Notifications"}</span>
                 {unreadCount > 0 && (
                   <span className="text-[10px] bg-red-50 text-btred-logo border border-red-200 px-2 py-0.5 rounded-full font-bold">
                     {unreadCount} New
                   </span>
                 )}
               </h2>
-              <p className="text-[11px] text-slate-500 font-medium">Real-time alerts &bull; 100% Free Web Push</p>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {currentUserRole === "CLIENT" 
+                  ? "Official notices & compliance intimations sent to you by GPA & Co."
+                  : "Real-time alerts • 100% Free Web Push"}
+              </p>
             </div>
           </div>
 
@@ -233,21 +224,40 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           </div>
         </div>
 
+        {/* Enterprise Client Broadcast Quick Launcher */}
+        {currentUserRole !== "CLIENT" && onOpenClientBroadcaster && (
+          <div className="p-3 bg-gradient-to-r from-red-50 via-amber-50/50 to-red-50/30 border-b border-red-100 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 text-xs text-slate-800">
+              <div className="w-7 h-7 rounded-lg bg-btred-logo text-white flex items-center justify-center shrink-0">
+                <Send className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <span className="font-extrabold text-slate-900 block leading-tight">Send Client Notification / Broadcast</span>
+                <span className="text-[10px] text-slate-500">Free WhatsApp, Client Portal &amp; Push intimations to clients</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenClientBroadcaster();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-btred-logo hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Launch</span>
+            </button>
+          </div>
+        )}
+
         {/* Settings Sub-Panel */}
         {showSettings && (
           <div className="p-4 bg-slate-50 border-b border-slate-200 text-xs space-y-3 animate-in slide-in-from-top-2">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 font-bold text-slate-900">
               <span className="flex items-center gap-1.5">
                 <Settings className="w-3.5 h-3.5 text-slate-600" />
-                <span>Zero-Cost Alert Preferences</span>
+                <span>Intimation &amp; Alert Preferences</span>
               </span>
-              <button
-                onClick={handleTestAlert}
-                className="px-2.5 py-1 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Test Chime &amp; Push</span>
-              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 pt-1">
@@ -381,14 +391,13 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
         <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-semibold text-slate-700">Realtime Push Active</span>
+            <span className="font-semibold text-slate-700">
+              Verified ICAI Compliance Channel &bull; Realtime Feed
+            </span>
           </div>
-          <button
-            onClick={handleTestAlert}
-            className="text-btred-logo hover:text-red-700 font-bold"
-          >
-            Send Test Alert
-          </button>
+          <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+            <span>GPA &amp; Co., Chartered Accountants</span>
+          </span>
         </div>
       </div>
     </div>

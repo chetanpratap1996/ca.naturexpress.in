@@ -56,11 +56,11 @@ export const CaDigitalAdvantage: React.FC<CaDigitalAdvantageProps> = ({
   ];
 
   return (
-    <section id="digital-advantage" className="py-16 sm:py-24 px-4 sm:px-8 bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto">
+    <section id="digital-advantage" className="py-16 sm:py-24 px-4 sm:px-8 bg-white border-b border-slate-200 w-full max-w-full overflow-hidden">
+      <div className="max-w-7xl mx-auto w-full min-w-0">
         
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
+        <div className="text-center max-w-3xl mx-auto mb-14 w-full min-w-0">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-btred-600 text-xs font-bold mb-3">
             <Zap className="w-3.5 h-3.5" />
             <span>The Brains &amp; Taxes Advantage</span>
@@ -74,7 +74,7 @@ export const CaDigitalAdvantage: React.FC<CaDigitalAdvantageProps> = ({
         </div>
 
         {/* Side-by-Side Comparison Matrix */}
-        <div className="bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden shadow-xs mb-12">
+        <div className="bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden shadow-xs mb-12 w-full max-w-full min-w-0">
           {/* Table Header */}
           <div className="grid grid-cols-1 md:grid-cols-12 bg-slate-100/90 border-b border-slate-200 text-xs font-black uppercase tracking-wider text-slate-700">
             <div className="md:col-span-4 p-4 sm:p-5">Capability / Service Experience</div>

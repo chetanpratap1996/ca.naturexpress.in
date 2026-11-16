@@ -186,9 +186,14 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
         const tdsMatch = content.match(/TDS[^\d]*([\d,]+)/i) || content.match(/Tax\s+Deducted[^\d]*([\d,]+)/i);
         const c80Match = content.match(/80C[^\d]*([\d,]+)/i);
 
-        const gross = grossMatch ? parseInt(grossMatch[1].replace(/,/g, ""), 10) : 1550000;
-        const tds = tdsMatch ? parseInt(tdsMatch[1].replace(/,/g, ""), 10) : 95000;
-        const c80 = c80Match ? Math.min(150000, parseInt(c80Match[1].replace(/,/g, ""), 10)) : 150000;
+        if (!grossMatch && !tdsMatch && !c80Match) {
+          toast.error("Document Rejected", `"${name}" does not contain Form 16 Part A/B salary or TDS figures. Please upload an authentic Form 16.`);
+          return;
+        }
+
+        const gross = grossMatch ? parseInt(grossMatch[1].replace(/,/g, ""), 10) : 0;
+        const tds = tdsMatch ? parseInt(tdsMatch[1].replace(/,/g, ""), 10) : 0;
+        const c80 = c80Match ? Math.min(150000, parseInt(c80Match[1].replace(/,/g, ""), 10)) : 0;
 
         const result: ExtractedTaxData = {
           taxpayerName: activeClientName,

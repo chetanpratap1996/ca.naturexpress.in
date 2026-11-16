@@ -13,7 +13,10 @@ import {
   KeyRound,
   Lock,
   LayoutDashboard,
-  Grid
+  Grid,
+  Scale,
+  Award,
+  Landmark
 } from "lucide-react";
 
 interface FloatingBottomNavProps {
@@ -37,7 +40,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
   return (
     <nav 
       aria-label="Mobile Navigation Bar"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-all pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 px-2 w-full max-w-full overflow-hidden"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_25px_rgba(0,0,0,0.06)] pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 px-2 w-full max-w-full"
     >
       <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around relative">
         
@@ -95,28 +98,32 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
           </button>
         )}
 
-        {/* ===================== CENTER ELEVATED BUTTON ===================== */}
-        <div className="relative -top-4 flex flex-col items-center shrink-0">
-          <button
-            onClick={() => {
-              if (onQuickAction) {
-                onQuickAction();
-              } else if (isClient) {
-                onTabChange("upload");
-              } else {
-                onTabChange("calendar");
-              }
-            }}
-            className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-btred-700 via-btred-logo to-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/40 ring-4 ring-white hover:scale-105 active:scale-95 transition-all touch-manipulation"
-            title={isClient ? "Quick Actions" : "Firm Hub"}
-            aria-label={isClient ? "Quick Actions" : "Firm Hub"}
-          >
-            {isClient ? <Sparkles className="w-6 h-6 animate-pulse" /> : <Plus className="w-6 h-6" />}
-          </button>
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800 tracking-wider mt-0.5">
-            {isClient ? "Quick Hub" : "Firm Hub"}
+        {/* ===================== CENTER CA PRACTICE DESK BUTTON ===================== */}
+        <button
+          onClick={() => {
+            if (onQuickAction) {
+              onQuickAction();
+            } else if (isClient) {
+              onTabChange("notifications");
+            } else {
+              onTabChange("calendar");
+            }
+          }}
+          className="flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation group"
+          title={isClient ? "Client Action Hub" : "CA Practice Command Hub"}
+          aria-label={isClient ? "Client Action Hub" : "CA Practice Command Hub"}
+        >
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#800000] to-btred-logo text-white flex items-center justify-center shadow-md shadow-red-900/25 group-hover:scale-105 group-active:scale-95 transition-transform border border-red-700/50">
+            {isClient ? (
+              <Sparkles className="w-4 h-4 text-amber-200" />
+            ) : (
+              <Scale className="w-4.5 h-4.5 text-amber-100" />
+            )}
+          </div>
+          <span className="text-[10px] tracking-tight font-bold text-slate-800">
+            {isClient ? "Client Hub" : "CA Desk"}
           </span>
-        </div>
+        </button>
 
         {/* ===================== TAB 4 ===================== */}
         {isClient ? (

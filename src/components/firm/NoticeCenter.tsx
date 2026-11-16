@@ -339,6 +339,40 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
     }
   };
 
+  const handleIntimateClientNotice = async () => {
+    if (!selectedNotice) return;
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+        body: JSON.stringify({
+          title: `Statutory Notice Received: Section ${selectedNotice.section}`,
+          message: `Department notice (DIN: ${selectedNotice.dinNumber}) received for ${selectedNotice.entityName}. Exposure: ${formatCurrencyINR(selectedNotice.demandAmount)}. Statutory reply deadline: ${formatDate(selectedNotice.statutoryDeadline)}. Legal defense drafted.`,
+          category: "NOTICE",
+          priority: "CRITICAL",
+          targetTab: "progress",
+          recipientRole: "CLIENT",
+          recipientEntityId: selectedNotice.entityId,
+          metadata: {
+            dinNumber: selectedNotice.dinNumber,
+            section: selectedNotice.section,
+            deadline: selectedNotice.statutoryDeadline,
+            demandAmount: selectedNotice.demandAmount,
+            statutoryProvision: `Statutory Notice u/s ${selectedNotice.section}`
+          }
+        })
+      });
+    } catch (e) {
+      console.warn("Failed to push notice notification:", e);
+    }
+
+    const text = `*STATUTORY NOTICE INTIMATION*\n\nDear Client (${selectedNotice.entityName}),\n\nA statutory notice under Section *${selectedNotice.section}* (DIN: *${selectedNotice.dinNumber}*) has been issued by the Department.\n• Exposure / Demand: *${formatCurrencyINR(selectedNotice.demandAmount)}*\n• Statutory Reply Deadline: *${formatDate(selectedNotice.statutoryDeadline)}*\n\nOur litigation team has drafted the legal defense grounds. Kindly review or upload any requested vouchers in your Client Portal.\n\n_Regards, GPA & Co., Chartered Accountants_`;
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+
+    toast.success("Client Intimated", "Notice intimation pushed to Client Portal & WhatsApp opened.");
+  };
+
   return (
     <div className="space-y-4">
       {/* 1. Portal Dispatch Banner */}
@@ -696,15 +730,26 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
             </div>
 
             {/* Bottom Action Footer */}
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between mt-4">
-              <button 
-                onClick={() => setShowAdjournmentModal(true)}
-                disabled={selectedNotice.status === "SUBMITTED"}
-                className="text-xs text-slate-700 hover:text-slate-900 font-bold px-3.5 py-2 rounded-xl border border-slate-300 transition flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <Calendar className="w-3.5 h-3.5 text-amber-700" />
-                <span>Request Adjournment u/s 144B</span>
-              </button>
+            <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 mt-4">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowAdjournmentModal(true)}
+                  disabled={selectedNotice.status === "SUBMITTED"}
+                  className="text-xs text-slate-700 hover:text-slate-900 font-bold px-3.5 py-2 rounded-xl border border-slate-300 transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Request Adjournment u/s 144B</span>
+                </button>
+
+                <button
+                  onClick={handleIntimateClientNotice}
+                  className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-bold px-3.5 py-2 rounded-xl border border-emerald-200 transition flex items-center gap-1.5"
+                  title="Dispatch free WhatsApp intimation & sync to Client Portal"
+                >
+                  <Send className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Intimate Client (WhatsApp / Portal)</span>
+                </button>
+              </div>
               
               {selectedNotice.status === "SUBMITTED" ? (
                 <div className="flex items-center gap-2">

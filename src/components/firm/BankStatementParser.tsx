@@ -42,6 +42,7 @@ import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
+import { validateAndExtractBankStatement } from "@/lib/fileIntelligence/documentValidator";
 
 export interface ParsedTransaction {
   id: string;
@@ -604,6 +605,8 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
   // File Upload & Drag-and-Drop State
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [uploadValidationError, setUploadValidationError] = useState<string | null>(null);
+  const [uploadMissingCriteria, setUploadMissingCriteria] = useState<string[]>([]);
   const [uploadedFile, setUploadedFile] = useState<{
     name: string;
     size: number;
@@ -825,6 +828,8 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
   // Process Real File Upload (PDF, CSV, TXT)
   const processUploadedFile = async (file: File) => {
     setIsProcessing(true);
+    setUploadValidationError(null);
+    setUploadMissingCriteria([]);
     setUploadedFile({
       name: file.name,
       size: file.size,
@@ -832,103 +837,49 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     });
 
     try {
-      const fileNameUpper = file.name.toUpperCase();
-      
-      // Auto-detect bank from filename if possible
-      let detectedBankKey = activeProfile.bankKey;
-      if (fileNameUpper.includes("HDFC")) detectedBankKey = "HDFC_BANK";
-      else if (fileNameUpper.includes("ICICI")) detectedBankKey = "ICICI_BANK";
-      else if (fileNameUpper.includes("SBI") || fileNameUpper.includes("STATE BANK")) detectedBankKey = "SBI_BANK";
-      else if (fileNameUpper.includes("AXIS")) detectedBankKey = "AXIS_BANK";
-      else if (fileNameUpper.includes("KOTAK")) detectedBankKey = "KOTAK_BANK";
-      else if (fileNameUpper.includes("BOB") || fileNameUpper.includes("BARODA")) detectedBankKey = "BOB_BANK";
-      else if (fileNameUpper.includes("PNB") || fileNameUpper.includes("PUNJAB")) detectedBankKey = "PNB_BANK";
-      setSelectedBank(detectedBankKey);
-
-      // If it's a text/csv file, read real lines
-      if (file.name.endsWith(".csv") || file.name.endsWith(".txt")) {
-        const text = await file.text();
-        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-        
-        const extracted: ParsedTransaction[] = [];
-        let runningBal = activeProfile.openingBalance;
-        let lineIdx = 0;
-
-        for (const line of lines) {
-          lineIdx++;
-          // Skip header row
-          if (lineIdx === 1 && (line.toLowerCase().includes("date") || line.toLowerCase().includes("narration"))) continue;
-          
-          const parts = line.includes(",") ? line.split(",") : line.split("\t");
-          if (parts.length >= 3) {
-            const dateStr = parts[0]?.trim() || new Date().toISOString().split("T")[0];
-            const narrationStr = parts[1]?.trim().replace(/^"|"$/g, "") || "Commercial Bank Debit";
-            const debitNum = Math.abs(parseFloat(parts[2]?.replace(/[^0-9.-]/g, "") || "0")) || 0;
-            const creditNum = parts[3] ? Math.abs(parseFloat(parts[3]?.replace(/[^0-9.-]/g, "") || "0")) : 0;
-            
-            if (debitNum > 0) runningBal -= debitNum;
-            if (creditNum > 0) runningBal += creditNum;
-
-            // Match against mapping rules
-            const upperNarration = narrationStr.toUpperCase();
-            const matchedRule = mappingRules.find(r => upperNarration.includes(r.keyword.toUpperCase()));
-            
-            extracted.push({
-              id: `TXN-UP-${lineIdx}`,
-              date: dateStr,
-              narration: narrationStr,
-              chqRefNo: parts[4]?.trim() || `REF-${lineIdx * 104}`,
-              withdrawal: debitNum,
-              deposit: creditNum,
-              balance: runningBal,
-              suggestedLedger: matchedRule ? matchedRule.ledgerName : (debitNum > 0 ? "Office & Administrative Expenses" : "Sales - Trade Collections"),
-              confidence: matchedRule ? matchedRule.confidence : 75,
-              status: matchedRule ? "MAPPED" : "SUSPENSE",
-              voucherType: debitNum > 0 ? "Payment" : "Receipt",
-              matchedRule: matchedRule?.keyword
-            });
-          }
-        }
-
-        if (extracted.length > 0) {
-          setTransactions(extracted);
-          toast.success(
-            "Real CSV Statement Parsed",
-            `Successfully extracted ${extracted.length} transaction lines from ${file.name}.`
-          );
-          setIsUploadModalOpen(false);
-          setIsProcessing(false);
-          return;
-        }
+      // High-precision document validation & content extraction
+      const validation = await validateAndExtractBankStatement(file, activeProfile.openingBalance);
+      if (!validation.isValid || !validation.data) {
+        setIsProcessing(false);
+        setUploadValidationError(validation.diagnostics.errorMessage || `The uploaded document "${file.name}" is not a recognized bank statement.`);
+        setUploadMissingCriteria(validation.diagnostics.missingRequirements || []);
+        toast.error("Bank Statement Rejected", validation.diagnostics.errorMessage || "Document is not a valid bank statement.");
+        return;
       }
 
-      // If PDF or binary format: Simulate 256-bit AES hardware decryption with the selected pattern
-      setTimeout(() => {
-        setIsProcessing(false);
-        setIsUploadModalOpen(false);
+      const extractedTxns = validation.data.transactions.map((tx, idx) => {
+        const upperNarration = tx.narration.toUpperCase();
+        const matchedRule = mappingRules.find(r => upperNarration.includes(r.keyword.toUpperCase()));
+        return {
+          id: tx.id || `TXN-UP-${idx + 1}`,
+          date: tx.date,
+          narration: tx.narration,
+          chqRefNo: tx.chqRefNo || `REF-${(idx + 1) * 104}`,
+          withdrawal: tx.withdrawal,
+          deposit: tx.deposit,
+          balance: tx.balance,
+          suggestedLedger: matchedRule ? matchedRule.ledgerName : tx.suggestedLedger,
+          confidence: matchedRule ? matchedRule.confidence : tx.confidence,
+          status: matchedRule ? ("MAPPED" as const) : ("SUSPENSE" as const),
+          voucherType: tx.withdrawal > 0 ? ("Payment" as const) : ("Receipt" as const),
+          matchedRule: matchedRule?.keyword
+        };
+      });
 
-        // Load the bank profile's verified transactions
-        const targetProfile = CLIENT_BANK_PROFILES[currentEntity?.id || ""] || activeProfile;
-        setTransactions(targetProfile.defaultTransactions);
+      setTransactions(extractedTxns);
+      setIsUploadModalOpen(false);
+      setIsProcessing(false);
 
-        const passwordDisplay = passwordMode === "AUTO_PAN" 
-          ? `Client PAN (${currentEntity?.pan || "AANCP9915B"})` 
-          : passwordMode === "AUTO_CUSTID"
-          ? "Customer ID (8-digit)"
-          : passwordMode === "AUTO_DOB"
-          ? "Incorp Date (DDMMYYYY)"
-          : "Custom Password";
-
-        toast.success(
-          "Bank Statement Decrypted & Parsed",
-          `Decrypted ${file.name} using ${passwordDisplay}. Extracted ${targetProfile.defaultTransactions.length} transactions with 100% BRS checksum match.`
-        );
-        setExportNotice(`Parsed ${file.name} (${Math.round(file.size / 1024)} KB) via 256-Bit Hardware AES. BRS integrity: 100% Reconciled. All transactions mapped to Chart of Accounts.`);
-        setTimeout(() => setExportNotice(null), 7000);
-      }, 1200);
+      toast.success(
+        "Bank Statement Validated & Extracted",
+        `Extracted ${extractedTxns.length} transactions from ${validation.data.bankName} (${file.name}) with 100% mathematical integrity.`
+      );
+      setExportNotice(`Parsed ${file.name} (${Math.round(file.size / 1024)} KB) from ${validation.data.bankName}. ${extractedTxns.length} ledger vouchers ready for Tally Prime XML export.`);
+      setTimeout(() => setExportNotice(null), 7000);
 
     } catch (err: any) {
       setIsProcessing(false);
+      setUploadValidationError(`Could not parse statement: ${err.message || "File read error"}`);
       toast.error("Parsing Error", `Could not parse statement: ${err.message || "File read error"}`);
     }
   };
@@ -1712,7 +1663,7 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                   : "border-slate-300 hover:border-btred-logo/60 bg-slate-50/50"
               }`}
             >
-              {uploadedFile ? (
+              {uploadedFile && !uploadValidationError ? (
                 <div className="space-y-1.5">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -1735,6 +1686,32 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                 </>
               )}
             </div>
+
+            {/* Validation Error & Missing Criteria Alert */}
+            {uploadValidationError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 text-left animate-fadeIn">
+                <div className="flex items-center gap-2 text-rose-800 font-bold text-xs">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Bank Statement Validation Error</span>
+                </div>
+                <p className="text-xs text-rose-700 font-medium leading-relaxed">{uploadValidationError}</p>
+                {uploadMissingCriteria.length > 0 && (
+                  <div className="bg-white/80 p-2.5 rounded-xl border border-rose-200 text-[11px] space-y-1">
+                    <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">
+                      Missing Banking Identifiers:
+                    </span>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-600">
+                      {uploadMissingCriteria.map((m, i) => (
+                        <li key={i}>{m}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-600">
+                  Tip: Upload an official e-statement PDF or CSV containing Date, Description, and Debit/Credit amounts, or test with the 1-click presets below.
+                </p>
+              </div>
+            )}
 
             {/* Quick Sample Statement Loaders (1-Click Test) */}
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">

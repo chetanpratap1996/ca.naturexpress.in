@@ -139,8 +139,11 @@ export function ensureDatabase(): DatabaseSchema {
   }
 
   try {
-    const content = fs.readFileSync(DB_FILE, "utf-8");
-    const parsed = JSON.parse(content) as DatabaseSchema;
+    let content = fs.readFileSync(DB_FILE, "utf-8");
+    if (content.charCodeAt(0) === 0xfeff) {
+      content = content.slice(1);
+    }
+    const parsed = JSON.parse(content.trim()) as DatabaseSchema;
     
     // Auto-migrate missing enterprise fields if reading from older snapshot
     let modified = false;

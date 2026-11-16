@@ -91,12 +91,14 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
       const detectedGstin = gstinMatch ? gstinMatch[0].toUpperCase() : undefined;
       const detectedPan = panMatch ? panMatch[0].toUpperCase() : undefined;
 
-      // Match client by GSTIN, then PAN, or fallback to first client
+      // Match client by GSTIN, then PAN - Do NOT blindly fallback to client[0] on unmatched files
       const matchedClient = clients.find((c) => {
         if (detectedGstin && c.gstin && c.gstin.toUpperCase() === detectedGstin) return true;
         if (detectedPan && c.pan && c.pan.toUpperCase() === detectedPan) return true;
         return false;
-      }) || clients[0];
+      });
+
+      const isMatched = !!matchedClient;
 
       // Auto-detect Document Category from filename
       let detectedCategory: DocumentItem["category"] = "GST_INVOICES";
@@ -147,13 +149,13 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
         detectedFy: "FY 2026-27",
         detectedCategory,
         matchedEntityId: matchedClient?.id,
-        matchedEntityName: matchedClient?.name,
+        matchedEntityName: matchedClient?.name || "Unassigned (Select Client)",
         recipientPhone: matchedClient?.primaryContact?.phone,
         recipientContactName: matchedClient?.primaryContact?.name,
         payToReleaseLocked: false,
         outstandingFeeAmount: 0,
-        status: "MATCHED",
-        selected: true,
+        status: isMatched ? "MATCHED" : "NEEDS_REVIEW",
+        selected: isMatched,
       });
     }
 

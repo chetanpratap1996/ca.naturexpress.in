@@ -25,14 +25,18 @@ export const CaEnterpriseLandingView: React.FC<CaEnterpriseLandingViewProps> = (
 }) => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingInitialService, setBookingInitialService] = useState("Corporate Statutory & Tax Audit");
+  const [bookingPrefillGstin, setBookingPrefillGstin] = useState<string | undefined>();
+  const [bookingDiagnosticNotes, setBookingDiagnosticNotes] = useState<string | undefined>();
 
-  const handleOpenBooking = (service?: string) => {
+  const handleOpenBooking = (service?: string, prefillGstin?: string, diagnosticNotes?: string) => {
     if (service) setBookingInitialService(service);
+    setBookingPrefillGstin(prefillGstin);
+    setBookingDiagnosticNotes(diagnosticNotes);
     setIsBookingOpen(true);
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-btred-600 selection:text-white pb-14 sm:pb-0">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-btred-600 selection:text-white pb-14 sm:pb-0 w-full max-w-full min-w-0">
       {/* 1. Executive Top Bar & Header Navigation */}
       <CaLandingNav 
         onOpenBooking={handleOpenBooking}
@@ -108,6 +112,8 @@ export const CaEnterpriseLandingView: React.FC<CaEnterpriseLandingViewProps> = (
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
         initialService={bookingInitialService}
+        prefilledGstin={bookingPrefillGstin}
+        diagnosticSummary={bookingDiagnosticNotes}
       />
     </div>
   );

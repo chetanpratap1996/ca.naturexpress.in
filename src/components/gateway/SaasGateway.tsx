@@ -59,27 +59,28 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-red-500 selection:text-white">
       
       {/* 1. Top Enterprise Ticker Bar (Crisp Light Mode) */}
-      <div className="bg-slate-50 border-b border-slate-200/80 text-[11px] px-3 sm:px-8 py-2 flex flex-wrap items-center justify-between gap-2 text-slate-600">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
+      <div className="bg-slate-50 border-b border-slate-200/80 text-[11px] px-3 sm:px-8 py-1.5 sm:py-2 flex items-center justify-between gap-2 text-slate-600 w-full max-w-full overflow-hidden">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
           </span>
-          <span className="font-extrabold text-slate-800">GPA &amp; Co., Chartered Accountants</span>
-          <span className="text-slate-600 hidden sm:inline">&bull;</span>
-          <span className="hidden sm:inline font-medium">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer-Review Certified Practice</span>
+          <span className="font-extrabold text-slate-800 truncate">GPA &amp; Co., Chartered Accountants</span>
+          <span className="text-slate-400 hidden sm:inline">&bull;</span>
+          <span className="hidden sm:inline font-medium text-slate-500 truncate">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Peer-Review Certified Practice</span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4 text-xs flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs shrink-0">
           <Link
             href="/brainsandtaxes"
-            className="text-slate-700 hover:text-btred-logo font-bold flex items-center gap-1 transition text-[11px]"
+            className="text-slate-700 hover:text-btred-logo font-bold flex items-center gap-1 transition text-[11px] whitespace-nowrap"
           >
-            <span>Public Firm Site: <strong>ca.naturexpress.in/brainsandtaxes</strong> &rarr;</span>
+            <span className="hidden sm:inline">Public Firm Site: <strong>ca.naturexpress.in/brainsandtaxes</strong> &rarr;</span>
+            <span className="sm:hidden font-extrabold text-btred-logo">Public Site &rarr;</span>
           </Link>
           <span className="text-slate-300 hidden sm:inline">|</span>
           <button
             onClick={() => onOpenLogin("client")}
-            className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 transition text-xs"
+            className="text-emerald-700 hover:text-emerald-800 font-bold hidden sm:flex items-center gap-1 transition text-xs whitespace-nowrap"
           >
             <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
             <span>Client Portal</span>
@@ -87,7 +88,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           <span className="text-slate-300 hidden sm:inline">|</span>
           <button
             onClick={() => onOpenLogin("partner")}
-            className="text-btred-logo hover:text-red-700 font-bold flex items-center gap-1 transition text-xs"
+            className="text-btred-logo hover:text-red-700 font-bold hidden sm:flex items-center gap-1 transition text-xs whitespace-nowrap"
           >
             <KeyRound className="w-3.5 h-3.5" />
             <span>CA Practice Sign In &rarr;</span>
@@ -96,11 +97,11 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
       </div>
 
       {/* 2. Main SaaS Header Navbar (Clean White with Subtle Shadow) */}
-      <header className="border-b border-slate-200 bg-white/95 backdrop-blur sticky top-0 z-30 px-4 sm:px-8 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur sticky top-0 z-30 px-3 sm:px-8 py-2.5 sm:py-3 w-full max-w-full">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 w-full">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <BtLogo size="sm" showTagline={false} />
-            <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-3">
+            <div className="hidden md:flex items-center gap-2 border-l border-slate-200 pl-3">
               <span className="text-xs font-bold text-slate-800">
                 GPA &amp; Co. CA Operating System
               </span>
@@ -110,11 +111,11 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Link to Brains & Taxes Public Firm Site */}
             <Link
               href="/brainsandtaxes"
-              className="text-xs text-slate-700 hover:text-btred-logo font-bold px-3 py-2 rounded-xl hover:bg-slate-100 transition hidden lg:inline-flex items-center gap-1.5 border border-slate-200"
+              className="text-xs text-slate-700 hover:text-btred-logo font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl hover:bg-slate-100 transition hidden md:inline-flex items-center gap-1.5 border border-slate-200"
             >
               <span>Brains &amp; Taxes Practice Profile</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
@@ -123,93 +124,97 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             {/* Client Portal Button */}
             <button
               onClick={() => onOpenLogin("client")}
-              className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5"
+              className="text-[11px] sm:text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl transition flex items-center gap-1 shrink-0 active:scale-95"
             >
-              <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Client Portal</span>
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="hidden sm:inline">Client Portal</span>
+              <span className="sm:hidden">Client</span>
             </button>
 
             {/* Practice Register / Sign Up Button */}
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="text-xs text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 font-bold px-3 py-2 rounded-xl transition hidden sm:inline-flex items-center gap-1.5"
+              className="text-xs text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 font-bold px-3 py-2 rounded-xl transition hidden lg:inline-flex items-center gap-1.5"
             >
-              <Building2 className="w-3.5 h-3.5 text-slate-500" />
+              <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <span>Register Firm</span>
             </button>
 
             {/* CA Firm Sign In Button */}
             <button
               onClick={() => onOpenLogin("partner")}
-              className="bg-btred-logo hover:bg-red-700 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black transition shadow-sm hover:shadow-md flex items-center gap-2 active:scale-95"
+              className="bg-btred-logo hover:bg-red-700 text-white px-2.5 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black transition shadow-sm hover:shadow-md flex items-center gap-1.5 shrink-0 active:scale-95 whitespace-nowrap"
             >
-              <KeyRound className="w-3.5 h-3.5 text-white" />
-              <span>CA Practice Sign In</span>
+              <KeyRound className="w-3.5 h-3.5 text-white shrink-0" />
+              <span className="hidden sm:inline">CA Practice Sign In</span>
+              <span className="sm:hidden">Sign In</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* 3. Hero Section (Crisp White with High-Trust Typography) */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-16">
-        <div className="text-center max-w-4xl mx-auto space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-16 space-y-12 sm:space-y-16 overflow-x-hidden min-w-0">
+        <div className="text-center max-w-4xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
           
           {/* Official ICAI Practice Badge */}
-          <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide">
-            <ShieldCheck className="w-4 h-4 text-btred-logo" />
-            <span>Official Client &amp; Practice Compliance Portal &bull; ICAI FRN: 022998C</span>
+          <div className="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 bg-red-50 border border-red-200 text-red-800 px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wide max-w-full text-center">
+            <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
+            <span>Official Client &amp; Practice Compliance Portal</span>
+            <span className="text-red-400 hidden sm:inline">&bull;</span>
+            <span className="hidden sm:inline">ICAI FRN: {DEFAULT_FIRM_BRANDING.frn}</span>
           </div>
 
           {/* Punchy Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.15]">
-            Stop Chasing Clients on WhatsApp. <br />
+          <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.2] break-words">
+            Stop Chasing Clients on WhatsApp. <br className="hidden sm:inline" />
             <span className="text-btred-logo">
               Lock Deliverables. Recover Fees via UPI.
             </span>
           </h1>
 
           {/* Direct, Honest Value Description */}
-          <p className="text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-3xl mx-auto font-normal">
+          <p className="text-xs sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-3xl mx-auto font-normal px-1">
             The dual-sided practice execution platform built for Indian Chartered Accountants, CSs, and their corporate clients. 
             Automate fee realization with UPI Pay-to-Release, compile 3-year banker credit dossiers in 60 seconds, safeguard client ITC from defaulting vendors, and track physical USB DSC tokens.
           </p>
 
-          {/* ONLY 2 Clear CTA Buttons (Eliminating all clutter and confusion) */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          {/* Responsive Hero CTA Buttons */}
+          <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 w-full max-w-2xl mx-auto">
             {/* Primary Action: CA Firm Sign In */}
             <button
               onClick={() => onOpenLogin("partner")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-btred-logo hover:bg-red-700 text-white px-7 py-3.5 rounded-2xl text-sm font-black transition shadow-lg shadow-red-500/20 active:scale-95"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-btred-logo hover:bg-red-700 text-white px-5 sm:px-7 py-3 sm:py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-lg shadow-red-500/20 active:scale-95"
             >
-              <KeyRound className="w-4 h-4" />
+              <KeyRound className="w-4 h-4 shrink-0" />
               <span>CA Firm Portal Login (Staff Desk)</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
 
             {/* Client Portal Action */}
             <button
               onClick={() => onOpenLogin("client")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-300 px-6 py-3.5 rounded-2xl text-sm font-bold transition active:scale-95 shadow-sm"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-300 px-5 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-xs sm:text-sm font-bold transition active:scale-95 shadow-sm"
             >
-              <Smartphone className="w-4 h-4 text-emerald-600" />
+              <Smartphone className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Client Portal Sign In (4-Digit PIN)</span>
             </button>
 
             {/* Register Practice / Free Trial */}
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200 hover:border-slate-300 px-5 py-3.5 rounded-2xl text-sm font-bold transition active:scale-95 shadow-sm"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200 hover:border-slate-300 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl text-xs sm:text-sm font-bold transition active:scale-95 shadow-sm"
             >
-              <Building2 className="w-4 h-4 text-slate-600" />
+              <Building2 className="w-4 h-4 text-slate-600 shrink-0" />
               <span>Register Practice / Sign Up</span>
             </button>
 
             {/* Pitch Preview Action */}
             <button
               onClick={() => onEnterSandbox("partner")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3.5 rounded-2xl text-xs font-bold transition active:scale-95"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 sm:py-3.5 rounded-2xl text-xs font-bold transition active:scale-95"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>Interactive Sandbox</span>
             </button>
           </div>
@@ -693,14 +698,14 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
         </div>
 
         {/* 6. Why TaxoBrain vs Legacy Incumbents (Crisp White Table) */}
-        <div className="bg-slate-50/70 border border-slate-200 rounded-3xl p-6 sm:p-10 space-y-6">
+        <div className="bg-slate-50/70 border border-slate-200 rounded-3xl p-4 sm:p-10 space-y-6 w-full max-w-full min-w-0 overflow-hidden">
           <div className="text-center max-w-xl mx-auto space-y-2">
             <h3 className="text-xl sm:text-2xl font-black text-slate-900">Why CA Practices Choose TaxoBrain</h3>
             <p className="text-xs text-slate-500">Comparing modern fee-realization software against legacy tools</p>
           </div>
 
-          <div className="overflow-x-auto scrollbar-none touch-pan-x pb-2">
-            <table className="w-full min-w-[640px] text-left text-xs border-collapse">
+          <div className="w-full max-w-full min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 pb-2 touch-pan-x block">
+            <table className="w-full min-w-[540px] text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600 font-bold bg-white">
                   <th className="py-3 px-4">Feature / Bottleneck</th>
@@ -763,20 +768,20 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
       </footer>
 
       {/* 8. Mobile Sticky Quick-Action Bar (Clean White Glassmorphism) */}
-      <div className="sm:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2.5 z-40 flex items-center justify-between gap-2 shadow-lg pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+      <div className="sm:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2.5 z-40 flex items-center justify-between gap-2 shadow-lg pb-[max(0.65rem,env(safe-area-inset-bottom))] w-full max-w-full overflow-hidden">
         <button
           onClick={() => onOpenLogin()}
-          className="flex-1 bg-btred-logo text-white py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+          className="flex-1 bg-btred-logo text-white py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 min-w-0"
         >
-          <KeyRound className="w-3.5 h-3.5" />
-          <span>Sign In to Portal</span>
+          <KeyRound className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Sign In to Portal</span>
         </button>
 
         <button
           onClick={() => onEnterSandbox("partner")}
-          className="bg-slate-100 border border-slate-200 text-slate-700 py-3 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 active:scale-95"
+          className="bg-slate-100 border border-slate-200 text-slate-700 py-3 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 active:scale-95 shrink-0"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           <span>Pitch Preview</span>
         </button>
       </div>

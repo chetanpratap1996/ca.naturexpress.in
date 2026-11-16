@@ -6,6 +6,7 @@ import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
+import { validateGstr2bJsonStructure } from "@/lib/fileIntelligence/documentValidator";
 import { 
   FileSpreadsheet, 
   CheckCircle2, 
@@ -817,16 +818,16 @@ export const Gstr2bReconciler: React.FC = () => {
         }
       }
 
-      // If generic JSON, load profile items with real confirmation
-      setTimeout(() => {
+      // Strict validation: Reject if not valid GSTN GSTR-2B JSON
+      const validation = validateGstr2bJsonStructure(parsed, file.name);
+      if (!validation.isValid) {
         setIsProcessingFiles(false);
-        setIsUploadModalOpen(false);
-        setItems(activeProfile.items);
-        toast.success("GSTR-2B Matched", `Parsed ${file.name} against purchase register. 100% DRC-01C verified.`);
-      }, 1000);
+        toast.error("Invalid GSTR-2B JSON", validation.diagnostics.errorMessage || "The JSON file does not contain official GSTN GSTR-2B docdata.b2b arrays.");
+        return;
+      }
     } catch (e: any) {
       setIsProcessingFiles(false);
-      toast.error("JSON Error", "Invalid GSTN JSON format. Loading verified profile records.");
+      toast.error("JSON Error", `Could not parse "${file.name}". Please ensure it is an authentic GSTN GSTR-2B JSON download.`);
     }
   };
 
@@ -881,15 +882,12 @@ export const Gstr2bReconciler: React.FC = () => {
         return;
       }
 
-      setTimeout(() => {
-        setIsProcessingFiles(false);
-        setIsUploadModalOpen(false);
-        setItems(activeProfile.items);
-        toast.success("Register Ingested", `Matched ${file.name} against GSTR-2B.`);
-      }, 1000);
+      setIsProcessingFiles(false);
+      toast.error("Document Rejected", `"${file.name}" does not contain valid purchase register rows with Vendor Name, GSTIN, and Taxable Value.`);
+      return;
     } catch (e: any) {
       setIsProcessingFiles(false);
-      toast.error("CSV Error", "Error reading CSV file.");
+      toast.error("CSV Error", "Error reading CSV file. Please upload a valid purchase register CSV/XLS.");
     }
   };
 

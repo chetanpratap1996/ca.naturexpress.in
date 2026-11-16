@@ -16,22 +16,36 @@ import {
   Download
 } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
+import { ClientEntity } from "@/lib/types";
 
 interface TaxCashflowForecasterProps {
   clientName?: string;
+  client?: ClientEntity | null;
 }
 
-export function TaxCashflowForecaster({ clientName = "Client Entity" }: TaxCashflowForecasterProps) {
+export function TaxCashflowForecaster({ clientName = "Client Entity", client }: TaxCashflowForecasterProps) {
+  const turnoverCr = client?.turnoverCr || 5.0;
+  const turnoverRupees = turnoverCr * 10000000;
+  
+  // Dynamic Initial Estimates based on actual entity scale
+  const defaultMonthlyGstOutput = client?.gstin ? Math.round((turnoverRupees / 12) * 0.18) : 0;
+  const defaultEligible2bItc = Math.round(defaultMonthlyGstOutput * 0.68);
+  const defaultFullYearProfit = Math.round(turnoverRupees * 0.10);
+  const defaultRate = client?.type === "PVT_LTD" || client?.type === "PUBLIC_LTD" ? 25 : 30;
+  const defaultAnnualTax = Math.round(defaultFullYearProfit * (defaultRate / 100));
+  const defaultTdsCredited = Math.round(turnoverRupees * 0.015);
+  const defaultAdvanceTaxPaidQ1Q2 = Math.round(defaultAnnualTax * 0.45);
+
   // GSTR-3B Interactive State
-  const [estimatedSalesTax, setEstimatedSalesTax] = useState<number>(580000);
-  const [eligible2bItc, setEligible2bItc] = useState<number>(395000);
+  const [estimatedSalesTax, setEstimatedSalesTax] = useState<number>(defaultMonthlyGstOutput || 580000);
+  const [eligible2bItc, setEligible2bItc] = useState<number>(defaultEligible2bItc || 395000);
   const [existingCashBalance, setExistingCashBalance] = useState<number>(0);
 
   // Advance Tax Interactive State (Q3 - 75% cumulative cutoff due 15-Dec)
-  const [estimatedFullYearProfit, setEstimatedFullYearProfit] = useState<number>(8500000); // 85 Lakhs
-  const [corporateTaxRate, setCorporateTaxRate] = useState<number>(25); // 25% for domestic manufacturing
-  const [tdsCreditedSoFar, setTdsCreditedSoFar] = useState<number>(750000);
-  const [advanceTaxPaidQ1Q2, setAdvanceTaxPaidQ1Q2] = useState<number>(800000);
+  const [estimatedFullYearProfit, setEstimatedFullYearProfit] = useState<number>(defaultFullYearProfit || 8500000);
+  const [corporateTaxRate, setCorporateTaxRate] = useState<number>(defaultRate);
+  const [tdsCreditedSoFar, setTdsCreditedSoFar] = useState<number>(defaultTdsCredited || 750000);
+  const [advanceTaxPaidQ1Q2, setAdvanceTaxPaidQ1Q2] = useState<number>(defaultAdvanceTaxPaidQ1Q2 || 800000);
 
   // Derived GSTR-3B
   const netGstCashRequired = Math.max(0, estimatedSalesTax - eligible2bItc - existingCashBalance);

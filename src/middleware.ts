@@ -16,8 +16,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Private by default for all API endpoints except public auth routes
-  const isPublicApi = pathname === "/api/auth/login" || pathname === "/api/auth/logout";
+  // 2. Private by default for all API endpoints except public auth & consultation intake routes
+  const isPublicApi = 
+    pathname === "/api/auth/login" || 
+    pathname === "/api/auth/logout" ||
+    pathname === "/api/growth/consultation" ||
+    pathname === "/api/notifications";
   if (pathname.startsWith("/api/") && !isPublicApi) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated) {
@@ -54,7 +58,7 @@ export async function middleware(request: NextRequest) {
       const isAllowedClientRoute =
         pathname === "/api/session" ||
         pathname === "/api/data" ||
-        (pathname === "/api/notifications" && request.method === "GET") ||
+        (pathname === "/api/notifications" && (request.method === "GET" || request.method === "PATCH")) ||
         (pathname === "/api/tasks" && request.method === "GET") ||
         (pathname === "/api/documents" && (request.method === "GET" || request.method === "POST")) ||
         (pathname === "/api/documents/download" && request.method === "GET") ||

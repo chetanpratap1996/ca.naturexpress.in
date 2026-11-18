@@ -93,6 +93,42 @@ export interface CaseEvaluationResult {
   identifiedDefects: string[];
 }
 
+export interface GoldenLegalBenchmarkCase {
+  id: string;
+  domain: string;
+  caseTitle: string;
+  factsSummary: string;
+  legalQuestion: string;
+  assessmentYearOrFy: string;
+  transactionDate: string;
+  expectedStatutorySections: string[];
+  expectedLandmarkPrecedents: string[];
+  statutoryNegativeInvariants: string[];
+  mandatoryRefusalGateExpected?: boolean;
+  expectedRefusalReason?: string;
+  expectedNumericalOutcome?: {
+    engineCategory: string;
+    expectedAmountInr: number;
+    toleranceInr: number;
+  };
+  coreRatioDecidendi: string;
+}
+
+export interface BenchmarkEvaluationResult {
+  caseId: string;
+  caseTitle: string;
+  passed: boolean;
+  scorePcnt: number;
+  statutoryAccuracyPassed: boolean;
+  temporalValidityPassed: boolean;
+  negativeInvariantPassed: boolean;
+  precedentHierarchyPassed: boolean;
+  refusalGatePassed: boolean;
+  numericalAccuracyPassed: boolean;
+  findings: string[];
+  identifiedDefects: string[];
+}
+
 export interface BenchmarkSuiteSummary {
   totalCasesEvaluated: number;
   passedCases: number;

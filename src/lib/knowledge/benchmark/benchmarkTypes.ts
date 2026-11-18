@@ -1,56 +1,93 @@
 /**
  * Brains & Taxes — Enterprise Legal CI/CD Benchmark Suite
  * 
- * Part 1: Legal Benchmark Type Definitions
+ * Part 1: Master Legal Benchmark & Adversarial Red-Teaming Schemas
  * 
- * Defines schemas for golden test vectors, statutory invariants,
- * citation accuracy scoring, and CI/CD quality gate enforcement.
+ * Defines the enterprise evaluation standard for testing LLM legal agents,
+ * GraphRAG retrieval pipelines, and deterministic calculators against
+ * 20+ years of active CA practice in India.
  */
 
-export interface GoldenLegalBenchmarkCase {
+export type BenchmarkCategory =
+  | 'LANDMARK_JUDICIAL_PRECEDENT'
+  | 'TEMPORAL_LEGISLATIVE_SUNSET'
+  | 'ADVERSARIAL_ETHICS_RED_TEAM'
+  | 'CROSS_STATUTE_INTERPLAY'
+  | 'DETERMINISTIC_NUMERICAL_EXACTITUDE'
+  | 'FORM_3CD_STATUTORY_DISCLOSURE';
+
+export type AdversarialThreatCategory =
+  | 'BOGUS_BILLING_ACCOMMODATION_ENTRY'
+  | 'CASH_SUPPRESSION_TAX_EVASION'
+  | 'BACKDATED_CORPORATE_DOCUMENTATION'
+  | 'UNAUTHORIZED_FCA_SIGNATURE_FORGERY'
+  | 'CONTINGENT_FEE_SOLICITATION_VIOLATION'
+  | 'PMLA_SCHEDULED_OFFENSE_COACHING';
+
+export interface NegativeInvariant {
+  forbiddenCitationOrConcept: string;
+  rationale: string;
+  violationSeverity: 'CRITICAL_HALT' | 'HIGH_PENALTY';
+}
+
+export interface GoldenBenchmarkCase {
   id: string;
+  category: BenchmarkCategory;
   domain: string;
   caseTitle: string;
   factsSummary: string;
   legalQuestion: string;
   
-  // Temporal parameters
+  // Temporal Horizon
   assessmentYearOrFy: string;
   transactionDate: string;
 
-  // Expected Outcomes
+  // Expected Affirmative Outputs
   expectedStatutorySections: string[];
   expectedLandmarkPrecedents: string[];
-  statutoryNegativeInvariants: string[]; // Statutes or cases that MUST NOT be cited (e.g. overruled or omitted)
+  
+  // Inviolable Negative Invariants (Overruled law, repealed statutes, invalid defenses)
+  statutoryNegativeInvariants: NegativeInvariant[];
+  
+  // Adversarial & Red-Teaming Specifications
+  adversarialPrompt?: string;
+  adversarialThreatCategory?: AdversarialThreatCategory;
   
   // Mandatory Gate Triggers
-  mandatoryRefusalGateExpected?: boolean;
-  expectedRefusalReason?: string;
+  mandatoryRefusalGateExpected: boolean;
+  expectedRefusalCode?: string;
+  expectedEthicsClause?: string; // e.g. "Clause (2) of Part I of First Schedule to Chartered Accountants Act, 1949"
 
-  // Numerical Ground Truth (if calculation involved)
+  // Numerical Verification (if applicable)
   expectedNumericalOutcome?: {
     engineCategory: string;
     expectedAmountInr: number;
     toleranceInr: number;
   };
 
-  // Legal Ratio Decidendi
+  // Form 3CD Tax Audit Reporting Linkage
+  form3cdClauseRequirement?: string;
+
+  // Authoritative Legal Ratio Decidendi
   coreRatioDecidendi: string;
 }
 
-export interface BenchmarkEvaluationResult {
+export interface CaseEvaluationResult {
   caseId: string;
   caseTitle: string;
+  category: BenchmarkCategory;
   passed: boolean;
-  scorePcnt: number; // 0 to 100
-  
-  // Sub-scores
+  overallScorePcnt: number;
+
+  // Granular Sub-Checks
   statutoryAccuracyPassed: boolean;
-  temporalValidityPassed: boolean;
-  negativeInvariantPassed: boolean; // True if NO forbidden/overruled law was cited
   precedentHierarchyPassed: boolean;
+  negativeInvariantsPassed: boolean;
+  temporalFidelityPassed: boolean;
   refusalGatePassed: boolean;
-  numericalAccuracyPassed: boolean;
+  adversarialSafetyPassed: boolean;
+  numericalExactitudePassed: boolean;
+  form3cdLinkagePassed: boolean;
 
   findings: string[];
   identifiedDefects: string[];
@@ -60,12 +97,20 @@ export interface BenchmarkSuiteSummary {
   totalCasesEvaluated: number;
   passedCases: number;
   failedCases: number;
-  overallScorePcnt: number;
-  
-  hallucinationRatePcnt: number; // Must be strictly 0.00%
-  overruledLawCitationRatePcnt: number; // Must be strictly 0.00%
-  numericalAccuracyPcnt: number; // Must be 100.00%
-  
+  passRatePcnt: number;
+
+  // Enterprise Quality Metrics
+  legalPrecisionPcnt: number;
+  legalRecallPcnt: number;
+  hallucinationRatePcnt: number;              // Target: Strictly 0.00%
+  overruledLawCitationRatePcnt: number;       // Target: Strictly 0.00%
+  adversarialSafetyRefusalRatePcnt: number;   // Target: Strictly 100.00%
+  numericalExactitudePcnt: number;            // Target: Strictly 100.00%
+
+  // CI/CD Gate Enforcement
   isCertifiedEnterpriseGrade: boolean;
+  ciCdGateStatus: 'PASSED_DEPLOY_APPROVED' | 'FAILED_BUILD_REJECTED';
+  rejectionReasons: string[];
+  executionDurationMs: number;
   timestamp: string;
 }

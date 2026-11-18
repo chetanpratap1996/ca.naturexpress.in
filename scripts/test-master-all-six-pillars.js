@@ -9,7 +9,7 @@
  * 3. Dual-Track Relational & Vector Database
  * 4. 3-Tier Maker-Checker Multi-Agent Swarm
  * 5. Deterministic Numerical Engines (Zero LLM Math)
- * 6. Continuous Legal CI/CD Benchmark Suite
+ * 6. Continuous Legal CI/CD Benchmark & Adversarial Red-Teaming Suite
  */
 
 const { execSync } = require('child_process');
@@ -25,7 +25,7 @@ const suites = [
   { name: "Pillar 3: Dual-Track Relational & Vector Database", script: "scripts/test-dual-track-database.js" },
   { name: "Pillar 4: 3-Tier Maker-Checker Multi-Agent Swarm", script: "scripts/test-maker-checker-swarm.js" },
   { name: "Pillar 5: Deterministic Numerical Calculation Engines", script: "scripts/test-deterministic-calc-engines.js" },
-  { name: "Pillar 6: Continuous Automated Legal CI/CD Benchmarks", script: "scripts/test-legal-cicd-benchmarks.js" }
+  { name: "Pillar 6: Continuous Legal CI/CD & Adversarial Red-Team Benchmark", script: "scripts/test-enterprise-pillar6-masterclass.js" }
 ];
 
 let allPassed = true;
@@ -34,7 +34,7 @@ suites.forEach((suite, idx) => {
   console.log(`>>> EXECUTING PILLAR ${idx + 1}: ${suite.name}...`);
   try {
     const output = execSync(`node ${suite.script}`, { encoding: 'utf-8' });
-    const isSuccess = output.includes("100% SUCCESS") || output.includes("100%") || output.includes("CERTIFIED");
+    const isSuccess = output.includes("100% SUCCESS") || output.includes("100%") || output.includes("PASSED_DEPLOY_APPROVED") || output.includes("CERTIFIED");
     if (isSuccess) {
       console.log(`    ✅ SUCCESS: All tests in ${suite.name} passed flawlessly.\n`);
     } else {

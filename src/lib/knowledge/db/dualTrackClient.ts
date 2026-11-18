@@ -275,7 +275,7 @@ export class DualTrackKnowledgeClient {
       bench_composition: 'DIVISION_BENCH',
       judgment_date: '2021-06-29',
       key_legal_issue: 'Whether supplier can avail benefits of MSMED Act if registration was obtained after entering into contract or supplying goods.',
-      ratioDecidendi: 'To claim benefits of the MSMED Act, the supplier must be registered under the Act as on the date of entering into the contract or supply. Registration obtained subsequently does not apply retrospectively.',
+      ratio_decidendi: 'To claim benefits of the MSMED Act, the supplier must be registered under the Act as on the date of entering into the contract or supply. Registration obtained subsequently does not apply retrospectively.',
       treatment_status: 'GOOD_LAW_BINDING',
       is_overruled: false,
       favourability: 'FAVOUR_OF_ASSESSEE',

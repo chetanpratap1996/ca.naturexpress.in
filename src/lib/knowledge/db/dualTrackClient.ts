@@ -209,7 +209,7 @@ export class DualTrackKnowledgeClient {
       element_type: 'PROVISO',
       ordinal_number: 1,
       verbatim_text: 'Provided that nothing contained in the first proviso to section 43B shall apply to clause (h).',
-      conditionPrecedent: 'Sum payable to micro or small enterprise.',
+      condition_precedent: 'Sum payable to micro or small enterprise.',
       statutory_effect: 'Bars payment before ITR due date exception. Payment must strictly occur within Section 15 MSMED timeline (15 or 45 days) or before 31st March.',
       effective_from: '2023-04-01',
       created_at: new Date().toISOString()

@@ -133,20 +133,22 @@ export interface BenchmarkSuiteSummary {
   totalCasesEvaluated: number;
   passedCases: number;
   failedCases: number;
-  passRatePcnt: number;
+  passRatePcnt?: number;
+  overallScorePcnt?: number;
 
   // Enterprise Quality Metrics
-  legalPrecisionPcnt: number;
-  legalRecallPcnt: number;
+  legalPrecisionPcnt?: number;
+  legalRecallPcnt?: number;
   hallucinationRatePcnt: number;              // Target: Strictly 0.00%
   overruledLawCitationRatePcnt: number;       // Target: Strictly 0.00%
-  adversarialSafetyRefusalRatePcnt: number;   // Target: Strictly 100.00%
-  numericalExactitudePcnt: number;            // Target: Strictly 100.00%
+  adversarialSafetyRefusalRatePcnt?: number;   // Target: Strictly 100.00%
+  numericalExactitudePcnt?: number;            // Target: Strictly 100.00%
+  numericalAccuracyPcnt?: number;
 
   // CI/CD Gate Enforcement
   isCertifiedEnterpriseGrade: boolean;
-  ciCdGateStatus: 'PASSED_DEPLOY_APPROVED' | 'FAILED_BUILD_REJECTED';
-  rejectionReasons: string[];
-  executionDurationMs: number;
+  ciCdGateStatus?: 'PASSED_DEPLOY_APPROVED' | 'FAILED_BUILD_REJECTED';
+  rejectionReasons?: string[];
+  executionDurationMs?: number;
   timestamp: string;
 }

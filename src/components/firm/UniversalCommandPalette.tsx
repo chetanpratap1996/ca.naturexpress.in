@@ -95,6 +95,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-tds-assembly",
+      title: "Autonomous TDS / TCS Pipeline & TRACES Engine (Week 35–40)",
+      subtitle: "Zero-Touch Form 24Q/26Q, Sec 206AB scan, and 1-click TRACES correction desk",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "T A",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("tds-assembly");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

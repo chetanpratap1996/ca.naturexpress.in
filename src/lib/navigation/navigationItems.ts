@@ -203,6 +203,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 
   // --- SUITE 3: INCOME TAX & TDS (CompuTax / Winman Data Prep) ---
   {
+    id: "tds-assembly",
+    label: "Autonomous TDS & TRACES Pipeline",
+    shortLabel: "TDS & TRACES (2035)",
+    categoryId: "income-tax-tds",
+    description: "Zero-Touch Form 24Q/26Q Assembly, Sec 206AB Scan & 1-Click TRACES Correction Desk",
+    icon: Sparkles,
+    iconColor: "text-amber-600",
+    badge: "2035 Auto",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  {
     id: "itr-calc",
     label: "ITR Tax Engine (115BAC)",
     shortLabel: "ITR Calculator",

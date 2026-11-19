@@ -407,9 +407,13 @@ const INITIAL_TDS_TRANSACTIONS: TdsTransactionAuditItem[] = [
 
 interface Form3cdWorkpaperProps {
   clients?: ClientEntity[];
+  onPushToItr?: (disallowances: number) => void;
 }
 
-export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = [] }) => {
+export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ 
+  clients = [],
+  onPushToItr
+}) => {
   const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-APEX-01");
   const [activeSuite, setActiveSuite] = useState<"clauses_master" | "clause44_engine" | "clause22_msme" | "clause34_tds">("clauses_master");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
@@ -1129,6 +1133,7 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({ clients = []
           financialYear={activeProfile.financialYear}
           clauses={clauses}
           udinNumber={`26${activeProfile.pan.substring(5, 9)}BGTA${activeProfile.entityId.slice(-4).replace(/[^0-9]/g, '1')}`}
+          onPushToItr={onPushToItr}
         />
       )}
     </div>

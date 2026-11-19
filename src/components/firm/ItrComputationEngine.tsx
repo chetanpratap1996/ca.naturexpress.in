@@ -53,6 +53,7 @@ import {
 interface ItrComputationEngineProps {
   clients?: ClientEntity[];
   initialClient?: ClientEntity | null;
+  initialDisallowances?: number | null;
 }
 
 export interface TaxpayerProfilePreset {
@@ -202,11 +203,15 @@ const PRESET_TAXPAYER_PROFILES: TaxpayerProfilePreset[] = [
 export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
   clients = [],
   initialClient = null,
+  initialDisallowances = null,
 }) => {
   // Selected Profile Preset or Real Client
   const [selectedProfileId, setSelectedProfileId] = useState<string>(
     initialClient?.id || "PROF-RAJESH"
   );
+
+  // Tax Audit Disallowances bridged from Form 3CD (Cl 22 & 34)
+  const [taxAuditDisallowances, setTaxAuditDisallowances] = useState<number>(initialDisallowances || 0);
 
   // Search filter for clients
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -604,6 +609,8 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
         pgbp = businessGrossTurnover * 0.50;
       }
     }
+    // Add statutory disallowances bridged from Form 3CD (Sec 43B(h), 40(a)(ia))
+    pgbp += taxAuditDisallowances;
 
     // 4. Other Sources
     const totalOtherSources = savingsInterest + fdInterestAndDividends;
@@ -1257,6 +1264,37 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
           )}
         </div>
       </div>
+
+      {/* BRIDGED TAX AUDIT DISALLOWANCES BANNER */}
+      {taxAuditDisallowances > 0 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+              <Award className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-950 flex items-center gap-2">
+                Bridged from Form 3CD Tax Audit Workpapers (Clause 22 &amp; Clause 34)
+                <span className="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] font-mono font-bold">
+                  +{formatCurrencyINR(taxAuditDisallowances)}
+                </span>
+              </div>
+              <div className="text-[11px] text-emerald-700 mt-0.5">
+                Statutory add-back for MSME Section 43B(h) overdue creditors and Chapter XVII-B TDS Section 40(a)(ia) disallowances automatically added to PGBP profits.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setTaxAuditDisallowances(0);
+              toast.info("Disallowances Cleared", "Removed Form 3CD disallowance add-back from PGBP.");
+            }}
+            className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white px-3.5 py-1.5 rounded-xl border border-emerald-200 transition shrink-0"
+          >
+            Clear Add-back
+          </button>
+        </div>
+      )}
 
       {/* DUAL REGIME COMPARISON CARDS (HIGH CONTRAST & STRUCTURED) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

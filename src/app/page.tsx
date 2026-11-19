@@ -155,6 +155,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("client-pwa");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
+  const [bridgedAuditDisallowances, setBridgedAuditDisallowances] = useState<number | null>(null);
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
@@ -684,11 +685,20 @@ export default function Home() {
               )}
 
               {activePartnerTab === "itr-calc" && (
-                <ItrComputationEngine clients={clients} />
+                <ItrComputationEngine 
+                  clients={clients} 
+                  initialDisallowances={bridgedAuditDisallowances}
+                />
               )}
 
               {activePartnerTab === "tax-audit-3cd" && (
-                <Form3cdWorkpaper clients={clients} />
+                <Form3cdWorkpaper 
+                  clients={clients} 
+                  onPushToItr={(disallowanceAmount) => {
+                    setBridgedAuditDisallowances(disallowanceAmount);
+                    setActivePartnerTab("itr-calc");
+                  }}
+                />
               )}
 
               {activePartnerTab === "schedule3-audit" && (

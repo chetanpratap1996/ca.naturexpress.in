@@ -84,6 +84,15 @@ export function PayToReleaseManager({
   const [dispatchRecipients, setDispatchRecipients] = useState<WhatsAppDispatchRecipient[]>([]);
   const [sentStatuses, setSentStatuses] = useState<Record<string, boolean>>({});
 
+  // Watermark Preview Modal State
+  const [watermarkPreviewDoc, setWatermarkPreviewDoc] = useState<{
+    title: string;
+    clientName: string;
+    amount: number;
+    isLocked: boolean;
+    invoiceNo?: string;
+  } | null>(null);
+
   // Self-Healing Dynamic Config Fallback for Live CA Data
   const effectiveConfigs = useMemo(() => {
     return clients.map(client => {
@@ -678,9 +687,21 @@ export function PayToReleaseManager({
                       <div className="flex flex-wrap gap-1 max-w-xs">
                         {cfg.blockedDeliverables && cfg.blockedDeliverables.length > 0 ? (
                           cfg.blockedDeliverables.map((item) => (
-                            <span key={item} className="px-1.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 rounded border border-slate-200">
-                              {item.replace(/_/g, " ")}
-                            </span>
+                            <button
+                              key={item}
+                              onClick={() => setWatermarkPreviewDoc({
+                                title: item.replace(/_/g, " "),
+                                clientName: client?.name || "Client Entity",
+                                amount: displayAmount,
+                                isLocked: cfg.isLocked,
+                                invoiceNo: clientInvoices[0]?.invoiceNo,
+                              })}
+                              className="px-1.5 py-0.5 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200 flex items-center gap-1 transition cursor-pointer"
+                              title="Click to view Watermarked Deliverable Preview"
+                            >
+                              <FileText className="w-2.5 h-2.5 text-slate-500" />
+                              <span>{item.replace(/_/g, " ")}</span>
+                            </button>
                           ))
                         ) : (
                           <span className="text-xs text-slate-500 font-medium">None</span>
@@ -1256,6 +1277,109 @@ export function PayToReleaseManager({
               >
                 <Unlock className="w-3.5 h-3.5" /> Authorize &amp; Release
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: WATERMARKED DELIVERABLE PREVIEW */}
+      {watermarkPreviewDoc && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in zoom-in-95">
+            <button
+              onClick={() => setWatermarkPreviewDoc(null)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="p-2.5 bg-red-50 text-btred-logo rounded-2xl border border-red-200">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900">
+                  {watermarkPreviewDoc.title}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {watermarkPreviewDoc.clientName} &bull; Statutory Delivery Preview
+                </p>
+              </div>
+            </div>
+
+            {/* Document Preview Box with Watermark */}
+            <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-6 relative overflow-hidden min-h-[220px] flex flex-col justify-between">
+              {watermarkPreviewDoc.isLocked && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                  <div className="text-red-500/20 font-black text-2xl uppercase tracking-widest transform -rotate-12 border-4 border-red-500/20 px-6 py-3 rounded-2xl text-center">
+                    UNPAID DRAFT &bull; SUBJECT TO FEE CLEARANCE &bull; GPA &amp; CO. CA
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 z-10 text-xs">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                  <span className="font-bold text-slate-700">Audit Authority:</span>
+                  <span className="font-mono text-slate-900">ICAI / MCA-21 Portal</span>
+                </div>
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                  <span className="font-bold text-slate-700">Digital Signature Status:</span>
+                  <span className="text-amber-700 font-bold flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> DSC Embedded (Escrow Held)
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                  <span className="font-bold text-slate-700">Statutory Watermark:</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${watermarkPreviewDoc.isLocked ? "bg-red-100 text-btred-logo" : "bg-emerald-100 text-emerald-800"}`}>
+                    {watermarkPreviewDoc.isLocked ? "PROTECTED PREVIEW STAMP APPLIED" : "CLEAN CERTIFIED ORIGINAL"}
+                  </span>
+                </div>
+              </div>
+
+              {watermarkPreviewDoc.isLocked ? (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-center z-10">
+                  <p className="text-xs font-bold text-btred-logo">
+                    Deliverable Locked Pending Fee Settlement of ₹{watermarkPreviewDoc.amount.toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">
+                    Upon instant UPI settlement or Partner UTR approval, watermark is automatically removed and certified SHA-256 sealed PDF is delivered to the client's Document Vault.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center z-10">
+                  <p className="text-xs font-bold text-emerald-800">
+                    Account in Good Standing &bull; Unlocked for Direct Download
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-[11px] text-slate-500">
+                ICAI SQC-1 Certified Practice Delivery
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setWatermarkPreviewDoc(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900"
+                >
+                  Close
+                </button>
+                {watermarkPreviewDoc.isLocked && (
+                  <button
+                    onClick={() => {
+                      setWatermarkPreviewDoc(null);
+                      const matchedCfg = effectiveConfigs.find(c => c.totalOutstandingAmount === watermarkPreviewDoc.amount) || effectiveConfigs[0];
+                      const matchedClient = clients.find(cl => cl.name === watermarkPreviewDoc.clientName);
+                      setSelectedQrConfig({ config: matchedCfg, client: matchedClient });
+                    }}
+                    className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm flex items-center gap-1.5 transition"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    Instant UPI Unlock
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

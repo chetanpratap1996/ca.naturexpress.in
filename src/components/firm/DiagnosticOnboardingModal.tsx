@@ -175,12 +175,30 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
 
       const complianceBaselines = [
         {
+          assessmentYear: "2024-25",
+          formType: panInference.statutoryTaxReturnForm,
+          acknowledgementNo: `4109${Math.floor(10000000000 + Math.random() * 90000000000)}`,
+          filingDate: "2024-10-28",
+          taxPaidAmount: Math.round(turnoverNum * 22000),
+          refundClaimedAmount: 0,
+          status: "PROCESSED_143_1" as const
+        },
+        {
           assessmentYear: "2025-26",
           formType: panInference.statutoryTaxReturnForm,
-          acknowledgementNo: `${Math.floor(100000000000000 + Math.random() * 900000000000000)}`,
+          acknowledgementNo: `4108${Math.floor(10000000000 + Math.random() * 90000000000)}`,
           filingDate: "2025-10-25",
           taxPaidAmount: Math.round(turnoverNum * 25000),
           refundClaimedAmount: 0,
+          status: "PROCESSED_143_1" as const
+        },
+        {
+          assessmentYear: "2026-27",
+          formType: panInference.statutoryTaxReturnForm,
+          acknowledgementNo: `4107${Math.floor(10000000000 + Math.random() * 90000000000)}`,
+          filingDate: "2026-07-29",
+          taxPaidAmount: Math.round(turnoverNum * 28000),
+          refundClaimedAmount: 14500,
           status: "PROCESSED_143_1" as const
         }
       ];

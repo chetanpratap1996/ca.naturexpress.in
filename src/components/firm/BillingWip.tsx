@@ -29,6 +29,14 @@ import {
 } from "lucide-react";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
+import { ImprestLedgerDesk } from "@/components/firm/billing/ImprestLedgerDesk";
+import {
+  CA_SAC_SERVICES,
+  determinePlaceOfSupply,
+  calculateTaxAndTds,
+  calculateMsmeCompoundInterest,
+  generateNpciDynamicUpiUri,
+} from "@/lib/billing/invoicingEngine";
 
 export interface WipJobItem {
   id: string;
@@ -98,7 +106,7 @@ interface BillingWipProps {
 export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], onRefresh }) => {
   const [invoiceList, setInvoiceList] = useState<InvoiceItem[]>(invoices);
   const [wipJobs, setWipJobs] = useState<WipJobItem[]>(DEFAULT_WIP_JOBS);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger">("all");
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
   const [reconcileModalInvoice, setReconcileModalInvoice] = useState<InvoiceItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
@@ -110,10 +118,28 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
   const [paymentMode, setPaymentMode] = useState<"NEFT_RTGS" | "UPI" | "IMPS" | "CHEQUE">("NEFT_RTGS");
   const [payerNote, setPayerNote] = useState("");
 
-  // New Invoice Form State
+  // New Invoice Form State (SAC 9982, PoS & TDS u/s 194J)
   const [newEntityName, setNewEntityName] = useState(() => clients[0]?.name || "Apex AutoTech Private Limited");
-  const [newServiceDesc, setNewServiceDesc] = useState("Statutory Tax Audit & GSTR-9C Annual Certification");
+  const [selectedSacCode, setSelectedSacCode] = useState("998221");
+  const [newServiceDesc, setNewServiceDesc] = useState("Statutory & Tax Audit (Sec 44AB / Companies Act)");
   const [newAmount, setNewAmount] = useState("75000");
+  const [applyTds, setApplyTds] = useState(true);
+  const [tdsRate, setTdsRate] = useState<10 | 2>(10);
+
+  // Derive Place of Supply & Tax Calculations
+  const selectedClient = useMemo(() => {
+    return clients.find((c) => c.name === newEntityName) || clients[0] || null;
+  }, [newEntityName, clients]);
+
+  const posResult = useMemo(() => {
+    const clientGstin = selectedClient?.gstin || (selectedClient as any)?.gstin;
+    return determinePlaceOfSupply(clientGstin, DEFAULT_FIRM_BRANDING.gstin || "27AAACF2299R1ZG");
+  }, [selectedClient]);
+
+  const computedBreakdown = useMemo(() => {
+    const taxableVal = Number(newAmount) || 0;
+    return calculateTaxAndTds(taxableVal, posResult.isInterState, applyTds, tdsRate);
+  }, [newAmount, posResult, applyTds, tdsRate]);
 
   React.useEffect(() => {
     setInvoiceList(invoices);
@@ -281,7 +307,10 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           entityName: finalEntityName,
           groupId: finalGroupId,
           serviceDescription: newServiceDesc,
-          amount: amountVal,
+          sacCode: selectedSacCode,
+          taxableAmount: computedBreakdown.taxableAmount,
+          gstAmount: computedBreakdown.totalGstAmount,
+          amount: computedBreakdown.grossInvoiceAmount,
           dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
           actorName: DEFAULT_FIRM_BRANDING.managingPartner,
         }),
@@ -485,6 +514,16 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
             >
               Reconciled ({invoiceList.filter(i => i.status === "PAID").length})
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("imprest_ledger")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                activeTab === "imprest_ledger" ? "bg-teal-700 text-white shadow-sm" : "text-teal-800 bg-teal-50 hover:bg-teal-100"
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+              Rule 33 Imprest Ledger
+            </button>
 
             <button
               type="button"
@@ -496,8 +535,12 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           </div>
         </div>
 
-        {/* When activeTab is wip_unbilled, show WIP Job Ledger */}
-        {activeTab === "wip_unbilled" ? (
+        {/* When activeTab is imprest_ledger, render Rule 33 Pure Agent Imprest Desk */}
+        {activeTab === "imprest_ledger" ? (
+          <div className="p-4">
+            <ImprestLedgerDesk clients={clients} onRefresh={onRefresh} />
+          </div>
+        ) : activeTab === "wip_unbilled" ? (
           <div className="p-4 space-y-4">
             <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
@@ -1126,7 +1169,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateNewInvoice}
-            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in zoom-in-95"
+            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto"
           >
             <button
               type="button"
@@ -1135,8 +1178,9 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
             >
               <X className="w-5 h-5" />
             </button>
-            <h4 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2">
-              Issue Official CA Tax Invoice
+            <h4 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-btred-logo" />
+              Issue Official CA Tax Invoice (SAC 9982)
             </h4>
             <div className="space-y-3 text-xs">
               <div>
@@ -1166,6 +1210,30 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                   />
                 )}
               </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Statutory SAC Classification (SAC 9982) *</label>
+                <select
+                  value={selectedSacCode}
+                  onChange={(e) => {
+                    const found = CA_SAC_SERVICES.find(s => s.sacCode === e.target.value);
+                    setSelectedSacCode(e.target.value);
+                    if (found) {
+                      setNewServiceDesc(found.name);
+                      setTdsRate(found.defaultTdsRate);
+                      setNewAmount(found.suggestedFeeRange.min.toString());
+                    }
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
+                >
+                  {CA_SAC_SERVICES.map((s) => (
+                    <option key={s.sacCode} value={s.sacCode}>
+                      {s.sacCode} - {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Professional Service Scope</label>
                 <input
@@ -1176,8 +1244,20 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
                 />
               </div>
+
+              {/* Place of Supply Rule */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700">Place of Supply u/s 12(2) IGST:</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${posResult.isInterState ? "bg-purple-100 text-purple-800" : "bg-emerald-100 text-emerald-800"}`}>
+                    {posResult.taxType.replace(/_/g, " ")} ({posResult.isInterState ? "IGST 18%" : "CGST 9% + SGST 9%"})
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500">{posResult.explanation}</p>
+              </div>
+
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Total Billing Amount (₹)</label>
+                <label className="font-bold text-slate-700 block mb-1">Taxable Professional Fees (₹) *</label>
                 <input
                   type="number"
                   required
@@ -1185,11 +1265,71 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                   onChange={(e) => setNewAmount(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Includes 18% GST (Taxable: {formatCurrencyINR(Math.round(Number(newAmount) / 1.18))})
-                </span>
+              </div>
+
+              {/* Section 194J TDS Deduction Modeling */}
+              <div className="space-y-1.5 p-3 bg-amber-50/60 border border-amber-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-bold text-amber-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyTds}
+                      onChange={(e) => setApplyTds(e.target.checked)}
+                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>Model Section 194J TDS Deduction</span>
+                  </label>
+                  {applyTds && (
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setTdsRate(10)}
+                        className={`px-2 py-0.5 rounded font-bold ${tdsRate === 10 ? "bg-amber-600 text-white" : "bg-white text-slate-700 border"}`}
+                      >
+                        10% Prof.
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTdsRate(2)}
+                        className={`px-2 py-0.5 rounded font-bold ${tdsRate === 2 ? "bg-amber-600 text-white" : "bg-white text-slate-700 border"}`}
+                      >
+                        2% Tech.
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-amber-800">
+                  Per CBDT Circular 23/2017, TDS is deducted strictly on the taxable base (₹{computedBreakdown.taxableAmount.toLocaleString("en-IN")}), excluding GST.
+                </p>
+              </div>
+
+              {/* Real-time Math Summary */}
+              <div className="p-3 bg-slate-900 text-white rounded-xl space-y-1 font-mono text-[11px]">
+                <div className="flex justify-between text-slate-400">
+                  <span>Taxable Services:</span>
+                  <span>₹{computedBreakdown.taxableAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>{posResult.isInterState ? "IGST (18%):" : "CGST (9%) + SGST (9%):"}</span>
+                  <span>+₹{computedBreakdown.totalGstAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between font-bold text-white pt-1 border-t border-slate-700">
+                  <span>Gross Invoice Amount:</span>
+                  <span>₹{computedBreakdown.grossInvoiceAmount.toLocaleString("en-IN")}</span>
+                </div>
+                {applyTds && (
+                  <div className="flex justify-between text-amber-400">
+                    <span>Less: TDS u/s 194J ({tdsRate}%):</span>
+                    <span>-₹{computedBreakdown.tdsAmountDeducted.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-black text-emerald-400 text-xs pt-1 border-t border-slate-700">
+                  <span>Net Client Payable (UPI QR):</span>
+                  <span>₹{computedBreakdown.netAmountPayable.toLocaleString("en-IN")}</span>
+                </div>
               </div>
             </div>
+
             <div className="pt-2 flex justify-end gap-2">
               <button
                 type="button"

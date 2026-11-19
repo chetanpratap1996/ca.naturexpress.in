@@ -44,6 +44,7 @@ import {
 } from "@/lib/data/mockData";
 import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
+import { ImprestTransactionItem, DEFAULT_IMPREST_TRANSACTIONS } from "@/lib/billing/pureAgentImprest";
 
 export interface DatabaseSchema {
   firmMetrics: typeof FIRM_METRICS;
@@ -65,6 +66,7 @@ export interface DatabaseSchema {
   staffSecurityLogs: StaffDataSecurityAudit[];
   partnerMetrics: PartnerRealizationMetrics[];
   notifications: NotificationItem[];
+  imprestTransactions?: ImprestTransactionItem[];
   lastUpdated: string;
 }
 
@@ -129,6 +131,7 @@ export function ensureDatabase(): DatabaseSchema {
     staffSecurityLogs: INITIAL_STAFF_SECURITY_LOGS as any,
     partnerMetrics: INITIAL_PARTNER_METRICS as any,
     notifications: INITIAL_NOTIFICATIONS,
+    imprestTransactions: DEFAULT_IMPREST_TRANSACTIONS,
     lastUpdated: new Date().toISOString(),
   });
 
@@ -157,6 +160,7 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.partnerMetrics) { parsed.partnerMetrics = INITIAL_PARTNER_METRICS as any; modified = true; }
     if (!parsed.portalCredentials) { parsed.portalCredentials = INITIAL_PORTAL_CREDENTIALS; modified = true; }
     if (!parsed.notifications) { parsed.notifications = INITIAL_NOTIFICATIONS; modified = true; }
+    if (!parsed.imprestTransactions) { parsed.imprestTransactions = DEFAULT_IMPREST_TRANSACTIONS; modified = true; }
     if (!parsed.notices || parsed.notices.length === 0) { parsed.notices = SANDBOX_NOTICES; modified = true; }
     if (!parsed.clients || parsed.clients.length === 0) { parsed.clients = SANDBOX_CLIENTS; modified = true; }
     if (!parsed.groups || parsed.groups.length === 0) { parsed.groups = SANDBOX_GROUPS; modified = true; }

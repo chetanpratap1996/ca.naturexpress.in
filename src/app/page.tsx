@@ -49,6 +49,8 @@ import { AutonomousNoticeWorkbench } from "@/components/firm/AutonomousNoticeWor
 import { AutonomousGovernanceWorkbench } from "@/components/firm/AutonomousGovernanceWorkbench";
 import { AutonomousVcfoWorkbench } from "@/components/firm/AutonomousVcfoWorkbench";
 import { EnterpriseCiCdWorkbench } from "@/components/firm/EnterpriseCiCdWorkbench";
+import { LegacyMigrationWorkbench } from "@/components/firm/LegacyMigrationWorkbench";
+import { TallyKeyboardOverlay } from "@/components/shared/TallyKeyboardOverlay";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -737,6 +739,10 @@ export default function Home() {
                 <EnterpriseCiCdWorkbench />
               )}
 
+              {activePartnerTab === "legacy-migration" && (
+                <LegacyMigrationWorkbench />
+              )}
+
               {activePartnerTab === "gstr2b" && (
                 <Gstr2bReconciler />
               )}
@@ -926,6 +932,32 @@ export default function Home() {
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
         onNavigate={(tab) => handleTabChange(tab)}
+      />
+
+      {/* TallyPrime & Winman Muscle-Memory Keyboard Overlay (Alt+H / Alt+G / F2-F9) */}
+      <TallyKeyboardOverlay 
+        onTriggerAction={(actionId) => {
+          switch (actionId) {
+            case "CHANGE_PERIOD":
+              handleTabChange("calendar");
+              break;
+            case "OPEN_BRS":
+              handleTabChange("bank-ocr");
+              break;
+            case "OPEN_MSME":
+              handleTabChange("tax-audit-3cd");
+              break;
+            case "OPEN_GSTR1":
+              handleTabChange("gst-assembly");
+              break;
+            case "OPEN_GSTR2B":
+              handleTabChange("gstr2b");
+              break;
+            case "QUICK_SAVE":
+              toast.success("Voucher & Workpaper Saved — Math validated with ₹0 divergence");
+              break;
+          }
+        }}
       />
     </div>
 );

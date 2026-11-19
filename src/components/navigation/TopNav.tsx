@@ -117,10 +117,10 @@ export const TopNav: React.FC<TopNavProps> = ({
     return () => window.removeEventListener("bt_notification_received", handler);
   }, [isClientView, activeClientEntityId]);
 
-  // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K)
+  // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K / Alt+G for Tally mode)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') || (e.altKey && e.key.toLowerCase() === 'g')) {
         e.preventDefault();
         setIsCommandOpen((prev) => !prev);
       }

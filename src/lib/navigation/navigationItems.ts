@@ -507,6 +507,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     iconColor: "text-pink-500",
     badge: "Updates",
     badgeColor: "bg-pink-50 text-pink-700 border-pink-200"
+  },
+  {
+    id: "legacy-migration",
+    label: "Legacy Software Migrator (Winman / CompuTax)",
+    shortLabel: "Legacy Migrator",
+    categoryId: "client-desk",
+    description: "1-Click Drag-&-Drop migration from Winman CA-ERP, CompuTax / CompuBal & TallyPrime with ₹0 divergence",
+    icon: Sparkles,
+    iconColor: "text-amber-400",
+    badge: "Master Switch",
+    badgeColor: "bg-amber-50 text-amber-800 border-amber-300"
   }
 ];
 

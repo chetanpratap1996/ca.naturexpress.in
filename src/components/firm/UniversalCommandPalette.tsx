@@ -190,6 +190,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-legacy-migration",
+      title: "Universal Legacy Migrator (Winman / CompuTax / Tally)",
+      subtitle: "1-Click Drag-&-Drop migration from Winman CA-ERP, CompuTax & TallyPrime with ₹0 divergence",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "L M",
+      badge: "Master Switch",
+      action: () => {
+        onNavigateTab("legacy-migration");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

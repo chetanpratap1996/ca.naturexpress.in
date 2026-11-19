@@ -9,6 +9,8 @@ import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { TaxAdvisoryDossierModal, DossierComputationData } from "./TaxAdvisoryDossierModal";
 import { Form16AisUploadModal, ExtractedTaxData } from "./Form16AisUploadModal";
+import { DualRegimeOptimizer, ItrIncomeParameters } from "@/lib/itr/dualRegimeOptimizer";
+import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
 import { 
   Calculator, 
   CheckCircle2, 
@@ -505,6 +507,64 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
     setSalaryExemptions(calculatedHraExemption);
     setShowHraCalculator(false);
     toast.success("HRA Exemption Applied", `Exempt HRA u/s 10(13A) set to ${formatCurrencyINR(calculatedHraExemption)}.`);
+  };
+
+  // Export Validated Pre-Filing Payload for CompuTax / Winman / TaxPro
+  const handleExportComputaxBridge = () => {
+    playSuccessChime();
+    const params: ItrIncomeParameters = {
+      taxpayerName,
+      pan: taxpayerPan,
+      category: taxpayerCategory,
+      assessmentYear,
+      salaryGross,
+      salaryExemptions,
+      professionalTax,
+      annualRentReceived,
+      municipalTaxesPaid,
+      homeLoanInterestSelfOccupied,
+      hasPgbpIncome: isPresumptive || regularBusinessProfit > 0,
+      isPresumptive,
+      presumptiveScheme,
+      businessTurnover: businessGrossTurnover,
+      regularBusinessProfit,
+      stcg111A,
+      ltcg112A,
+      otherLtcg112,
+      savingsInterest,
+      fdInterestAndDividends,
+      familyPension: 0,
+      sec80C,
+      sec80D_Self,
+      sec80D_ParentsSenior,
+      sec80D_Checkup,
+      sec80CCD_1B,
+      sec80CCD_2_Employer,
+      sec80E_EduLoan,
+      sec80G_Donations,
+      sec80JJAA: 0,
+      tdsPaid,
+      advanceTaxPaid,
+      tcsPaid: 0
+    };
+
+    const result = DualRegimeOptimizer.optimize(params);
+    const jsonStr = JSON.stringify(result.computaxPayload, null, 2);
+
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ITR_Bridge_${taxpayerPan}_${assessmentYear.replace(" ", "_")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success(
+      "CompuTax / Winman Payload Exported",
+      `Validated pre-filing bridge for ${taxpayerName} (${taxpayerPan}) downloaded. Import-ready for CompuTax, Winman, and TaxPro.`
+    );
   };
 
   // =========================================================================
@@ -1017,6 +1077,16 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
           >
             <Send className="w-3.5 h-3.5" />
             <span>1-Click WhatsApp Advice</span>
+          </button>
+
+          {/* CompuTax / Winman Pre-filing Bridge */}
+          <button
+            onClick={handleExportComputaxBridge}
+            className="px-4 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs rounded-2xl flex items-center gap-1.5 transition shadow-sm"
+            title="Download verified pre-filing payload for CompuTax, Winman, TaxPro & Genius"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>CompuTax/Winman Bridge</span>
           </button>
 
           {/* Tax Advisory Dossier (Full Letterhead Deliverable) */}

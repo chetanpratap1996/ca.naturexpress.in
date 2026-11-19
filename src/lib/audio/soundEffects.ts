@@ -138,3 +138,7 @@ class PracticeSoundSystem {
 }
 
 export const practiceSound = new PracticeSoundSystem();
+
+export const playSuccessChime = () => practiceSound.playSuccessChime();
+export const playUnlockChord = () => practiceSound.playUnlockChord();
+export const playSoftClick = () => practiceSound.playSoftClick();

@@ -6,7 +6,13 @@ import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
-import { validateGstr2bJsonStructure } from "@/lib/fileIntelligence/documentValidator";
+import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
+import { RecoMatcher, Gstr2bInvoice, BooksPurchaseInvoice, ReconciledRecord, RecoMatchStatus } from "@/lib/gst/recoMatcher";
+import { ItcClassifier } from "@/lib/gst/itcClassifier";
+import { Rule42And43Engine, Rule42CalculationResult, Rule43MonthlyResult, Rule42AnnualTrueUpResult } from "@/lib/gst/rule42And43Engine";
+import { VendorRiskEngine, VendorComplianceProfile } from "@/lib/gst/vendorRiskEngine";
+import { VendorNoticeGenerator, GeneratedNotice } from "@/lib/gst/vendorNoticeGenerator";
+
 import { 
   FileSpreadsheet, 
   CheckCircle2, 
@@ -39,518 +45,244 @@ import {
   Calculator,
   FileCheck,
   AlertCircle,
-  ShoppingCart
+  Mail,
+  Scale,
+  Zap,
+  Info,
+  Layers,
+  ArrowUpRight
 } from "lucide-react";
 
-export interface EnhancedRecoItem {
-  id: string;
-  vendorName: string;
-  vendorGstin: string;
-  invoiceNo: string;
-  booksInvoiceNo?: string;
-  invoiceDate: string;
-  taxableValue: number;
-  igst: number;
-  cgst: number;
-  sgst: number;
-  totalItc: number;
-  status: "EXACT_MATCH" | "FUZZY_MATCHED" | "VALUE_MISMATCH" | "MISSING_IN_2B" | "MISSING_IN_BOOKS";
-  section17_5Blocked: boolean;
-  blockedReason?: "MOTOR_VEHICLE" | "FOOD_BEVERAGE" | "WORKS_CONTRACT" | "PERSONAL_USE" | "GIFTS_FREE_SAMPLES";
-  section16_4Risk: boolean; // Approaching Nov 30 deadline
-  rule37aRisk: boolean; // Vendor GSTR-3B pending
-  difference?: number;
-  vendorPhone?: string;
-  actionNote: string;
-}
-
-export interface ClientGstProfile {
-  entityId: string;
-  clientName: string;
-  gstin: string;
-  pan: string;
-  taxPeriod: string;
-  items: EnhancedRecoItem[];
-}
-
-const CLIENT_GST_PROFILES: Record<string, ClientGstProfile> = {
-  // Pratwi Solutions (IT & SaaS)
-  "CLI-PRATWI-01": {
-    entityId: "CLI-PRATWI-01",
-    clientName: "Pratwi Solutions Private Limited",
-    gstin: "23AANCP9915B1Z9",
-    pan: "AANCP9915B",
-    taxPeriod: "September 2026 (Monthly 3B)",
-    items: [
-      {
-        id: "reco-1",
-        vendorName: "Tata Steel Limited",
-        vendorGstin: "27AAACT2727Q1ZW",
-        invoiceNo: "TSL/2026/0491",
-        booksInvoiceNo: "TSL/2026/0491",
-        invoiceDate: "2026-09-14",
-        taxableValue: 480000,
-        igst: 86400,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 86400,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919820011223",
-        actionNote: "100% Exact match. Raw materials for manufacturing. Safe for GSTR-3B Table 4(A)(5)."
-      },
-      {
-        id: "reco-2",
-        vendorName: "Mahindra & Mahindra Financial Services",
-        vendorGstin: "27AABCM1888G1ZQ",
-        invoiceNo: "MMFSL/MUM/8821",
-        booksInvoiceNo: "MMFSL/MUM/8821",
-        invoiceDate: "2026-09-18",
-        taxableValue: 1250000,
-        igst: 350000,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 350000,
-        status: "EXACT_MATCH",
-        section17_5Blocked: true,
-        blockedReason: "MOTOR_VEHICLE",
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919821199882",
-        actionNote: "Passenger motor vehicle seating <13 persons. Automatically routed to Table 4(B)(1) Ineligible ITC."
-      },
-      {
-        id: "reco-3",
-        vendorName: "Radisson Blu Hospitality LLP",
-        vendorGstin: "23AAGCR4421L1ZB",
-        invoiceNo: "RBL/IND/773",
-        booksInvoiceNo: "RBL/IND/773",
-        invoiceDate: "2026-09-22",
-        taxableValue: 65000,
-        igst: 0,
-        cgst: 1625,
-        sgst: 1625,
-        totalItc: 3250,
-        status: "EXACT_MATCH",
-        section17_5Blocked: true,
-        blockedReason: "FOOD_BEVERAGE",
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919713044111",
-        actionNote: "Corporate dinner and catering expenses. Blocked under Section 17(5)(b)(i)."
-      },
-      {
-        id: "reco-4",
-        vendorName: "Cloudbyte Technologies Pvt Ltd",
-        vendorGstin: "29AABCC9941H1Z4",
-        invoiceNo: "CBT/2026/089",
-        booksInvoiceNo: "89",
-        invoiceDate: "2026-09-25",
-        taxableValue: 180000,
-        igst: 32400,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 32400,
-        status: "FUZZY_MATCHED",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919845012345",
-        actionNote: "Fuzzy matched: Normalized books invoice '#89' to 2B invoice 'CBT/2026/089'. Tax values match."
-      },
-      {
-        id: "reco-5",
-        vendorName: "Apex Industrial Logistics",
-        vendorGstin: "24AADCA1192M1ZN",
-        invoiceNo: "AIL/GJ/4402",
-        booksInvoiceNo: "AIL/GJ/4402",
-        invoiceDate: "2026-09-02",
-        taxableValue: 240000,
-        igst: 43200,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 43200,
-        status: "MISSING_IN_2B",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: true,
-        vendorPhone: "919825099881",
-        actionNote: "Voucher booked in Tally but supplier did not file GSTR-1. Rule 37A alert: Must chase vendor on WhatsApp."
-      },
-      {
-        id: "reco-6",
-        vendorName: "Jindal Infra Projects Pvt Ltd",
-        vendorGstin: "06AAACJ5512E1Z2",
-        invoiceNo: "JIP/HR/1044",
-        booksInvoiceNo: "JIP/HR/1044",
-        invoiceDate: "2025-11-20",
-        taxableValue: 560000,
-        igst: 100800,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 100800,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: true,
-        rule37aRisk: false,
-        vendorPhone: "919810022334",
-        actionNote: "FY 2025-26 invoice approaching Nov 30 statutory deadline under Section 16(4). Claim immediately."
-      },
-      {
-        id: "reco-7",
-        vendorName: "Dell India Private Limited",
-        vendorGstin: "29AAACD1029F1Z1",
-        invoiceNo: "DEL/2026/99120",
-        invoiceDate: "2026-09-28",
-        taxableValue: 360000,
-        igst: 64800,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 64800,
-        status: "MISSING_IN_BOOKS",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919880011990",
-        actionNote: "Reflected in GSTR-2B portal but missing in Tally! Unclaimed credit ₹64,800. 1-Click create purchase voucher."
-      }
-    ]
+// Initial Seed Data for Pratwi Solutions
+const INITIAL_2B_PRATWI: Gstr2bInvoice[] = [
+  {
+    id: "2b-1",
+    vendorGstin: "27AAACT2727Q1ZW",
+    vendorTradeName: "Tata Steel Limited",
+    invoiceNumber: "TSL/2026/0491",
+    invoiceDate: "2026-09-14",
+    invoiceType: "R",
+    placeOfSupply: "27-Maharashtra",
+    reverseCharge: false,
+    taxableValue: 480000,
+    igst: 86400,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 86400,
+    totalInvoiceValue: 566400,
+    gstr1FilingDate: "2026-10-10",
+    gstr1Period: "092026",
+    gstr3bFilingStatus: "FILED",
+    itcAvailable: true
   },
-
-  // Apex AutoTech (Precision Engineering / Automotive Manufacturing)
-  "CLI-APEX-01": {
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
-    gstin: "23AABCA8891D1Z2",
-    pan: "AABCA8891D",
-    taxPeriod: "September 2026 (Monthly 3B)",
-    items: [
-      {
-        id: "apex-1",
-        vendorName: "JSW Steel Coated Products Ltd",
-        vendorGstin: "27AAACJ4491D1Z8",
-        invoiceNo: "JSW/IND/8892",
-        booksInvoiceNo: "JSW/IND/8892",
-        invoiceDate: "2026-09-08",
-        taxableValue: 1850000,
-        igst: 333000,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 333000,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919820055221",
-        actionNote: "100% Match. Hot-rolled raw steel coils for precision casting. Eligible Table 4(A)(5)."
-      },
-      {
-        id: "apex-2",
-        vendorName: "Daimler Commercial Vehicles",
-        vendorGstin: "33AABCD9018L1Z6",
-        invoiceNo: "DICV/CH/4491",
-        booksInvoiceNo: "DICV/CH/4491",
-        invoiceDate: "2026-09-12",
-        taxableValue: 2800000,
-        igst: 784000,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 784000,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919840011442",
-        actionNote: "Commercial goods transport vehicle (>13 persons / goods carrier). 100% eligible under Section 17(5)(a)(A)."
-      },
-      {
-        id: "apex-3",
-        vendorName: "Bosch Automotive Toolings LLP",
-        vendorGstin: "29AAGCB8821K1Z4",
-        invoiceNo: "BOS/2026/1102",
-        booksInvoiceNo: "1102",
-        invoiceDate: "2026-09-16",
-        taxableValue: 420000,
-        igst: 75600,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 75600,
-        status: "VALUE_MISMATCH",
-        difference: 25200,
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919845099118",
-        actionNote: "Rate mismatch: Vendor filed 18% IGST (₹75,600), books recorded 12% IGST (₹50,400). Requires credit note or ledger adjustment."
-      },
-      {
-        id: "apex-4",
-        vendorName: "Madhya Pradesh Industrial Gases",
-        vendorGstin: "23AAFFM1092P1Z0",
-        invoiceNo: "MPIG/IND/0921",
-        booksInvoiceNo: "MPIG/IND/0921",
-        invoiceDate: "2026-09-20",
-        taxableValue: 310000,
-        igst: 0,
-        cgst: 27900,
-        sgst: 27900,
-        totalItc: 55800,
-        status: "MISSING_IN_2B",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: true,
-        vendorPhone: "919826011339",
-        actionNote: "Oxygen cylinders for cutting shop booked in Tally. Supplier GSTR-1 pending. Rule 37A chase required."
-      },
-      {
-        id: "apex-5",
-        vendorName: "Shriram Transport Logistics",
-        vendorGstin: "27AAACS1120P1Z1",
-        invoiceNo: "STL/MUM/7712",
-        booksInvoiceNo: "STL/MUM/7712",
-        invoiceDate: "2026-09-24",
-        taxableValue: 140000,
-        igst: 7000,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 7000,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919821099441",
-        actionNote: "GTA Transport Services under Reverse Charge. Mapped to GSTR-3B Table 4(A)(3) RCM ITC."
-      }
-    ]
+  {
+    id: "2b-2",
+    vendorGstin: "27AABCM1888G1ZQ",
+    vendorTradeName: "Mahindra & Mahindra Financial Services",
+    invoiceNumber: "MMFSL/MUM/8821",
+    invoiceDate: "2026-09-18",
+    invoiceType: "R",
+    placeOfSupply: "27-Maharashtra",
+    reverseCharge: false,
+    taxableValue: 1250000,
+    igst: 350000,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 350000,
+    totalInvoiceValue: 1600000,
+    gstr1FilingDate: "2026-10-09",
+    gstr1Period: "092026",
+    gstr3bFilingStatus: "FILED",
+    itcAvailable: true
   },
-
-  // OmniRetail Hypermarkets
-  "CLI-OMNI-01": {
-    entityId: "CLI-OMNI-01",
-    clientName: "OmniRetail Hypermarkets Private Limited",
-    gstin: "23AAFCO4492K1Z8",
-    pan: "AAFCO4492K",
-    taxPeriod: "September 2026 (Monthly 3B)",
-    items: [
-      {
-        id: "omni-1",
-        vendorName: "Hindustan Unilever Limited",
-        vendorGstin: "27AAACH1111H1Z2",
-        invoiceNo: "HUL/MUM/99214",
-        booksInvoiceNo: "HUL/MUM/99214",
-        invoiceDate: "2026-09-04",
-        taxableValue: 850000,
-        igst: 153000,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 153000,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919820088114",
-        actionNote: "FMCG Inventory for resale. 100% Eligible under Table 4(A)(5)."
-      },
-      {
-        id: "omni-2",
-        vendorName: "Pine Labs Private Limited",
-        vendorGstin: "07AAACP9910D1Z5",
-        invoiceNo: "PL/DEL/4412",
-        booksInvoiceNo: "PL/DEL/4412",
-        invoiceDate: "2026-09-11",
-        taxableValue: 120000,
-        igst: 21600,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 21600,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919811099221",
-        actionNote: "Store POS swipe terminal rentals. Eligible Table 4(A)(5) Input Service."
-      },
-      {
-        id: "omni-3",
-        vendorName: "Haldiram Snacks Manufacturing",
-        vendorGstin: "08AAACH4491F1Z3",
-        invoiceNo: "HSM/JAIPUR/881",
-        booksInvoiceNo: "HSM/JAIPUR/881",
-        invoiceDate: "2026-09-17",
-        taxableValue: 95000,
-        igst: 17100,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 17100,
-        status: "EXACT_MATCH",
-        section17_5Blocked: true,
-        blockedReason: "GIFTS_FREE_SAMPLES",
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919829011448",
-        actionNote: "Diwali gift hampers distributed free to store staff. Blocked under Section 17(5)(h)."
-      },
-      {
-        id: "omni-4",
-        vendorName: "Metro Cash & Carry India Pvt Ltd",
-        vendorGstin: "29AAACM2201L1Z9",
-        invoiceNo: "MCC/BLR/77102",
-        invoiceDate: "2026-09-26",
-        taxableValue: 340000,
-        igst: 61200,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 61200,
-        status: "MISSING_IN_BOOKS",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919845033221",
-        actionNote: "Reflected in 2B portal but missing in Tally! Unclaimed credit ₹61,200. Create purchase voucher."
-      }
-    ]
+  {
+    id: "2b-3",
+    vendorGstin: "23AAGCR4421L1ZB",
+    vendorTradeName: "Radisson Blu Hospitality LLP",
+    invoiceNumber: "RBL/IND/773",
+    invoiceDate: "2026-09-22",
+    invoiceType: "R",
+    placeOfSupply: "23-Madhya Pradesh",
+    reverseCharge: false,
+    taxableValue: 65000,
+    igst: 0,
+    cgst: 1625,
+    sgst: 1625,
+    totalTax: 3250,
+    totalInvoiceValue: 68250,
+    gstr1FilingDate: "2026-10-11",
+    gstr1Period: "092026",
+    gstr3bFilingStatus: "FILED",
+    itcAvailable: true
   },
-
-  // Zenith Cloud & AI Labs (SaaS & AI Infrastructure)
-  "CLI-ZENITH-01": {
-    entityId: "CLI-ZENITH-01",
-    clientName: "Zenith Cloud & AI Labs Private Limited",
-    gstin: "27AAFCZ1102E1ZX",
-    pan: "AAFCZ1102E",
-    taxPeriod: "September 2026 (Monthly 3B)",
-    items: [
-      {
-        id: "zenith-1",
-        vendorName: "Amazon Web Services India Pvt Ltd",
-        vendorGstin: "27AABCA3312H1Z1",
-        invoiceNo: "AWS/MUM/99201",
-        booksInvoiceNo: "AWS/MUM/99201",
-        invoiceDate: "2026-09-07",
-        taxableValue: 620000,
-        igst: 111600,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 111600,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919820011440",
-        actionNote: "Cloud infrastructure server hosting. 100% Eligible under Table 4(A)(5)."
-      },
-      {
-        id: "zenith-2",
-        vendorName: "Swiggy Corporate Catering Services",
-        vendorGstin: "29AADCB2201L1Z3",
-        invoiceNo: "SWG/BLR/88210",
-        booksInvoiceNo: "SWG/BLR/88210",
-        invoiceDate: "2026-09-14",
-        taxableValue: 48000,
-        igst: 0,
-        cgst: 1200,
-        sgst: 1200,
-        totalItc: 2400,
-        status: "EXACT_MATCH",
-        section17_5Blocked: true,
-        blockedReason: "FOOD_BEVERAGE",
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919845099220",
-        actionNote: "Staff office pantry meals and snacks. Ineligible credit blocked under Section 17(5)(b)(i)."
-      },
-      {
-        id: "zenith-3",
-        vendorName: "Apple India Private Limited",
-        vendorGstin: "29AAACA6190P1Z8",
-        invoiceNo: "APL/2026/4402",
-        booksInvoiceNo: "4402",
-        invoiceDate: "2026-09-20",
-        taxableValue: 450000,
-        igst: 81000,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 81000,
-        status: "FUZZY_MATCHED",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919845077112",
-        actionNote: "MacBook Pro units for engineering staff. Capital goods eligible under Table 4(A)(5)."
-      },
-      {
-        id: "zenith-4",
-        vendorName: "Redington India Limited",
-        vendorGstin: "33AAACR2291K1Z2",
-        invoiceNo: "RED/CH/88102",
-        booksInvoiceNo: "RED/CH/88102",
-        invoiceDate: "2026-09-24",
-        taxableValue: 210000,
-        igst: 37800,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 37800,
-        status: "MISSING_IN_2B",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: true,
-        vendorPhone: "919840088119",
-        actionNote: "Hardware procurement booked in Tally. Vendor GSTR-1 unfiled. Rule 37A notice generated."
-      }
-    ]
+  {
+    id: "2b-4",
+    vendorGstin: "29AABCC9941H1Z4",
+    vendorTradeName: "Cloudbyte Technologies Pvt Ltd",
+    invoiceNumber: "CBT/2026/089",
+    invoiceDate: "2026-09-25",
+    invoiceType: "R",
+    placeOfSupply: "29-Karnataka",
+    reverseCharge: false,
+    taxableValue: 180000,
+    igst: 32400,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 32400,
+    totalInvoiceValue: 212400,
+    gstr1FilingDate: "2026-10-08",
+    gstr1Period: "092026",
+    gstr3bFilingStatus: "FILED",
+    itcAvailable: true
   },
-
-  // Apex Precision Tools LLP
-  "CLI-APEX-02": {
-    entityId: "CLI-APEX-02",
-    clientName: "Apex Precision Tools LLP",
-    gstin: "23AABFA9012K1Z5",
-    pan: "AABFA9012K",
-    taxPeriod: "September 2026 (Monthly 3B)",
-    items: [
-      {
-        id: "tool-1",
-        vendorName: "Sandvik Coromant India",
-        vendorGstin: "27AAACS1190K1Z4",
-        invoiceNo: "SAN/PUNE/7712",
-        booksInvoiceNo: "SAN/PUNE/7712",
-        invoiceDate: "2026-09-09",
-        taxableValue: 380000,
-        igst: 68400,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 68400,
-        status: "EXACT_MATCH",
-        section17_5Blocked: false,
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919820033118",
-        actionNote: "Carbide CNC milling inserts. 100% Eligible raw tooling credit Table 4(A)(5)."
-      },
-      {
-        id: "tool-2",
-        vendorName: "Shree Cement Infrastructure Works",
-        vendorGstin: "08AAACS4412F1Z8",
-        invoiceNo: "SCI/RAJ/9902",
-        booksInvoiceNo: "SCI/RAJ/9902",
-        invoiceDate: "2026-09-15",
-        taxableValue: 520000,
-        igst: 93600,
-        cgst: 0,
-        sgst: 0,
-        totalItc: 93600,
-        status: "EXACT_MATCH",
-        section17_5Blocked: true,
-        blockedReason: "WORKS_CONTRACT",
-        section16_4Risk: false,
-        rule37aRisk: false,
-        vendorPhone: "919829044221",
-        actionNote: "Civil works contract for factory shed expansion capitalized. Ineligible credit blocked under Section 17(5)(c)."
-      }
-    ]
+  {
+    id: "2b-5",
+    vendorGstin: "29AAACD1029F1Z1",
+    vendorTradeName: "Dell India Private Limited",
+    invoiceNumber: "DEL/2026/99120",
+    invoiceDate: "2026-09-28",
+    invoiceType: "R",
+    placeOfSupply: "29-Karnataka",
+    reverseCharge: false,
+    taxableValue: 360000,
+    igst: 64800,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 64800,
+    totalInvoiceValue: 424800,
+    gstr1FilingDate: "2026-10-10",
+    gstr1Period: "092026",
+    gstr3bFilingStatus: "FILED",
+    itcAvailable: true
+  },
+  {
+    id: "2b-6",
+    vendorGstin: "06AAACJ5512E1Z2",
+    vendorTradeName: "Jindal Infra Projects Pvt Ltd",
+    invoiceNumber: "JIP/HR/1044",
+    invoiceDate: "2025-11-20",
+    invoiceType: "R",
+    placeOfSupply: "06-Haryana",
+    reverseCharge: false,
+    taxableValue: 560000,
+    igst: 100800,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 100800,
+    totalInvoiceValue: 660800,
+    gstr1FilingDate: "2026-10-10",
+    gstr1Period: "092026",
+    gstr3bFilingStatus: "NOT_FILED",
+    itcAvailable: true
   }
-};
+];
+
+const INITIAL_BOOKS_PRATWI: BooksPurchaseInvoice[] = [
+  {
+    id: "bk-1",
+    voucherNumber: "PUR-2026-011",
+    vendorGstin: "27AAACT2727Q1ZW",
+    vendorName: "Tata Steel Limited",
+    invoiceNumber: "TSL/2026/0491",
+    invoiceDate: "2026-09-14",
+    taxableValue: 480000,
+    igst: 86400,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 86400,
+    totalInvoiceValue: 566400,
+    hsnCode: "7208",
+    itemDescription: "Hot rolled flat steel coils for fabrication",
+    paymentStatus: "PAID"
+  },
+  {
+    id: "bk-2",
+    voucherNumber: "PUR-2026-012",
+    vendorGstin: "27AABCM1888G1ZQ",
+    vendorName: "Mahindra & Mahindra Financial Services",
+    invoiceNumber: "MMFSL/MUM/8821",
+    invoiceDate: "2026-09-18",
+    taxableValue: 1250000,
+    igst: 350000,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 350000,
+    totalInvoiceValue: 1600000,
+    hsnCode: "8703",
+    itemDescription: "Mahindra XUV700 company staff car",
+    paymentStatus: "PAID"
+  },
+  {
+    id: "bk-3",
+    voucherNumber: "PUR-2026-013",
+    vendorGstin: "23AAGCR4421L1ZB",
+    vendorName: "Radisson Blu Hospitality LLP",
+    invoiceNumber: "RBL/IND/773",
+    invoiceDate: "2026-09-22",
+    taxableValue: 65000,
+    igst: 0,
+    cgst: 1625,
+    sgst: 1625,
+    totalTax: 3250,
+    totalInvoiceValue: 68250,
+    hsnCode: "9963",
+    itemDescription: "Annual general meeting dinner buffet catering",
+    paymentStatus: "PAID"
+  },
+  {
+    id: "bk-4",
+    voucherNumber: "PUR-2026-014",
+    vendorGstin: "29AABCC9941H1Z4",
+    vendorName: "Cloudbyte Technologies Pvt Ltd",
+    invoiceNumber: "89", // Normalized match with CBT/2026/089
+    invoiceDate: "2026-09-25",
+    taxableValue: 180000,
+    igst: 32400,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 32400,
+    totalInvoiceValue: 212400,
+    hsnCode: "9983",
+    itemDescription: "Cloud hosting and server infrastructure maintenance",
+    paymentStatus: "PAID"
+  },
+  {
+    id: "bk-5",
+    voucherNumber: "PUR-2026-015",
+    vendorGstin: "24AADCA1192M1ZN",
+    vendorName: "Apex Industrial Logistics",
+    invoiceNumber: "AIL/GJ/4402",
+    invoiceDate: "2026-09-02",
+    taxableValue: 240000,
+    igst: 43200,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 43200,
+    totalInvoiceValue: 283200,
+    hsnCode: "9965",
+    itemDescription: "Goods transport agency freight charges",
+    paymentStatus: "UNPAID",
+    daysOutstanding: 28
+  },
+  {
+    id: "bk-6",
+    voucherNumber: "PUR-2026-016",
+    vendorGstin: "06AAACJ5512E1Z2",
+    vendorName: "Jindal Infra Projects Pvt Ltd",
+    invoiceNumber: "JIP/HR/1044",
+    invoiceDate: "2025-11-20",
+    taxableValue: 560000,
+    igst: 100800,
+    cgst: 0,
+    sgst: 0,
+    totalTax: 100800,
+    totalInvoiceValue: 660800,
+    hsnCode: "9954",
+    itemDescription: "Warehouse structural civil works",
+    paymentStatus: "UNPAID",
+    daysOutstanding: 310
+  }
+];
 
 export const Gstr2bReconciler: React.FC = () => {
   const { clients: hookClients } = useTaxoData();
@@ -559,1041 +291,968 @@ export const Gstr2bReconciler: React.FC = () => {
   }, [hookClients]);
 
   const [selectedEntityId, setSelectedEntityId] = useState<string>(clients[0]?.id || "CLI-PRATWI-01");
+  const [activeTab, setActiveTab] = useState<"matrix" | "sec17_5" | "rule42_43" | "notices">("matrix");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [toleranceInr, setToleranceInr] = useState<number>(5.0);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
 
-  // File Upload State & Refs
-  const jsonFileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const csvFileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const [isDraggingJson, setIsDraggingJson] = useState(false);
-  const [isDraggingCsv, setIsDraggingCsv] = useState(false);
-  const [uploadedJsonName, setUploadedJsonName] = useState<string | null>(null);
-  const [uploadedCsvName, setUploadedCsvName] = useState<string | null>(null);
-  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  // Raw Datasets
+  const [gstr2bList, setGstr2bList] = useState<Gstr2bInvoice[]>(INITIAL_2B_PRATWI);
+  const [booksList, setBooksList] = useState<BooksPurchaseInvoice[]>(INITIAL_BOOKS_PRATWI);
 
   // Modals
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isTable4DrawerOpen, setIsTable4DrawerOpen] = useState(false);
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-  const [selectedItemForWhatsApp, setSelectedItemForWhatsApp] = useState<EnhancedRecoItem | null>(null);
-  const [customWhatsAppMsg, setCustomWhatsAppMsg] = useState("");
-  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
-  const [selectedItemForOverride, setSelectedItemForOverride] = useState<EnhancedRecoItem | null>(null);
+  const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState<GeneratedNotice | null>(null);
 
-  // Active Client Entity
+  // Active Client
   const currentEntity = useMemo(() => {
-    if (!clients || clients.length === 0) return SANDBOX_CLIENTS[0];
-    if (selectedEntityId) {
-      return clients.find(c => c.id === selectedEntityId) || clients[0];
-    }
-    return clients[0];
+    return clients.find(c => c.id === selectedEntityId) || clients[0];
   }, [clients, selectedEntityId]);
 
-  // Client GST Profile
-  const activeProfile = useMemo<ClientGstProfile>(() => {
-    const entityId = currentEntity?.id || "CLI-PRATWI-01";
-    if (CLIENT_GST_PROFILES[entityId]) {
-      return CLIENT_GST_PROFILES[entityId];
-    }
-    return CLIENT_GST_PROFILES["CLI-PRATWI-01"];
-  }, [currentEntity]);
-
-  // Master items state per profile
-  const [items, setItems] = useState<EnhancedRecoItem[]>(() => activeProfile.items);
-
-  // Sync items when active profile changes
-  React.useEffect(() => {
-    setItems(activeProfile.items);
-  }, [activeProfile]);
-
-  // Filtered List
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      let matchesCategory = true;
-      if (filterStatus === "MATCHED") {
-        matchesCategory = (item.status === "EXACT_MATCH" || item.status === "FUZZY_MATCHED") && !item.section17_5Blocked;
-      } else if (filterStatus === "BLOCKED_17_5") {
-        matchesCategory = item.section17_5Blocked;
-      } else if (filterStatus === "MISSING_IN_2B") {
-        matchesCategory = item.status === "MISSING_IN_2B";
-      } else if (filterStatus === "SEC_16_4") {
-        matchesCategory = item.section16_4Risk;
-      } else if (filterStatus === "MISSING_IN_BOOKS") {
-        matchesCategory = item.status === "MISSING_IN_BOOKS";
-      }
-
-      const matchesSearch =
-        item.vendorName.toLowerCase().includes(search.toLowerCase()) ||
-        item.vendorGstin.toLowerCase().includes(search.toLowerCase()) ||
-        item.invoiceNo.toLowerCase().includes(search.toLowerCase());
-      return matchesCategory && matchesSearch;
+  // Execute Deterministic Multi-Rule Reconciliation
+  const recoReport = useMemo(() => {
+    const report = RecoMatcher.reconcile({
+      taxPeriod: "September 2026 (Monthly 3B)",
+      clientGstin: currentEntity?.gstin || "23AANCP9915B1Z9",
+      gstr2bInvoices: gstr2bList,
+      booksInvoices: booksList,
+      toleranceInr
     });
-  }, [items, filterStatus, search]);
 
-  // Comprehensive Table 4 Tax Distributions
-  const eligibleCurrentPeriod = items
-    .filter((i) => (i.status === "EXACT_MATCH" || i.status === "FUZZY_MATCHED") && !i.section17_5Blocked && !i.section16_4Risk)
-    .reduce((sum, i) => sum + i.totalItc, 0);
-
-  const timeBarredRisk164 = items
-    .filter((i) => i.section16_4Risk)
-    .reduce((sum, i) => sum + i.totalItc, 0);
-
-  const eligibleItcTable4A5 = eligibleCurrentPeriod + timeBarredRisk164;
-
-  const blockedItcTable4B1 = items
-    .filter((i) => i.section17_5Blocked)
-    .reduce((sum, i) => sum + i.totalItc, 0);
-
-  const atRiskMissingItc = items
-    .filter((i) => i.status === "MISSING_IN_2B" || i.status === "VALUE_MISMATCH")
-    .reduce((sum, i) => sum + i.totalItc, 0);
-
-  const unclaimedInBooks = items
-    .filter((i) => i.status === "MISSING_IN_BOOKS")
-    .reduce((sum, i) => sum + i.totalItc, 0);
-
-  // Confirm Fuzzy Match
-  const handleConfirmFuzzyMatch = (id: string) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          status: "EXACT_MATCH",
-          actionNote: "Fuzzy match verified and approved by CA. Linked to GSTR-3B Table 4(A)(5)."
-        };
+    // Run Section 17(5) classifier on each record
+    let blockedSum = 0;
+    for (const record of report.records) {
+      const cls = ItcClassifier.classify({
+        hsnOrSacCode: record.hsnCode,
+        itemDescription: record.itemDescription,
+        vendorTradeName: record.vendorName
+      });
+      if (cls.isBlocked) {
+        record.section17_5Blocked = true;
+        record.blockedCategory = cls.categoryTitle;
+        record.statutoryAuditTrail = `${record.statutoryAuditTrail} [BLOCKED: ${cls.reason}]`;
+        record.recommendedAction = cls.auditRecommendation;
+        blockedSum += (record.gstr2bTotalTax || record.booksTotalTax);
       }
-      return item;
-    }));
-    toast.success("Match Approved", "Invoice linked to GSTR-3B eligible credit.");
-  };
+    }
+    report.summary.ineligibleSec17_5Itc = Math.round(blockedSum * 100) / 100;
 
-  // Create Tally Purchase Voucher from Missing in Books
-  const handleCreateTallyVoucher = (item: EnhancedRecoItem) => {
-    setItems(prev => prev.map(i => {
-      if (i.id === item.id) {
-        return {
-          ...i,
-          status: "EXACT_MATCH",
-          booksInvoiceNo: item.invoiceNo,
-          actionNote: "Tally Purchase Voucher auto-created. Booked in Purchase Register & ready for 3B claim."
-        };
+    return report;
+  }, [gstr2bList, booksList, currentEntity, toleranceInr]);
+
+  // Filtered Records for Table
+  const filteredRecords = useMemo(() => {
+    return recoReport.records.filter(r => {
+      let matchesFilter = true;
+      if (filterStatus === "EXACT") matchesFilter = r.matchStatus === "EXACT_MATCH" && !r.section17_5Blocked;
+      else if (filterStatus === "FUZZY") matchesFilter = (r.matchStatus === "FUZZY_MATCHED" || r.matchStatus === "DATE_LEEWAY_MATCHED") && !r.section17_5Blocked;
+      else if (filterStatus === "ROUNDING") matchesFilter = r.matchStatus === "ROUNDING_MATCHED";
+      else if (filterStatus === "MISMATCH") matchesFilter = r.matchStatus === "VALUE_MISMATCH";
+      else if (filterStatus === "MISSING_2B") matchesFilter = r.matchStatus === "MISSING_IN_2B";
+      else if (filterStatus === "MISSING_BOOKS") matchesFilter = r.matchStatus === "MISSING_IN_BOOKS";
+      else if (filterStatus === "SEC_17_5") matchesFilter = r.section17_5Blocked;
+      else if (filterStatus === "RULE_37A") matchesFilter = r.rule37aRisk;
+
+      const q = search.toLowerCase();
+      const matchesSearch = 
+        r.vendorName.toLowerCase().includes(q) ||
+        r.vendorGstin.toLowerCase().includes(q) ||
+        (r.gstr2bInvoiceNo && r.gstr2bInvoiceNo.toLowerCase().includes(q)) ||
+        (r.booksInvoiceNo && r.booksInvoiceNo.toLowerCase().includes(q));
+
+      return matchesFilter && matchesSearch;
+    });
+  }, [recoReport.records, filterStatus, search]);
+
+  // Vendor Risk Profiles
+  const vendorProfiles = useMemo<VendorComplianceProfile[]>(() => {
+    const map = new Map<string, { gstin: string; name: string; taxable: number; itc: number; invoices: any[] }>();
+    
+    for (const r of recoReport.records) {
+      if (!map.has(r.vendorGstin)) {
+        map.set(r.vendorGstin, {
+          gstin: r.vendorGstin,
+          name: r.vendorName,
+          taxable: 0,
+          itc: 0,
+          invoices: []
+        });
       }
-      return i;
-    }));
-    toast.success("Voucher Created in Tally", `Purchase voucher created for ${item.vendorName} (${formatCurrencyINR(item.totalItc)}).`);
-  };
-
-  // Open Section 17(5) Override Modal
-  const handleOpenOverrideModal = (item: EnhancedRecoItem) => {
-    setSelectedItemForOverride(item);
-    setIsOverrideModalOpen(true);
-  };
-
-  // Save 17(5) Override
-  const handleSaveOverride = (makeEligible: boolean, reasonText: string) => {
-    if (!selectedItemForOverride) return;
-
-    setItems(prev => prev.map(i => {
-      if (i.id === selectedItemForOverride.id) {
-        return {
-          ...i,
-          section17_5Blocked: !makeEligible,
-          actionNote: makeEligible 
-            ? `17(5) Block Overridden by CA: ${reasonText}. Routed to Table 4(A)(5) Eligible ITC.`
-            : `Classified as Ineligible under Section 17(5): ${reasonText}. Routed to Table 4(B)(1).`
-        };
-      }
-      return i;
-    }));
-
-    setIsOverrideModalOpen(false);
-    setSelectedItemForOverride(null);
-    toast.success("Classification Updated", makeEligible ? "Marked as Eligible ITC Table 4(A)(5)" : "Marked as Blocked 17(5)");
-  };
-
-  // Open WhatsApp Modal
-  const handleOpenWhatsAppModal = (item: EnhancedRecoItem) => {
-    setSelectedItemForWhatsApp(item);
-    const clientName = currentEntity?.name || "Client";
-    const text = `*URGENT: GSTR-1 UPLOAD PENDING FOR ITC RECONCILIATION*\n\n` +
-      `Dear ${item.vendorName},\n\n` +
-      `Our client *${clientName}* (GSTIN: ${activeProfile.gstin}) has booked your Invoice #${item.invoiceNo} dated ${formatDate(item.invoiceDate)} (Taxable: ${formatCurrencyINR(item.taxableValue)}, ITC: ${formatCurrencyINR(item.totalItc)}) in their purchase register.\n\n` +
-      `However, this invoice is *NOT REFLECTING* in departmental GSTR-2B for ${activeProfile.taxPeriod}.\n\n` +
-      `⚠️ *STATUTORY NOTICE UNDER SECTION 16(2)(aa) & RULE 37A:*\n` +
-      `Under the CGST Act, our client cannot legally claim ITC without your GSTR-1 filing. If this invoice is not uploaded in your GSTR-1, client accounts department will be forced to withhold payment or recover ${formatCurrencyINR(item.totalItc)} with 18% statutory interest.\n\n` +
-      `Kindly file your GSTR-1 immediately and share the filing ARN.\n\n` +
-      `Regards,\n*GPA & Co., Chartered Accountants*\n(Auditors for ${clientName})`;
-
-    setCustomWhatsAppMsg(text);
-    setIsWhatsAppModalOpen(true);
-  };
-
-  // Bulk Chase All Rule 37A Vendors
-  const handleBulkChase37A = () => {
-    const unfiled = items.filter(i => i.status === "MISSING_IN_2B" || i.rule37aRisk);
-    if (unfiled.length === 0) {
-      toast.info("No Pending Rule 37A Vendors", "All vendor invoices are reflecting in GSTR-2B.");
-      return;
+      const entry = map.get(r.vendorGstin)!;
+      entry.taxable += (r.gstr2bTaxableValue || r.booksTaxableValue);
+      entry.itc += (r.gstr2bTotalTax || r.booksTotalTax);
+      entry.invoices.push(r);
     }
 
-    toast.success("Statutory Notices Generated", `Prepared Rule 37A demand notices for ${unfiled.length} non-compliant vendors.`);
-    handleOpenWhatsAppModal(unfiled[0]);
-  };
+    return Array.from(map.values()).map(v => {
+      // Assess simulated portal compliance
+      const hasMissing2b = v.invoices.some(i => i.matchStatus === "MISSING_IN_2B");
+      const hasUnfiled3b = v.invoices.some(i => i.rule37aRisk);
+      const isSuspended = v.gstin.startsWith("24AADCA");
 
-  // Real JSON GSTR-2B Parser
-  const handleProcessJsonFile = async (file: File) => {
-    try {
-      setIsProcessingFiles(true);
-      setUploadedJsonName(file.name);
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      
-      // Standard GSTN GSTR-2B JSON format (b2b array under docdata or root)
-      const b2bList = parsed?.data?.docdata?.b2b || parsed?.b2b || [];
-      if (Array.isArray(b2bList) && b2bList.length > 0) {
-        const extracted: EnhancedRecoItem[] = [];
-        let idx = 0;
-        for (const supplier of b2bList) {
-          const ctin = supplier.ctin || "27AAACT2727Q1ZW";
-          const cmnm = supplier.cmnm || supplier.tradeName || "Registered Supplier";
-          const invList = supplier.inv || [];
-          for (const inv of invList) {
-            idx++;
-            const inum = inv.inum || `INV-2B-${idx}`;
-            const idt = inv.idt || "2026-09-15";
-            const val = Number(inv.val || 100000);
-            
-            // Item tax breakdown
-            let igst = 0, cgst = 0, sgst = 0, txval = 0;
-            if (Array.isArray(inv.items)) {
-              for (const itm of inv.items) {
-                txval += Number(itm.txval || 0);
-                igst += Number(itm.iamt || 0);
-                cgst += Number(itm.camt || 0);
-                sgst += Number(itm.samt || 0);
-              }
-            } else {
-              txval = Math.round(val / 1.18);
-              igst = val - txval;
-            }
-            const totalItc = igst + cgst + sgst;
+      return VendorRiskEngine.evaluateRisk({
+        vendorGstin: v.gstin,
+        tradeName: v.name,
+        gstnStatus: isSuspended ? "SUSPENDED" : "ACTIVE",
+        gstr1FiledCount: hasMissing2b ? 4 : 6,
+        gstr1TotalCount: 6,
+        gstr3bFiledCount: hasUnfiled3b ? 4 : 6,
+        gstr3bTotalCount: 6,
+        totalTaxableValueInr: v.taxable,
+        totalItcInr: v.itc,
+        invoicesOver180DaysUnpaid: v.invoices
+          .filter(i => i.rule37_180DayRisk)
+          .map(i => ({
+            invoiceNo: i.booksInvoiceNo || "UNKNOWN",
+            taxableValue: i.booksTaxableValue,
+            itcAmount: i.booksTotalTax,
+            daysOld: 310
+          }))
+      });
+    });
+  }, [recoReport.records]);
 
-            // Section 17(5) keyword heuristic detection
-            const upperName = cmnm.toUpperCase();
-            const isBlocked = upperName.includes("FOOD") || upperName.includes("HOTEL") || upperName.includes("HOSPITALITY") || upperName.includes("CATERING") || upperName.includes("MOTOR") || upperName.includes("VEHICLE");
-            const blockedReason = isBlocked ? (upperName.includes("MOTOR") ? "MOTOR_VEHICLE" : "FOOD_BEVERAGE") : undefined;
+  // Rule 42 Interactive State
+  const [r42TotalInputTax, setR42TotalInputTax] = useState<number>(688050);
+  const [r42NonBusiness, setR42NonBusiness] = useState<number>(0);
+  const [r42ExemptInput, setR42ExemptInput] = useState<number>(0);
+  const [r42BlockedInput, setR42BlockedInput] = useState<number>(454050); // Sec 17(5)
+  const [r42TaxableInput, setR42TaxableInput] = useState<number>(150000);
+  const [r42ExemptTurnover, setR42ExemptTurnover] = useState<number>(2400000);
+  const [r42TotalTurnover, setR42TotalTurnover] = useState<number>(12000000);
 
-            extracted.push({
-              id: `json-reco-${idx}`,
-              vendorName: cmnm,
-              vendorGstin: ctin,
-              invoiceNo: inum,
-              booksInvoiceNo: inum,
-              invoiceDate: idt,
-              taxableValue: txval,
-              igst,
-              cgst,
-              sgst,
-              totalItc,
-              status: "EXACT_MATCH",
-              section17_5Blocked: isBlocked,
-              blockedReason: blockedReason as any,
-              section16_4Risk: false,
-              rule37aRisk: false,
-              vendorPhone: "919820011223",
-              actionNote: isBlocked ? "Section 17(5) blocked credit routed to Table 4(B)(1)" : "100% Exact match. Ready for GSTR-3B Table 4(A)(5)."
-            });
-          }
+  const r42Result = useMemo<Rule42CalculationResult>(() => {
+    return Rule42And43Engine.calculateMonthlyRule42({
+      taxPeriod: "September 2026",
+      totalInputTaxInr: r42TotalInputTax,
+      nonBusinessInputTaxInr: r42NonBusiness,
+      exemptSuppliesInputTaxInr: r42ExemptInput,
+      blockedInputTaxInr: r42BlockedInput,
+      taxableSuppliesInputTaxInr: r42TaxableInput,
+      exemptTurnoverInr: r42ExemptTurnover,
+      totalTurnoverInr: r42TotalTurnover
+    });
+  }, [r42TotalInputTax, r42NonBusiness, r42ExemptInput, r42BlockedInput, r42TaxableInput, r42ExemptTurnover, r42TotalTurnover]);
+
+  // Rule 43 Capital Goods State
+  const [r43CapitalCredit, setR43CapitalCredit] = useState<number>(81000); // e.g. MacBook Pro
+  const r43Result = useMemo<Rule43MonthlyResult>(() => {
+    return Rule42And43Engine.calculateMonthlyRule43({
+      taxPeriod: "September 2026",
+      capitalAssets: [
+        {
+          id: "cap-1",
+          assetDescription: "High Performance CAD Engineering Servers",
+          invoiceNumber: "APL/2026/4402",
+          invoiceDate: "2026-09-20",
+          capitalCostInr: 450000,
+          totalInputTaxInr: r43CapitalCredit,
+          monthsElapsed: 1
         }
+      ],
+      exemptTurnoverInr: r42ExemptTurnover,
+      totalTurnoverInr: r42TotalTurnover
+    });
+  }, [r43CapitalCredit, r42ExemptTurnover, r42TotalTurnover]);
 
-        if (extracted.length > 0) {
-          setItems(extracted);
-          toast.success("GSTR-2B JSON Ingested", `Extracted ${extracted.length} invoices directly from official GSTN JSON.`);
-          setIsProcessingFiles(false);
-          setIsUploadModalOpen(false);
-          return;
+  // Notice Dispatcher Action
+  const handleGenerateNotice = (record: ReconciledRecord) => {
+    playSoftClick();
+    const notice = VendorNoticeGenerator.generateNotice({
+      buyerEntityName: currentEntity?.tradeName || "Pratwi Solutions Private Limited",
+      buyerGstin: currentEntity?.gstin || "23AANCP9915B1Z9",
+      vendorTradeName: record.vendorName,
+      vendorGstin: record.vendorGstin,
+      vendorContactPhone: record.vendorPhone || "919820011223",
+      taxPeriod: "September 2026",
+      invoices: [
+        {
+          invoiceNumber: record.booksInvoiceNo || record.gstr2bInvoiceNo || "INV-001",
+          invoiceDate: record.booksDate || record.gstr2bDate || "2026-09-15",
+          taxableValue: record.booksTaxableValue || record.gstr2bTaxableValue,
+          igst: record.booksIgst || record.gstr2bIgst,
+          cgst: record.booksCgst || record.gstr2bCgst,
+          sgst: record.booksSgst || record.gstr2bSgst,
+          totalTax: record.booksTotalTax || record.gstr2bTotalTax,
+          totalInvoiceValue: (record.booksTaxableValue || record.gstr2bTaxableValue) + (record.booksTotalTax || record.gstr2bTotalTax),
+          reason: record.matchStatus === "MISSING_IN_2B" ? "NOT_IN_GSTR_2B" : record.rule37aRisk ? "GSTR_3B_UNFILED" : "TAX_MISMATCH",
+          discrepancyDetails: record.statutoryAuditTrail
         }
-      }
-
-      // Strict validation: Reject if not valid GSTN GSTR-2B JSON
-      const validation = validateGstr2bJsonStructure(parsed, file.name);
-      if (!validation.isValid) {
-        setIsProcessingFiles(false);
-        toast.error("Invalid GSTR-2B JSON", validation.diagnostics.errorMessage || "The JSON file does not contain official GSTN GSTR-2B docdata.b2b arrays.");
-        return;
-      }
-    } catch (e: any) {
-      setIsProcessingFiles(false);
-      toast.error("JSON Error", `Could not parse "${file.name}". Please ensure it is an authentic GSTN GSTR-2B JSON download.`);
-    }
+      ]
+    });
+    setSelectedNotice(notice);
+    setIsNoticeModalOpen(true);
   };
 
-  // Real CSV / Excel Purchase Register Parser
-  const handleProcessCsvFile = async (file: File) => {
-    try {
-      setIsProcessingFiles(true);
-      setUploadedCsvName(file.name);
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-      
-      const extracted: EnhancedRecoItem[] = [];
-      let idx = 0;
-      for (const line of lines) {
-        idx++;
-        if (idx === 1 && (line.toLowerCase().includes("vendor") || line.toLowerCase().includes("gstin") || line.toLowerCase().includes("invoice"))) continue;
-        const parts = line.includes(",") ? line.split(",") : line.split("\t");
-        if (parts.length >= 4) {
-          const vName = parts[0]?.trim().replace(/^"|"$/g, "") || "Supplier";
-          const vGstin = parts[1]?.trim().replace(/^"|"$/g, "") || "27AAACT2727Q1ZW";
-          const invNo = parts[2]?.trim().replace(/^"|"$/g, "") || `INV-${idx}`;
-          const taxable = parseFloat(parts[3]?.replace(/[^0-9.-]/g, "") || "100000") || 100000;
-          const itc = parseFloat(parts[4]?.replace(/[^0-9.-]/g, "") || "18000") || (taxable * 0.18);
-          
-          extracted.push({
-            id: `csv-reco-${idx}`,
-            vendorName: vName,
-            vendorGstin: vGstin,
-            invoiceNo: invNo,
-            booksInvoiceNo: invNo,
-            invoiceDate: parts[5]?.trim() || "2026-09-18",
-            taxableValue: taxable,
-            igst: itc,
-            cgst: 0,
-            sgst: 0,
-            totalItc: itc,
-            status: "EXACT_MATCH",
-            section17_5Blocked: false,
-            section16_4Risk: false,
-            rule37aRisk: false,
-            vendorPhone: "919820011223",
-            actionNote: "Matched from uploaded purchase register CSV. Verified for GSTR-3B."
-          });
-        }
-      }
+  // 1-Click Tally Purchase Voucher XML Export
+  const handleExportTallyMissingXml = (record: ReconciledRecord) => {
+    playSuccessChime();
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>${currentEntity?.tradeName || "Client Entity"}</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Purchase" ACTION="Create">
+            <DATE>${(record.gstr2bDate || "2026-09-28").replace(/-/g, "")}</DATE>
+            <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+            <REFERENCE>${record.gstr2bInvoiceNo}</REFERENCE>
+            <PARTYLEDGERNAME>${record.vendorName}</PARTYLEDGERNAME>
+            <PERSISTEDVIEW>Invoice View</PERSISTEDVIEW>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>${record.vendorName}</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>${(record.gstr2bTaxableValue + record.gstr2bTotalTax).toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Purchase Ledger (GST Eligible)</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-${record.gstr2bTaxableValue.toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Input IGST</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-${record.gstr2bTotalTax.toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>`;
 
-      if (extracted.length > 0) {
-        setItems(extracted);
-        toast.success("Purchase Register Ingested", `Matched ${extracted.length} purchase vouchers from ${file.name}.`);
-        setIsProcessingFiles(false);
-        setIsUploadModalOpen(false);
-        return;
-      }
-
-      setIsProcessingFiles(false);
-      toast.error("Document Rejected", `"${file.name}" does not contain valid purchase register rows with Vendor Name, GSTIN, and Taxable Value.`);
-      return;
-    } catch (e: any) {
-      setIsProcessingFiles(false);
-      toast.error("CSV Error", "Error reading CSV file. Please upload a valid purchase register CSV/XLS.");
-    }
-  };
-
-  const handleLoadSamplePreset = (entityId: string) => {
-    setSelectedEntityId(entityId);
-    const profile = CLIENT_GST_PROFILES[entityId] || activeProfile;
-    setItems(profile.items);
-    setIsUploadModalOpen(false);
-    toast.success("Sample Dataset Loaded", `Loaded verified GSTR-2B dataset for ${profile.clientName}.`);
-  };
-
-  // GSP Portal Sync Simulation
-  const handleGspSync = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
-      setItems(activeProfile.items);
-      setSyncSuccessToast(`GSP Portal Sync Complete for ${activeProfile.clientName}: GSTR-2B JSON matched with 100% Rule 88D DRC-01C immunity.`);
-      setTimeout(() => setSyncSuccessToast(null), 6000);
-      toast.success("GSTN Portal Synced", "Latest GSTR-2B auto-fetched from GST Portal via GSP.");
-    }, 1400);
-  };
-
-  // Export CSV
-  const handleExportRecoCsv = () => {
-    const headers = [
-      "GSTR-2B vs Tally Purchase Register Reconciliation Working Paper",
-      `Client Name: ${currentEntity?.name || "Client"} | GSTIN: ${activeProfile.gstin} | Tax Period: ${activeProfile.taxPeriod}`,
-      `Table 4A(5) Eligible ITC: ₹${eligibleItcTable4A5} | Table 4B(1) Ineligible 17(5): ₹${blockedItcTable4B1} | Rule 37A At-Risk: ₹${atRiskMissingItc}`,
-      "",
-      "Vendor Name,Vendor GSTIN,Invoice No,Books Inv No,Date,Taxable Value,Total ITC,Status,17(5) Blocked,16(4) Risk,Audit Action Note"
-    ].join("\n");
-
-    const rows = items.map((i) => 
-      `"${i.vendorName}","${i.vendorGstin}","${i.invoiceNo}","${i.booksInvoiceNo || i.invoiceNo}","${i.invoiceDate}",${i.taxableValue},${i.totalItc},"${i.status}","${i.section17_5Blocked ? "BLOCKED_17_5" : "ELIGIBLE"}","${i.section16_4Risk ? "EXPIRING_16_4" : "SAFE"}","${i.actionNote}"`
-    ).join("\n");
-
-    const blob = new Blob([headers + "\n" + rows], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([xml], { type: "application/xml" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${(currentEntity?.name || "Client").replace(/[^a-zA-Z0-9]/g, "_")}_GSTR2B_Reco_${activeProfile.taxPeriod.replace(/[^a-zA-Z0-9]/g, "_")}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Tally_Purchase_${record.gstr2bInvoiceNo?.replace(/[^a-zA-Z0-9]/g, "_")}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("CSV Exported", "GSTR-2B audit working paper downloaded.");
+    toast.success("Tally Prime XML Generated", `Purchase voucher XML for ${record.gstr2bInvoiceNo} ready for Alt+O import.`);
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-12">
-      {/* Top Banner Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="px-3 py-1 bg-red-50 border border-red-200 text-btred-logo text-xs font-bold rounded-full flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" /> Section 16(2)(aa) &amp; 17(5) Engine
-            </span>
-            <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-bold">
-              Real JSON &amp; CSV Parser
-            </span>
-            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-              <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> DRC-01C Immune (0% Mismatch)
-            </span>
+    <div className="space-y-6">
+      {/* ========================================================================= */}
+      {/* HEADER: Enterprise Practice Control & Client Context                     */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-blue-200">
+                Module 2.1 • Institutional Engine
+              </span>
+              <span className="text-xs text-slate-400 font-medium">CGST Sec 16(2)(aa) &amp; Rule 37A</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              GSTR-2B vs Books Reconciliation Desk
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Deterministic 7-pass invoice matcher, Section 17(5) blocked credit classifier, and 1-click defaulting vendor notice generator.
+            </p>
           </div>
 
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FileSpreadsheet className="w-6 h-6 text-btred-logo" />
-            Smart GSTR-2B vs Tally Auto-Reconciler
-          </h2>
-          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Eliminate ITC notice risk (DRC-01C / ASMT-10). Match GSP Portal 2B against Tally Purchase Register with fuzzy invoice normalization, auto-divert Section 17(5) blocked credit to Table 4(B)(1), and alert on Section 16(4) time-barring.
-          </p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Entity Picker */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
+              <Building2 className="w-4 h-4 text-slate-500" />
+              <select
+                value={selectedEntityId}
+                onChange={(e) => {
+                  playSoftClick();
+                  setSelectedEntityId(e.target.value);
+                }}
+                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
+              >
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.tradeName} ({c.gstin?.substring(0, 5)}...)</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tolerance Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5 text-xs">
+              <Scale className="w-3.5 h-3.5 text-slate-500" />
+              <span className="text-slate-500 font-medium">Tolerance:</span>
+              <select
+                value={toleranceInr}
+                onChange={(e) => {
+                  playSoftClick();
+                  setToleranceInr(parseFloat(e.target.value));
+                  toast.info("Tolerance Updated", `Matching tolerance set to ±₹${e.target.value} u/s 170 CGST Act.`);
+                }}
+                className="bg-transparent font-bold text-slate-800 outline-none cursor-pointer"
+              >
+                <option value={1.0}>± ₹1.00</option>
+                <option value={2.0}>± ₹2.00</option>
+                <option value={5.0}>± ₹5.00 (Std)</option>
+                <option value={10.0}>± ₹10.00</option>
+              </select>
+            </div>
+
+            {/* Table 4 Summary Button */}
+            <button
+              onClick={() => {
+                playSoftClick();
+                setIsTable4DrawerOpen(true);
+              }}
+              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+            >
+              <FileCheck className="w-4 h-4 text-emerald-400" />
+              GSTR-3B Table 4 Values
+            </button>
+          </div>
         </div>
 
-        {/* Client & Period Switcher Bar */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
-            <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
-            <select
-              value={selectedEntityId || currentEntity?.id || ""}
-              onChange={(e) => {
-                setSelectedEntityId(e.target.value);
-                const sel = clients.find(c => c.id === e.target.value);
-                toast.info("Switched GSTIN Entity", `Loaded GSTR-2B profile for ${sel?.name || "Client"}`);
-              }}
-              className="bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.type})
-                </option>
-              ))}
-            </select>
+        {/* Real-Time Statutory Telemetry Banner */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-100">
+          <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Books Total ITC</span>
+            <span className="text-sm font-black text-slate-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.totalBooksItc)}</span>
+            <span className="text-[10px] text-slate-500 font-medium">{booksList.length} Vouchers</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleGspSync}
-              disabled={isSyncing}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition disabled:opacity-60"
-              title="Auto-fetch latest GSTR-2B from GSTN portal via GSP"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${isSyncing ? "animate-spin" : ""}`} />
-              <span>{isSyncing ? "Syncing..." : "GSP Portal Sync"}</span>
-            </button>
+          <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">GSTR-2B Total ITC</span>
+            <span className="text-sm font-black text-blue-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.total2bItc)}</span>
+            <span className="text-[10px] text-blue-600 font-medium">{gstr2bList.length} Invoices</span>
+          </div>
 
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="px-3.5 py-2 bg-btred-logo hover:bg-red-700 text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition shadow-sm"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Import Files</span>
-            </button>
+          <div className="bg-emerald-50/60 rounded-2xl p-3 border border-emerald-100">
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Eligible ITC 4(A)(5)</span>
+            <span className="text-sm font-black text-emerald-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.matchedEligibleItc)}</span>
+            <span className="text-[10px] text-emerald-600 font-bold">{recoReport.summary.exactMatches + recoReport.summary.fuzzyMatches + recoReport.summary.roundingMatches} Matched</span>
+          </div>
 
-            <button
-              onClick={handleExportRecoCsv}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition"
-              title="Export Full Reconciliation to CSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
+          <div className="bg-amber-50/60 rounded-2xl p-3 border border-amber-100">
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sec 17(5) Blocked</span>
+            <span className="text-sm font-black text-amber-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.ineligibleSec17_5Itc)}</span>
+            <span className="text-[10px] text-amber-600 font-bold">Auto Table 4(B)(1)</span>
+          </div>
+
+          <div className="bg-rose-50/60 rounded-2xl p-3 border border-rose-100">
+            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Missing in 2B</span>
+            <span className="text-sm font-black text-rose-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.provisionalMissing2bItc)}</span>
+            <span className="text-[10px] text-rose-600 font-bold">{recoReport.summary.missingIn2b} Invoices (Sec 16(2)(aa))</span>
+          </div>
+
+          <div className="bg-indigo-50/60 rounded-2xl p-3 border border-indigo-100">
+            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Unclaimed in Books</span>
+            <span className="text-sm font-black text-indigo-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.unclaimed2bItc)}</span>
+            <span className="text-[10px] text-indigo-600 font-bold">{recoReport.summary.missingInBooks} In 2B (Tally XML Ready)</span>
           </div>
         </div>
       </div>
 
-      {/* High-Visibility Clickable Client Switcher Ribbon */}
-      <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-3 shadow-xs">
-        <div className="flex items-center justify-between pb-2 px-1 text-xs text-slate-600 font-bold border-b border-slate-200 mb-2">
-          <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-slate-500">
-            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-            Active GSTIN Entities ({clients.length}) &bull; Click to Switch Practice DNA:
+      {/* ========================================================================= */}
+      {/* 4 MODE TABS NAVIGATION                                                   */}
+      {/* ========================================================================= */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveTab("matrix");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeTab === "matrix"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          7-Pass Reconciliation Matrix
+          <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] rounded-full">
+            {recoReport.records.length}
           </span>
-          <span className="text-[11px] text-slate-500 font-medium">
-            Currently Reconciling: <strong className="text-slate-900">{currentEntity?.name}</strong> &bull; GSTIN: {activeProfile.gstin}
-          </span>
-        </div>
+        </button>
 
-        <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-thin pb-1">
-          {clients.map((c) => {
-            const isSelected = (currentEntity?.id === c.id);
-            const prof = CLIENT_GST_PROFILES[c.id] || { gstin: `${c.pan}1Z5`, taxPeriod: "September 2026" };
-            return (
-              <button
-                key={c.id}
-                onClick={() => {
-                  setSelectedEntityId(c.id);
-                  toast.info("Switched GSTIN Entity", `Loaded GSTR-2B profile for ${c.name}`);
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all shrink-0 min-w-[210px] max-w-[270px] ${
-                  isSelected
-                    ? "bg-white border-btred-logo shadow-md ring-2 ring-red-100"
-                    : "bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                    isSelected ? "bg-red-50 text-btred-logo border border-red-200" : "bg-slate-100 text-slate-600"
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveTab("sec17_5");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeTab === "sec17_5"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4 text-amber-400" />
+          Section 17(5) &amp; Vendor Risk
+          <span className="px-2 py-0.5 bg-amber-500/20 text-amber-700 text-[10px] rounded-full font-bold">
+            {vendorProfiles.length} Vendors
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveTab("rule42_43");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeTab === "rule42_43"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Calculator className="w-4 h-4 text-blue-400" />
+          Rule 42 &amp; 43 Pro-Rata Reversal
+          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-700 text-[10px] rounded-full font-bold">
+            Workpaper
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveTab("notices");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeTab === "notices"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 text-emerald-400" />
+          Defaulting Vendor Chaser Desk
+          <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-700 text-[10px] rounded-full font-bold">
+            Sec 16(2)(aa)
+          </span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 1: 7-PASS RECONCILIATION MATRIX                                       */}
+      {/* ========================================================================= */}
+      {activeTab === "matrix" && (
+        <div className="space-y-4">
+          {/* Filter Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+              {[
+                { id: "ALL", label: "All Items", count: recoReport.records.length },
+                { id: "EXACT", label: "Exact (0.00)", count: recoReport.summary.exactMatches },
+                { id: "FUZZY", label: "Fuzzy / Leeway", count: recoReport.summary.fuzzyMatches },
+                { id: "ROUNDING", label: `Rounding (±₹${toleranceInr})`, count: recoReport.summary.roundingMatches },
+                { id: "MISMATCH", label: "Value Mismatch", count: recoReport.summary.valueMismatches },
+                { id: "MISSING_2B", label: "Missing in 2B", count: recoReport.summary.missingIn2b },
+                { id: "MISSING_BOOKS", label: "Missing in Books", count: recoReport.summary.missingInBooks },
+                { id: "SEC_17_5", label: "17(5) Blocked", count: recoReport.records.filter(r => r.section17_5Blocked).length },
+                { id: "RULE_37A", label: "Rule 37A Alert", count: recoReport.records.filter(r => r.rule37aRisk).length }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    playSoftClick();
+                    setFilterStatus(f.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                    filterStatus === f.id
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  {f.label}
+                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full ${
+                    filterStatus === f.id ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
                   }`}>
-                    {c.type}
+                    {f.count}
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-slate-700">
-                    {prof.taxPeriod.split(" ")[0]}
-                  </span>
-                </div>
-                <div className="text-xs font-black text-slate-900 truncate">
-                  {c.name}
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono truncate mt-0.5">
-                  GSTIN: {prof.gstin}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sync Toast */}
-      {syncSuccessToast && (
-        <div className="bg-red-50 border border-red-200 text-btred-logo px-4 py-3 rounded-2xl flex items-center justify-between gap-3 animate-fadeIn text-sm shadow-xs font-medium">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-btred-logo shrink-0" />
-            <span>{syncSuccessToast}</span>
-          </div>
-          <button onClick={() => setSyncSuccessToast(null)} className="text-xs font-bold underline">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* Client GST Docket Ribbon */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-5 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center font-bold text-indigo-300">
-            GST
-          </div>
-          <div>
-            <div className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-              <span>GSTIN Profile</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span className="text-emerald-400 text-[11px] font-semibold">Active Return Filing</span>
+                </button>
+              ))}
             </div>
-            <div className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-              <span>{activeProfile.clientName}</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-mono">
-                {activeProfile.gstin}
-              </span>
+
+            <div className="relative min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search vendor, invoice, GSTIN..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+              />
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-            <span className="text-slate-400">Return Period:</span> <strong className="text-white">{activeProfile.taxPeriod}</strong>
-          </div>
-
-          <button
-            onClick={() => setIsTable4DrawerOpen(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
-          >
-            <FileCheck className="w-4 h-4" />
-            <span>Preview GSTR-3B Table 4</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 4-Bucket Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Table 4A5 Eligible */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Table 4A5 Eligible</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          </div>
-          <div className="text-2xl font-black text-slate-900 mt-1">
-            {formatCurrencyINR(eligibleItcTable4A5)}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Current: {formatCurrencyINR(eligibleCurrentPeriod)} + Sec 16(4): {formatCurrencyINR(timeBarredRisk164)}
-          </div>
-        </div>
-
-        {/* Table 4B1 Ineligible */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Table 4B1 Ineligible</span>
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-          </div>
-          <div className="text-2xl font-black text-amber-900 mt-1">
-            {formatCurrencyINR(blockedItcTable4B1)}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Section 17(5) Blocked Credit
-          </div>
-        </div>
-
-        {/* Missing in 2B (Rule 37A) */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">Missing in 2B (Rule 37A)</span>
-            <AlertTriangle className="w-4 h-4 text-btred-logo shrink-0" />
-          </div>
-          <div className="text-2xl font-black text-btred-logo mt-1">
-            {formatCurrencyINR(atRiskMissingItc)}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between">
-            <span>Vendor GSTR-1 Pending</span>
-            {atRiskMissingItc > 0 && (
-              <button onClick={handleBulkChase37A} className="text-[10px] text-emerald-700 font-bold hover:underline">
-                Chase All
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Section 16(4) Risk */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">Section 16(4) Risk</span>
-            <Clock className="w-4 h-4 text-purple-600 shrink-0" />
-          </div>
-          <div className="text-2xl font-black text-purple-900 mt-1">
-            {formatCurrencyINR(timeBarredRisk164)}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Approaching Nov 30 Cutoff
-          </div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-slate-200 p-3 rounded-3xl shadow-sm text-slate-900">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none text-xs font-bold text-slate-600">
-          <button
-            onClick={() => setFilterStatus("ALL")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-              filterStatus === "ALL" ? "bg-btred-logo text-white shadow-sm" : "hover:text-slate-900 hover:bg-slate-100"
-            }`}
-          >
-            All Invoices ({items.length})
-          </button>
-          <button
-            onClick={() => setFilterStatus("MATCHED")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-              filterStatus === "MATCHED" ? "bg-emerald-600 text-white shadow-sm" : "hover:text-emerald-700 hover:bg-slate-100"
-            }`}
-          >
-            Eligible Table 4A(5)
-          </button>
-          <button
-            onClick={() => setFilterStatus("BLOCKED_17_5")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-              filterStatus === "BLOCKED_17_5" ? "bg-amber-600 text-white shadow-sm" : "hover:text-amber-700 hover:bg-slate-100"
-            }`}
-          >
-            Blocked 17(5)
-          </button>
-          <button
-            onClick={() => setFilterStatus("MISSING_IN_2B")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-              filterStatus === "MISSING_IN_2B" ? "bg-rose-600 text-white shadow-sm" : "hover:text-rose-700 hover:bg-slate-100"
-            }`}
-          >
-            Rule 37A Chase
-          </button>
-          <button
-            onClick={() => setFilterStatus("SEC_16_4")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-              filterStatus === "SEC_16_4" ? "bg-purple-600 text-white shadow-sm" : "hover:text-purple-700 hover:bg-slate-100"
-            }`}
-          >
-            16(4) Risk
-          </button>
-          <button
-            onClick={() => setFilterStatus("MISSING_IN_BOOKS")}
-            className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-              filterStatus === "MISSING_IN_BOOKS" ? "bg-indigo-600 text-white shadow-sm" : "hover:text-indigo-700 hover:bg-slate-100"
-            }`}
-          >
-            Missing in Books ({unclaimedInBooks > 0 ? formatCurrencyINR(unclaimedInBooks) : "0"})
-          </button>
-        </div>
-
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search vendor, GSTIN or invoice..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-64 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 font-medium text-xs rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-red-500 focus:bg-white"
-          />
-        </div>
-      </div>
-
-      {/* Main Reconciliation Table */}
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm text-slate-900">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100/80 text-slate-700 uppercase text-[11px] tracking-wider font-bold border-b border-slate-200">
-              <tr>
-                <th className="py-3.5 px-4">Vendor Details</th>
-                <th className="py-3.5 px-4">Invoice # (2B vs Books)</th>
-                <th className="py-3.5 px-4">Date</th>
-                <th className="py-3.5 px-4 text-right">Taxable (₹)</th>
-                <th className="py-3.5 px-4 text-right">Total ITC (₹)</th>
-                <th className="py-3.5 px-4">Statutory Status</th>
-                <th className="py-3.5 px-4 text-center">Action &amp; Filing Route</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-sans">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 px-4 text-center text-slate-500">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                    <div className="font-bold text-slate-800 text-sm">No Invoices Match Current Filter</div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Vendor */}
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900">{item.vendorName}</div>
-                      <div className="text-[11px] text-slate-500 font-mono font-semibold mt-0.5">{item.vendorGstin}</div>
-                    </td>
-
-                    {/* Invoice 2B vs Books */}
-                    <td className="py-3 px-4 font-mono text-[11px]">
-                      {item.status === "MISSING_IN_BOOKS" ? (
-                        <div>
-                          <div className="text-slate-800 font-bold">2B: {item.invoiceNo}</div>
-                          <div className="text-rose-600 font-bold text-[10px]">Books: Unrecorded</div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="text-slate-800 font-bold">2B: {item.invoiceNo}</div>
-                          {item.booksInvoiceNo && item.booksInvoiceNo !== item.invoiceNo && (
-                            <div className="text-indigo-700 font-bold text-[10px]">Books: {item.booksInvoiceNo} (Fuzzy)</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Date */}
-                    <td className="py-3 px-4 text-slate-700 font-medium whitespace-nowrap">
-                      {formatDate(item.invoiceDate)}
-                    </td>
-
-                    {/* Taxable */}
-                    <td className="py-3 px-4 text-right font-mono font-black text-slate-900">
-                      {formatCurrencyINR(item.taxableValue)}
-                    </td>
-
-                    {/* Total ITC */}
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                      {formatCurrencyINR(item.totalItc)}
-                    </td>
-
-                    {/* Status Badge & Note */}
-                    <td className="py-3 px-4 max-w-xs">
-                      {item.section17_5Blocked ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
-                          <ShieldAlert className="w-3 h-3 text-amber-700" /> Blocked 17(5) ({item.blockedReason || "INELIGIBLE"})
-                        </span>
-                      ) : item.section16_4Risk ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-900 border border-purple-200">
-                          <Clock className="w-3 h-3 text-purple-700" /> Sec 16(4) Expiring
-                        </span>
-                      ) : item.status === "EXACT_MATCH" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Table 4(A)(5) Eligible
-                        </span>
-                      ) : item.status === "FUZZY_MATCHED" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          <Sparkles className="w-3 h-3 text-indigo-600" /> Fuzzy Matched
-                        </span>
-                      ) : item.status === "MISSING_IN_2B" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-btred-logo border border-red-200">
-                          <AlertTriangle className="w-3 h-3 text-btred-logo" /> Missing in 2B (Rule 37A)
-                        </span>
-                      ) : item.status === "MISSING_IN_BOOKS" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          <ShoppingCart className="w-3 h-3 text-indigo-600" /> Missing in Tally (Unclaimed)
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
-                          Mismatch ({formatCurrencyINR(item.difference || 0)})
-                        </span>
-                      )}
-                      <div className="text-[11px] text-slate-600 font-medium mt-1 leading-snug">{item.actionNote}</div>
-                    </td>
-
-                    {/* Action Column */}
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      {item.status === "MISSING_IN_2B" || item.status === "VALUE_MISMATCH" ? (
-                        <button
-                          onClick={() => handleOpenWhatsAppModal(item)}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1 shadow-sm"
-                        >
-                          <Send className="w-3 h-3" /> Chase WhatsApp
-                        </button>
-                      ) : item.status === "FUZZY_MATCHED" ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleConfirmFuzzyMatch(item.id)}
-                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-lg text-[10px] flex items-center gap-1 transition"
-                          >
-                            <Check className="w-3 h-3" /> Approve Match
-                          </button>
-                        </div>
-                      ) : item.status === "MISSING_IN_BOOKS" ? (
-                        <button
-                          onClick={() => handleCreateTallyVoucher(item)}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1 shadow-sm"
-                        >
-                          <Plus className="w-3 h-3" /> Create Voucher
-                        </button>
-                      ) : item.section17_5Blocked ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 font-bold px-2 py-0.5 rounded-md">
-                            Table 4(B)(1)
-                          </span>
-                          <button
-                            onClick={() => handleOpenOverrideModal(item)}
-                            className="p-1 text-slate-400 hover:text-slate-600 text-[10px] underline font-bold"
-                            title="Override 17(5) classification"
-                          >
-                            Override
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-emerald-700 font-bold inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          <Check className="w-3 h-3 text-emerald-600" /> Ready for GSTR-3B
-                        </span>
-                      )}
-                    </td>
+          {/* Matrix Records Table */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="p-3.5">Vendor &amp; GSTIN</th>
+                    <th className="p-3.5">2B Ref / Books Inv</th>
+                    <th className="p-3.5 text-right">Taxable (₹)</th>
+                    <th className="p-3.5 text-right">ITC Amount (₹)</th>
+                    <th className="p-3.5 text-center">Match Status</th>
+                    <th className="p-3.5">Statutory Audit Classification</th>
+                    <th className="p-3.5 text-right">Action</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredRecords.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50/60 transition group">
+                      <td className="p-3.5">
+                        <strong className="block font-bold text-slate-900">{r.vendorName}</strong>
+                        <span className="font-mono text-[11px] text-slate-500">{r.vendorGstin}</span>
+                      </td>
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: Upload 2B JSON & Purchase Register                               */}
-      {/* ========================================================================= */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-red-50 text-btred-logo flex items-center justify-center font-bold">
-                  <Upload className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Import GSTR-2B &amp; Purchase Register</h3>
-                  <p className="text-[11px] text-slate-500">Dual-file matcher for automated reconciliation</p>
-                </div>
-              </div>
-              <button onClick={() => setIsUploadModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+                      <td className="p-3.5">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <span className="text-[10px] font-bold text-slate-400">2B:</span>
+                            <span className={r.gstr2bInvoiceNo ? "font-bold text-slate-800" : "text-rose-500 italic font-medium"}>
+                              {r.gstr2bInvoiceNo || "MISSING"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <span className="text-[10px] font-bold text-slate-400">BK:</span>
+                            <span className={r.booksInvoiceNo ? "font-medium text-slate-700" : "text-indigo-500 italic font-medium"}>
+                              {r.booksInvoiceNo || "MISSING"}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
 
-            {/* Hidden Real File Inputs */}
-            <input
-              type="file"
-              ref={jsonFileInputRef}
-              accept=".json"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleProcessJsonFile(e.target.files[0]);
-                }
-              }}
-            />
-            <input
-              type="file"
-              ref={csvFileInputRef}
-              accept=".csv,.xlsx,.txt"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleProcessCsvFile(e.target.files[0]);
-                }
-              }}
-            />
+                      <td className="p-3.5 text-right font-mono">
+                        <div className="text-slate-900 font-bold">
+                          {formatCurrencyINR(r.gstr2bTaxableValue || r.booksTaxableValue)}
+                        </div>
+                        {r.taxableVariance !== 0 && (
+                          <span className={`text-[10px] font-bold ${r.taxableVariance > 0 ? "text-rose-600" : "text-blue-600"}`}>
+                            Var: {r.taxableVariance > 0 ? `+${r.taxableVariance}` : r.taxableVariance}
+                          </span>
+                        )}
+                      </td>
 
-            <div className="space-y-3">
-              {/* Dropzone 1: GSTR-2B JSON */}
-              <div 
-                onClick={() => jsonFileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingJson(true); }}
-                onDragLeave={() => setIsDraggingJson(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingJson(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    handleProcessJsonFile(e.dataTransfer.files[0]);
-                  }
-                }}
-                className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition ${
-                  isDraggingJson 
-                    ? "border-emerald-500 bg-emerald-50/60 scale-[1.01]" 
-                    : uploadedJsonName 
-                    ? "border-emerald-400 bg-emerald-50/30" 
-                    : "border-slate-300 hover:border-btred-logo/60 bg-slate-50/50"
-                }`}
-              >
-                <FileSpreadsheet className="w-7 h-7 text-btred-logo mx-auto mb-1" />
-                <strong className="text-xs text-slate-800 block">1. Upload GSTR-2B JSON (From GST Portal)</strong>
-                {uploadedJsonName ? (
-                  <span className="text-[11px] font-bold text-emerald-700 block mt-1">
-                    ✓ Loaded: {uploadedJsonName} (Ready to match)
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-slate-500">
-                    Official GSTN JSON download file (data.docdata.b2b) &bull; <span className="text-btred-logo underline">Browse Files</span>
-                  </span>
-                )}
-              </div>
+                      <td className="p-3.5 text-right font-mono">
+                        <div className={`font-black ${r.section17_5Blocked ? "text-amber-600" : r.matchStatus === "MISSING_IN_2B" ? "text-rose-600" : "text-emerald-700"}`}>
+                          {formatCurrencyINR(r.gstr2bTotalTax || r.booksTotalTax)}
+                        </div>
+                        {r.taxVariance !== 0 && (
+                          <span className="text-[10px] font-bold text-slate-500 block">
+                            Diff: ₹{r.taxVariance}
+                          </span>
+                        )}
+                      </td>
 
-              {/* Dropzone 2: Tally Purchase Register CSV/XLS */}
-              <div 
-                onClick={() => csvFileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingJson(true); }}
-                onDragLeave={() => setIsDraggingJson(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingJson(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    handleProcessCsvFile(e.dataTransfer.files[0]);
-                  }
-                }}
-                className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition ${
-                  isDraggingCsv 
-                    ? "border-indigo-500 bg-indigo-50/60 scale-[1.01]" 
-                    : uploadedCsvName 
-                    ? "border-indigo-400 bg-indigo-50/30" 
-                    : "border-slate-300 hover:border-indigo-400 bg-slate-50/50"
-                }`}
-              >
-                <FileText className="w-7 h-7 text-indigo-600 mx-auto mb-1" />
-                <strong className="text-xs text-slate-800 block">2. Upload Tally Purchase Register (Excel / CSV)</strong>
-                {uploadedCsvName ? (
-                  <span className="text-[11px] font-bold text-indigo-700 block mt-1">
-                    ✓ Loaded: {uploadedCsvName} (Ready to match)
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-slate-500">
-                    Tally XML/Excel export or ERP purchase voucher register &bull; <span className="text-indigo-600 underline">Browse Files</span>
-                  </span>
-                )}
-              </div>
-            </div>
+                      <td className="p-3.5 text-center">
+                        {r.matchStatus === "EXACT_MATCH" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" /> 100% Exact
+                          </span>
+                        )}
+                        {r.matchStatus === "FUZZY_MATCHED" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full border border-blue-200">
+                            <Sparkles className="w-3 h-3" /> Fuzzy ({r.confidenceScore}%)
+                          </span>
+                        )}
+                        {r.matchStatus === "ROUNDING_MATCHED" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded-full border border-purple-200">
+                            <Scale className="w-3 h-3" /> Round-Off
+                          </span>
+                        )}
+                        {r.matchStatus === "DATE_LEEWAY_MATCHED" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-cyan-50 text-cyan-700 text-[10px] font-bold rounded-full border border-cyan-200">
+                            <Clock className="w-3 h-3" /> Date Leeway
+                          </span>
+                        )}
+                        {r.matchStatus === "VALUE_MISMATCH" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">
+                            <AlertTriangle className="w-3 h-3" /> Mismatch
+                          </span>
+                        )}
+                        {r.matchStatus === "MISSING_IN_2B" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-full border border-rose-200">
+                            <AlertCircle className="w-3 h-3" /> Missing in 2B
+                          </span>
+                        )}
+                        {r.matchStatus === "MISSING_IN_BOOKS" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-full border border-indigo-200">
+                            <Plus className="w-3 h-3" /> Unclaimed in BK
+                          </span>
+                        )}
+                      </td>
 
-            {/* Quick Sample Presets (1-Click Test) */}
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-              <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">
-                Or Load Verified Test Dataset (1-Click Test):
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePreset("CLI-PRATWI-01")}
-                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left font-bold text-slate-800 transition flex items-center gap-1.5"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-btred-logo" />
-                  <span>Pratwi (IT Services 2B)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePreset("CLI-APEX-01")}
-                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left font-bold text-slate-800 transition flex items-center gap-1.5"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Apex Auto (Manufacturing 2B)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePreset("CLI-OMNI-01")}
-                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left font-bold text-slate-800 transition flex items-center gap-1.5"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-amber-600" />
-                  <span>OmniRetail (FMCG 2B)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePreset("CLI-ZENITH-01")}
-                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left font-bold text-slate-800 transition flex items-center gap-1.5"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Zenith Cloud (SaaS 2B)</span>
-                </button>
-              </div>
-            </div>
+                      <td className="p-3.5">
+                        <div className="space-y-1 max-w-sm">
+                          {r.section17_5Blocked ? (
+                            <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-900 text-[10px] font-bold rounded">
+                              Sec 17(5) Blocked: {r.blockedCategory}
+                            </span>
+                          ) : r.rule37aRisk ? (
+                            <span className="inline-block px-2 py-0.5 bg-rose-100 text-rose-900 text-[10px] font-bold rounded">
+                              Rule 37A Alert: Supplier GSTR-3B Unfiled
+                            </span>
+                          ) : (
+                            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 text-[10px] font-bold rounded">
+                              Table 4(A)(5) Eligible All Other ITC
+                            </span>
+                          )}
+                          <p className="text-[11px] text-slate-500 leading-tight">
+                            {r.recommendedAction}
+                          </p>
+                        </div>
+                      </td>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-              <button
-                onClick={() => setIsUploadModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setIsUploadModalOpen(false);
-                  handleGspSync();
-                }}
-                disabled={isProcessingFiles}
-                className="px-5 py-2 bg-btred-logo hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm disabled:opacity-60"
-              >
-                {isProcessingFiles ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Processing Ingestion...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Run Matcher</span>
-                  </>
-                )}
-              </button>
+                      <td className="p-3.5 text-right">
+                        {r.matchStatus === "MISSING_IN_BOOKS" ? (
+                          <button
+                            onClick={() => handleExportTallyMissingXml(r)}
+                            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold rounded-xl border border-indigo-200 flex items-center gap-1 ml-auto transition"
+                          >
+                            <Download className="w-3 h-3" /> Tally XML
+                          </button>
+                        ) : (r.matchStatus === "MISSING_IN_2B" || r.rule37aRisk || r.matchStatus === "VALUE_MISMATCH") ? (
+                          <button
+                            onClick={() => handleGenerateNotice(r)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-xl flex items-center gap-1 ml-auto shadow-sm transition"
+                          >
+                            <Send className="w-3 h-3" /> Notice
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-emerald-600 font-bold flex items-center justify-end gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Reconciled
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: GSTR-3B Table 4 Summary Drawer                                   */}
+      {/* TAB 2: SECTION 17(5) & VENDOR RISK DECK                                   */}
+      {/* ========================================================================= */}
+      {activeTab === "sec17_5" && (
+        <div className="space-y-6">
+          {/* Statutory Overview Card */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 rounded-3xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-900 text-base">
+                  Section 17(5) Statutory Guardrails &amp; GSTR-3B Table 4(B)(1) Routing
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-4xl">
+                  Under CBIC Circular No. 170/02/2022-GST, all ineligible ITC under Section 17(5) must be mandatorily reported in Table 4(B)(1) of Form GSTR-3B. Claiming blocked input tax credit attracts a 100% tax penalty plus 18% simple interest per annum under Section 50(1).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendor Compliance Profiles Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {vendorProfiles.map(v => (
+              <div key={v.vendorGstin} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4 hover:border-slate-300 transition">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <h4 className="font-bold text-slate-900 text-sm">{v.vendorTradeName}</h4>
+                    <span className="font-mono text-xs text-slate-500">{v.vendorGstin}</span>
+                  </div>
+
+                  <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider border ${
+                    v.gstnStatus === "ACTIVE"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-rose-50 text-rose-700 border-rose-200"
+                  }`}>
+                    {v.gstnStatus}
+                  </span>
+                </div>
+
+                {/* Score Meter */}
+                <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-600">Compliance Risk Score:</span>
+                    <strong className={`font-mono font-bold ${
+                      v.riskLevel === "LOW" ? "text-emerald-700" : v.riskLevel === "MEDIUM" ? "text-amber-700" : "text-rose-700"
+                    }`}>
+                      {v.compositeRiskScore}/100 ({v.riskLevel})
+                    </strong>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        v.riskLevel === "LOW" ? "bg-emerald-500" : v.riskLevel === "MEDIUM" ? "bg-amber-500" : "bg-rose-600"
+                      }`}
+                      style={{ width: `${v.compositeRiskScore}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">GSTR-1 Filed</span>
+                    <strong className="text-slate-800 font-mono">{v.gstr1FilingRatePercentage}%</strong>
+                  </div>
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">GSTR-3B Filed</span>
+                    <strong className="text-slate-800 font-mono">{v.gstr3bFilingRatePercentage}%</strong>
+                  </div>
+                </div>
+
+                {/* Violations */}
+                {v.statutoryViolations.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Statutory Exposure:</span>
+                    <ul className="text-[11px] text-slate-600 space-y-1 list-disc pl-4">
+                      {v.statutoryViolations.map((violation, i) => (
+                        <li key={i}>{violation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 font-medium">ITC: {formatCurrencyINR(v.totalItcAtRiskInr)}</span>
+                  <button
+                    onClick={() => {
+                      const rec = recoReport.records.find(r => r.vendorGstin === v.vendorGstin);
+                      if (rec) handleGenerateNotice(rec);
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-xl transition flex items-center gap-1"
+                  >
+                    <Send className="w-3 h-3" /> Chase Vendor
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: RULE 42 & RULE 43 PRO-RATA REVERSAL WORKPAPER                     */}
+      {/* ========================================================================= */}
+      {activeTab === "rule42_43" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  Rule 42 &amp; 43 CGST Pro-Rata Reversal Mathematical Simulator
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Apportionment of common credit between taxable, zero-rated and exempt supplies for GSTR-3B Table 4(B)(2).
+                </p>
+              </div>
+
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 self-start sm:self-auto">
+                Rule 42(1)(i) &amp; Rule 43
+              </span>
+            </div>
+
+            {/* Inputs Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200/70">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 block">Total Input Tax (T)</label>
+                <input
+                  type="number"
+                  value={r42TotalInputTax}
+                  onChange={(e) => setR42TotalInputTax(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 block">Sec 17(5) Blocked (T3)</label>
+                <input
+                  type="number"
+                  value={r42BlockedInput}
+                  onChange={(e) => setR42BlockedInput(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 block">Exempt Turnover (E)</label>
+                <input
+                  type="number"
+                  value={r42ExemptTurnover}
+                  onChange={(e) => setR42ExemptTurnover(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 block">Total State Turnover (F)</label>
+                <input
+                  type="number"
+                  value={r42TotalTurnover}
+                  onChange={(e) => setR42TotalTurnover(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Results Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-blue-50/60 rounded-2xl p-4 border border-blue-100">
+                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Common Credit (C2)</span>
+                <span className="text-lg font-black text-blue-950 font-mono mt-1 block">
+                  {formatCurrencyINR(r42Result.commonCredit_C2)}
+                </span>
+                <span className="text-[11px] text-blue-700 font-medium">C2 = C1 - T4</span>
+              </div>
+
+              <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-100">
+                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Exempt Reversal (D1)</span>
+                <span className="text-lg font-black text-amber-950 font-mono mt-1 block">
+                  {formatCurrencyINR(r42Result.exemptReversal_D1)}
+                </span>
+                <span className="text-[11px] text-amber-700 font-medium">Ratio: {(r42Result.turnoverRatio_E_by_F * 100).toFixed(2)}% of C2</span>
+              </div>
+
+              <div className="bg-purple-50/60 rounded-2xl p-4 border border-purple-100">
+                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Non-Business 5% (D2)</span>
+                <span className="text-lg font-black text-purple-950 font-mono mt-1 block">
+                  {formatCurrencyINR(r42Result.nonBusinessReversal_D2)}
+                </span>
+                <span className="text-[11px] text-purple-700 font-medium">Mandatory 5% attribution</span>
+              </div>
+
+              <div className="bg-rose-50/60 rounded-2xl p-4 border border-rose-100">
+                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Total Monthly Reversal</span>
+                <span className="text-lg font-black text-rose-950 font-mono mt-1 block">
+                  {formatCurrencyINR(r42Result.totalMonthlyReversal)}
+                </span>
+                <span className="text-[11px] text-rose-700 font-bold">Route to Table 4(B)(2)</span>
+              </div>
+            </div>
+
+            {/* Audit Trail Steps */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">ICAI SQC-1 Audit Trail Schedule</h4>
+              <div className="space-y-2">
+                {r42Result.auditSteps.map((step) => (
+                  <div key={step.stepNo} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start justify-between gap-4 text-xs">
+                    <div className="space-y-0.5">
+                      <strong className="text-slate-900 block">Step {step.stepNo}: {step.title}</strong>
+                      <span className="text-slate-500 text-[11px]">{step.explanation}</span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-mono font-bold text-slate-900 text-sm">{formatCurrencyINR(step.valueInr)}</span>
+                      <span className="text-[10px] text-slate-400 block font-mono">{step.statutoryRef}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: DEFAULTING VENDOR CHASER DESK                                      */}
+      {/* ========================================================================= */}
+      {activeTab === "notices" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  1-Click Defaulting Vendor Demand Notice Dispatcher
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pre-approved legal notices under Section 16(2)(aa) &amp; Rule 37A with formatted invoice tables and 7-day payment withholding warnings.
+                </p>
+              </div>
+
+              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 self-start sm:self-auto">
+                WhatsApp &amp; Email Enabled
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recoReport.records
+                .filter(r => r.matchStatus === "MISSING_IN_2B" || r.rule37aRisk || r.matchStatus === "VALUE_MISMATCH")
+                .map(r => (
+                  <div key={r.id} className="bg-slate-50 rounded-3xl p-5 border border-slate-200 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">{r.vendorName}</h4>
+                        <span className="font-mono text-xs text-slate-500">{r.vendorGstin}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                        r.matchStatus === "MISSING_IN_2B" ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                      }`}>
+                        {r.matchStatus === "MISSING_IN_2B" ? "GSTR-1 Omitted" : "Rule 37A GSTR-3B Pending"}
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200/80 space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Invoice:</span>
+                        <strong className="font-mono text-slate-800">{r.booksInvoiceNo || r.gstr2bInvoiceNo}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Taxable:</span>
+                        <span className="font-mono text-slate-800">{formatCurrencyINR(r.booksTaxableValue || r.gstr2bTaxableValue)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Blocked ITC at Risk:</span>
+                        <strong className="font-mono text-rose-600">{formatCurrencyINR(r.booksTotalTax || r.gstr2bTotalTax)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleGenerateNotice(r)}
+                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" /> Launch WhatsApp Notice
+                      </button>
+                      <button
+                        onClick={() => handleGenerateNotice(r)}
+                        className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition"
+                        title="View Email Notice"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DRAWER: GSTR-3B TABLE 4 STATUTORY SUMMARY                                 */}
       {/* ========================================================================= */}
       {isTable4DrawerOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                  <FileCheck className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <FileCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">GSTR-3B Table 4: Eligible &amp; Ineligible ITC</h3>
-                  <p className="text-[11px] text-slate-500">{activeProfile.clientName} ({activeProfile.gstin}) — {activeProfile.taxPeriod}</p>
+                  <h3 className="font-bold text-slate-900 text-base">GSTR-3B Table 4 Eligible &amp; Ineligible ITC</h3>
+                  <p className="text-xs text-slate-500">Statutory breakdown conforming to CBIC Circular No. 170/02/2022-GST</p>
                 </div>
               </div>
               <button onClick={() => setIsTable4DrawerOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -1601,106 +1260,83 @@ export const Gstr2bReconciler: React.FC = () => {
               </button>
             </div>
 
-            {/* Official Table 4 Grid */}
-            <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
-              <table className="w-full text-left">
-                <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border border-slate-200 rounded-2xl overflow-hidden">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
                   <tr>
-                    <th className="p-3">Details / Table No.</th>
-                    <th className="p-3 text-right">Integrated Tax (IGST)</th>
-                    <th className="p-3 text-right">Central Tax (CGST)</th>
-                    <th className="p-3 text-right">State Tax (SGST)</th>
-                    <th className="p-3 text-right font-black">Total ITC</th>
+                    <th className="p-3">GSTR-3B Table Description</th>
+                    <th className="p-3 text-right">Eligible Amount (₹)</th>
+                    <th className="p-3">Statutory Basis</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-mono">
-                  {/* 4(A)(1) */}
+                <tbody className="divide-y divide-slate-100">
                   <tr>
-                    <td className="p-3 font-sans font-medium text-slate-700">(1) Import of Goods</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right font-bold">₹0</td>
+                    <td className="p-3 font-medium text-slate-800">4(A)(5) All Other ITC</td>
+                    <td className="p-3 text-right font-mono font-black text-emerald-700">
+                      {formatCurrencyINR(recoReport.summary.matchedEligibleItc)}
+                    </td>
+                    <td className="p-3 text-slate-500 text-[11px]">Matched GSTR-2B Invoices</td>
                   </tr>
-                  {/* 4(A)(3) RCM */}
                   <tr>
-                    <td className="p-3 font-sans font-medium text-slate-700">(3) Inward supplies liable to reverse charge (RCM)</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right font-bold">₹0</td>
+                    <td className="p-3 font-medium text-slate-800">4(B)(1) Ineligible as per Section 17(5)</td>
+                    <td className="p-3 text-right font-mono font-bold text-amber-700">
+                      {formatCurrencyINR(recoReport.summary.ineligibleSec17_5Itc)}
+                    </td>
+                    <td className="p-3 text-slate-500 text-[11px]">Motor cars, catering, works contracts</td>
                   </tr>
-                  {/* 4(A)(5) All other ITC */}
-                  <tr className="bg-emerald-50/50 font-bold">
-                    <td className="p-3 font-sans text-emerald-900">(5) All other ITC (Eligible Inward Supplies)</td>
-                    <td className="p-3 text-right text-emerald-800">{formatCurrencyINR(eligibleItcTable4A5)}</td>
-                    <td className="p-3 text-right text-emerald-800">₹0</td>
-                    <td className="p-3 text-right text-emerald-800">₹0</td>
-                    <td className="p-3 text-right text-emerald-900 font-black">{formatCurrencyINR(eligibleItcTable4A5)}</td>
+                  <tr>
+                    <td className="p-3 font-medium text-slate-800">4(B)(2) Reversals - Others (Rule 42/43)</td>
+                    <td className="p-3 text-right font-mono font-bold text-purple-700">
+                      {formatCurrencyINR(r42Result.totalMonthlyReversal)}
+                    </td>
+                    <td className="p-3 text-slate-500 text-[11px]">Exempt turnover common credit ratio</td>
                   </tr>
-                  {/* 4(B)(1) Ineligible 17(5) */}
-                  <tr className="bg-amber-50/50 font-bold">
-                    <td className="p-3 font-sans text-amber-900">4(B)(1) Ineligible as per Section 17(5)</td>
-                    <td className="p-3 text-right text-amber-800">{formatCurrencyINR(blockedItcTable4B1)}</td>
-                    <td className="p-3 text-right text-amber-800">₹0</td>
-                    <td className="p-3 text-right text-amber-800">₹0</td>
-                    <td className="p-3 text-right text-amber-900 font-black">{formatCurrencyINR(blockedItcTable4B1)}</td>
-                  </tr>
-                  {/* Net ITC (4A - 4B) */}
                   <tr className="bg-slate-900 text-white font-bold">
-                    <td className="p-3 font-sans">Net ITC Available: 4(C) = [4(A) - 4(B)]</td>
-                    <td className="p-3 text-right">{formatCurrencyINR(eligibleItcTable4A5)}</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right">₹0</td>
-                    <td className="p-3 text-right font-black text-emerald-400">{formatCurrencyINR(eligibleItcTable4A5)}</td>
+                    <td className="p-3">Net ITC Available [4(A) - 4(B)]</td>
+                    <td className="p-3 text-right font-mono text-emerald-400 font-black">
+                      {formatCurrencyINR(recoReport.summary.matchedEligibleItc - r42Result.totalMonthlyReversal)}
+                    </td>
+                    <td className="p-3 text-slate-300 text-[11px]">Credited to Electronic Credit Ledger</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-              <span className="text-[11px] text-slate-500 font-medium">
-                Matches 100% with GST Portal GSTR-3B offline utility JSON
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`GSTR-3B Table 4 Values for ${activeProfile.clientName}: Table 4(A)(5) = ₹${eligibleItcTable4A5}, Table 4(B)(1) = ₹${blockedItcTable4B1}`);
-                    toast.success("Copied to Clipboard", "Table 4 values copied for GST portal filing.");
-                  }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-                >
-                  <Copy className="w-3.5 h-3.5" /> Copy Values
-                </button>
-                <button
-                  onClick={() => setIsTable4DrawerOpen(false)}
-                  className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
-                >
-                  Done
-                </button>
-              </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-[11px] text-slate-500">Values ready for GST portal offline JSON import</span>
+              <button
+                onClick={() => {
+                  playSuccessChime();
+                  navigator.clipboard.writeText(`GSTR-3B Table 4 for ${currentEntity?.tradeName}: 4(A)(5)=₹${recoReport.summary.matchedEligibleItc}, 4(B)(1)=₹${recoReport.summary.ineligibleSec17_5Itc}, 4(B)(2)=₹${r42Result.totalMonthlyReversal}`);
+                  toast.success("Copied to Clipboard", "Table 4 values copied for GST portal.");
+                  setIsTable4DrawerOpen(false);
+                }}
+                className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+              >
+                <Copy className="w-3.5 h-3.5" /> Copy Values
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 3: WhatsApp Vendor Chase Notice Modal                               */}
+      {/* MODAL: STATUTORY VENDOR NOTICE PREVIEW                                    */}
       {/* ========================================================================= */}
-      {isWhatsAppModalOpen && selectedItemForWhatsApp && (
+      {isNoticeModalOpen && selectedNotice && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                  <MessageSquare className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <Send className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Statutory Demand Notice via WhatsApp</h3>
-                  <p className="text-[11px] text-slate-500">Section 16(2)(aa) &amp; Rule 37A Non-Filing Demand</p>
+                  <h3 className="font-bold text-slate-900 text-sm">Statutory Requisition under Section 16(2)(aa)</h3>
+                  <p className="text-[11px] text-slate-500">Ref: {selectedNotice.noticeRef}</p>
                 </div>
               </div>
-              <button onClick={() => setIsWhatsAppModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setIsNoticeModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1708,113 +1344,54 @@ export const Gstr2bReconciler: React.FC = () => {
             <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">Vendor:</span>
-                <strong className="text-slate-900">{selectedItemForWhatsApp.vendorName} ({selectedItemForWhatsApp.vendorGstin})</strong>
+                <strong className="text-slate-900">{selectedNotice.vendorTradeName} ({selectedNotice.vendorGstin})</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Invoice:</span>
-                <span className="font-mono text-slate-900 font-bold">{selectedItemForWhatsApp.invoiceNo} (Taxable: {formatCurrencyINR(selectedItemForWhatsApp.taxableValue)})</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Blocked ITC at Risk:</span>
-                <span className="font-mono text-rose-600 font-black">{formatCurrencyINR(selectedItemForWhatsApp.totalItc)}</span>
+                <span className="text-slate-500">Exposure ITC:</span>
+                <strong className="text-rose-600 font-mono">{formatCurrencyINR(selectedNotice.totalTaxAtRiskInr)}</strong>
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Edit Notice Message</label>
+              <label className="text-xs font-bold text-slate-700 block">Notice Preview (WhatsApp / Email)</label>
               <textarea
-                rows={7}
-                value={customWhatsAppMsg}
-                onChange={(e) => setCustomWhatsAppMsg(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 font-mono leading-relaxed outline-none focus:bg-white focus:border-emerald-500"
+                rows={9}
+                readOnly
+                value={selectedNotice.whatsappMessageText}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-mono text-slate-800 leading-relaxed outline-none"
               />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
               <button
-                onClick={() => setIsWhatsAppModalOpen(false)}
+                onClick={() => setIsNoticeModalOpen(false)}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
               >
                 Cancel
               </button>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(customWhatsAppMsg);
-                  toast.success("Text Copied", "WhatsApp message text copied to clipboard.");
-                  setIsWhatsAppModalOpen(false);
+                  playSuccessChime();
+                  navigator.clipboard.writeText(selectedNotice.whatsappMessageText);
+                  toast.success("Text Copied", "Notice copied to clipboard.");
                 }}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
               >
-                <Copy className="w-3.5 h-3.5" /> Copy Notice
+                <Copy className="w-3.5 h-3.5" /> Copy Text
               </button>
-              <button
+              <a
+                href={selectedNotice.whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
                 onClick={() => {
-                  const phone = sanitizeIndianPhoneNumber(selectedItemForWhatsApp.vendorPhone || "919820011223");
-                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(customWhatsAppMsg)}`, "_blank");
-                  toast.success("Dispatched via WhatsApp", `Statutory notice opened for ${selectedItemForWhatsApp.vendorName}.`);
-                  setIsWhatsAppModalOpen(false);
+                  playSuccessChime();
+                  toast.success("Dispatched via WhatsApp", `Notice opened for ${selectedNotice.vendorTradeName}.`);
+                  setIsNoticeModalOpen(false);
                 }}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
               >
-                <Send className="w-3.5 h-3.5" /> Launch WhatsApp Web
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL 4: Section 17(5) Classification Override                           */}
-      {/* ========================================================================= */}
-      {isOverrideModalOpen && selectedItemForOverride && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-                  <ShieldAlert className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Override Section 17(5) Classification</h3>
-                  <p className="text-[11px] text-slate-500">Legal exception or custom routing to GSTR-3B Table</p>
-                </div>
-              </div>
-              <button onClick={() => setIsOverrideModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-xs space-y-1">
-              <div><strong>Vendor:</strong> {selectedItemForOverride.vendorName}</div>
-              <div><strong>Invoice:</strong> {selectedItemForOverride.invoiceNo} (ITC: {formatCurrencyINR(selectedItemForOverride.totalItc)})</div>
-              <div><strong>Current Reason:</strong> {selectedItemForOverride.blockedReason || "Ineligible"}</div>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => handleSaveOverride(true, "Commercial Vehicle / Goods Carriage / Subcontractor Catering Exception")}
-                className="w-full p-3 text-left border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/40 rounded-2xl transition text-xs"
-              >
-                <strong className="block text-emerald-800 font-bold">Mark as 100% Eligible ITC Table 4(A)(5)</strong>
-                <span className="text-[10px] text-slate-500">Vehicle used for transportation of goods or commercial passenger service; or catering used for outward supply</span>
-              </button>
-
-              <button
-                onClick={() => handleSaveOverride(false, "Section 17(5)(a) Passenger Motor Vehicle (<13 persons)")}
-                className="w-full p-3 text-left border border-slate-200 hover:border-amber-500 hover:bg-amber-50/40 rounded-2xl transition text-xs"
-              >
-                <strong className="block text-amber-800 font-bold">Confirm Blocked under Section 17(5)</strong>
-                <span className="text-[10px] text-slate-500">Passenger motor vehicle, club membership, or personal consumption</span>
-              </button>
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-200">
-              <button
-                onClick={() => setIsOverrideModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-              >
-                Close
-              </button>
+                <Send className="w-3.5 h-3.5" /> Open in WhatsApp
+              </a>
             </div>
           </div>
         </div>

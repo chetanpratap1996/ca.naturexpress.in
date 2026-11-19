@@ -271,6 +271,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
   },
   {
+    id: "vcfo-assembly",
+    label: "Autonomous vCFO & Practice Sentinel",
+    shortLabel: "vCFO Sentinel (2035)",
+    categoryId: "audit-balancesheet",
+    description: "13-Week Cash Flow Forecast, Working Capital Leaks, Bank Covenants & SA 210 Scope Creep Sentinel",
+    icon: TrendingUp,
+    iconColor: "text-amber-600",
+    badge: "2035 Auto",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  {
     id: "entity-dna",
     label: "Entity DNA & Taxonomy",
     shortLabel: "Entity DNA",

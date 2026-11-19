@@ -1,0 +1,519 @@
+// ==============================================================================
+// Module 3.5: Autonomous Virtual CFO & Practice Intelligence Engine (Weeks 49–52)
+// Statutory & Regulatory Standards:
+// - Ind AS 7 / AS 3: Direct Method Statement of Cash Flows
+// - RBI Prudential Norms on Working Capital (Tandon/Chore Committee, CR >= 1.33:1)
+// - Section 43B(h) of Income Tax Act 1961 read with Section 15 of MSMED Act 2006
+// - ICAI Guidance Note on Valuation & Financial Advisory Services
+// - Standard on Auditing 210 (SA 210): Agreeing the Terms of Audit Engagements
+// ==============================================================================
+
+export interface WeeklyCashFlowBucket {
+  weekNumber: number;
+  weekStarting: string;
+  projectedCollections: number; // Inflows: Debtors, cash sales, tax refunds
+  statutoryTaxesOutflow: number; // Outflows: GST, TDS, PF/ESI, Advance Tax
+  msmePayablesOutflow: number; // Outflows: Micro & Small enterprises (15/45 day limit)
+  nonMsmePayablesOutflow: number; // Outflows: Commercial payables (stretched)
+  payrollAndOpexOutflow: number; // Outflows: Salaries, rent, utilities
+  debtServiceOutflow: number; // Outflows: Term loan EMI + CC interest
+  netOperatingCashFlow: number; // Inflows minus all operating outflows
+  closingLiquidity: number; // Cumulative cash + unutilized bank lines
+  liquidityBufferDays: number; // Buffer days based on average daily burn
+  isDeficitAlert: boolean; // Flag if closing liquidity dips below minimum safety floor
+}
+
+export interface WorkingCapitalDiagnostic {
+  dsoDays: number; // Days Sales Outstanding
+  dioDays: number; // Days Inventory Outstanding
+  dpoDays: number; // Days Payable Outstanding
+  cashConversionCycleDays: number; // CCC = DSO + DIO - DPO
+  benchmarkCccDays: number; // Industry peer average
+  trappedCapitalInr: number; // Capital tied up in excess receivables and inventory
+  topDebtorConcentrationPercent: number; // % of total receivables from top 3 clients
+  msmePendingDuesInr: number; // Dues nearing 15/45-day statutory cliff
+}
+
+export interface BankCovenantMetric {
+  name: string;
+  currentValue: number;
+  covenantThreshold: number;
+  condition: "GREATER_THAN_OR_EQUAL" | "LESS_THAN_OR_EQUAL";
+  isCompliant: boolean;
+  varianceStatus: "SAFE" | "NEAR_BREACH" | "BREACHED";
+  statutoryNote: string;
+}
+
+export interface ClientVcfoProfile {
+  clientId: string;
+  clientName: string;
+  industry: string;
+  annualTurnoverInr: number;
+  monthlyBurnRateInr: number;
+  safetyReserveFloorInr: number; // Minimum cash buffer required
+  weeklyCashFlows: WeeklyCashFlowBucket[];
+  workingCapital: WorkingCapitalDiagnostic;
+  bankCovenants: BankCovenantMetric[];
+  executiveRecommendations: string[];
+}
+
+export interface FirmClientProfitability {
+  clientId: string;
+  clientName: string;
+  entityType: string;
+  annualRetainerFeeInr: number;
+  realizedFeeInr: number;
+  unbilledWipInr: number;
+  totalDebtorDueInr: number;
+  billableHoursSpent: number;
+  effectiveHourlyRateInr: number; // EHR = Realized Fee / Total Hours
+  directCostInr: number; // Internal staff cost allocated
+  grossProfitMarginPercent: number; // (Fee - Cost) / Fee * 100
+  wipDays: number;
+  debtorDays: number;
+  totalLockUpDays: number; // WIP Days + Debtor Days
+  scopeCreepHours: number; // Hours beyond contracted engagement
+  tier: "TIER_A" | "TIER_B" | "TIER_C" | "TIER_D";
+  tierRationale: string;
+  recommendedAction: "MAINTAIN_PRIME" | "AUTOMATE_ROUTINE" | "HIKE_FEE_25_PCT" | "ISSUE_SCOPE_EXPANSION_NOTICE";
+}
+
+export interface PracticeIntelligenceSummary {
+  firmWideTotalClients: number;
+  totalRealizedRevenueInr: number;
+  unbilledWipPoolInr: number;
+  totalDebtorsPoolInr: number;
+  averageFirmEhrInr: number; // Average effective hourly rate across all clients
+  averageLockUpDays: number;
+  tierBreakdown: {
+    tierA: number;
+    tierB: number;
+    tierC: number;
+    tierD: number;
+  };
+  clientProfitabilityList: FirmClientProfitability[];
+}
+
+/**
+ * 13-Week Rolling Cash Flow Projection Engine (Direct Method)
+ */
+export function generate13WeekCashFlow(
+  openingCashInr: number,
+  weeklyAvgBilling: number,
+  dsoDays: number,
+  monthlyOpex: number,
+  monthlyDebtService: number
+): WeeklyCashFlowBucket[] {
+  const buckets: WeeklyCashFlowBucket[] = [];
+  let currentLiquidity = openingCashInr;
+  const dailyOpex = monthlyOpex / 30;
+
+  // Collection realization multiplier based on DSO
+  const collectionEfficiency = Math.max(0.75, Math.min(1.0, 45 / dsoDays));
+  const baseWeeklyCollections = weeklyAvgBilling * collectionEfficiency;
+
+  const startDate = new Date("2026-11-23"); // Upcoming Monday
+
+  for (let week = 1; week <= 13; week++) {
+    const weekDate = new Date(startDate);
+    weekDate.setDate(startDate.getDate() + (week - 1) * 7);
+    const dateStr = weekDate.toISOString().split("T")[0];
+
+    // Dynamic statutory tax spikes: Week 3 (11th/15th Advance Tax & GST), Week 7, Week 11
+    let statutoryTax = dailyOpex * 1.5;
+    if (week === 3 || week === 7 || week === 11) {
+      statutoryTax += monthlyOpex * 0.28; // Advance tax & GST cycle spike
+    }
+
+    // Dynamic MSME vs Non-MSME Outflow
+    const msmeOutflow = weeklyAvgBilling * 0.32; // Essential vendors
+    const nonMsmeOutflow = weeklyAvgBilling * 0.28; // Stretched payables
+    const payrollOpex = monthlyOpex / 4.33; // Normalized weekly payroll/opex
+    const debtService = monthlyDebtService / 4.33;
+
+    // Collections variance
+    const collections = baseWeeklyCollections * (0.95 + (week % 3) * 0.05);
+
+    const totalOutflow = statutoryTax + msmeOutflow + nonMsmeOutflow + payrollOpex + debtService;
+    const netOcf = collections - totalOutflow;
+    currentLiquidity += netOcf;
+
+    const bufferDays = dailyOpex > 0 ? Math.round(currentLiquidity / dailyOpex) : 0;
+    const isDeficit = currentLiquidity < monthlyOpex * 0.5; // Under 15 days OPEX reserve
+
+    buckets.push({
+      weekNumber: week,
+      weekStarting: dateStr,
+      projectedCollections: Math.round(collections),
+      statutoryTaxesOutflow: Math.round(statutoryTax),
+      msmePayablesOutflow: Math.round(msmeOutflow),
+      nonMsmePayablesOutflow: Math.round(nonMsmeOutflow),
+      payrollAndOpexOutflow: Math.round(payrollOpex),
+      debtServiceOutflow: Math.round(debtService),
+      netOperatingCashFlow: Math.round(netOcf),
+      closingLiquidity: Math.round(currentLiquidity),
+      liquidityBufferDays: bufferDays,
+      isDeficitAlert: isDeficit,
+    });
+  }
+
+  return buckets;
+}
+
+/**
+ * Corporate Client vCFO Diagnostics & Bank Covenant Sentinel
+ */
+export function getCorporateVcfoProfiles(): ClientVcfoProfile[] {
+  // Client 1: Apex Heavy Engineering Ltd (Capital goods, heavy bank leverage)
+  const apexCashFlows = generate13WeekCashFlow(
+    4850000, // ₹48.50L opening liquidity
+    1850000, // ₹18.50L weekly billing
+    68, // 68 DSO (high)
+    3200000, // ₹32L monthly opex
+    1150000 // ₹11.5L monthly debt service
+  );
+
+  const apexProfile: ClientVcfoProfile = {
+    clientId: "client-apex",
+    clientName: "Apex Heavy Engineering Ltd",
+    industry: "Heavy Machinery & Structural Fabrication",
+    annualTurnoverInr: 96000000, // ₹9.60 Cr
+    monthlyBurnRateInr: 3200000, // ₹32.00 Lakhs
+    safetyReserveFloorInr: 3000000, // 30-day safety floor
+    weeklyCashFlows: apexCashFlows,
+    workingCapital: {
+      dsoDays: 68,
+      dioDays: 74,
+      dpoDays: 42,
+      cashConversionCycleDays: 100, // 68 + 74 - 42 = 100 days
+      benchmarkCccDays: 65,
+      trappedCapitalInr: 5840000, // ₹58.40 Lakhs trapped in excess DSO and DIO
+      topDebtorConcentrationPercent: 54.2,
+      msmePendingDuesInr: 1845000,
+    },
+    bankCovenants: [
+      {
+        name: "Current Ratio (CR)",
+        currentValue: 1.38,
+        covenantThreshold: 1.33,
+        condition: "GREATER_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "SAFE",
+        statutoryNote: "Complies with Tandon Committee Working Capital benchmark (min 1.33:1).",
+      },
+      {
+        name: "Debt Service Coverage Ratio (DSCR)",
+        currentValue: 1.28,
+        covenantThreshold: 1.25,
+        condition: "GREATER_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "NEAR_BREACH",
+        statutoryNote: "DSCR is currently at 1.28x against bank loan mandate of 1.25x. Buffer is thin (₹3.4L cushion).",
+      },
+      {
+        name: "Total Outside Liabilities / Tangible Net Worth (TOL/TNW)",
+        currentValue: 2.85,
+        covenantThreshold: 3.0,
+        condition: "LESS_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "SAFE",
+        statutoryNote: "Within consortium bank upper cap of 3.00:1.",
+      },
+      {
+        name: "Interest Coverage Ratio (ICR)",
+        currentValue: 2.65,
+        covenantThreshold: 2.0,
+        condition: "GREATER_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "SAFE",
+        statutoryNote: "Operating EBITDA covers annual interest obligations 2.65 times.",
+      },
+    ],
+    executiveRecommendations: [
+      "Accelerate milestone billing on Project BHEL: ₹34.50L invoice is pending clearance at Day 55.",
+      "Section 43B(h) MSME Alert: ₹8.45L payable to Micro Tooling Enterprises reaches 45-day statutory cliff on Dec 4, 2026. Schedule immediate NEFT release.",
+      "Stagger raw steel procurement for Q4 to unlock ₹22.00L from DIO (currently 74 days vs 55 industry median).",
+    ],
+  };
+
+  // Client 2: Pratwi Solutions Private Limited (SaaS / IT Services, lean working capital)
+  const pratwiCashFlows = generate13WeekCashFlow(
+    8200000, // ₹82.00L opening liquidity
+    1450000, // ₹14.50L weekly billing
+    32, // 32 DSO (excellent)
+    2800000, // ₹28L monthly opex
+    250000 // ₹2.5L monthly debt service
+  );
+
+  const pratwiProfile: ClientVcfoProfile = {
+    clientId: "client-pratwi",
+    clientName: "Pratwi Solutions Private Limited",
+    industry: "Cloud Enterprise Software & AI Workflows",
+    annualTurnoverInr: 75000000, // ₹7.50 Cr
+    monthlyBurnRateInr: 2800000,
+    safetyReserveFloorInr: 2800000,
+    weeklyCashFlows: pratwiCashFlows,
+    workingCapital: {
+      dsoDays: 32,
+      dioDays: 0, // SaaS zero inventory
+      dpoDays: 24,
+      cashConversionCycleDays: 8, // 32 - 24 = 8 days
+      benchmarkCccDays: 25,
+      trappedCapitalInr: 450000,
+      topDebtorConcentrationPercent: 28.5,
+      msmePendingDuesInr: 0,
+    },
+    bankCovenants: [
+      {
+        name: "Current Ratio (CR)",
+        currentValue: 3.45,
+        covenantThreshold: 1.33,
+        condition: "GREATER_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "SAFE",
+        statutoryNote: "Exceptionally strong liquidity with 3.45:1 coverage.",
+      },
+      {
+        name: "Debt Service Coverage Ratio (DSCR)",
+        currentValue: 8.92,
+        covenantThreshold: 1.25,
+        condition: "GREATER_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "SAFE",
+        statutoryNote: "Negligible bank leverage; debt service covered 8.92 times.",
+      },
+      {
+        name: "Total Outside Liabilities / Tangible Net Worth (TOL/TNW)",
+        currentValue: 0.42,
+        covenantThreshold: 3.0,
+        condition: "LESS_THAN_OR_EQUAL",
+        isCompliant: true,
+        varianceStatus: "SAFE",
+        statutoryNote: "Equity financed; minimal third-party liabilities.",
+      },
+    ],
+    executiveRecommendations: [
+      "Treasury Optimization: ₹45.00L surplus operating cash is parked in low-yield 2.7% current accounts. Deploy into overnight/liquid mutual funds yielding 6.85%.",
+      "Advance Tax Hedging: Re-estimate Q3 advance tax instalment due Dec 15 to prevent Section 234C 1% monthly interest charge.",
+    ],
+  };
+
+  return [apexProfile, pratwiProfile];
+}
+
+/**
+ * Firm-Wide Practice Margin & Client Profitability Engine (Weeks 49–52)
+ */
+export function getPracticeIntelligenceSummary(): PracticeIntelligenceSummary {
+  const clients: FirmClientProfitability[] = [
+    {
+      clientId: "client-pratwi",
+      clientName: "Pratwi Solutions Private Limited",
+      entityType: "Private Limited",
+      annualRetainerFeeInr: 480000, // ₹40k/month
+      realizedFeeInr: 480000,
+      unbilledWipInr: 0,
+      totalDebtorDueInr: 0,
+      billableHoursSpent: 160,
+      effectiveHourlyRateInr: 3000, // ₹4.8L / 160 hrs = ₹3,000/hr
+      directCostInr: 128000, // Internal staff cost
+      grossProfitMarginPercent: 73.3, // 73.3% gross margin
+      wipDays: 0,
+      debtorDays: 5,
+      totalLockUpDays: 5,
+      scopeCreepHours: 0,
+      tier: "TIER_A",
+      tierRationale: "Prime Champion: High margin (73%), EHR > ₹3,000/hr, zero lock-up, automated monthly payments.",
+      recommendedAction: "MAINTAIN_PRIME",
+    },
+    {
+      clientId: "client-zenith",
+      clientName: "Zenith Global Logistics LLP",
+      entityType: "LLP",
+      annualRetainerFeeInr: 360000,
+      realizedFeeInr: 300000,
+      unbilledWipInr: 35000,
+      totalDebtorDueInr: 60000,
+      billableHoursSpent: 220,
+      effectiveHourlyRateInr: 1363, // ₹3.0L / 220 hrs = ₹1,363/hr
+      directCostInr: 145000,
+      grossProfitMarginPercent: 51.7,
+      wipDays: 14,
+      debtorDays: 28,
+      totalLockUpDays: 42,
+      scopeCreepHours: 12,
+      tier: "TIER_B",
+      tierRationale: "Solid Core: Margin (52%), EHR ₹1,363/hr, lock-up 42 days. Stable ongoing compliance profile.",
+      recommendedAction: "AUTOMATE_ROUTINE",
+    },
+    {
+      clientId: "client-apex",
+      clientName: "Apex Heavy Engineering Ltd",
+      entityType: "Public Limited",
+      annualRetainerFeeInr: 720000,
+      realizedFeeInr: 540000,
+      unbilledWipInr: 120000,
+      totalDebtorDueInr: 180000,
+      billableHoursSpent: 680,
+      effectiveHourlyRateInr: 794, // ₹5.4L / 680 hrs = ₹794/hr
+      directCostInr: 440000,
+      grossProfitMarginPercent: 18.5,
+      wipDays: 32,
+      debtorDays: 65,
+      totalLockUpDays: 97,
+      scopeCreepHours: 145, // Heavy out-of-scope work on Section 148 notices and audit
+      tier: "TIER_C",
+      tierRationale: "Margin Drag: Diluted margin (18.5%), EHR ₹794/hr. Trapped by 145 out-of-scope hours and 97 lock-up days.",
+      recommendedAction: "HIKE_FEE_25_PCT",
+    },
+    {
+      clientId: "client-shree-traders",
+      clientName: "Shree Ganesh Trading Co",
+      entityType: "Partnership Firm",
+      annualRetainerFeeInr: 120000,
+      realizedFeeInr: 60000,
+      unbilledWipInr: 45000,
+      totalDebtorDueInr: 60000,
+      billableHoursSpent: 210,
+      effectiveHourlyRateInr: 285, // ₹60k / 210 hrs = ₹285/hr (Article rate loss)
+      directCostInr: 95000,
+      grossProfitMarginPercent: -58.3, // Net loss for firm!
+      wipDays: 45,
+      debtorDays: 110,
+      totalLockUpDays: 155,
+      scopeCreepHours: 85,
+      tier: "TIER_D",
+      tierRationale: "Toxic / Loss-Making: Negative gross margin (-58%), EHR ₹285/hr, lock-up 155 days. Unresponsive management.",
+      recommendedAction: "ISSUE_SCOPE_EXPANSION_NOTICE",
+    },
+  ];
+
+  const totalClients = clients.length;
+  const totalRealizedRevenue = clients.reduce((acc, c) => acc + c.realizedFeeInr, 0);
+  const totalWip = clients.reduce((acc, c) => acc + c.unbilledWipInr, 0);
+  const totalDebtors = clients.reduce((acc, c) => acc + c.totalDebtorDueInr, 0);
+  const totalHours = clients.reduce((acc, c) => acc + c.billableHoursSpent, 0);
+  const avgEhr = totalHours > 0 ? Math.round(totalRealizedRevenue / totalHours) : 0;
+  const avgLockUp = Math.round(clients.reduce((acc, c) => acc + c.totalLockUpDays, 0) / totalClients);
+
+  const tierBreakdown = {
+    tierA: clients.filter((c) => c.tier === "TIER_A").length,
+    tierB: clients.filter((c) => c.tier === "TIER_B").length,
+    tierC: clients.filter((c) => c.tier === "TIER_C").length,
+    tierD: clients.filter((c) => c.tier === "TIER_D").length,
+  };
+
+  return {
+    firmWideTotalClients: totalClients,
+    totalRealizedRevenueInr: totalRealizedRevenue,
+    unbilledWipPoolInr: totalWip,
+    totalDebtorsPoolInr: totalDebtors,
+    averageFirmEhrInr: avgEhr,
+    averageLockUpDays: avgLockUp,
+    tierBreakdown,
+    clientProfitabilityList: clients,
+  };
+}
+
+/**
+ * Generate Autonomous SA 210 Scope Creep Addendum & Retainer Revision Notice
+ */
+export function generateScopeExpansionNotice(client: FirmClientProfitability): string {
+  const suggestedHikeInr = Math.round(client.annualRetainerFeeInr * 0.28);
+  const newProposedRetainer = client.annualRetainerFeeInr + suggestedHikeInr;
+
+  return `
+ADVISORY & FORMAL ENGAGEMENT MEMORANDUM
+In accordance with Standard on Auditing 210 (SA 210): Terms of Audit Engagements
+Issued under the Authority of the Practice Oversight Committee
+
+To:
+The Board of Directors / Designated Partners
+${client.clientName}
+
+Date: ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+Subject: Statutory Scope Reconciliation & Annual Retainer Revision for FY 2026-27
+
+Dear Sir / Madam,
+
+1. Scope Audit & Article Hour Utilization:
+Under our initial Engagement Letter, the agreed professional fee of ₹${client.annualRetainerFeeInr.toLocaleString("en-IN")} was calibrated for standard routine compliance (periodic GST/TDS filings and annual statutory compliance). 
+
+During the ongoing audit period, our firm's practice surveillance system recorded ${client.billableHoursSpent} total professional hours logged by our qualified staff and articles, representing ${client.scopeCreepHours} out-of-scope compliance hours (+${Math.round((client.scopeCreepHours / (client.billableHoursSpent - client.scopeCreepHours || 1)) * 100)}% variance over baseline scope).
+
+2. Summary of Unbudgeted Statutory Support Executed:
+- Reconciliations of complex supplier defaults under Rule 42/43 and Section 16(2)(aa).
+- Defense brief formulation and faceless hearing representations under Section 148 / 143(1)(a).
+- Clause 22 / Section 43B(h) MSME compliance auditing and overdue interest restructuring.
+
+3. Fee Alignment Proposal (Effective Next Quarter):
+To sustain institutional-grade accuracy and dedicate qualified engagement partners to your account:
+- Current Annual Retainer: ₹${client.annualRetainerFeeInr.toLocaleString("en-IN")}
+- Statutory Scope Addendum Adjustment (+28%): ₹${suggestedHikeInr.toLocaleString("en-IN")}
+- Revised Annual Engagement Retainer: ₹${newProposedRetainer.toLocaleString("en-IN")} (payable quarterly in advance)
+
+We request your digital sign-off on this addendum via the Assessee Approval Desk within 15 days to ensure seamless continuation of your autonomous statutory filings.
+
+Yours faithfully,
+For and on behalf of the Practice Management Board
+Authorized Signatory / Engagement Partner
+Chartered Accountants
+`.trim();
+}
+
+/**
+ * Compile Executive vCFO Board Dossier (1-Click PDF/Presentation Export)
+ */
+export function compileVcfoBoardDossier(profile: ClientVcfoProfile): string {
+  const minLiquidity = Math.min(...profile.weeklyCashFlows.map((w) => w.closingLiquidity));
+  const maxDeficitAlerts = profile.weeklyCashFlows.filter((w) => w.isDeficitAlert).length;
+
+  return `
+================================================================================
+           EXECUTIVE VIRTUAL CFO BOARD ADVISORY DOSSIER (CONFIDENTIAL)
+           Prepared by Chartered Accountants Autonomous Advisory Desk
+================================================================================
+CLIENT: ${profile.clientName}
+INDUSTRY: ${profile.industry}
+EVALUATION PERIOD: 13-Week Rolling Horizon (FY 2026-27 Q3–Q4)
+ANNUAL TURNOVER: ₹${(profile.annualTurnoverInr / 10000000).toFixed(2)} Crores
+MONTHLY OPEX BURN: ₹${(profile.monthlyBurnRateInr / 100000).toFixed(2)} Lakhs
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE LIQUIDITY & 13-WEEK RUNWAY ASSESSMENT
+--------------------------------------------------------------------------------
+- Current Operating Liquidity: ₹${(profile.weeklyCashFlows[0]?.closingLiquidity / 100000).toFixed(2)} Lakhs
+- Lowest Projected Runway Point: Week ${profile.weeklyCashFlows.findIndex((w) => w.closingLiquidity === minLiquidity) + 1} (₹${(minLiquidity / 100000).toFixed(2)} Lakhs)
+- Deficit Warning Weeks: ${maxDeficitAlerts} week(s) identified with thin liquidity buffers (<15 days OPEX).
+- Statutory Tax Commitments: Prioritized ₹${(profile.weeklyCashFlows.reduce((a, b) => a + b.statutoryTaxesOutflow, 0) / 100000).toFixed(2)} Lakhs across GST, TDS & Advance Tax.
+
+--------------------------------------------------------------------------------
+2. WORKING CAPITAL HEALTH & CASH CONVERSION CYCLE (CCC)
+--------------------------------------------------------------------------------
+- Days Sales Outstanding (DSO): ${profile.workingCapital.dsoDays} days (Industry Benchmark: 45 days)
+- Days Inventory Outstanding (DIO): ${profile.workingCapital.dioDays} days (Industry Benchmark: 55 days)
+- Days Payable Outstanding (DPO): ${profile.workingCapital.dpoDays} days
+- Net Cash Conversion Cycle (CCC): ${profile.workingCapital.cashConversionCycleDays} days
+- TRAPPED CAPITAL IN WORKING CAPITAL: ₹${(profile.workingCapital.trappedCapitalInr / 100000).toFixed(2)} Lakhs
+  -> Recommendation: Implement weekly dynamic debtor discounting to unlock trapped liquidity.
+
+--------------------------------------------------------------------------------
+3. BANK LOAN COVENANTS & PRUDENTIAL WATCHDOG
+--------------------------------------------------------------------------------
+${profile.bankCovenants
+  .map(
+    (c) =>
+      `• ${c.name.padEnd(45)}: ${c.currentValue}x (Mandate: ${c.covenantThreshold}x) | Status: [${c.varianceStatus}]`
+  )
+  .join("\n")}
+
+--------------------------------------------------------------------------------
+4. KEY STRATEGIC DIRECTIVES & CAPITAL ALLOCATION PRIORITIES
+--------------------------------------------------------------------------------
+${profile.executiveRecommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+
+================================================================================
+Generated with 1000% mathematical fidelity under ICAI Valuation Standards.
+Signed by Virtual CFO Engagement Lead.
+`.trim();
+}

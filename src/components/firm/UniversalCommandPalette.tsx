@@ -20,6 +20,7 @@ import {
   Calendar,
   Download,
   ShieldAlert,
+  TrendingUp,
   Zap,
   Check,
   Command,
@@ -132,6 +133,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       badge: "2035 Auto",
       action: () => {
         onNavigateTab("notice-assembly");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-vcfo-assembly",
+      title: "Autonomous Virtual CFO & Practice Intelligence Engine (Week 49–52)",
+      subtitle: "13-week rolling cash flow, Section 43B(h) sequencing, bank covenants & SA 210 scope creep alerts",
+      category: "AUTOPILOT",
+      icon: TrendingUp,
+      shortcut: "V A",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("vcfo-assembly");
         onClose();
       }
     },

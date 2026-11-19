@@ -37,6 +37,7 @@ import { NotificationCenterModal } from "@/components/notifications/Notification
 import { usePwaInstall } from "@/components/shared/usePwaInstall";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { UniversalClientSwitcher } from "@/components/navigation/UniversalClientSwitcher";
+import { AutopilotPulsePill } from "@/components/navigation/AutopilotPulsePill";
 import { ClientEntity, ClientGroup } from "@/lib/types";
 
 interface TopNavProps {
@@ -251,6 +252,11 @@ export const TopNav: React.FC<TopNavProps> = ({
 
           {/* RIGHT: Quick Tools & Profile Cluster (With Zero Horizontal Overflow) */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Autonomous Practice Living Pulse Pill */}
+            {!isClientMode && (
+              <AutopilotPulsePill />
+            )}
+
             {/* Quick Search Trigger */}
             {!isClientMode && (
               <button

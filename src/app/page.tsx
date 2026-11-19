@@ -43,6 +43,7 @@ import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
+import { KeyboardShortcutsModal } from "@/components/shared/KeyboardShortcutsModal";
 import { toast } from "@/components/shared/ToastNotification";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
@@ -167,6 +168,7 @@ export default function Home() {
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [selectedGstin, setSelectedGstin] = useState<string>("");
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
 
   // Universal Client Switcher Handler
   const handleSelectClient = (clientId: string, gstin?: string) => {
@@ -340,6 +342,11 @@ export default function Home() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "h") {
         e.preventDefault();
         handleTabChange("dashboard");
+      }
+      // ? (Shift + /) -> Show Keyboard Shortcuts Sheet (when not typing in an input)
+      if (e.key === "?" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        setIsShortcutsModalOpen((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleGlobalShortcuts);
@@ -841,6 +848,13 @@ export default function Home() {
           setSelectedEntityId(newClient.id);
           if (newClient.gstin) setSelectedGstin(newClient.gstin);
         }}
+      />
+
+      {/* Superhuman / Linear Style Keyboard Shortcuts Modal (Triggered by '?') */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+        onNavigate={(tab) => handleTabChange(tab)}
       />
     </div>
 );

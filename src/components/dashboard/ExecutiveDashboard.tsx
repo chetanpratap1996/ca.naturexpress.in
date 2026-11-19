@@ -14,6 +14,7 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
+import { PracticeAutopilotConsole } from "@/components/firm/PracticeAutopilotConsole";
 import {
   SANDBOX_TASKS,
   SANDBOX_INVOICES,
@@ -208,6 +209,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 1.5 AUTONOMOUS PRACTICE ENGINE CONSOLE                                     */}
+      {/* ========================================================================= */}
+      <PracticeAutopilotConsole />
 
       {/* ========================================================================= */}
       {/* 2. THE 4 MASTER KPI CARDS: ISOLATED STRICTLY ON THE DASHBOARD             */}

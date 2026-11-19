@@ -6,7 +6,11 @@ import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
-import { validateAndExtractAisRecords } from "@/lib/fileIntelligence/documentValidator";
+import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
+import { SftEngine, RULE_114E_THRESHOLDS, SftTransactionCode, CategorizedSftItem } from "@/lib/ais/sftEngine";
+import { AisCrossReconciler, BooksIncomeSourceItem, CrossReconciliationReport, CrossReconciliationItem } from "@/lib/ais/aisCrossReconciler";
+import { InsightNoticeForecaster, ScrutinyForecastResult, AisPortalFeedbackPayload, AisFeedbackOption } from "@/lib/ais/insightNoticeForecaster";
+
 import { 
   FileSearch, 
   Upload, 
@@ -44,7 +48,12 @@ import {
   User, 
   CreditCard, 
   Award, 
-  Printer
+  Printer,
+  Scale,
+  Zap,
+  Radio,
+  FileCode,
+  FileSpreadsheet
 } from "lucide-react";
 
 export interface AisRecord {
@@ -59,11 +68,10 @@ export interface AisRecord {
   reportedAmount: number;
   taxDeducted: number;
   informationCode: string; // e.g. SFT-004, SFT-017, 194J, 194A, 206C
-  rule114eThreshold?: string; // Statutory Rule 114E threshold context
+  rule114eThreshold?: string;
   itrStatus: "MATCHED_IN_ITR" | "UNREPORTED_INCOME_RISK" | "DISCREPANCY_FLAG" | "RESOLVED_IN_ITR";
-  targetItrSchedule: string; // e.g. Schedule OS, Schedule CG, Schedule TDS-2
+  targetItrSchedule: string;
   recommendation: string;
-  portalFeedbackSubmitted?: string;
 }
 
 export interface ClientAisProfile {
@@ -75,10 +83,12 @@ export interface ClientAisProfile {
   assessmentYear: string;
   financialYear: string;
   records: AisRecord[];
+  booksLedgers: BooksIncomeSourceItem[];
+  annualTurnoverInr?: number;
 }
 
 const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
-  // Profile 1: Rajesh Sharma (Promoter & MD - Apex AutoTech)
+  // Profile 1: Rajesh Sharma (Promoter - Apex AutoTech)
   "CLI-APEX-01": {
     entityId: "CLI-APEX-01",
     taxpayerName: "Rajesh Sharma (Promoter - Apex AutoTech)",
@@ -87,6 +97,36 @@ const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
     primaryPhone: "919820011223",
     assessmentYear: "AY 2026-27",
     financialYear: "FY 2025-26",
+    annualTurnoverInr: 14500000,
+    booksLedgers: [
+      {
+        id: "bk-1",
+        category: "BUSINESS_PROFESSION",
+        ledgerName: "Tata Consultancy Services Ltd",
+        financialYear: "FY 2025-26",
+        grossAmountInr: 850000,
+        tdsOrTcsInr: 85000,
+        sectionCode: "194J"
+      },
+      {
+        id: "bk-2",
+        category: "OTHER_SOURCES",
+        ledgerName: "State Bank of India Interest",
+        financialYear: "FY 2025-26",
+        grossAmountInr: 76200,
+        tdsOrTcsInr: 7620,
+        sectionCode: "194A"
+      },
+      {
+        id: "bk-3",
+        category: "TDS_TCS_CREDIT",
+        ledgerName: "ICICI Bank Foreign Outward TCS",
+        financialYear: "FY 2025-26",
+        grossAmountInr: 620000,
+        tdsOrTcsInr: 31000,
+        sectionCode: "206C(1G)"
+      }
+    ],
     records: [
       {
         id: "ais-1",
@@ -168,7 +208,7 @@ const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
         informationCode: "SEC_194A",
         itrStatus: "MATCHED_IN_ITR",
         targetItrSchedule: "Schedule OS & 80TTA",
-        recommendation: "Reported in Schedule OS. Deduct ₹10,000 exemption under Section 80TTA (for non-senior assessee) if filing under Old Tax Regime."
+        recommendation: "Reported in Schedule OS. Deduct ₹10,000 exemption under Section 80TTA if filing under Old Tax Regime."
       },
       {
         id: "ais-6",
@@ -185,7 +225,7 @@ const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
         rule114eThreshold: "RBI LRS Foreign Outward Remittance",
         itrStatus: "MATCHED_IN_ITR",
         targetItrSchedule: "Schedule TCS (Prepaid Tax Refund)",
-        recommendation: "Foreign education / travel remittance. Claim ₹31,000 TCS credit in Schedule TCS to reduce net ITR tax liability or generate direct refund."
+        recommendation: "Foreign education / travel remittance. Claim ₹31,000 TCS credit in Schedule TCS."
       }
     ]
   },
@@ -199,6 +239,27 @@ const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
     primaryPhone: "919820044101",
     assessmentYear: "AY 2026-27",
     financialYear: "FY 2025-26",
+    annualTurnoverInr: 125000000, // > 10 Cr for Sec 194Q
+    booksLedgers: [
+      {
+        id: "bk-p1",
+        category: "BUSINESS_PROFESSION",
+        ledgerName: "Infosys Limited Consulting",
+        financialYear: "FY 2025-26",
+        grossAmountInr: 4250000,
+        tdsOrTcsInr: 425000,
+        sectionCode: "194J"
+      },
+      {
+        id: "bk-p2",
+        category: "BUSINESS_PROFESSION",
+        ledgerName: "Dell India Hardware Purchase",
+        financialYear: "FY 2025-26",
+        grossAmountInr: 3600000,
+        tdsOrTcsInr: 3600,
+        sectionCode: "194Q"
+      }
+    ],
     records: [
       {
         id: "ais-p1",
@@ -214,7 +275,7 @@ const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
         informationCode: "SEC_194J",
         itrStatus: "MATCHED_IN_ITR",
         targetItrSchedule: "Schedule TDS-2 (Corporate)",
-        recommendation: "Turnover ₹42.5L matches P&L IT Consulting revenue. Total ₹4.25L prepaid tax credit available for MAT/Corporate tax offset."
+        recommendation: "Turnover ₹42.5L matches P&L consulting revenue. ₹4.25L prepaid tax credit available for Corporate tax offset."
       },
       {
         id: "ais-p2",
@@ -247,210 +308,6 @@ const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
         itrStatus: "DISCREPANCY_FLAG",
         targetItrSchedule: "Schedule OS (Corporate Other Income)",
         recommendation: "Bank sweep interest not credited to P&L other income in draft audit computation. Auto-route ₹1,85,000 to Schedule OS."
-      },
-      {
-        id: "ais-p4",
-        sourceType: "SFT_HIGH_VALUE",
-        partCategory: "PART_B2_SFT",
-        reportingEntity: "HDFC Bank Ltd (Nariman Point)",
-        description: "Cash withdrawal from current account aggregating to ₹50 Lakh or more (SFT-003)",
-        pan: "AANCP9915B",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 5500000,
-        taxDeducted: 0,
-        informationCode: "SFT-003",
-        rule114eThreshold: "Rule 114E: Cash withdrawal from current a/c ≥ ₹50,00,000",
-        itrStatus: "UNREPORTED_INCOME_RISK",
-        targetItrSchedule: "Form 3CD Clause 21(d) / Sec 40A(3)",
-        recommendation: "Section 194N cash withdrawal limit review: Ensure proper documentation of office cash disbursements to satisfy Tax Audit scrutiny."
-      }
-    ]
-  },
-
-  // Profile 3: Aditya Singhal (MD - OmniRetail)
-  "CLI-OMNI-01": {
-    entityId: "CLI-OMNI-01",
-    taxpayerName: "Aditya Singhal (MD - OmniRetail)",
-    taxpayerType: "INDIVIDUAL",
-    pan: "AFAPS5512B",
-    primaryPhone: "919811044211",
-    assessmentYear: "AY 2026-27",
-    financialYear: "FY 2025-26",
-    records: [
-      {
-        id: "ais-o1",
-        sourceType: "DIVIDEND",
-        partCategory: "PART_B5_OTHER",
-        reportingEntity: "Reliance Industries Limited",
-        description: "Dividend distributed on listed shares under Section 194",
-        pan: "AFAPS5512B",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 120000,
-        taxDeducted: 12000,
-        informationCode: "SEC_194",
-        itrStatus: "DISCREPANCY_FLAG",
-        targetItrSchedule: "Schedule OS",
-        recommendation: "Client omitted RIL dividend in draft computation. Auto-route ₹1,20,000 to Schedule OS and claim ₹12,000 TDS credit."
-      },
-      {
-        id: "ais-o2",
-        sourceType: "SFT_HIGH_VALUE",
-        partCategory: "PART_B2_SFT",
-        reportingEntity: "American Express Banking Corp",
-        description: "Payment made in cash against credit card bills aggregating to ₹1 Lakh or more (SFT-006)",
-        pan: "AFAPS5512B",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 450000,
-        taxDeducted: 0,
-        informationCode: "SFT-006",
-        rule114eThreshold: "Rule 114E: Credit card cash settlement ≥ ₹1,00,000",
-        itrStatus: "UNREPORTED_INCOME_RISK",
-        targetItrSchedule: "Capital Account / Unexplained Expenditure u/s 69C",
-        recommendation: "High Risk SFT Flag: Explain cash source for ₹4.5L Amex bill settlement to avoid Section 69C notice."
-      },
-      {
-        id: "ais-o3",
-        sourceType: "SECURITIES_TRADING",
-        partCategory: "PART_B2_SFT",
-        reportingEntity: "HDFC Mutual Fund AMC",
-        description: "Redemption of units of equity and balanced mutual funds (SFT-018)",
-        pan: "AFAPS5512B",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 1800000,
-        taxDeducted: 0,
-        informationCode: "SFT-018",
-        rule114eThreshold: "Rule 114E: Mutual fund redemptions aggregate",
-        itrStatus: "UNREPORTED_INCOME_RISK",
-        targetItrSchedule: "Schedule CG (Section 112A)",
-        recommendation: "Mutual fund redemption turnover reported. Compute Long Term Capital Gain with grandfathering benefit if applicable."
-      }
-    ]
-  },
-
-  // Profile 4: Apex Precision Alloys LLP
-  "CLI-APEX-02": {
-    entityId: "CLI-APEX-02",
-    taxpayerName: "Apex Precision Alloys LLP",
-    taxpayerType: "COMPANY",
-    pan: "AAHFA9021K",
-    primaryPhone: "919820011224",
-    assessmentYear: "AY 2026-27",
-    financialYear: "FY 2025-26",
-    records: [
-      {
-        id: "ais-ap1",
-        sourceType: "TDS_26AS",
-        partCategory: "PART_B1_TDS",
-        reportingEntity: "Bharat Heavy Electricals Ltd",
-        description: "TDS on Payment to Contractors under Section 194C @ 2%",
-        pan: "AAHFA9021K",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 4800000,
-        taxDeducted: 96000,
-        informationCode: "SEC_194C",
-        itrStatus: "MATCHED_IN_ITR",
-        targetItrSchedule: "Schedule TDS-2",
-        recommendation: "Contract revenue verified with GSTR-1 Table 4A. Full TDS credit available."
-      },
-      {
-        id: "ais-ap2",
-        sourceType: "TDS_26AS",
-        partCategory: "PART_B1_TDS",
-        reportingEntity: "State Bank of India (Commercial Branch)",
-        description: "Interest on Working Capital Margin Fixed Deposit u/s 194A",
-        pan: "AAHFA9021K",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 142000,
-        taxDeducted: 14200,
-        informationCode: "SEC_194A",
-        itrStatus: "DISCREPANCY_FLAG",
-        targetItrSchedule: "Schedule OS (LLP Other Income)",
-        recommendation: "Bank FD interest not routed in LLP draft P&L. Auto-route ₹1,42,000 to avoid Section 143(1)(a) defect."
-      },
-      {
-        id: "ais-ap3",
-        sourceType: "SFT_HIGH_VALUE",
-        partCategory: "PART_B2_SFT",
-        reportingEntity: "Axis Bank Limited",
-        description: "Cash deposits in current account aggregating to ₹50 Lakh or more (SFT-004)",
-        pan: "AAHFA9021K",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 6200000,
-        taxDeducted: 0,
-        informationCode: "SFT-004",
-        rule114eThreshold: "Rule 114E: Current account cash deposits ≥ ₹50,00,000",
-        itrStatus: "UNREPORTED_INCOME_RISK",
-        targetItrSchedule: "Tax Audit Form 3CD Clause 21",
-        recommendation: "High Scrutiny Alert: Verify counter cash receipts ledger against scrap sales to establish genuine business origin."
-      }
-    ]
-  },
-
-  // Profile 5: Zenith Cloud Computations India Pvt Ltd
-  "CLI-ZENITH-01": {
-    entityId: "CLI-ZENITH-01",
-    taxpayerName: "Zenith Cloud Computations India Pvt Ltd",
-    taxpayerType: "COMPANY",
-    pan: "AAFCZ9912K",
-    primaryPhone: "919711088231",
-    assessmentYear: "AY 2026-27",
-    financialYear: "FY 2025-26",
-    records: [
-      {
-        id: "ais-z1",
-        sourceType: "TDS_26AS",
-        partCategory: "PART_B1_TDS",
-        reportingEntity: "Wipro Technologies Limited",
-        description: "TDS on Technical & Cloud Infrastructure Consulting Fees u/s 194J @ 10%",
-        pan: "AAFCZ9912K",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 5400000,
-        taxDeducted: 540000,
-        informationCode: "SEC_194J",
-        itrStatus: "MATCHED_IN_ITR",
-        targetItrSchedule: "Schedule TDS-2 (ITR-6)",
-        recommendation: "Prepaid tax credit of ₹5.40 Lakh verified against Form 26AS. Claim in full against corporate tax."
-      },
-      {
-        id: "ais-z2",
-        sourceType: "TDS_26AS",
-        partCategory: "PART_B1_TDS",
-        reportingEntity: "Amazon Web Services India",
-        description: "TDS on Purchase of Digital Hosting Capacity u/s 194Q @ 0.1%",
-        pan: "AAFCZ9912K",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 8200000,
-        taxDeducted: 8200,
-        informationCode: "SEC_194Q",
-        itrStatus: "MATCHED_IN_ITR",
-        targetItrSchedule: "Schedule TDS-3",
-        recommendation: "Cloud hosting supplier transactions verified against Tax Audit Clause 34(a)."
-      },
-      {
-        id: "ais-z3",
-        sourceType: "FOREIGN_REMITTANCE",
-        partCategory: "PART_B5_OTHER",
-        reportingEntity: "Citibank N.A. India Operations",
-        description: "Foreign inward remittance for software export development / Form 15CA/CB",
-        pan: "AAFCZ9912K",
-        financialYear: "FY 2025-26",
-        assessmentYear: "AY 2026-27",
-        reportedAmount: 18500000,
-        taxDeducted: 0,
-        informationCode: "FIRC_EXPORT",
-        rule114eThreshold: "FIRC Export Remittance Verification",
-        itrStatus: "MATCHED_IN_ITR",
-        targetItrSchedule: "Schedule EI & Foreign Inward Matrix",
-        recommendation: "Software export receipts supported by FIRC and GST LUT export compliance."
       }
     ]
   }
@@ -461,1158 +318,736 @@ interface Ais26asAnalyzerProps {
 }
 
 export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }) => {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-APEX-01");
+  const [activeSuite, setActiveSuite] = useState<"reconciliation" | "sft_radar" | "gatekeeper" | "notice_forecaster">("reconciliation");
   const [search, setSearch] = useState("");
-  const [syncToast, setSyncToast] = useState<string | null>(null);
-
-  // File Upload & Drag-and-Drop State
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [missingAisCriteria, setMissingAisCriteria] = useState<string[]>([]);
-  const [uploadedFileStats, setUploadedFileStats] = useState<{
-    name: string;
-    size: number;
-    recordsCount: number;
-    parsedRecords: AisRecord[];
-  } | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>("ALL");
 
   // Modals
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [selectedRecordForFeedback, setSelectedRecordForFeedback] = useState<AisRecord | null>(null);
-  const [feedbackChoice, setFeedbackChoice] = useState("Information is correct");
-  const [feedbackRemarks, setFeedbackRemarks] = useState("");
+  const [isNoticeLetterModalOpen, setIsNoticeLetterModalOpen] = useState(false);
+  const [isFeedbackPayloadModalOpen, setIsFeedbackPayloadModalOpen] = useState(false);
 
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-  const [selectedRecordForWhatsApp, setSelectedRecordForWhatsApp] = useState<AisRecord | null>(null);
-  const [customWhatsAppMsg, setCustomWhatsAppMsg] = useState("");
-
-  const [isAuditMemoOpen, setIsAuditMemoOpen] = useState(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-
-  // Resolve active clients list with reliable fallback to sandbox
+  // Active Client Entity
   const activeClients = useMemo(() => {
     return (clients && clients.length > 0) ? clients : SANDBOX_CLIENTS;
   }, [clients]);
 
-  // Resolve current active client
   const currentEntity = useMemo(() => {
-    if (!activeClients || activeClients.length === 0) return null;
     return activeClients.find(c => c.id === selectedEntityId) || activeClients[0];
   }, [activeClients, selectedEntityId]);
 
-  // Client AIS Profile
+  // Client Profile
   const activeProfile = useMemo<ClientAisProfile>(() => {
-    const entityId = currentEntity?.id || "CLI-APEX-01";
-    if (CLIENT_AIS_PROFILES[entityId]) {
-      return CLIENT_AIS_PROFILES[entityId];
-    }
-    return CLIENT_AIS_PROFILES["CLI-APEX-01"];
+    const id = currentEntity?.id || "CLI-APEX-01";
+    return CLIENT_AIS_PROFILES[id] || CLIENT_AIS_PROFILES["CLI-APEX-01"];
   }, [currentEntity]);
 
-  // Master records state per client
-  const [records, setRecords] = useState<AisRecord[]>(() => activeProfile.records);
+  // Execute Books vs AIS Cross-Reconciliation
+  const crossRecoReport = useMemo<CrossReconciliationReport>(() => {
+    const aisInputs = activeProfile.records.map(r => ({
+      id: r.id,
+      informationCode: r.informationCode,
+      reportingEntity: r.reportingEntity,
+      description: r.description,
+      pan: activeProfile.pan,
+      reportedAmount: r.reportedAmount,
+      taxDeducted: r.taxDeducted,
+      sourceType: r.sourceType
+    }));
 
-  // Sync records when active profile changes
-  React.useEffect(() => {
-    setRecords(activeProfile.records);
-    setUploadedFileStats(null);
+    return AisCrossReconciler.reconcile({
+      pan: activeProfile.pan,
+      assessmentYear: activeProfile.assessmentYear,
+      financialYear: activeProfile.financialYear,
+      isSeniorCitizen: false,
+      aisRecords: aisInputs,
+      booksItems: activeProfile.booksLedgers,
+      clientAnnualTurnoverInr: activeProfile.annualTurnoverInr
+    });
   }, [activeProfile]);
 
-  // Real ITD AIS & 26AS JSON / CSV Parser Engine
-  const parseAisText = (text: string, fileName: string) => {
-    setUploadError(null);
-    setMissingAisCriteria([]);
-
-    try {
-      const validation = validateAndExtractAisRecords(text, fileName, activeProfile.pan);
-      if (!validation.isValid || !validation.data) {
-        setUploadError(validation.diagnostics.errorMessage || `Document Rejected: "${fileName}" is not a recognized AIS or Form 26AS file.`);
-        setMissingAisCriteria(validation.diagnostics.missingRequirements || []);
-        setUploadedFileStats(null);
-        toast.error("Document Rejected", validation.diagnostics.errorMessage || "Validation failed.");
-        return;
-      }
-
-      const extracted: AisRecord[] = validation.data.map((r, idx) => ({
-        id: r.id || `ais-up-${idx}-${Date.now()}`,
-        sourceType: r.sourceType as any,
-        partCategory: r.partCategory as any,
-        reportingEntity: r.reportingEntity,
-        description: r.description,
-        pan: r.pan || activeProfile.pan,
-        financialYear: r.financialYear || activeProfile.financialYear,
-        assessmentYear: r.assessmentYear || activeProfile.assessmentYear,
-        reportedAmount: r.reportedAmount,
-        taxDeducted: r.taxDeducted,
+  // SFT Intelligence Categorization
+  const categorizedSftItems = useMemo<CategorizedSftItem[]>(() => {
+    return activeProfile.records.map(r => {
+      return SftEngine.categorizeTransaction({
+        id: r.id,
+        pan: activeProfile.pan,
         informationCode: r.informationCode,
-        rule114eThreshold: r.rule114eThreshold,
-        itrStatus: r.itrStatus as any,
-        targetItrSchedule: r.targetItrSchedule as any,
-        recommendation: r.recommendation
+        reportingEntity: r.reportingEntity,
+        sourceDescription: r.description,
+        reportedAmount: r.reportedAmount,
+        taxDeductedOrCollected: r.taxDeducted,
+        financialYear: activeProfile.financialYear,
+        assessmentYear: activeProfile.assessmentYear
+      });
+    });
+  }, [activeProfile]);
+
+  // CBDT Insight RMS Scrutiny Notice Forecaster
+  const noticeForecast = useMemo<ScrutinyForecastResult>(() => {
+    const cashSft = categorizedSftItems.find(s => s.sftCode === "SFT-001" || s.sftCode === "SFT-004");
+    const discrepant = crossRecoReport.reconciledItems
+      .filter(i => i.recoStatus !== "MATCHED_IN_ITR")
+      .map(i => ({
+        code: i.informationCode,
+        entity: i.reportingEntity,
+        reportedAmount: i.aisReportedAmount,
+        description: i.sourceDescription
       }));
 
-      setUploadedFileStats({
-        name: fileName,
-        size: text.length,
-        recordsCount: extracted.length,
-        parsedRecords: extracted
-      });
-      toast.success("AIS File Verified", `Extracted ${extracted.length} records from ${fileName} (${validation.confidenceScore}% confidence).`);
-    } catch (err: any) {
-      setUploadError("Could not parse file: " + (err.message || "Unknown error"));
-      setUploadedFileStats(null);
-      toast.error("Parsing Error", "Could not parse AIS file. Please upload a valid ITD JSON or CSV.");
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      parseAisText(text, file.name);
-    };
-    reader.readAsText(file);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      parseAisText(text, file.name);
-    };
-    reader.readAsText(file);
-  };
-
-  const handleApplyUploadedRecords = () => {
-    if (!uploadedFileStats) return;
-    setRecords(uploadedFileStats.parsedRecords);
-    setIsUploadModalOpen(false);
-    toast.success("Live AIS Ingested", `Dashboard active with ${uploadedFileStats.recordsCount} records from ${uploadedFileStats.name}.`);
-  };
-
-  const handleLoadSamplePreset = (entityKey: string) => {
-    const prof = CLIENT_AIS_PROFILES[entityKey];
-    if (prof) {
-      setSelectedEntityId(prof.entityId);
-      setRecords(prof.records);
-      setUploadedFileStats(null);
-      setIsUploadModalOpen(false);
-      toast.success("Profile Loaded", `Active taxpayer switched to ${prof.taxpayerName}`);
-    }
-  };
-
-  // Calculations
-  const totalReportedValue = useMemo(() => records.reduce((s, r) => s + r.reportedAmount, 0), [records]);
-  const totalTdsCredits = useMemo(() => records.reduce((s, r) => s + r.taxDeducted, 0), [records]);
-  
-  // Unclaimed TDS/TCS Credits that generate direct refunds
-  const unclaimedTdsCredits = useMemo(() => {
-    return records
-      .filter(r => r.itrStatus === "DISCREPANCY_FLAG" || r.sourceType === "FOREIGN_REMITTANCE")
-      .reduce((s, r) => s + r.taxDeducted, 0);
-  }, [records]);
-
-  // Discrepancy & High Risk Count
-  const highRiskDefectCount = useMemo(() => {
-    return records.filter(r => r.itrStatus === "UNREPORTED_INCOME_RISK" || r.itrStatus === "DISCREPANCY_FLAG").length;
-  }, [records]);
-
-  // Section 143(1)(a) Immunity Score (0 - 100%)
-  const immunityScore = useMemo(() => {
-    if (records.length === 0) return 100;
-    const resolvedCount = records.filter(r => r.itrStatus === "MATCHED_IN_ITR" || r.itrStatus === "RESOLVED_IN_ITR").length;
-    return Math.round((resolvedCount / records.length) * 100);
-  }, [records]);
-
-  // Filtered Records
-  const filtered = useMemo(() => {
-    return records.filter(r => {
-      let matchesCat = true;
-      if (selectedCategory === "PART_B1_TDS") matchesCat = r.partCategory === "PART_B1_TDS";
-      else if (selectedCategory === "PART_B2_SFT") matchesCat = r.partCategory === "PART_B2_SFT";
-      else if (selectedCategory === "DIVIDEND") matchesCat = r.sourceType === "DIVIDEND";
-      else if (selectedCategory === "SECURITIES_TRADING") matchesCat = r.sourceType === "SECURITIES_TRADING";
-      else if (selectedCategory === "DISCREPANCIES") matchesCat = r.itrStatus === "UNREPORTED_INCOME_RISK" || r.itrStatus === "DISCREPANCY_FLAG";
-
-      const matchesSearch = 
-        r.reportingEntity.toLowerCase().includes(search.toLowerCase()) ||
-        r.description.toLowerCase().includes(search.toLowerCase()) ||
-        r.informationCode.toLowerCase().includes(search.toLowerCase());
-
-      return matchesCat && matchesSearch;
+    return InsightNoticeForecaster.forecastNoticeExposure({
+      pan: activeProfile.pan,
+      taxpayerName: activeProfile.taxpayerName,
+      financialYear: activeProfile.financialYear,
+      assessmentYear: activeProfile.assessmentYear,
+      totalUnreportedIncomeInr: crossRecoReport.summary.totalUnreportedIncomeExposureInr,
+      totalDiscrepancyAmountInr: crossRecoReport.summary.potentialAdditionRiskSec143_1_Inr,
+      hasUnexplainedCashSft: !!cashSft,
+      unexplainedCashAmountInr: cashSft ? cashSft.reportedAmount : 0,
+      unclaimedTdsInr: crossRecoReport.summary.unclaimedTdsCreditInr,
+      discrepantItems: discrepant
     });
-  }, [records, selectedCategory, search]);
+  }, [activeProfile, crossRecoReport, categorizedSftItems]);
 
-  // 1-Click Auto-Route Discrepancy to ITR Schedule
-  const handleAutoRouteToItr = (recordId: string) => {
-    setRecords(prev => prev.map(r => {
-      if (r.id === recordId) {
-        return {
-          ...r,
-          itrStatus: "RESOLVED_IN_ITR",
-          recommendation: `Auto-routed to ${r.targetItrSchedule}. Income and TDS credit of ${formatCurrencyINR(r.taxDeducted)} successfully claimed in draft ITR.`
-        };
-      }
-      return r;
-    }));
-    toast.success("Income Auto-Routed", "Discrepancy resolved and mapped to ITR schedule. Section 143(1)(a) notice prevented.");
-  };
+  // Filtered Cross Reco Items
+  const filteredItems = useMemo(() => {
+    return crossRecoReport.reconciledItems.filter(item => {
+      let matches = true;
+      if (filterCategory === "MATCHED") matches = item.recoStatus === "MATCHED_IN_ITR";
+      else if (filterCategory === "UNREPORTED") matches = item.recoStatus === "UNREPORTED_INCOME_RISK";
+      else if (filterCategory === "DISCREPANCY") matches = item.recoStatus === "DISCREPANCY_FLAG";
 
-  // Open Feedback Modal
-  const handleOpenFeedback = (r: AisRecord) => {
-    setSelectedRecordForFeedback(r);
-    setFeedbackChoice("Information is correct");
-    setFeedbackRemarks("");
-    setIsFeedbackModalOpen(true);
-  };
+      const q = search.toLowerCase();
+      const matchSearch =
+        item.reportingEntity.toLowerCase().includes(q) ||
+        item.informationCode.toLowerCase().includes(q) ||
+        item.sourceDescription.toLowerCase().includes(q);
 
-  // Save Portal Feedback
-  const handleSaveFeedback = () => {
-    if (!selectedRecordForFeedback) return;
-    const recId = selectedRecordForFeedback.id;
-    setRecords(prev => prev.map(r => {
-      if (r.id === recId) {
-        return {
-          ...r,
-          portalFeedbackSubmitted: feedbackChoice,
-          itrStatus: feedbackChoice === "Information is correct" ? "MATCHED_IN_ITR" : "RESOLVED_IN_ITR",
-          recommendation: `Official ITD AIS feedback recorded: "${feedbackChoice}". Feedback payload ready for portal sync.`
-        };
-      }
-      return r;
-    }));
-    setIsFeedbackModalOpen(false);
-    toast.success("AIS Feedback Submitted", `Recorded "${feedbackChoice}" for ${selectedRecordForFeedback.reportingEntity}.`);
-  };
+      return matches && matchSearch;
+    });
+  }, [crossRecoReport.reconciledItems, filterCategory, search]);
 
-  // Open WhatsApp Modal
-  const handleOpenWhatsApp = (r: AisRecord) => {
-    setSelectedRecordForWhatsApp(r);
-    const text = `*INCOME TAX AIS SCRUTINY ALERT - URGENT ACTION REQUIRED*\n\n` +
-      `Dear ${activeProfile.taxpayerName},\n\n` +
-      `During the statutory pre-filing audit of your Annual Information Statement (AIS) for *${activeProfile.assessmentYear}* (PAN: ${activeProfile.pan}), our team flagged the following high-value transaction:\n\n` +
-      `• *Reporting Entity:* ${r.reportingEntity}\n` +
-      `• *Transaction Code:* ${r.informationCode}\n` +
-      `• *Reported Amount:* ${formatCurrencyINR(r.reportedAmount)}\n` +
-      `• *Description:* ${r.description}\n\n` +
-      `⚠️ *STATUTORY RISK UNDER SECTION 143(1)(a):*\n` +
-      `If this transaction is not reconciled with your books of accounts or source documents before return submission, the CPC Bengaluru system will flag an unexplained credit under Section 68/69.\n\n` +
-      `Kindly provide bank statement / broker P&L statement / bills to confirm this entry.\n\n` +
-      `Regards,\n*GPA & Co., Chartered Accountants*`;
-
-    setCustomWhatsAppMsg(text);
-    setIsWhatsAppModalOpen(true);
-  };
-
-  // Export CSV
-  const handleExportCsv = () => {
-    const headers = [
-      "Annual Information Statement (AIS) & Form 26AS Audit Working Paper",
-      `Taxpayer: ${activeProfile.taxpayerName} | PAN: ${activeProfile.pan} | ${activeProfile.assessmentYear} (${activeProfile.financialYear})`,
-      `Total SFT Volume: ₹${totalReportedValue} | 26AS Prepaid Taxes: ₹${totalTdsCredits} | Notice Immunity: ${immunityScore}%`,
-      "",
-      "Reporting Entity,Category,Code,Description,Reported Amount (₹),TDS/TCS (₹),ITR Status,Target ITR Schedule,Statutory Recommendation"
-    ].join("\n");
-
-    const rows = records.map(r => [
-      `"${r.reportingEntity}"`,
-      r.partCategory,
-      r.informationCode,
-      `"${r.description.replace(/"/g, '""')}"`,
-      r.reportedAmount,
-      r.taxDeducted,
-      r.itrStatus,
-      `"${r.targetItrSchedule}"`,
-      `"${r.recommendation.replace(/"/g, '""')}"`
-    ].join(",")).join("\n");
-
-    const blob = new Blob([headers + "\n" + rows], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `AIS_Audit_Working_Paper_${activeProfile.pan}_${activeProfile.assessmentYear.replace(/\s+/g, "_")}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("CSV Exported", "AIS / 26AS audit working paper downloaded.");
+  // Export 1-Click CBDT Feedback JSON
+  const handleExportFeedbackJson = () => {
+    playSuccessChime();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(noticeForecast.feedbackPayloads, null, 2));
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `AIS_Feedback_${activeProfile.pan}_${activeProfile.assessmentYear.replace(/\s+/g, "_")}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    toast.success("Feedback JSON Exported", `Saved official CBDT AIS feedback file for PAN ${activeProfile.pan}.`);
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-12">
-      {/* Clickable Taxpayer Entity Switcher Ribbon */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {activeClients.map((client) => {
-          const isSelected = (currentEntity?.id === client.id);
-          return (
+    <div className="space-y-6">
+      {/* ========================================================================= */}
+      {/* HEADER: Forensic Context & Client Switcher                                */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-rose-200">
+                Module 2.2 • Institutional Forensic Engine
+              </span>
+              <span className="text-xs text-slate-400 font-medium">Sec 285BA, Rule 114E &amp; Sec 143(1)(a)</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              AIS / 26AS SFT Forensic Inspector
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500">
+              High-value SFT cash and transaction categorization, books cross-reconciliation, and CBDT Insight notice forecaster.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Entity Switcher */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
+              <User className="w-4 h-4 text-slate-500" />
+              <select
+                value={selectedEntityId}
+                onChange={(e) => {
+                  playSoftClick();
+                  setSelectedEntityId(e.target.value);
+                }}
+                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
+              >
+                {activeClients.map(c => (
+                  <option key={c.id} value={c.id}>{c.tradeName} ({c.pan})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* RMS Scrutiny Badge */}
+            <div className={`px-3 py-1.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 ${
+              noticeForecast.scrutinyRiskTier === "CRITICAL"
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : noticeForecast.scrutinyRiskTier === "HIGH"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+            }`}>
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              RMS Risk: {noticeForecast.rmsScrutinyScore}/100 ({noticeForecast.scrutinyRiskTier})
+            </div>
+
+            {/* Legal Notice Action Button */}
             <button
-              key={client.id}
               onClick={() => {
-                setSelectedEntityId(client.id);
-                setUploadedFileStats(null);
+                playSoftClick();
+                setIsNoticeLetterModalOpen(true);
               }}
-              className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 border ${
-                isSelected
-                  ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-              }`}
+              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
             >
-              <Building2 className={`w-3.5 h-3.5 ${isSelected ? "text-red-400" : "text-slate-400"}`} />
-              <span>{client.name}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                isSelected ? "bg-slate-800 text-slate-300 font-mono" : "bg-slate-100 text-slate-500 font-mono"
-              }`}>
-                {client.pan}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Top Header Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="px-3 py-1 bg-red-50 border border-red-200 text-btred-logo text-xs font-bold rounded-full flex items-center gap-1.5">
-              <FileSearch className="w-3.5 h-3.5" /> Section 143(1)(a) Notice Shield
-            </span>
-            <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-bold">
-              AIS, TIS &amp; 26AS JSON Analyzer
-            </span>
-            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Immunity Score: {immunityScore}%
-            </span>
-          </div>
-
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            Annual Information Statement (AIS) &amp; SFT Inspector
-          </h2>
-          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Cross-check client's ITD Portal AIS JSON against draft ITR schedules before e-filing. Auto-flags cash deposits (SFT-004), mutual fund redemptions, foreign remittances, and uncredited TDS to prevent Section 143(1)(a) defect notices.
-          </p>
-        </div>
-
-        {/* Client & AY Selector Bar */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
-            <User className="w-4 h-4 text-slate-500 shrink-0" />
-            <select
-              value={selectedEntityId || currentEntity?.id || ""}
-              onChange={(e) => {
-                setSelectedEntityId(e.target.value);
-                setUploadedFileStats(null);
-              }}
-              className="bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
-            >
-              {activeClients.length === 0 ? (
-                <option value="">No clients onboarded</option>
-              ) : (
-                activeClients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.type})
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="px-3.5 py-2 bg-btred-logo hover:bg-red-700 text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition shadow-sm"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Import AIS JSON</span>
-            </button>
-
-            <button
-              onClick={handleExportCsv}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition"
-              title="Export Full AIS Audit to CSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
-
-            <button
-              onClick={() => setIsAuditMemoOpen(true)}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition shadow-sm"
-              title="Print Section 143(1)(a) Audit Dossier"
-            >
-              <FileCheck className="w-3.5 h-3.5" />
-              <span>Audit Memo</span>
+              <FileText className="w-4 h-4 text-emerald-400" />
+              CBDT Response Drafter
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Taxpayer Information Docket Ribbon */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-5 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center font-bold text-indigo-300">
-            AIS
+        {/* Real-Time Telemetry Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-100">
+          <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">AIS Gross Volume</span>
+            <span className="text-sm font-black text-slate-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalAisGrossReportedInr)}</span>
+            <span className="text-[10px] text-slate-500 font-medium">{crossRecoReport.summary.totalAisItems} Records</span>
           </div>
-          <div>
-            <div className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-              <span>Departmental Taxpayer Profile</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span className="text-emerald-400 text-[11px] font-semibold">{activeProfile.taxpayerType}</span>
-            </div>
-            <div className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-              <span>{activeProfile.taxpayerName}</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-mono">
-                PAN: {activeProfile.pan}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-            <span className="text-slate-400">Assessment Year:</span> <strong className="text-white">{activeProfile.assessmentYear}</strong>
+          <div className="bg-emerald-50/60 rounded-2xl p-3 border border-emerald-100">
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Matched in ITR</span>
+            <span className="text-sm font-black text-emerald-900 font-mono mt-0.5 block">{crossRecoReport.summary.matchedCount} Items</span>
+            <span className="text-[10px] text-emerald-600 font-bold">100% Reconciled</span>
           </div>
-          <div className="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-            <span className="text-slate-400">Financial Year:</span> <strong className="text-white">{activeProfile.financialYear}</strong>
-          </div>
-        </div>
-      </div>
 
-      {/* 4-Metric Summary Blocks */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total SFT Volume */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total SFT Reported Volume</span>
-            <Landmark className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="bg-rose-50/60 rounded-2xl p-3 border border-rose-100">
+            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Unreported Income</span>
+            <span className="text-sm font-black text-rose-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalUnreportedIncomeExposureInr)}</span>
+            <span className="text-[10px] text-rose-600 font-bold">Sec 68/69 Risk</span>
           </div>
-          <div className="text-2xl font-black text-slate-900 mt-1">
-            {formatCurrencyINR(totalReportedValue)}
+
+          <div className="bg-amber-50/60 rounded-2xl p-3 border border-amber-100">
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sec 143(1)(a) Risk</span>
+            <span className="text-sm font-black text-amber-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.potentialAdditionRiskSec143_1_Inr)}</span>
+            <span className="text-[10px] text-amber-600 font-bold">Prima Facie Defect</span>
           </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Aggregated banking &amp; securities transactions
+
+          <div className="bg-blue-50/60 rounded-2xl p-3 border border-blue-100">
+            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Total 26AS TDS</span>
+            <span className="text-sm font-black text-blue-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalAisTdsInr)}</span>
+            <span className="text-[10px] text-blue-600 font-medium">Prepaid Tax</span>
           </div>
-        </div>
 
-        {/* 26AS TDS/TCS Credits */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Available 26AS Credits</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="bg-indigo-50/60 rounded-2xl p-3 border border-indigo-100">
+            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Unclaimed TDS</span>
+            <span className="text-sm font-black text-indigo-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.unclaimedTdsCreditInr)}</span>
+            <span className="text-[10px] text-indigo-600 font-bold">Refund Potential</span>
           </div>
-          <div className="text-2xl font-black text-emerald-600 mt-1">
-            {formatCurrencyINR(totalTdsCredits)}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Prepaid taxes available for set-off in ITR
-          </div>
-        </div>
-
-        {/* Direct Refund Unlocked */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Unclaimed Tax Refunds</span>
-            <DollarSign className="w-4 h-4 text-indigo-600 shrink-0" />
-          </div>
-          <div className="text-2xl font-black text-indigo-700 mt-1">
-            {formatCurrencyINR(unclaimedTdsCredits)}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Dividend TDS + LRS TCS credits to claim
-          </div>
-        </div>
-
-        {/* Notice Risk Discrepancies */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm text-slate-900 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">Notice Risk Discrepancies</span>
-            <AlertTriangle className="w-4 h-4 text-btred-logo shrink-0" />
-          </div>
-          <div className={`text-2xl font-black mt-1 ${highRiskDefectCount > 0 ? "text-btred-logo" : "text-emerald-600"}`}>
-            {highRiskDefectCount} Flagged Items
-          </div>
-          <div className="text-[11px] font-medium text-slate-500">
-            Potential Section 143(1)(a) defect exposure
-          </div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-slate-200 p-3 rounded-3xl shadow-sm text-slate-900">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none text-xs font-bold text-slate-600">
-          {[
-            { id: "ALL", label: `All Records (${records.length})` },
-            { id: "PART_B2_SFT", label: "SFT Cash & Banking" },
-            { id: "SECURITIES_TRADING", label: "Stock / MFs" },
-            { id: "PART_B1_TDS", label: "26AS TDS / TCS" },
-            { id: "DIVIDEND", label: "Dividends" },
-            { id: "DISCREPANCIES", label: `Flagged (${highRiskDefectCount})` }
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap ${
-                selectedCategory === cat.id 
-                  ? "bg-btred-logo text-white shadow-sm" 
-                  : "hover:text-slate-900 hover:bg-slate-100"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search entity, SFT code or keyword..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-64 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 font-medium text-xs rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-red-500 focus:bg-white"
-          />
-        </div>
-      </div>
-
-      {/* Main AIS Table */}
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm text-slate-900">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100/80 text-slate-700 uppercase text-[11px] tracking-wider font-bold border-b border-slate-200">
-              <tr>
-                <th className="py-3.5 px-4">Reporting Entity &amp; Code</th>
-                <th className="py-3.5 px-4">Transaction Details &amp; Rule 114E</th>
-                <th className="py-3.5 px-4 text-right">Reported Value (₹)</th>
-                <th className="py-3.5 px-4 text-right">TDS / TCS (₹)</th>
-                <th className="py-3.5 px-4">ITR Alignment</th>
-                <th className="py-3.5 px-4 text-center">Action &amp; Portal Feedback</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-sans">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 px-4 text-center text-slate-500">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                    <div className="font-bold text-slate-800 text-sm">No AIS Records Found</div>
-                    <div className="text-xs text-slate-500 mt-1">Adjust your search or filter criteria.</div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Entity & Code */}
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900">{item.reportingEntity}</div>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] text-slate-600 font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                          {item.informationCode}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">
-                          {item.partCategory.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Transaction Details */}
-                    <td className="py-3 px-4 max-w-sm">
-                      <div className="text-slate-700 font-medium">{item.description}</div>
-                      {item.rule114eThreshold && (
-                        <div className="text-[10px] text-indigo-700 font-semibold mt-0.5">
-                          {item.rule114eThreshold}
-                        </div>
-                      )}
-                      <div className="text-[11px] text-slate-500 mt-1 leading-snug">
-                        {item.recommendation}
-                      </div>
-                    </td>
-
-                    {/* Reported Value */}
-                    <td className="py-3 px-4 text-right font-mono font-black text-slate-900 whitespace-nowrap">
-                      {formatCurrencyINR(item.reportedAmount)}
-                    </td>
-
-                    {/* TDS / TCS */}
-                    <td className="py-3 px-4 text-right font-mono text-emerald-600 font-bold whitespace-nowrap">
-                      {item.taxDeducted > 0 ? formatCurrencyINR(item.taxDeducted) : "—"}
-                    </td>
-
-                    {/* ITR Alignment Status */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {item.itrStatus === "MATCHED_IN_ITR" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Matched in ITR
-                        </span>
-                      ) : item.itrStatus === "RESOLVED_IN_ITR" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                          <Check className="w-3 h-3 text-indigo-700" /> Resolved in ITR
-                        </span>
-                      ) : item.itrStatus === "UNREPORTED_INCOME_RISK" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-btred-logo border border-red-200">
-                          <AlertTriangle className="w-3 h-3 text-btred-logo" /> Unreported Risk
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
-                          <ShieldAlert className="w-3 h-3 text-amber-800" /> Discrepancy
-                        </span>
-                      )}
-
-                      <div className="text-[10px] text-slate-400 font-mono mt-1">
-                        Target: {item.targetItrSchedule}
-                      </div>
-                    </td>
-
-                    {/* Action Column */}
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      {item.itrStatus === "DISCREPANCY_FLAG" ? (
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => handleAutoRouteToItr(item.id)}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] flex items-center gap-1 transition shadow-sm"
-                            title="Auto-route to ITR schedule and claim TDS credit"
-                          >
-                            <Sparkles className="w-3 h-3" /> Auto-Route to ITR
-                          </button>
-                        </div>
-                      ) : item.itrStatus === "UNREPORTED_INCOME_RISK" ? (
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => handleOpenWhatsApp(item)}
-                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[10px] flex items-center gap-1 transition shadow-sm"
-                            title="Send statutory verification notice to client"
-                          >
-                            <MessageSquare className="w-3 h-3" /> Ask Client
-                          </button>
-                          <button
-                            onClick={() => handleOpenFeedback(item)}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl font-bold text-[10px] transition"
-                            title="Submit feedback to ITD AIS portal"
-                          >
-                            AIS Feedback
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-[11px] text-emerald-700 font-bold inline-flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                            <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> Verified Clean
-                          </span>
-                          <button
-                            onClick={() => handleOpenFeedback(item)}
-                            className="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold ml-1"
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: ITD Official AIS Online Feedback Simulator                       */}
+      {/* 4 SUITE TABS NAVIGATION                                                   */}
       {/* ========================================================================= */}
-      {isFeedbackModalOpen && selectedRecordForFeedback && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
-                  <Landmark className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Income Tax Portal AIS Feedback Submission</h3>
-                  <p className="text-[11px] text-slate-500">Official Departmental 5-Option Response Framework</p>
-                </div>
-              </div>
-              <button onClick={() => setIsFeedbackModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveSuite("reconciliation");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeSuite === "reconciliation"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          Cross-Reconciliation Matrix
+          <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] rounded-full">
+            {crossRecoReport.reconciledItems.length}
+          </span>
+        </button>
 
-            {/* Selected Transaction Summary */}
-            <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 text-xs space-y-1">
-              <div><strong>Reporting Entity:</strong> {selectedRecordForFeedback.reportingEntity} ({selectedRecordForFeedback.informationCode})</div>
-              <div><strong>Description:</strong> {selectedRecordForFeedback.description}</div>
-              <div><strong>Reported Amount:</strong> <span className="font-mono font-bold text-slate-900">{formatCurrencyINR(selectedRecordForFeedback.reportedAmount)}</span></div>
-            </div>
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveSuite("sft_radar");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeSuite === "sft_radar"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <CreditCard className="w-4 h-4 text-amber-400" />
+          Rule 114E SFT Threat Radar
+          <span className="px-2 py-0.5 bg-amber-500/20 text-amber-700 text-[10px] rounded-full font-bold">
+            Cash &amp; Spends
+          </span>
+        </button>
 
-            {/* Departmental Options */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
-                Select Portal Feedback Type
-              </label>
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveSuite("gatekeeper");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeSuite === "gatekeeper"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Scale className="w-4 h-4 text-blue-400" />
+          Sec 194Q vs 206C(1H) &amp; 80TTA
+          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-700 text-[10px] rounded-full font-bold">
+            Turnover Check
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            playSoftClick();
+            setActiveSuite("notice_forecaster");
+          }}
+          className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
+            activeSuite === "notice_forecaster"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4 text-rose-400" />
+          CBDT RMS Scrutiny Forecaster
+          <span className="px-2 py-0.5 bg-rose-500/20 text-rose-700 text-[10px] rounded-full font-bold">
+            Sec 143(1) / 148
+          </span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SUITE 1: CROSS-RECONCILIATION MATRIX                                      */}
+      {/* ========================================================================= */}
+      {activeSuite === "reconciliation" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               {[
-                { title: "Information is correct", desc: "Assessee acknowledges the reported value in full." },
-                { title: "Income is not taxable / exempt", desc: "Capital receipt, exempt under Section 10, or within basic threshold." },
-                { title: "Information is in other PAN / Year", desc: "Joint account holder transaction or belongs to prior/subsequent FY." },
-                { title: "Information is duplicate / already reported", desc: "Entry repeated by multiple banking channels." },
-                { title: "Information is denied (Not my transaction)", desc: "Assessee denies having entered into this transaction." }
-              ].map((opt) => (
+                { id: "ALL", label: "All Records", count: crossRecoReport.reconciledItems.length },
+                { id: "MATCHED", label: "Matched in ITR", count: crossRecoReport.summary.matchedCount },
+                { id: "UNREPORTED", label: "Unreported Income", count: crossRecoReport.summary.unreportedIncomeCount },
+                { id: "DISCREPANCY", label: "Discrepancy Flags", count: crossRecoReport.summary.discrepancyCount }
+              ].map(f => (
                 <button
-                  key={opt.title}
-                  onClick={() => setFeedbackChoice(opt.title)}
-                  className={`w-full p-2.5 text-left rounded-xl border text-xs transition ${
-                    feedbackChoice === opt.title 
-                      ? "border-btred-logo bg-red-50/50 text-slate-900 font-bold" 
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                  key={f.id}
+                  onClick={() => {
+                    playSoftClick();
+                    setFilterCategory(f.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                    filterCategory === f.id
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span>{opt.title}</span>
-                    {feedbackChoice === opt.title && <Check className="w-3.5 h-3.5 text-btred-logo" />}
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-normal block mt-0.5">{opt.desc}</span>
+                  {f.label}
+                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full ${
+                    filterCategory === f.id ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                  }`}>
+                    {f.count}
+                  </span>
                 </button>
               ))}
             </div>
 
-            {/* Remarks */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Supporting Explanation (Optional)</label>
-              <textarea
-                rows={2}
-                placeholder="e.g. Verified with bank statement Nariman Point branch page 3..."
-                value={feedbackRemarks}
-                onChange={(e) => setFeedbackRemarks(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:bg-white"
+            <div className="relative min-w-[240px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search reporting entity, SFT code..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 outline-none focus:bg-white focus:border-rose-500"
               />
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-              <button
-                onClick={() => setIsFeedbackModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveFeedback}
-                className="px-5 py-2 bg-btred-logo hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
-              >
-                <Check className="w-4 h-4" /> Save Feedback
-              </button>
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="p-3.5">Code &amp; Source</th>
+                    <th className="p-3.5">Reporting Entity</th>
+                    <th className="p-3.5 text-right">AIS Reported (₹)</th>
+                    <th className="p-3.5 text-right">Books / ITR (₹)</th>
+                    <th className="p-3.5 text-center">Status</th>
+                    <th className="p-3.5">Statutory Audit Finding</th>
+                    <th className="p-3.5 text-right">Target ITR Schedule</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredItems.map(item => (
+                    <tr key={item.id} className="hover:bg-slate-50/60 transition">
+                      <td className="p-3.5">
+                        <span className="font-mono font-bold text-slate-900 block">{item.informationCode}</span>
+                        <span className="text-[11px] text-slate-500">{item.sourceDescription}</span>
+                      </td>
+
+                      <td className="p-3.5">
+                        <strong className="text-slate-800 font-bold block">{item.reportingEntity}</strong>
+                        {item.aisTaxDeducted > 0 && (
+                          <span className="text-[10px] text-blue-600 font-medium font-mono">
+                            TDS: ₹{item.aisTaxDeducted.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 text-right font-mono font-bold text-slate-900">
+                        {formatCurrencyINR(item.aisReportedAmount)}
+                      </td>
+
+                      <td className="p-3.5 text-right font-mono font-bold text-slate-700">
+                        {item.booksReportedAmount > 0 ? formatCurrencyINR(item.booksReportedAmount) : (
+                          <span className="text-rose-500 italic">Not Booked</span>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 text-center">
+                        {item.recoStatus === "MATCHED_IN_ITR" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" /> Matched
+                          </span>
+                        )}
+                        {item.recoStatus === "UNREPORTED_INCOME_RISK" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-full border border-rose-200">
+                            <AlertTriangle className="w-3 h-3" /> Unreported
+                          </span>
+                        )}
+                        {item.recoStatus === "DISCREPANCY_FLAG" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">
+                            <AlertCircle className="w-3 h-3" /> Discrepancy
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3.5">
+                        <p className="text-[11px] text-slate-600 font-medium leading-tight max-w-sm">
+                          {item.remedialAction}
+                        </p>
+                      </td>
+
+                      <td className="p-3.5 text-right">
+                        <span className="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-[10px] font-bold font-mono rounded-lg border border-slate-200">
+                          {item.targetItrSchedule}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: WhatsApp Client Scrutiny Inquiry Modal                           */}
+      {/* SUITE 2: RULE 114E SFT THREAT RADAR                                       */}
       {/* ========================================================================= */}
-      {isWhatsAppModalOpen && selectedRecordForWhatsApp && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                  <MessageSquare className="w-4 h-4" />
+      {activeSuite === "sft_radar" && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 rounded-3xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-900 text-base">
+                  Rule 114E High-Value SFT Surveillance &amp; Section 68/69 Threat Detector
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-4xl">
+                  Banks, registrars, and AMCs report transactions exceeding statutory thresholds directly to the CBDT. Unsubstantiated cash credits trigger special tax additions @ 78% under Section 115BBE, while cash receipts over ₹2,00,000 attract 100% penalty under Section 271DA.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categorizedSftItems.map(sft => (
+              <div key={sft.id} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4 hover:border-slate-300 transition">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      {sft.sftCode || "TDS/TCS"}
+                    </span>
+                    <h4 className="font-bold text-slate-900 text-sm mt-1">{sft.nature}</h4>
+                  </div>
+
+                  <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider border ${
+                    sft.riskSeverity === "CRITICAL"
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : sft.riskSeverity === "HIGH"
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  }`}>
+                    {sft.riskSeverity} Risk
+                  </span>
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Draft Scrutiny Inquiry to Client</h3>
-                  <p className="text-[11px] text-slate-500">Request bills &amp; confirmation for SFT High-Value Transaction</p>
+
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Reported Volume:</span>
+                    <strong className="font-mono text-slate-900 font-black text-sm">{formatCurrencyINR(sft.reportedAmount)}</strong>
+                  </div>
+                  {sft.thresholdLimitInr > 0 && (
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Rule 114E Threshold:</span>
+                      <span className="font-mono text-slate-600">{formatCurrencyINR(sft.thresholdLimitInr)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-400">Reporting Entity:</span>
+                    <span className="text-slate-700 font-medium truncate max-w-[170px]">{sft.reportingEntity}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Statutory Audit Guidance</span>
+                  <p className="text-[11px] text-slate-600 leading-tight">
+                    {sft.auditActionRecommendation}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">{sft.statutoryRuleCitation}</span>
+                  <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                    {sft.targetItrSchedule}
+                  </span>
                 </div>
               </div>
-              <button onClick={() => setIsWhatsAppModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUITE 3: SECTION 194Q vs 206C(1H) & 80TTA GATEKEEPER                      */}
+      {/* ========================================================================= */}
+      {activeSuite === "gatekeeper" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <div>
+              <h3 className="font-bold text-slate-900 text-base">
+                Section 194Q vs 206C(1H) Turnover Gatekeeper &amp; Interest Deductions
+              </h3>
+              <p className="text-xs text-slate-500">
+                Automated statutory priority checks for high-turnover businesses and interest deduction optimization.
+              </p>
+            </div>
+
+            {/* Sec 194Q Card */}
+            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">Section 194Q Statutory Dominance Check</h4>
+                    <span className="text-[11px] text-slate-500">Turnover &gt; ₹10 Crore r/w Proviso to Section 206C(1H)</span>
+                  </div>
+                </div>
+
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase border ${
+                  crossRecoReport.sec194qVs206cStatus.is194qTurnoverCompliant
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                }`}>
+                  {crossRecoReport.sec194qVs206cStatus.is194qTurnoverCompliant ? "COMPLIANT" : "AUDIT FLAG"}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {crossRecoReport.sec194qVs206cStatus.turnoverCrossCheckNote}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Buyer TDS u/s 194Q</span>
+                  <strong className="text-slate-800">Rate: 0.1% on purchase &gt; ₹50 Lakhs</strong>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Has precedence over seller TCS.</span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Seller TCS u/s 206C(1H)</span>
+                  <strong className="text-slate-800">Barred if buyer has deducted u/s 194Q</strong>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Prevents duplicate tax collection.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 80TTA / 80TTB Deduction Card */}
+            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                    <Calculator className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">Section {crossRecoReport.deduction80TtaTtb.applicableSection} Interest Deduction</h4>
+                    <span className="text-[11px] text-slate-500">Savings &amp; Deposit Interest Optimizer</span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs font-mono font-black text-purple-900 block">
+                    {formatCurrencyINR(crossRecoReport.deduction80TtaTtb.claimedAmountInr)} Allowed
+                  </span>
+                  <span className="text-[10px] text-slate-400">Max Cap: {formatCurrencyINR(crossRecoReport.deduction80TtaTtb.maxLimitInr)}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {crossRecoReport.deduction80TtaTtb.auditAdvice}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUITE 4: CBDT RMS SCRUTINY FORECASTER & FEEDBACK DESK                     */}
+      {/* ========================================================================= */}
+      {activeSuite === "notice_forecaster" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  CBDT Insight Risk Management System (RMS) Scrutiny Forecaster
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Simulates algorithmic notice generation under Section 143(1)(a) and Section 148 reopening exposure.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportFeedbackJson}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition"
+                >
+                  <FileCode className="w-4 h-4 text-slate-600" />
+                  Export Feedback JSON
+                </button>
+                <button
+                  onClick={() => setIsNoticeLetterModalOpen(true)}
+                  className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <Printer className="w-4 h-4 text-emerald-400" />
+                  Print Reply Letter
+                </button>
+              </div>
+            </div>
+
+            {/* Exposure Meters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-200 space-y-1">
+                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Sec 143(1)(a) Defect Risk</span>
+                <span className="text-xl font-black text-rose-950 font-mono block">
+                  {formatCurrencyINR(noticeForecast.sec143_1_PotentialDemandInr)}
+                </span>
+                <span className="text-[11px] text-rose-800 font-medium">Estimated Prima Facie Demand</span>
+              </div>
+
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200 space-y-1">
+                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sec 148 Reassessment Risk</span>
+                <span className="text-xl font-black text-amber-950 font-mono block">
+                  {noticeForecast.sec148_ReopeningRisk ? "HIGH (>= ₹50L)" : "LOW (< ₹50L)"}
+                </span>
+                <span className="text-[11px] text-amber-800 font-medium">Escaped Income: {formatCurrencyINR(noticeForecast.sec148_EscapedIncomeEstimateInr)}</span>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Pre-Filled Feedbacks</span>
+                <span className="text-xl font-black text-slate-900 font-mono block">
+                  {noticeForecast.feedbackPayloads.length} Responses
+                </span>
+                <span className="text-[11px] text-slate-600 font-medium">Ready for Insight Portal</span>
+              </div>
+            </div>
+
+            {/* Risk Drivers Schedule */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Identified CBDT RMS Audit Triggers</h4>
+              <div className="space-y-2">
+                {noticeForecast.primaryRiskDrivers.map((driver, idx) => (
+                  <div key={idx} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span className="text-slate-800 font-medium leading-relaxed">{driver}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: STATUTORY CBDT REPLY LETTER                                        */}
+      {/* ========================================================================= */}
+      {isNoticeLetterModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">CBDT Insight e-Verification Statutory Response</h3>
+                  <p className="text-[11px] text-slate-500">Certified legal workpaper for PAN {activeProfile.pan}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsNoticeLetterModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-xs space-y-1">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Client:</span>
-                <strong className="text-slate-900">{activeProfile.taxpayerName} ({activeProfile.pan})</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Flagged Item:</span>
-                <span className="font-mono text-slate-900 font-bold">{selectedRecordForWhatsApp.reportingEntity} ({formatCurrencyINR(selectedRecordForWhatsApp.reportedAmount)})</span>
+            <div className="overflow-y-auto space-y-3 flex-1 pr-1">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs font-mono text-slate-800 whitespace-pre-wrap leading-relaxed">
+                {noticeForecast.statutoryReplyLetterText}
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Edit Inquiry Message</label>
-              <textarea
-                rows={8}
-                value={customWhatsAppMsg}
-                onChange={(e) => setCustomWhatsAppMsg(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 font-mono leading-relaxed outline-none focus:bg-white focus:border-emerald-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 shrink-0">
               <button
-                onClick={() => setIsWhatsAppModalOpen(false)}
+                onClick={() => setIsNoticeLetterModalOpen(false)}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
               >
-                Cancel
+                Close
               </button>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(customWhatsAppMsg);
-                  toast.success("Text Copied", "WhatsApp message text copied to clipboard.");
-                  setIsWhatsAppModalOpen(false);
+                  playSuccessChime();
+                  navigator.clipboard.writeText(noticeForecast.statutoryReplyLetterText);
+                  toast.success("Letter Copied", "Statutory reply text copied to clipboard.");
                 }}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
               >
-                <Copy className="w-3.5 h-3.5" /> Copy Message
+                <Copy className="w-3.5 h-3.5" /> Copy Text
               </button>
               <button
                 onClick={() => {
-                  const phone = sanitizeIndianPhoneNumber(activeProfile.primaryPhone || "919820011223");
-                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(customWhatsAppMsg)}`, "_blank");
-                  toast.success("WhatsApp Opened", `Inquiry sent to ${activeProfile.taxpayerName}.`);
-                  setIsWhatsAppModalOpen(false);
+                  playSuccessChime();
+                  const printWindow = window.open("", "_blank");
+                  if (printWindow) {
+                    printWindow.document.write(noticeForecast.statutoryReplyLetterHtml);
+                    printWindow.document.close();
+                    printWindow.print();
+                  }
+                  toast.success("Ready to Print", "Opened print-ready statutory explanation letter.");
                 }}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
               >
-                <Send className="w-3.5 h-3.5" /> Launch WhatsApp Web
+                <Printer className="w-3.5 h-3.5" /> Print Certified Letter
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL 3: Section 143(1)(a) Audit Memorandum Dossier                      */}
-      {/* ========================================================================= */}
-      {isAuditMemoOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
-                  <Award className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Section 143(1)(a) Pre-Filing Audit Memorandum</h3>
-                  <p className="text-[11px] text-slate-500">GPA &amp; Co., Chartered Accountants — Institutional Defense Dossier</p>
-                </div>
-              </div>
-              <button onClick={() => setIsAuditMemoOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-auto space-y-4 p-2 text-xs text-slate-700">
-              {/* Memorandum Header */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex justify-between border-b border-slate-200 pb-2">
-                  <span><strong>Assessee Name:</strong> {activeProfile.taxpayerName}</span>
-                  <span><strong>PAN:</strong> <span className="font-mono font-bold">{activeProfile.pan}</span></span>
-                </div>
-                <div className="flex justify-between">
-                  <span><strong>Assessment Year:</strong> {activeProfile.assessmentYear}</span>
-                  <span><strong>Financial Year:</strong> {activeProfile.financialYear}</span>
-                  <span><strong>Immunity Rating:</strong> <strong className="text-emerald-700">{immunityScore}% (Shield Active)</strong></span>
-                </div>
-              </div>
-
-              {/* 3-Way Reconciliation Summary */}
-              <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                <div className="bg-slate-100 p-2.5 font-bold uppercase text-[10px] text-slate-700">
-                  3-Way Cross Verification Matrix (AIS vs 26AS vs Draft ITR)
-                </div>
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-200 bg-slate-50/60 font-semibold text-slate-600">
-                    <tr>
-                      <th className="p-2.5">Description</th>
-                      <th className="p-2.5 text-right">AIS / SFT Reported</th>
-                      <th className="p-2.5 text-right">Form 26AS Credit</th>
-                      <th className="p-2.5 text-right">Draft ITR Claimed</th>
-                      <th className="p-2.5 text-center">Variance / Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-mono">
-                    <tr>
-                      <td className="p-2.5 font-sans">Professional / Tech Fees (194J)</td>
-                      <td className="p-2.5 text-right">₹8,50,000</td>
-                      <td className="p-2.5 text-right text-emerald-700 font-bold">₹85,000</td>
-                      <td className="p-2.5 text-right">₹85,000</td>
-                      <td className="p-2.5 text-center text-emerald-700 font-sans font-bold">Reconciled ✓</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2.5 font-sans">Dividend Income (194)</td>
-                      <td className="p-2.5 text-right">₹48,500</td>
-                      <td className="p-2.5 text-right text-emerald-700 font-bold">₹4,850</td>
-                      <td className="p-2.5 text-right">₹4,850</td>
-                      <td className="p-2.5 text-center text-indigo-700 font-sans font-bold">Auto-Routed ✓</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2.5 font-sans">Fixed Deposit Interest (194A)</td>
-                      <td className="p-2.5 text-right">₹76,200</td>
-                      <td className="p-2.5 text-right text-emerald-700 font-bold">₹7,620</td>
-                      <td className="p-2.5 text-right">₹7,620</td>
-                      <td className="p-2.5 text-center text-emerald-700 font-sans font-bold">Reconciled ✓</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2.5 font-sans">LRS Foreign Remittance TCS (206C)</td>
-                      <td className="p-2.5 text-right">₹6,20,000</td>
-                      <td className="p-2.5 text-right text-emerald-700 font-bold">₹31,000</td>
-                      <td className="p-2.5 text-right">₹31,000</td>
-                      <td className="p-2.5 text-center text-emerald-700 font-sans font-bold">Refund Unlocked ✓</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Statutory Partner Attestation */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 space-y-1">
-                <p className="font-semibold text-slate-800">CA Engagement Sign-off &amp; Section 143(1)(a) Certification:</p>
-                <p className="text-[11px] leading-relaxed">
-                  We have verified the Annual Information Statement (AIS) and Form 26AS for the subject assessee against the underlying books of accounts, broker statements, and bank records. All prima facie discrepancies under Section 143(1)(a)(vi) have been either mapped into relevant ITR schedules or flagged for formal AIS feedback.
-                </p>
-                <div className="pt-2 flex justify-between items-center text-[11px] font-bold text-slate-800">
-                  <span>CA Gunjan Jain (FCA, DISA) — Managing Partner</span>
-                  <span className="font-mono">UDIN: 26098221AISCHECK{Date.now().toString().slice(-4)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200 shrink-0">
-              <span className="text-xs text-slate-400">Ready for statutory workpaper compilation</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    window.print();
-                  }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-                >
-                  <Printer className="w-3.5 h-3.5" /> Print Dossier
-                </button>
-                <button
-                  onClick={() => setIsAuditMemoOpen(false)}
-                  className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL 4: Upload AIS JSON / CSV Modal with Real Parser & Presets           */}
-      {/* ========================================================================= */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-red-50 text-btred-logo flex items-center justify-center font-bold">
-                  <Upload className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Upload ITD AIS / Form 26AS</h3>
-                  <p className="text-[11px] text-slate-500">Official ITD Portal AIS Export (JSON / CSV / TIS Schema)</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => {
-                  setIsUploadModalOpen(false);
-                  setUploadedFileStats(null);
-                }} 
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {/* Native Drop Zone */}
-              <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition ${
-                  isDragging
-                    ? "border-red-500 bg-red-50/60"
-                    : "border-slate-300 hover:border-red-400 bg-slate-50/50 hover:bg-slate-50"
-                }`}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".json,.csv,.txt"
-                  className="hidden"
-                />
-                <FileSearch className={`w-10 h-10 mx-auto mb-2 ${isDragging ? "text-red-600 animate-bounce" : "text-btred-logo"}`} />
-                <strong className="text-xs text-slate-800 block">
-                  Click to select or drag &amp; drop AIS JSON / CSV file
-                </strong>
-                <span className="text-[10px] text-slate-500 block mt-1">
-                  Downloaded from Income Tax e-Filing 2.0 &rarr; Services &rarr; Annual Information Statement (AIS)
-                </span>
-                <span className="inline-block mt-2 px-2.5 py-0.5 bg-slate-200/70 text-slate-700 rounded-md text-[10px] font-mono">
-                  Supports .JSON, .CSV, Form 26AS Text
-                </span>
-              </div>
-
-              {/* Diagnostic Error Card on Unrelated/Dummy File Upload */}
-              {uploadError && (
-                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-xs space-y-2 animate-fadeIn text-left">
-                  <div className="flex items-center gap-2 text-rose-800 font-bold">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>AIS Document Validation Failed</span>
-                  </div>
-                  <p className="text-xs text-rose-700 font-medium leading-relaxed">{uploadError}</p>
-                  {missingAisCriteria.length > 0 && (
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-rose-200 text-[11px] space-y-1">
-                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">
-                        Missing Statutory Elements:
-                      </span>
-                      <ul className="list-disc list-inside space-y-0.5 text-slate-600">
-                        {missingAisCriteria.map((m, i) => (
-                          <li key={i}>{m}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <p className="text-[11px] text-slate-600">
-                    Please upload an authentic Annual Information Statement (AIS) JSON or Form 26AS CSV exported from the ITD e-filing portal.
-                  </p>
-                </div>
-              )}
-
-              {/* Uploaded File Statistics Badge */}
-              {uploadedFileStats && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs space-y-2 animate-fadeIn">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-900 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> File Ingested Successfully
-                    </span>
-                    <span className="text-[10px] bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-full font-mono">
-                      {(uploadedFileStats.size / 1024).toFixed(1)} KB
-                    </span>
-                  </div>
-                  <div className="font-mono text-slate-700 text-[11px] truncate">
-                    File: <strong>{uploadedFileStats.name}</strong>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-200 text-[11px]">
-                    <div>
-                      <span className="text-slate-500">Transactions Extracted:</span>
-                      <strong className="text-slate-900 ml-1">{uploadedFileStats.recordsCount}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Reported Volume:</span>
-                      <strong className="text-emerald-700 ml-1">
-                        {formatCurrencyINR(uploadedFileStats.parsedRecords.reduce((s, r) => s + r.reportedAmount, 0))}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Load 1-Click Real Presets */}
-              <div className="space-y-2 pt-1">
-                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                  <span>Or Test Real Client AIS Scenarios (1-Click)</span>
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleLoadSamplePreset("CLI-APEX-01")}
-                    className="p-3 bg-slate-50 hover:bg-red-50/50 border border-slate-200 hover:border-red-300 rounded-2xl text-left transition group"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-slate-900 group-hover:text-red-700">Rajesh Sharma (Promoter)</span>
-                      <span className="text-[9px] px-1.5 py-0.5 bg-slate-200 rounded font-bold text-slate-600">Individual HNI</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-2">
-                      SFT-004 cash deposits ₹14.5L + Zerodha equity turnover ₹22.4L + LRS TCS ₹31,000 refund claim.
-                    </p>
-                  </button>
-
-                  <button
-                    onClick={() => handleLoadSamplePreset("CLI-PRATWI-01")}
-                    className="p-3 bg-slate-50 hover:bg-red-50/50 border border-slate-200 hover:border-red-300 rounded-2xl text-left transition group"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-slate-900 group-hover:text-red-700">Pratwi Solutions Pvt Ltd</span>
-                      <span className="text-[9px] px-1.5 py-0.5 bg-indigo-100 rounded font-bold text-indigo-700">Company</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-2">
-                      IT Consulting 194J ₹4.25L TDS credit + 194Q purchase TDS + SFT-003 cash withdrawal ₹55L.
-                    </p>
-                  </button>
-
-                  <button
-                    onClick={() => handleLoadSamplePreset("CLI-OMNI-01")}
-                    className="p-3 bg-slate-50 hover:bg-red-50/50 border border-slate-200 hover:border-red-300 rounded-2xl text-left transition group"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-slate-900 group-hover:text-red-700">Aditya Singhal (MD)</span>
-                      <span className="text-[9px] px-1.5 py-0.5 bg-slate-200 rounded font-bold text-slate-600">High Scrutiny</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-2">
-                      Amex Credit card cash SFT-006 ₹4.5L (Sec 69C risk) + HDFC Mutual Fund redemption SFT-018 ₹18L.
-                    </p>
-                  </button>
-
-                  <button
-                    onClick={() => handleLoadSamplePreset("CLI-ZENITH-01")}
-                    className="p-3 bg-slate-50 hover:bg-red-50/50 border border-slate-200 hover:border-red-300 rounded-2xl text-left transition group"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-slate-900 group-hover:text-red-700">Zenith Cloud Computations</span>
-                      <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 rounded font-bold text-emerald-800">Software Export</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-2">
-                      Wipro 194J ₹5.4L TDS + AWS 194Q hosting + ₹1.85 Cr Citibank software export inward remittance.
-                    </p>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center gap-2 pt-3 border-t border-slate-200 shrink-0">
-              <span className="text-[11px] text-slate-400">
-                {uploadedFileStats ? `${uploadedFileStats.recordsCount} records ready` : "Choose file or preset above"}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setIsUploadModalOpen(false);
-                    setUploadedFileStats(null);
-                  }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                {uploadedFileStats ? (
-                  <button
-                    onClick={handleApplyUploadedRecords}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
-                  >
-                    <Check className="w-3.5 h-3.5" /> Apply &amp; Shield ITR
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setIsUploadModalOpen(false);
-                      setRecords(activeProfile.records);
-                      toast.success("AIS Data Active", `Loaded ${activeProfile.records.length} records for ${activeProfile.taxpayerName}.`);
-                    }}
-                    className="px-5 py-2 bg-btred-logo hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Load Official AIS
-                  </button>
-                )}
-              </div>
             </div>
           </div>
         </div>

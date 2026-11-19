@@ -112,6 +112,18 @@ export const NAV_CATEGORIES: NavCategory[] = [
 export const ALL_NAV_ITEMS: NavItem[] = [
   // --- SUITE 1: TASK MANAGEMENT (CADashboard killer) ---
   {
+    id: "practice-cockpit",
+    label: "Autonomous Practice Cockpit (2035)",
+    shortLabel: "Practice Pulse",
+    categoryId: "task-management",
+    description: "60-Second Partner Morning Cockpit: 94% Zero-Touch Automation, 1-Click Batch Approvals & Exception Triage Desk",
+    icon: Sparkles,
+    iconColor: "text-emerald-500",
+    badge: "2035 Pulse",
+    badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    isDashboard: true
+  },
+  {
     id: "dashboard",
     label: "Executive Dashboard",
     shortLabel: "Dashboard",

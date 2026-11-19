@@ -87,6 +87,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       }
     },
     {
+      id: "cmd-practice-cockpit",
+      title: "Partner 60-Second Autonomous Cockpit (2035)",
+      subtitle: "Unified Practice Pulse: 94% Zero-Touch, 1-Click Batch Approvals & Exception Triage Desk",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "P P",
+      badge: "Flagship",
+      action: () => {
+        onNavigateTab("practice-cockpit");
+        onClose();
+      }
+    },
+    {
       id: "cmd-gst-assembly",
       title: "Autonomous GST Monthly Assembly Line (Week 29–34)",
       subtitle: "Zero-Touch Clean Profiles & Exception-Only Partner Triage Desk",

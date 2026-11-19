@@ -42,6 +42,7 @@ import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { AutopilotPulseCockpit } from "@/components/firm/AutopilotPulseCockpit";
 import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemblyLine";
+import { AutonomousPracticeCockpit } from "@/components/firm/AutonomousPracticeCockpit";
 import { AutonomousTdsWorkbench } from "@/components/firm/AutonomousTdsWorkbench";
 import { AutonomousMcaWorkbench } from "@/components/firm/AutonomousMcaWorkbench";
 import { AutonomousNoticeWorkbench } from "@/components/firm/AutonomousNoticeWorkbench";
@@ -702,6 +703,10 @@ export default function Home() {
                   initialVaults={(isDemoSandbox ? SANDBOX_PASSWORD_VAULTS : INITIAL_PASSWORD_VAULTS) as any}
                   onTaskUpdated={refreshData}
                 />
+              )}
+
+              {activePartnerTab === "practice-cockpit" && (
+                <AutonomousPracticeCockpit onNavigateTab={handleTabChange} />
               )}
 
               {activePartnerTab === "gst-assembly" && (

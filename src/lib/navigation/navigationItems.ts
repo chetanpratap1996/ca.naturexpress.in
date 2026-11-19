@@ -249,6 +249,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 
   // --- SUITE 4: AUDIT & BALANCE SHEET (Blackhorse / Microvista Replacer) ---
   {
+    id: "mca-assembly",
+    label: "Autonomous MCA & ROC Assembly",
+    shortLabel: "MCA Assembly (2035)",
+    categoryId: "audit-balancesheet",
+    description: "Zero-Touch Form AOC-4/MGT-7 Assembly, DPT-3 Loan Audit, MSME-1 Dues & Sec 164(2) DIN Shield",
+    icon: Sparkles,
+    iconColor: "text-purple-600",
+    badge: "2035 Auto",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+  },
+  {
     id: "entity-dna",
     label: "Entity DNA & Taxonomy",
     shortLabel: "Entity DNA",

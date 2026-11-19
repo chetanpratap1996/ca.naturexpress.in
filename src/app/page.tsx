@@ -43,6 +43,7 @@ import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { AutopilotPulseCockpit } from "@/components/firm/AutopilotPulseCockpit";
 import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemblyLine";
 import { AutonomousTdsWorkbench } from "@/components/firm/AutonomousTdsWorkbench";
+import { AutonomousMcaWorkbench } from "@/components/firm/AutonomousMcaWorkbench";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -705,6 +706,10 @@ export default function Home() {
 
               {activePartnerTab === "tds-assembly" && (
                 <AutonomousTdsWorkbench />
+              )}
+
+              {activePartnerTab === "mca-assembly" && (
+                <AutonomousMcaWorkbench />
               )}
 
               {activePartnerTab === "gstr2b" && (

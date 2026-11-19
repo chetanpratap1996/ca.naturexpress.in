@@ -108,6 +108,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-mca-assembly",
+      title: "Autonomous Corporate MCA / ROC Assembly Line (Week 41–44)",
+      subtitle: "Zero-Touch Form AOC-4 & MGT-7, DPT-3 loan audit, and Sec 164(2) DIN shield",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "M A",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("mca-assembly");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

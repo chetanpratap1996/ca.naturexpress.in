@@ -19,6 +19,7 @@ import {
   Building2, 
   Calendar,
   Download,
+  ShieldAlert,
   Zap,
   Check,
   Command,
@@ -118,6 +119,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       badge: "2035 Auto",
       action: () => {
         onNavigateTab("mca-assembly");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-notice-assembly",
+      title: "Autonomous Faceless Notice Defense Assembly Line (Week 45–48)",
+      subtitle: "Circular 19/2019 DIN verification, limitation period tracker, legal brief & stay petition",
+      category: "AUTOPILOT",
+      icon: ShieldAlert,
+      shortcut: "N A",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("notice-assembly");
         onClose();
       }
     },

@@ -214,6 +214,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
   },
   {
+    id: "notice-assembly",
+    label: "Autonomous Faceless Notice Defense",
+    shortLabel: "Notice Defense (2035)",
+    categoryId: "income-tax-tds",
+    description: "Circular 19/2019 DIN Authenticator, Limitation Engine, Judicial Citation Bank & Stay Petition Drafter",
+    icon: ShieldAlert,
+    iconColor: "text-btred-logo",
+    badge: "2035 Auto",
+    badgeColor: "bg-red-50 text-btred-logo border-red-200"
+  },
+  {
     id: "itr-calc",
     label: "ITR Tax Engine (115BAC)",
     shortLabel: "ITR Calculator",

@@ -44,6 +44,7 @@ import { AutopilotPulseCockpit } from "@/components/firm/AutopilotPulseCockpit";
 import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemblyLine";
 import { AutonomousTdsWorkbench } from "@/components/firm/AutonomousTdsWorkbench";
 import { AutonomousMcaWorkbench } from "@/components/firm/AutonomousMcaWorkbench";
+import { AutonomousNoticeWorkbench } from "@/components/firm/AutonomousNoticeWorkbench";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -710,6 +711,10 @@ export default function Home() {
 
               {activePartnerTab === "mca-assembly" && (
                 <AutonomousMcaWorkbench />
+              )}
+
+              {activePartnerTab === "notice-assembly" && (
+                <AutonomousNoticeWorkbench />
               )}
 
               {activePartnerTab === "gstr2b" && (

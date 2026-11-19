@@ -35,17 +35,95 @@ export interface ClientGroup {
   entityIds: string[];
 }
 
+export interface GstinRecordItem {
+  gstin: string;
+  stateCode: string;
+  stateName: string;
+  tradeName: string;
+  registrationType: "REGULAR" | "COMPOSITION" | "ISD" | "CASUAL";
+  filingFrequency: "MONTHLY" | "QRMP";
+  status: "ACTIVE" | "CANCELLED" | "SUSPENDED";
+  jurisdictionCenter?: string;
+  jurisdictionState?: string;
+  eWayBillEnabled?: boolean;
+  eInvoiceApplicable?: boolean;
+}
+
+export interface DirectorRecordItem {
+  din: string;
+  name: string;
+  pan?: string;
+  designation: string;
+  appointmentDate: string;
+  dir3KycStatus: "COMPLIANT" | "OVERDUE" | "DEACTIVATED";
+  dscValidityEnd?: string;
+}
+
+export interface TanRecordItem {
+  tan: string;
+  deductorType: string;
+  circle: string;
+  branchCode: string;
+}
+
+export interface BankAccountRecordItem {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountType: "CURRENT" | "SAVINGS" | "CASH_CREDIT" | "OVERDRAFT";
+  ifsc: string;
+  branch: string;
+  statementPassword?: string;
+  isPrimary: boolean;
+  autoTallySync?: boolean;
+}
+
+export interface DscVaultRecordItem {
+  id: string;
+  holderName: string;
+  holderPan: string;
+  holderDin?: string;
+  lockerSlot: string;
+  expiryDate: string;
+  tokenType?: string;
+  tokenProvider: string;
+  custodyStatus: "IN_LOCKER" | "CHECKED_OUT_TO_ARTICLE" | "DELIVERED_TO_CLIENT";
+}
+
+export interface ComplianceBaselineItem {
+  assessmentYear: string;
+  formType: string;
+  acknowledgementNo: string;
+  filingDate: string;
+  taxPaidAmount: number;
+  refundClaimedAmount: number;
+  status: "PROCESSED_143_1" | "SCRUTINY_143_2" | "DEFECTIVE_139_9" | "RECTIFICATION_154" | "PENDING";
+}
+
+export interface GstComplianceHistoryItem {
+  period: string;
+  returnType: "GSTR_1" | "GSTR_3B";
+  arn: string;
+  filingDate: string;
+  taxLiabilityCash: number;
+  itcClaimed: number;
+  delayDays: number;
+  lateFeePaid: number;
+}
+
 export interface ClientEntity {
   id: string;
   groupId: string;
   groupName: string;
   name: string;
+  tradeName?: string;
   type: EntityType;
   pan: string;
   gstin?: string;
   cin?: string;
   tan?: string;
   turnoverCr: number;
+  digitalTxnPct?: number;
   partnerInCharge: string;
   assignedArticle: string;
   incorporationYear: number;
@@ -56,6 +134,18 @@ export interface ClientEntity {
     email: string;
     designation: string;
   };
+  // Universal Entity DNA Spine Extensions
+  gstinRecords?: GstinRecordItem[];
+  directors?: DirectorRecordItem[];
+  tanRecords?: TanRecordItem[];
+  bankAccounts?: BankAccountRecordItem[];
+  dscVault?: DscVaultRecordItem[];
+  complianceBaselines?: ComplianceBaselineItem[];
+  gstHistory?: GstComplianceHistoryItem[];
+  healthScore?: number;
+  registeredAddress?: string;
+  authorizedCapitalCr?: number;
+  paidUpCapitalCr?: number;
 }
 
 export interface ComplianceTask {

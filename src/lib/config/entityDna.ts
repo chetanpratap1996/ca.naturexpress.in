@@ -419,3 +419,244 @@ export function evaluateEntityThresholds(
     caroApplicable
   };
 }
+
+/**
+ * State code dictionary for 15-digit GSTIN validation & decoding
+ */
+export const GST_STATE_CODES: Record<string, string> = {
+  "01": "Jammu & Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "04": "Chandigarh",
+  "05": "Uttarakhand",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "11": "Sikkim",
+  "12": "Arunachal Pradesh",
+  "13": "Nagaland",
+  "14": "Manipur",
+  "15": "Mizoram",
+  "16": "Tripura",
+  "17": "Meghalaya",
+  "18": "Assam",
+  "19": "West Bengal",
+  "20": "Jharkhand",
+  "21": "Odisha",
+  "22": "Chhattisgarh",
+  "23": "Madhya Pradesh",
+  "24": "Gujarat",
+  "25": "Daman and Diu",
+  "26": "Dadra & Nagar Haveli",
+  "27": "Maharashtra",
+  "28": "Andhra Pradesh (Old)",
+  "29": "Karnataka",
+  "30": "Goa",
+  "31": "Lakshadweep",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "34": "Puducherry",
+  "35": "Andaman & Nicobar Islands",
+  "36": "Telangana",
+  "37": "Andhra Pradesh (New)",
+  "38": "Ladakh"
+};
+
+export interface PanConstitutionInference {
+  isValid: boolean;
+  pan: string;
+  fourthChar: string;
+  entityType: EntityType;
+  legalConstitution: string;
+  statutoryTaxReturnForm: string;
+  governingAct: string;
+  rocApplicable: boolean;
+  caroApplicable: boolean;
+  defaultCategory: string;
+}
+
+/**
+ * Algorithmic Decoder for PAN 4th Character (CBDT Standard)
+ */
+export function inferConstitutionFromPan(rawPan: string): PanConstitutionInference {
+  const pan = (rawPan || "").trim().toUpperCase();
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+  const isValid = panRegex.test(pan);
+
+  if (!isValid) {
+    return {
+      isValid: false,
+      pan,
+      fourthChar: "",
+      entityType: "PVT_LTD",
+      legalConstitution: "Invalid PAN Format",
+      statutoryTaxReturnForm: "ITR-6",
+      governingAct: "Income Tax Act, 1961",
+      rocApplicable: false,
+      caroApplicable: false,
+      defaultCategory: "CORPORATE"
+    };
+  }
+
+  const fourthChar = pan.charAt(3);
+  switch (fourthChar) {
+    case "C":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "PVT_LTD",
+        legalConstitution: "Company (Private Limited / Public Limited)",
+        statutoryTaxReturnForm: "ITR-6",
+        governingAct: "Companies Act, 2013 & Income Tax Act, 1961",
+        rocApplicable: true,
+        caroApplicable: true,
+        defaultCategory: "CORPORATE"
+      };
+    case "F":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "LLP",
+        legalConstitution: "Limited Liability Partnership / Partnership Firm",
+        statutoryTaxReturnForm: "ITR-5",
+        governingAct: "LLP Act, 2008 / Indian Partnership Act, 1932",
+        rocApplicable: true,
+        caroApplicable: false,
+        defaultCategory: "FIRMS"
+      };
+    case "P":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "PROPRIETORSHIP",
+        legalConstitution: "Individual / Sole Proprietorship Enterprise",
+        statutoryTaxReturnForm: "ITR-3 / ITR-4",
+        governingAct: "Income Tax Act, 1961 & CGST Act, 2017",
+        rocApplicable: false,
+        caroApplicable: false,
+        defaultCategory: "NON_CORPORATE"
+      };
+    case "H":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "INDIVIDUAL_HNI",
+        legalConstitution: "Hindu Undivided Family (HUF)",
+        statutoryTaxReturnForm: "ITR-2 / ITR-3",
+        governingAct: "Hindu Succession Act & Income Tax Act, 1961",
+        rocApplicable: false,
+        caroApplicable: false,
+        defaultCategory: "NON_CORPORATE"
+      };
+    case "T":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "TRUST_NGO",
+        legalConstitution: "Charitable / Religious Trust / Sec 8 Company",
+        statutoryTaxReturnForm: "ITR-7",
+        governingAct: "Section 12AB/80G, Income Tax Act & Charity Commissioner",
+        rocApplicable: false,
+        caroApplicable: false,
+        defaultCategory: "EXEMPT_ENTITIES"
+      };
+    case "A":
+    case "B":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "PARTNERSHIP",
+        legalConstitution: fourthChar === "A" ? "Association of Persons (AOP)" : "Body of Individuals (BOI)",
+        statutoryTaxReturnForm: "ITR-5",
+        governingAct: "Income Tax Act, 1961",
+        rocApplicable: false,
+        caroApplicable: false,
+        defaultCategory: "NON_CORPORATE"
+      };
+    case "G":
+    case "L":
+    case "J":
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "PUBLIC_LTD",
+        legalConstitution: fourthChar === "G" ? "Government Agency" : fourthChar === "L" ? "Local Authority" : "Artificial Juridical Person",
+        statutoryTaxReturnForm: "ITR-7",
+        governingAct: "Constitution of India & Special Statutes",
+        rocApplicable: false,
+        caroApplicable: false,
+        defaultCategory: "GOVERNMENT"
+      };
+    default:
+      return {
+        isValid: true,
+        pan,
+        fourthChar,
+        entityType: "PVT_LTD",
+        legalConstitution: "Corporate Assessee",
+        statutoryTaxReturnForm: "ITR-6",
+        governingAct: "Income Tax Act, 1961",
+        rocApplicable: true,
+        caroApplicable: true,
+        defaultCategory: "CORPORATE"
+      };
+  }
+}
+
+/**
+ * Calculates deterministic client compliance health score (0–100)
+ */
+export function calculateEntityHealthScore(client: any): number {
+  let score = 100;
+
+  // 1. Pending penalty risk exposure
+  if (client.penaltyRiskAccrued > 10000) score -= 20;
+  else if (client.penaltyRiskAccrued > 1000) score -= 10;
+  else if (client.penaltyRiskAccrued > 0) score -= 5;
+
+  // 2. GSTIN Status check
+  if (Array.isArray(client.gstinRecords)) {
+    const hasCancelled = client.gstinRecords.some((g: any) => g.status === "CANCELLED");
+    const hasSuspended = client.gstinRecords.some((g: any) => g.status === "SUSPENDED");
+    if (hasCancelled) score -= 20;
+    if (hasSuspended) score -= 15;
+  }
+
+  // 3. Director DIR-3 KYC check
+  if (Array.isArray(client.directors)) {
+    const hasDeactivated = client.directors.some((d: any) => d.dir3KycStatus === "DEACTIVATED");
+    const hasOverdue = client.directors.some((d: any) => d.dir3KycStatus === "OVERDUE");
+    if (hasDeactivated) score -= 25;
+    else if (hasOverdue) score -= 15;
+  }
+
+  // 4. DSC Validity check
+  if (Array.isArray(client.dscVault)) {
+    const now = new Date();
+    const hasExpiredDsc = client.dscVault.some((dsc: any) => {
+      try {
+        return new Date(dsc.expiryDate) < now;
+      } catch {
+        return false;
+      }
+    });
+    if (hasExpiredDsc) score -= 15;
+  }
+
+  // 5. Bank Account password missing for OCR
+  if (Array.isArray(client.bankAccounts) && client.bankAccounts.length > 0) {
+    const missingPassword = client.bankAccounts.some((b: any) => !b.statementPassword);
+    if (missingPassword) score -= 5;
+  }
+
+  return Math.max(10, Math.min(100, score));
+}

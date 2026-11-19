@@ -36,6 +36,8 @@ import { InstallAppModal } from "@/components/shared/InstallAppModal";
 import { NotificationCenterModal } from "@/components/notifications/NotificationCenterModal";
 import { usePwaInstall } from "@/components/shared/usePwaInstall";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { UniversalClientSwitcher } from "@/components/navigation/UniversalClientSwitcher";
+import { ClientEntity, ClientGroup } from "@/lib/types";
 
 interface TopNavProps {
   currentView: "partner" | "article" | "client-pwa";
@@ -54,6 +56,11 @@ interface TopNavProps {
   activeClientEntityId?: string;
   activeClientName?: string;
   isClientMode?: boolean;
+  clients?: ClientEntity[];
+  groups?: ClientGroup[];
+  onSelectClient?: (clientId: string, selectedGstin?: string) => void;
+  selectedGstin?: string;
+  onOpenDiagnosticOnboarding?: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({ 
@@ -73,6 +80,11 @@ export const TopNav: React.FC<TopNavProps> = ({
   activeClientEntityId,
   activeClientName,
   isClientMode: isClientModeProp,
+  clients = [],
+  groups = [],
+  onSelectClient,
+  selectedGstin,
+  onOpenDiagnosticOnboarding,
 }) => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -181,48 +193,61 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           </div>
 
-          {/* CENTER: Role Specific Badge or Switcher */}
-          {isClientMode ? (
-            <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 rounded-xl shadow-xs shrink-0">
-              <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="font-bold text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px]">
-                {currentUser?.designation?.includes("(")
-                  ? currentUser.designation.split("(")[1].replace(")", "")
-                  : currentUser?.name || "Client Portal"}
-              </span>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200 hidden sm:inline">
-                Client
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
-              <button
-                onClick={() => handleRoleSwitch("partner")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  currentView === "partner"
-                    ? "bg-white text-slate-900 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                title="CA Partner Cockpit"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
-                <span>Partner</span>
-              </button>
+          {/* CENTER: Universal Client Switcher (Entity DNA Spine) & Role Switcher */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isClientMode && clients.length > 0 && onSelectClient && (
+              <UniversalClientSwitcher
+                clients={clients}
+                groups={groups}
+                selectedClientId={activeClientEntityId || clients[0]?.id || ""}
+                onSelectClient={onSelectClient}
+                selectedGstin={selectedGstin}
+                onOpenDiagnosticOnboarding={onOpenDiagnosticOnboarding}
+              />
+            )}
 
-              <button
-                onClick={() => handleRoleSwitch("article")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  currentView === "article"
-                    ? "bg-white text-slate-900 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                title="Staff Trainee Desk"
-              >
-                <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                <span>Staff</span>
-              </button>
-            </div>
-          )}
+            {isClientMode ? (
+              <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 rounded-xl shadow-xs shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="font-bold text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px]">
+                  {currentUser?.designation?.includes("(")
+                    ? currentUser.designation.split("(")[1].replace(")", "")
+                    : currentUser?.name || "Client Portal"}
+                </span>
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200 hidden sm:inline">
+                  Client
+                </span>
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
+                <button
+                  onClick={() => handleRoleSwitch("partner")}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    currentView === "partner"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="CA Partner Cockpit"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
+                  <span>Partner</span>
+                </button>
+
+                <button
+                  onClick={() => handleRoleSwitch("article")}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    currentView === "article"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="Staff Trainee Desk"
+                >
+                  <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>Staff</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* RIGHT: Quick Tools & Profile Cluster (With Zero Horizontal Overflow) */}
           <div className="flex items-center gap-2 shrink-0">

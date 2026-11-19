@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TopNav } from "@/components/navigation/TopNav";
 import { FloatingBottomNav } from "@/components/navigation/FloatingBottomNav";
 import { StatutoryCalendar } from "@/components/firm/StatutoryCalendar";
+import { StatutoryTaskEngine } from "@/components/firm/tasks/StatutoryTaskEngine";
 import { NoticeCenter } from "@/components/firm/NoticeCenter";
 import { BillingWip } from "@/components/firm/BillingWip";
 import { DscVault } from "@/components/firm/DscVault";
@@ -23,7 +24,8 @@ import { FirmHubActionModal } from "@/components/firm/FirmHubActionModal";
 import { ClientNotificationBroadcasterModal } from "@/components/notifications/ClientNotificationBroadcasterModal";
 import { VirtualCfoCockpit } from "@/components/firm/VirtualCfoCockpit";
 import { BankStatementParser } from "@/components/firm/BankStatementParser";
-import { EntityDnaMatrixViewer } from "@/components/firm/EntityDnaMatrixViewer";
+import { EntityDnaMaster } from "@/components/firm/EntityDnaMaster";
+import { DiagnosticOnboardingModal } from "@/components/firm/DiagnosticOnboardingModal";
 import { ItrComputationEngine } from "@/components/firm/ItrComputationEngine";
 import { CaCreatorContentStudio } from "@/components/firm/CaCreatorContentStudio";
 import { EngagementLetterGenerator } from "@/components/firm/EngagementLetterGenerator";
@@ -162,6 +164,20 @@ export default function Home() {
   const [isClientBroadcasterOpen, setIsClientBroadcasterOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [selectedGstin, setSelectedGstin] = useState<string>("");
+  const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
+
+  // Universal Client Switcher Handler
+  const handleSelectClient = (clientId: string, gstin?: string) => {
+    setSelectedEntityId(clientId);
+    if (gstin) {
+      setSelectedGstin(gstin);
+    } else {
+      const match = clients.find((c) => c.id === clientId);
+      setSelectedGstin(match?.gstin || (match?.gstinRecords && match.gstinRecords[0]?.gstin) || "");
+    }
+  };
 
   // Safe Session Synchronization & Query Parameter Handler
   useEffect(() => {
@@ -495,9 +511,14 @@ export default function Home() {
           isSandbox={isDemoSandbox}
           onToggleSidebar={() => setIsMobileDrawerOpen((prev) => !prev)}
           onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
-          activeClientEntityId={currentUser?.clientEntityId || clients[0]?.id || "client-pratwi"}
-          activeClientName={clients.find(c => c.id === (currentUser?.clientEntityId || clients[0]?.id))?.name || "Pratwi Solutions Private Limited"}
+          activeClientEntityId={selectedEntityId || currentUser?.clientEntityId || clients[0]?.id || "client-pratwi"}
+          activeClientName={clients.find(c => c.id === (selectedEntityId || currentUser?.clientEntityId || clients[0]?.id))?.name || "Pratwi Solutions Private Limited"}
           isClientMode={currentView === "client-pwa" || (currentView as any) === "client"}
+          clients={clients}
+          groups={groups}
+          onSelectClient={handleSelectClient}
+          selectedGstin={selectedGstin}
+          onOpenDiagnosticOnboarding={() => setIsDiagnosticModalOpen(true)}
         />
 
         {/* Master Flex Layout with Left Sidebar */}
@@ -557,6 +578,8 @@ export default function Home() {
                   onNavigateTab={(tab) => handleTabChange(tab)}
                   onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
                   clients={clients}
+                  selectedClientId={selectedEntityId || clients[0]?.id}
+                  onSelectClient={handleSelectClient}
                 />
               )}
 
@@ -571,13 +594,39 @@ export default function Home() {
                   onTasksUpdated={() => refreshData()}
                 />
               )}
-              {activePartnerTab === "calendar" && (
-                <StatutoryCalendar 
+              {(activePartnerTab === "calendar" || activePartnerTab === "tasks") && (
+                <StatutoryTaskEngine 
                   tasks={tasks} 
                   clients={clients}
                   groups={groups}
                   onStatusChange={handleTaskStatusChange} 
                   onAddTask={createTask}
+                  onBatchTasksAdd={async (newTasks) => {
+                    for (const t of newTasks) {
+                      await createTask(t);
+                    }
+                  }}
+                  selectedClientId={selectedEntityId || clients[0]?.id}
+                  onSelectClient={handleSelectClient}
+                  initialTab="kanban"
+                />
+              )}
+
+              {activePartnerTab === "workload-matrix" && (
+                <StatutoryTaskEngine 
+                  tasks={tasks} 
+                  clients={clients}
+                  groups={groups}
+                  onStatusChange={handleTaskStatusChange} 
+                  onAddTask={createTask}
+                  onBatchTasksAdd={async (newTasks) => {
+                    for (const t of newTasks) {
+                      await createTask(t);
+                    }
+                  }}
+                  selectedClientId={selectedEntityId || clients[0]?.id}
+                  onSelectClient={handleSelectClient}
+                  initialTab="workload"
                 />
               )}
 
@@ -589,8 +638,15 @@ export default function Home() {
                 <BankStatementParser />
               )}
 
-              {activePartnerTab === "entity-dna" && (
-                <EntityDnaMatrixViewer />
+              {(activePartnerTab === "entity-dna" || activePartnerTab === "client-master") && (
+                <EntityDnaMaster
+                  clients={clients}
+                  groups={groups}
+                  selectedClientId={selectedEntityId || clients[0]?.id || ""}
+                  onSelectClient={handleSelectClient}
+                  onUpdateClient={updateClient}
+                  onOpenDiagnosticModal={() => setIsDiagnosticModalOpen(true)}
+                />
               )}
 
               {activePartnerTab === "pay-to-release" && (
@@ -771,6 +827,19 @@ export default function Home() {
         onDeleteClient={async (id) => {
           await deleteClient(id);
           await refreshData();
+        }}
+      />
+
+      {/* 1-Tap Corporate Diagnostic Onboarding Modal */}
+      <DiagnosticOnboardingModal
+        isOpen={isDiagnosticModalOpen}
+        onClose={() => setIsDiagnosticModalOpen(false)}
+        groups={groups}
+        onAddClient={async (newClient) => {
+          await createClient(newClient);
+          await refreshData();
+          setSelectedEntityId(newClient.id);
+          if (newClient.gstin) setSelectedGstin(newClient.gstin);
         }}
       />
     </div>

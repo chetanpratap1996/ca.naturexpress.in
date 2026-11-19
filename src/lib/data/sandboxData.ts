@@ -103,128 +103,508 @@ export const SANDBOX_CLIENTS: ClientEntity[] = [
     groupId: "GRP-APEX",
     groupName: "The Apex Industrial Group",
     name: "Apex AutoTech Private Limited",
+    tradeName: "Apex AutoTech",
     type: "PVT_LTD",
     pan: "AABCA8891D",
     gstin: "23AABCA8891D1Z2",
     cin: "U29100MP2015PTC034120",
     tan: "BPLR01928F",
     turnoverCr: 48.5,
+    digitalTxnPct: 96.5,
     partnerInCharge: "CA Gunjan Jain",
     assignedArticle: "Kriti Jain (Article)",
     incorporationYear: 2015,
     penaltyRiskAccrued: 4500,
+    registeredAddress: "Plot No. 42-45, Sector 3, Industrial Area Pithampur, Dhar, Madhya Pradesh - 454775",
+    authorizedCapitalCr: 10.0,
+    paidUpCapitalCr: 5.0,
+    healthScore: 92,
     primaryContact: {
       name: "Rajesh Sharma",
       phone: "+91 98200 11223",
       email: "rajesh.sharma@apexautotech.com",
       designation: "Managing Director"
-    }
+    },
+    gstinRecords: [
+      {
+        gstin: "23AABCA8891D1Z2",
+        stateCode: "23",
+        stateName: "Madhya Pradesh",
+        tradeName: "Apex AutoTech - Pithampur Plant",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Range-IV, Division-II, CGST Indore",
+        jurisdictionState: "Circle Pithampur, SGST MP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      },
+      {
+        gstin: "27AABCA8891D1Z5",
+        stateCode: "27",
+        stateName: "Maharashtra",
+        tradeName: "Apex AutoTech - Pune Assembly Hub",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Chakan Division, CGST Pune",
+        jurisdictionState: "Ward 42, SGST Maharashtra",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    directors: [
+      {
+        din: "03419821",
+        name: "Rajesh Sharma",
+        pan: "AAPPS1122K",
+        designation: "Managing Director",
+        appointmentDate: "2015-04-12",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2027-08-15"
+      },
+      {
+        din: "07891234",
+        name: "Sunita Sharma",
+        pan: "AAFPS3344M",
+        designation: "Whole-time Director",
+        appointmentDate: "2017-06-01",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2026-12-31"
+      }
+    ],
+    tanRecords: [
+      {
+        tan: "BPLR01928F",
+        deductorType: "Company",
+        circle: "TDS Circle 1(1), Bhopal",
+        branchCode: "IND-01"
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-APEX-01",
+        bankName: "HDFC Bank",
+        accountNumber: "50200089123456",
+        accountType: "CURRENT",
+        ifsc: "HDFC0000045",
+        branch: "Pithampur Industrial Area",
+        statementPassword: "AABCA8891D",
+        isPrimary: true,
+        autoTallySync: true
+      },
+      {
+        id: "BNK-APEX-02",
+        bankName: "State Bank of India",
+        accountNumber: "38912345678",
+        accountType: "CASH_CREDIT",
+        ifsc: "SBIN0001234",
+        branch: "Main Branch, Indore",
+        statementPassword: "AABCA8891D",
+        isPrimary: false,
+        autoTallySync: true
+      }
+    ],
+    dscVault: [
+      {
+        id: "DSC-APEX-01",
+        holderName: "Rajesh Sharma",
+        holderPan: "AAPPS1122K",
+        holderDin: "03419821",
+        lockerSlot: "Rack-A / Slot-04",
+        expiryDate: "2027-08-15",
+        tokenProvider: "ePass2003",
+        custodyStatus: "IN_LOCKER"
+      }
+    ],
+    complianceBaselines: [
+      {
+        assessmentYear: "2025-26",
+        formType: "ITR-6",
+        acknowledgementNo: "982314902182025",
+        filingDate: "2025-10-28",
+        taxPaidAmount: 1845000,
+        refundClaimedAmount: 0,
+        status: "PROCESSED_143_1"
+      },
+      {
+        assessmentYear: "2024-25",
+        formType: "ITR-6",
+        acknowledgementNo: "871239019282024",
+        filingDate: "2024-10-30",
+        taxPaidAmount: 1420000,
+        refundClaimedAmount: 45000,
+        status: "PROCESSED_143_1"
+      }
+    ]
   },
   {
     id: "CLI-APEX-02",
     groupId: "GRP-APEX",
     groupName: "The Apex Industrial Group",
     name: "Apex Precision Alloys LLP",
+    tradeName: "Apex Alloys",
     type: "LLP",
     pan: "AAHFA9021K",
     gstin: "23AAHFA9021K1Z5",
     turnoverCr: 14.2,
+    digitalTxnPct: 94.0,
     partnerInCharge: "CA Sahil Jain",
     assignedArticle: "Aman Verma (Article)",
     incorporationYear: 2019,
     penaltyRiskAccrued: 0,
+    healthScore: 96,
+    registeredAddress: "Plot 18, Sanwer Road Industrial Area, Indore, MP - 452015",
     primaryContact: {
       name: "Neha Sharma",
       phone: "+91 98200 11224",
       email: "neha@apexautotech.com",
       designation: "Designated Partner"
-    }
+    },
+    gstinRecords: [
+      {
+        gstin: "23AAHFA9021K1Z5",
+        stateCode: "23",
+        stateName: "Madhya Pradesh",
+        tradeName: "Apex Precision Alloys",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Sanwer Division, CGST Indore",
+        jurisdictionState: "Circle 5, SGST MP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    directors: [
+      {
+        din: "08912301",
+        name: "Neha Sharma",
+        pan: "AATPS4455N",
+        designation: "Designated Partner",
+        appointmentDate: "2019-02-14",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2027-01-20"
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-APEX-03",
+        bankName: "ICICI Bank",
+        accountNumber: "657005001290",
+        accountType: "CURRENT",
+        ifsc: "ICIC0006570",
+        branch: "New Palasia, Indore",
+        statementPassword: "AAHFA9021K",
+        isPrimary: true
+      }
+    ],
+    complianceBaselines: [
+      {
+        assessmentYear: "2025-26",
+        formType: "ITR-5",
+        acknowledgementNo: "761234901292025",
+        filingDate: "2025-07-29",
+        taxPaidAmount: 480000,
+        refundClaimedAmount: 12000,
+        status: "PROCESSED_143_1"
+      }
+    ]
   },
   {
     id: "CLI-OMNI-01",
     groupId: "GRP-OMNI",
     groupName: "OmniRetail Group",
     name: "OmniRetail Hypermarkets Private Limited",
+    tradeName: "OmniRetail",
     type: "PVT_LTD",
     pan: "AAFCO4492K",
     gstin: "23AAFCO4492K1Z8",
     cin: "U52100MP2019PTC048991",
     tan: "INDD04921K",
     turnoverCr: 24.0,
+    digitalTxnPct: 91.0,
     partnerInCharge: "CA Sahil Jain",
     assignedArticle: "Aman Verma (Article)",
     incorporationYear: 2019,
     penaltyRiskAccrued: 8500,
+    healthScore: 84,
+    registeredAddress: "Floor 3, Orbit Mall, AB Road, Indore, MP - 452010",
+    authorizedCapitalCr: 5.0,
+    paidUpCapitalCr: 2.5,
     primaryContact: {
       name: "Aditya Singhal",
       phone: "+91 98110 44211",
       email: "aditya@omniretail.in",
       designation: "Managing Director"
-    }
+    },
+    gstinRecords: [
+      {
+        gstin: "23AAFCO4492K1Z8",
+        stateCode: "23",
+        stateName: "Madhya Pradesh",
+        tradeName: "OmniRetail Indore Superstore",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "AB Road Division, CGST Indore",
+        jurisdictionState: "Circle 2, SGST MP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      },
+      {
+        gstin: "07AAFCO4492K1Z3",
+        stateCode: "07",
+        stateName: "Delhi",
+        tradeName: "OmniRetail Delhi Sourcing",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Connaught Place Division, CGST Delhi",
+        jurisdictionState: "Ward 10, SGST Delhi",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    directors: [
+      {
+        din: "04891122",
+        name: "Aditya Singhal",
+        pan: "AALPS9900B",
+        designation: "Managing Director",
+        appointmentDate: "2019-08-20",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2027-04-10"
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-OMNI-01",
+        bankName: "Axis Bank",
+        accountNumber: "919020038192019",
+        accountType: "CURRENT",
+        ifsc: "UTIB0000123",
+        branch: "MG Road, Indore",
+        statementPassword: "AAFCO4492K",
+        isPrimary: true
+      }
+    ],
+    complianceBaselines: [
+      {
+        assessmentYear: "2025-26",
+        formType: "ITR-6",
+        acknowledgementNo: "551234901922025",
+        filingDate: "2025-10-31",
+        taxPaidAmount: 890000,
+        refundClaimedAmount: 0,
+        status: "PROCESSED_143_1"
+      }
+    ]
   },
   {
     id: "CLI-OMNI-02",
     groupId: "GRP-OMNI",
     groupName: "OmniRetail Group",
     name: "Singhal Logistics & Warehousing",
+    tradeName: "Singhal Logistics",
     type: "PARTNERSHIP",
     pan: "AABFS7714C",
     gstin: "23AABFS7714C1Z1",
     turnoverCr: 6.8,
+    digitalTxnPct: 88.0,
     partnerInCharge: "CA Ankit Agarwal",
     assignedArticle: "Rahul Sharma (Article)",
     incorporationYear: 2021,
     penaltyRiskAccrued: 0,
+    healthScore: 95,
+    registeredAddress: "Near Toll Plaza, Manglia Bypass, Indore, MP - 453771",
     primaryContact: {
       name: "Vivek Singhal",
       phone: "+91 98110 44212",
       email: "vivek@singhallogistics.com",
       designation: "Managing Partner"
-    }
+    },
+    gstinRecords: [
+      {
+        gstin: "23AABFS7714C1Z1",
+        stateCode: "23",
+        stateName: "Madhya Pradesh",
+        tradeName: "Singhal Logistics & Warehousing",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Dewas Naka Division, CGST Indore",
+        jurisdictionState: "Circle Manglia, SGST MP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-SINGHAL-01",
+        bankName: "Punjab National Bank",
+        accountNumber: "0219002100091823",
+        accountType: "CURRENT",
+        ifsc: "PUNB0021900",
+        branch: "Siyaganj, Indore",
+        statementPassword: "AABFS7714C",
+        isPrimary: true
+      }
+    ]
   },
   {
     id: "CLI-ZENITH-01",
     groupId: "GRP-ZENITH",
     groupName: "Zenith Global Innovations",
     name: "Zenith SaaS Technologies Private Limited",
+    tradeName: "Zenith SaaS",
     type: "PVT_LTD",
     pan: "AAACZ5512L",
     gstin: "23AAACZ5512L1Z4",
     cin: "U72200MP2021PTC056214",
     tan: "BPLZ02911L",
     turnoverCr: 12.5,
+    digitalTxnPct: 99.8,
     partnerInCharge: "CA Gunjan Jain",
     assignedArticle: "Kriti Jain (Article)",
     incorporationYear: 2021,
     penaltyRiskAccrued: 0,
+    healthScore: 98,
+    registeredAddress: "Crystal IT Park, Ring Road, Indore, MP - 452001",
+    authorizedCapitalCr: 2.0,
+    paidUpCapitalCr: 1.0,
     primaryContact: {
       name: "Vikramaditya Singh",
       phone: "+91 97110 88231",
       email: "vikram@zenithsaas.io",
       designation: "CEO & Co-Founder"
-    }
+    },
+    gstinRecords: [
+      {
+        gstin: "23AAACZ5512L1Z4",
+        stateCode: "23",
+        stateName: "Madhya Pradesh",
+        tradeName: "Zenith SaaS Technologies",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "SEZ Division, CGST Indore",
+        jurisdictionState: "Circle 1, SGST MP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    directors: [
+      {
+        din: "05621401",
+        name: "Vikramaditya Singh",
+        pan: "AALPS8821C",
+        designation: "Managing Director",
+        appointmentDate: "2021-03-10",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2027-09-18"
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-ZENITH-01",
+        bankName: "Kotak Mahindra Bank",
+        accountNumber: "88129038192",
+        accountType: "CURRENT",
+        ifsc: "KKBK0000912",
+        branch: "Vijay Nagar, Indore",
+        statementPassword: "AAACZ5512L",
+        isPrimary: true
+      }
+    ],
+    complianceBaselines: [
+      {
+        assessmentYear: "2025-26",
+        formType: "ITR-6",
+        acknowledgementNo: "661298410292025",
+        filingDate: "2025-10-15",
+        taxPaidAmount: 340000,
+        refundClaimedAmount: 85000,
+        status: "PROCESSED_143_1"
+      }
+    ]
   },
   {
     id: "CLI-PRATWI-01",
     groupId: "GRP-DIRECT",
     groupName: "Direct Practice Clients",
     name: "Pratwi Solutions Private Limited",
+    tradeName: "Pratwi Solutions",
     type: "PVT_LTD",
     pan: "AANCP9915B",
     gstin: "09AANCP9915B1Z4",
     cin: "U74999UP2024PTC199821",
     tan: "KNPP01821C",
     turnoverCr: 10.0,
+    digitalTxnPct: 97.2,
     partnerInCharge: "CA Gunjan Jain",
     assignedArticle: "Kriti Jain (Article)",
     incorporationYear: 2024,
     penaltyRiskAccrued: 0,
+    healthScore: 97,
+    registeredAddress: "Sector 62, Electronic City, Noida, Uttar Pradesh - 201309",
+    authorizedCapitalCr: 1.0,
+    paidUpCapitalCr: 0.5,
     primaryContact: {
       name: "Chetan Pratap Singh",
       phone: "8077170715",
       email: "chetanpratap1996@gmail.com",
       designation: "Director / Authorized Signatory"
-    }
+    },
+    gstinRecords: [
+      {
+        gstin: "09AANCP9915B1Z4",
+        stateCode: "09",
+        stateName: "Uttar Pradesh",
+        tradeName: "Pratwi Solutions - Noida HQ",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Sector 62 Division, CGST Noida",
+        jurisdictionState: "Ward 4, SGST UP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    directors: [
+      {
+        din: "19982101",
+        name: "Chetan Pratap Singh",
+        pan: "AANCP9915B",
+        designation: "Managing Director",
+        appointmentDate: "2024-01-15",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2028-01-15"
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-PRATWI-01",
+        bankName: "ICICI Bank",
+        accountNumber: "657005601799",
+        accountType: "CURRENT",
+        ifsc: "ICIC0006570",
+        branch: "Sector 62, Noida",
+        statementPassword: "AANCP9915B",
+        isPrimary: true
+      }
+    ],
+    complianceBaselines: [
+      {
+        assessmentYear: "2025-26",
+        formType: "ITR-6",
+        acknowledgementNo: "119823401922025",
+        filingDate: "2025-10-25",
+        taxPaidAmount: 220000,
+        refundClaimedAmount: 0,
+        status: "PROCESSED_143_1"
+      }
+    ]
   }
 ];
 

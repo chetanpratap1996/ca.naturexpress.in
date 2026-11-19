@@ -82,6 +82,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-gst-assembly",
+      title: "Autonomous GST Monthly Assembly Line (Week 29–34)",
+      subtitle: "Zero-Touch Clean Profiles & Exception-Only Partner Triage Desk",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "G A",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("gst-assembly");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

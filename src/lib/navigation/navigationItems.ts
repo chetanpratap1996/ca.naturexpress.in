@@ -168,6 +168,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 
   // --- SUITE 2: GST SUITE (KDK / Express GST Data Prep) ---
   {
+    id: "gst-assembly",
+    label: "Autonomous GST Assembly Line",
+    shortLabel: "GST Assembly (2035)",
+    categoryId: "gst-suite",
+    description: "Zero-Touch WhatsApp -> Bank OCR -> 2B Match -> GSTR-3B Auto-Signoff & Partner Triage Desk",
+    icon: Sparkles,
+    iconColor: "text-indigo-600",
+    badge: "2035 Auto",
+    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
+  },
+  {
     id: "gstr2b",
     label: "GST Matcher (2B vs 3B & Books)",
     shortLabel: "GST 2B Matcher",

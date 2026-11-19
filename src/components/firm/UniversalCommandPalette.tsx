@@ -1,0 +1,341 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  Search, 
+  Sparkles, 
+  ArrowRight, 
+  FileSpreadsheet, 
+  FileSearch, 
+  Calculator, 
+  ClipboardCheck, 
+  Layers, 
+  Lock, 
+  DollarSign, 
+  MessageSquare, 
+  Scale, 
+  KeyRound, 
+  Award, 
+  Building2, 
+  Calendar,
+  Download,
+  Zap,
+  Check,
+  Command,
+  X
+} from "lucide-react";
+import { playSoftClick, playSuccessChime } from "@/lib/audio/soundEffects";
+import { toast } from "@/components/shared/ToastNotification";
+
+interface CommandItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  category: "AUTOPILOT" | "SUITES" | "CLIENTS" | "STATUTORY_TOOLS";
+  icon: any;
+  action: () => void;
+  shortcut?: string;
+  badge?: string;
+}
+
+interface UniversalCommandPaletteProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onNavigateTab: (tabId: string) => void;
+  onTriggerAutopilot: () => void;
+  clients?: Array<{ id: string; name: string; pan: string }>;
+}
+
+export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = ({
+  isOpen,
+  onClose,
+  onNavigateTab,
+  onTriggerAutopilot,
+  clients = []
+}) => {
+  const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+      setSelectedIndex(0);
+      setQuery("");
+    }
+  }, [isOpen]);
+
+  // Master List of Commands
+  const allCommands: CommandItem[] = [
+    // Autonomous Actions
+    {
+      id: "cmd-autopilot",
+      title: "Trigger Autonomous Practice Sweep",
+      subtitle: "Execute all 9 autonomous cycles (GST, AIS, Form 3CD, CARO, ITR, Billing)",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "⌘P",
+      badge: "9 Cycles",
+      action: () => {
+        onTriggerAutopilot();
+        onClose();
+      }
+    },
+    // Tax & Audit Suites
+    {
+      id: "cmd-gstr2b",
+      title: "GSTR-2B vs Books Reconciliation Engine",
+      subtitle: "Multi-rule fuzzy matcher, Rule 42/43 reversals, and vendor default notices",
+      category: "SUITES",
+      icon: FileSpreadsheet,
+      shortcut: "G",
+      action: () => {
+        onNavigateTab("gstr2b");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-ais",
+      title: "AIS / 26AS SFT Forensic Inspector",
+      subtitle: "Rule 114E high-value transactions, 194Q dominance, and notice probability",
+      category: "SUITES",
+      icon: FileSearch,
+      shortcut: "A",
+      action: () => {
+        onNavigateTab("ais-analyzer");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-form3cd",
+      title: "Tax Audit Form 3CD Workpapers",
+      subtitle: "Clause 44 GST breakdown, Clause 22 MSME 43B(h) 3x RBI interest, and Clause 34 TDS",
+      category: "SUITES",
+      icon: ClipboardCheck,
+      shortcut: "T",
+      action: () => {
+        onNavigateTab("tax-audit-3cd");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-schedule3",
+      title: "Schedule III & CARO 2020 Balance Sheet Engine",
+      subtitle: "11 MCA ratios, 21 CARO clauses, and quarterly stock bank statement reconciler",
+      category: "SUITES",
+      icon: Layers,
+      shortcut: "S",
+      action: () => {
+        onNavigateTab("schedule3-audit");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-itr",
+      title: "ITR Dual-Regime Optimization Engine (115BAC)",
+      subtitle: "Budget 2024 slabs, Form 10-IEA gatekeeper, and CompuTax/Winman pre-filing bridge",
+      category: "SUITES",
+      icon: Calculator,
+      shortcut: "I",
+      action: () => {
+        onNavigateTab("itr-calc");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-billing",
+      title: "Billing & Pay-to-Release Gatekeeper",
+      subtitle: "SAC 9982 invoices, Imprest statutory advance ledger, and UPI file lock",
+      category: "SUITES",
+      icon: DollarSign,
+      action: () => {
+        onNavigateTab("billing");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-notices",
+      title: "Statutory Notice Drafter",
+      subtitle: "AI response drafter for 143(1)(a), 148, and GST ASMT-10 notices",
+      category: "SUITES",
+      icon: Scale,
+      action: () => {
+        onNavigateTab("notice-drafter");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-udin",
+      title: "UDIN 60-Day Vault",
+      subtitle: "ICAI UDIN countdown timer and revocation tracking",
+      category: "SUITES",
+      icon: KeyRound,
+      action: () => {
+        onNavigateTab("udin-vault");
+        onClose();
+      }
+    },
+    // Clients
+    ...clients.slice(0, 4).map(c => ({
+      id: `client-${c.id}`,
+      title: c.name,
+      subtitle: `PAN: ${c.pan} • Open in Entity DNA Client Master`,
+      category: "CLIENTS" as const,
+      icon: Building2,
+      action: () => {
+        onNavigateTab("entity-dna");
+        toast.info("Assessee Focused", `Activated ${c.name} in universal client spine.`);
+        onClose();
+      }
+    }))
+  ];
+
+  // Filtered Commands
+  const filteredCommands = allCommands.filter(c => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase();
+    return c.title.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q);
+  });
+
+  // Handle Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev + 1) % filteredCommands.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (filteredCommands[selectedIndex]) {
+          playSoftClick();
+          filteredCommands[selectedIndex].action();
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, selectedIndex, filteredCommands]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
+      <div 
+        className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[75vh]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Search Header */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/30">
+          <Search className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Type a command, tool, or client name (e.g. 'GSTR', 'CARO', 'Autopilot', 'Apex')..."
+            value={query}
+            onChange={e => {
+              setQuery(e.target.value);
+              setSelectedIndex(0);
+            }}
+            className="w-full bg-transparent text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 outline-none"
+          />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <kbd className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+              ESC
+            </kbd>
+            <button 
+              onClick={onClose}
+              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Results List */}
+        <div className="p-2 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+          {filteredCommands.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400">
+              No matching commands or clients found.
+            </div>
+          ) : (
+            filteredCommands.map((item, idx) => {
+              const isSelected = idx === selectedIndex;
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    playSoftClick();
+                    item.action();
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`p-3 rounded-2xl cursor-pointer flex items-center justify-between transition-all ${
+                    isSelected 
+                      ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-950 dark:text-indigo-200" 
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      item.category === "AUTOPILOT"
+                        ? "bg-indigo-600 text-white"
+                        : isSelected
+                        ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold">{item.title}</span>
+                        {item.badge && (
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                        {item.subtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {item.shortcut && (
+                      <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-200/60 dark:bg-slate-800 text-slate-500">
+                        {item.shortcut}
+                      </kbd>
+                    )}
+                    {isSelected && (
+                      <ArrowRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer Shortcut Helper */}
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="flex items-center gap-3">
+            <span>Navigation: <kbd className="font-mono font-bold">↑</kbd> <kbd className="font-mono font-bold">↓</kbd></span>
+            <span>Execute: <kbd className="font-mono font-bold">↵ Enter</kbd></span>
+          </div>
+          <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
+            Linear-Grade Power Palette
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};

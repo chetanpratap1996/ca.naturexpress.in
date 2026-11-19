@@ -40,6 +40,7 @@ import { SidebarNav } from "@/components/navigation/SidebarNav";
 import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
 import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
+import { AutopilotPulseCockpit } from "@/components/firm/AutopilotPulseCockpit";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -562,6 +563,26 @@ export default function Home() {
           {/* VIEW 2: PARTNER COCKPIT (FOR CA PARTNERS & MANAGERS) */}
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
+              {/* INSTITUTIONAL AUTOPILOT AI TELEMETRY COCKPIT */}
+              <AutopilotPulseCockpit 
+                onTriggerSweep={async () => {
+                  try {
+                    const res = await fetch("/api/firm-autopilot", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ triggerSource: "MANUAL_PULSE" }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      await refreshData();
+                      return data.summary;
+                    }
+                  } catch (err) {
+                    console.error("Autopilot sweep failed:", err);
+                  }
+                }}
+              />
+
               {/* 1. EXECUTIVE DASHBOARD (PRIMARY FIRST PAGE WITH 4 MASTER KPI CARDS) */}
               {activePartnerTab === "dashboard" && (
                 <ExecutiveDashboard

@@ -31,7 +31,7 @@ import {
   Send,
   LayoutDashboard
 } from "lucide-react";
-import { CommandPaletteModal } from "@/components/shared/CommandPaletteModal";
+import { UniversalCommandPalette } from "@/components/firm/UniversalCommandPalette";
 import { InstallAppModal } from "@/components/shared/InstallAppModal";
 import { NotificationCenterModal } from "@/components/notifications/NotificationCenterModal";
 import { usePwaInstall } from "@/components/shared/usePwaInstall";
@@ -413,14 +413,27 @@ export const TopNav: React.FC<TopNavProps> = ({
         </div>
       </header>
 
-      {/* Global Command Palette Trigger */}
-      <CommandPaletteModal
+      {/* Global Linear / Superhuman Grade Command Palette (Ctrl+K) */}
+      <UniversalCommandPalette
         isOpen={isCommandOpen}
         onClose={() => setIsCommandOpen(false)}
-        onNavigate={(tab) => {
+        onNavigateTab={(tab) => {
           if (onNavigateTab) onNavigateTab(tab);
           setIsCommandOpen(false);
         }}
+        onTriggerAutopilot={async () => {
+          try {
+            await fetch("/api/firm-autopilot", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ triggerSource: "COMMAND_PALETTE" }),
+            });
+            window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
+          } catch (e) {
+            console.error("Autopilot trigger failed:", e);
+          }
+        }}
+        clients={clients.map(c => ({ id: c.id, name: c.name, pan: c.pan }))}
       />
 
       {/* PWA Install Guidance Modal */}

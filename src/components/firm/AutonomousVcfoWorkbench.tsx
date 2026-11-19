@@ -20,6 +20,7 @@ import {
   Sliders,
   ChevronRight,
   FileText,
+  FileSpreadsheet,
   BadgeAlert
 } from "lucide-react";
 import { playSoftClick, playSuccessChime } from "@/lib/audio/soundEffects";
@@ -31,6 +32,7 @@ import {
   getPracticeIntelligenceSummary,
   generateScopeExpansionNotice,
   compileVcfoBoardDossier,
+  generateCmaDocket,
   WeeklyCashFlowBucket
 } from "@/lib/vcfo/autonomousVcfoEngine";
 
@@ -47,6 +49,9 @@ export function AutonomousVcfoWorkbench() {
 
   // Modal / Drawer state for Board Dossier
   const [previewDossierText, setPreviewDossierText] = useState<string | null>(null);
+
+  // Modal / Drawer state for Banker's Docket (CMA Pack)
+  const [previewCmaDocket, setPreviewCmaDocket] = useState<any>(null);
 
   // Stress Testing Parameters
   const [revenueDrop, setRevenueDrop] = useState<number>(15);
@@ -76,6 +81,14 @@ export function AutonomousVcfoWorkbench() {
     setPreviewDossierText(dossier);
     playSuccessChime();
     toast.success("Executive vCFO Board Dossier compiled successfully!");
+  };
+
+  const handleGenerateCma = (profile: ClientVcfoProfile) => {
+    playSoftClick();
+    const cma = generateCmaDocket(profile);
+    setPreviewCmaDocket(cma);
+    playSuccessChime();
+    toast.success("1-Click Banker's Docket (CMA Pack) assembled under Tandon Method II!");
   };
 
   const handleGenerateScopeNotice = (client: any) => {
@@ -152,6 +165,13 @@ export function AutonomousVcfoWorkbench() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => handleGenerateCma(selectedProfile)}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition-all active:scale-95"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              1-Click Banker's Docket (CMA)
+            </button>
             <button
               onClick={() => handleExportBoardDossier(selectedProfile)}
               className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-md hover:bg-amber-400 transition-all active:scale-95"
@@ -884,6 +904,65 @@ export function AutonomousVcfoWorkbench() {
               >
                 <Download className="h-3.5 w-3.5" />
                 Download Dossier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: 1-CLICK BANKER'S DOCKET & CMA REPORT PACK */}
+      {previewCmaDocket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-indigo-600" />
+                <div>
+                  <h3 className="font-bold text-slate-900">
+                    CMA Report &amp; Bank Loan Pack (Tandon Method II MPBF)
+                  </h3>
+                  <div className="text-xs text-slate-500">
+                    {previewCmaDocket.clientName} • Requested Limit: ₹{(previewCmaDocket.sanctionLimitRequested / 10000000).toFixed(2)} Cr
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewCmaDocket(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[30rem] overflow-y-auto rounded-lg bg-slate-900 p-5 font-mono text-xs text-amber-300 whitespace-pre-wrap leading-relaxed border border-slate-800">
+              {previewCmaDocket.docketText}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(previewCmaDocket.docketText);
+                  toast.success("CMA Docket copied to clipboard!");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy CMA Data
+              </button>
+              <button
+                onClick={() => {
+                  const blob = new Blob([previewCmaDocket.docketText], { type: "text/plain" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `CMA_Banker_Docket_${selectedProfile.clientId}.txt`;
+                  a.click();
+                  toast.success("Downloaded Certified Banker's Docket!");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 shadow"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download Loan Pack
               </button>
             </div>
           </div>

@@ -327,6 +327,75 @@ export class LegalGraphStore {
       searchableTokens: ['mohit minerals', 'ocean freight rcm', 'cif import igst']
     });
 
+    // Precedent: Brandix Mauritius Holdings (Supreme Court on Circular 19/2019 DIN)
+    this.addNode({
+      id: 'PREC-SC-BRANDIX-MAURITIUS',
+      type: 'JUDICIAL_PRECEDENT',
+      title: 'CIT v. Brandix Mauritius Holdings Ltd',
+      domainId: '2_DIRECT_TAXATION_INCOME_TAX',
+      authorityLevel: 'JUDICIAL_SUPREME_COURT',
+      authorityForum: 'SUPREME_COURT_OF_INDIA',
+      jurisdiction: 'PAN_INDIA',
+      statutoryReference: '(2023) 456 ITR 34 (SC)',
+      verbatimContent: 'Any communication, notice, order or summons issued without generating and quoting a valid computer-generated Document Identification Number (DIN) is non-est and void ab initio in terms of CBDT Circular No. 19/2019.',
+      precedentTreatment: 'GOOD_LAW_BINDING',
+      temporal: {
+        effectiveFrom: '2023-03-20',
+        effectiveTo: null,
+        isRetrospective: false,
+        applicablePreviousYears: ['All Direct Tax Years'],
+        applicableAssessmentYears: ['All Direct Tax Years'],
+        isOmitted: false
+      },
+      searchableTokens: ['brandix mauritius', 'din circular 19/2019', 'notice without din', 'void ab initio din']
+    });
+
+    // Precedent: Kelvinator of India (Supreme Court on Section 147 Change of Opinion)
+    this.addNode({
+      id: 'PREC-SC-KELVINATOR',
+      type: 'JUDICIAL_PRECEDENT',
+      title: 'CIT v. Kelvinator of India Ltd',
+      domainId: '2_DIRECT_TAXATION_INCOME_TAX',
+      authorityLevel: 'JUDICIAL_SUPREME_COURT',
+      authorityForum: 'SUPREME_COURT_OF_INDIA',
+      jurisdiction: 'PAN_INDIA',
+      statutoryReference: '(2010) 320 ITR 561 (SC)',
+      verbatimContent: 'Reassessment under Section 147 cannot be based on mere change of opinion. The Assessing Officer must possess tangible material demonstrating live link to escaped income.',
+      precedentTreatment: 'GOOD_LAW_BINDING',
+      temporal: {
+        effectiveFrom: '2010-01-18',
+        effectiveTo: null,
+        isRetrospective: false,
+        applicablePreviousYears: ['All Direct Tax Years'],
+        applicableAssessmentYears: ['All Direct Tax Years'],
+        isOmitted: false
+      },
+      searchableTokens: ['kelvinator', 'change of opinion', 'section 147 reassessment', 'tangible material']
+    });
+
+    // Precedent: Khatau Junkar (Bombay High Court on Section 143(1)(a) Debatable Additions)
+    this.addNode({
+      id: 'PREC-HC-KHATAU-JUNKAR',
+      type: 'JUDICIAL_PRECEDENT',
+      title: 'Khatau Junkar Ltd. v. K.S. Pathania, DCIT',
+      domainId: '2_DIRECT_TAXATION_INCOME_TAX',
+      authorityLevel: 'JUDICIAL_HIGH_COURT',
+      authorityForum: 'HIGH_COURT_OF_BOMBAY',
+      jurisdiction: 'BOMBAY_HC',
+      statutoryReference: '(1992) 196 ITR 55 (Bom HC)',
+      verbatimContent: 'Where an item requires inquiry or is already included in another head or is debatable, no prima facie adjustment can be made under Section 143(1)(a).',
+      precedentTreatment: 'GOOD_LAW_BINDING',
+      temporal: {
+        effectiveFrom: '1992-02-14',
+        effectiveTo: null,
+        isRetrospective: false,
+        applicablePreviousYears: ['All Direct Tax Years'],
+        applicableAssessmentYears: ['All Direct Tax Years'],
+        isOmitted: false
+      },
+      searchableTokens: ['khatau junkar', 'prima facie adjustment', '143(1)(a)', 'debatable addition']
+    });
+
     // ------------------------------------------------------------------------
     // CONNECTING EDGES
     // ------------------------------------------------------------------------

@@ -350,9 +350,21 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
               </h4>
               <div className="space-y-2 font-sans">
                 {activeDocket.defenseBrief.judicialPrecedents.map((prec, i) => (
-                  <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900">{prec.caseTitle}</span>
+                  <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-900">{prec.caseTitle}</span>
+                        {prec.isBindingArticle141 && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200">
+                            Article 141 SC (Binding)
+                          </span>
+                        )}
+                        {prec.precedenceWeight && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700">
+                            Precedence: {prec.precedenceWeight}x
+                          </span>
+                        )}
+                      </div>
                       <span className="font-mono text-purple-700 font-bold">{prec.citation}</span>
                     </div>
                     <div className="text-[11px] text-slate-500 font-semibold">{prec.court}</div>

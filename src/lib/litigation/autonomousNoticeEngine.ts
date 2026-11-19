@@ -11,6 +11,10 @@
  * - CBDT Instruction No. 1914 / OM 2017: Interim Stay of Demand & 20% Pre-Deposit Waiver guidelines
  */
 
+import { LegalGraphStore } from "@/lib/knowledge/graph/legalGraphStore";
+import { ConstitutionalPrecedenceReranker } from "@/lib/knowledge/graph/precedenceReranker";
+import { JurisdictionCode } from "@/lib/knowledge/types";
+
 export type NoticeAuthority = "ITD_FACELESS" | "GST_STATE" | "GST_CENTRAL";
 
 export type StatutorySection = 
@@ -31,6 +35,9 @@ export interface JudicialPrecedentItem {
   citation: string;
   court: string;
   ratio: string;
+  precedenceWeight?: number;
+  isBindingArticle141?: boolean;
+  constitutionalClassification?: string;
 }
 
 export interface DefenseBriefDocket {
@@ -107,11 +114,57 @@ export function calculateLimitationCountdown(dueDateStr: string): number {
 }
 
 /**
+ * Query Knowledge Graph and Rank Precedents using Constitutional Precedence Reranker
+ */
+export function getRankedPrecedentsFromGraph(
+  searchQuery: string,
+  clientJurisdiction: JurisdictionCode = "BOMBAY_HC"
+): JudicialPrecedentItem[] {
+  const store = new LegalGraphStore();
+  const allNodes = store.getAllNodes();
+  const precedentNodes = allNodes.filter(n => n.type === "JUDICIAL_PRECEDENT");
+
+  const queryTokens = searchQuery.toLowerCase().split(/\s+/);
+  const matched = precedentNodes.filter(node => {
+    return queryTokens.some(token => 
+      node.searchableTokens.some(st => st.toLowerCase().includes(token)) ||
+      node.title.toLowerCase().includes(token) ||
+      node.verbatimContent.toLowerCase().includes(token)
+    );
+  });
+
+  const ranked = (matched.length > 0 ? matched : precedentNodes.slice(0, 3)).map(node => {
+    const score = ConstitutionalPrecedenceReranker.computePrecedenceScore(node, {
+      rawQuery: searchQuery,
+      clientJurisdiction,
+      isLitigationDefense: true,
+    });
+
+    return {
+      caseTitle: node.title,
+      citation: node.statutoryReference,
+      court: node.authorityForum || (node.authorityLevel === "JUDICIAL_SUPREME_COURT" ? "Supreme Court of India" : "High Court"),
+      ratio: node.verbatimContent,
+      precedenceWeight: score.finalWeight,
+      isBindingArticle141: node.authorityLevel === "JUDICIAL_SUPREME_COURT",
+      constitutionalClassification: score.authorityClassification,
+    };
+  });
+
+  ranked.sort((a, b) => (b.precedenceWeight || 0) - (a.precedenceWeight || 0));
+  return ranked;
+}
+
+/**
  * Generate Sample Institutional Notice Defense Dockets
  * Docket 1: Pratwi Solutions (Section 143(1)(a) adjustment — AIS SFT verified, 100% clean, brief ready)
  * Docket 2: Apex Heavy Engineering (Section 148 Reassessment AY 2018-19 — DIN missing fatal defect + limitation bar + 20% stay petition)
  */
 export function getSampleNoticeDockets(): NoticeDocketItem[] {
+  // Query knowledge graph with constitutional reranker for dynamic precedent integration
+  const pratwiGraphPrecedents = getRankedPrecedentsFromGraph("143(1)(a) prima facie debatable khatau", "BOMBAY_HC");
+  const apexGraphPrecedents = getRankedPrecedentsFromGraph("brandix mauritius din circular 19/2019 kelvinator", "DELHI_HC");
+
   // 1. Pratwi Solutions Private Limited (Section 143(1)(a) Dividend Mismatch - Clean)
   const pratwiBrief: DefenseBriefDocket = {
     preliminaryObjections: [
@@ -123,12 +176,14 @@ export function getSampleNoticeDockets(): NoticeDocketItem[] {
       "Cross-verification with Module 2.2 AIS/26AS Forensic Workpaper confirms complete reconciliation with SFT-008 reporting from CAMS/KFintech without any omitted income.",
       "TDS deducted u/s 194K of ₹14,500 has been claimed in Schedule TDS 2 and precisely matches 26AS Part G.",
     ],
-    judicialPrecedents: [
+    judicialPrecedents: pratwiGraphPrecedents.length > 0 ? pratwiGraphPrecedents : [
       {
         caseTitle: "Khatau Junkar Ltd. v. K.S. Pathania, DCIT",
         citation: "196 ITR 55 (Bom HC)",
         court: "Bombay High Court",
         ratio: "Where an item requires inquiry or is already included in another head, no prima facie adjustment can be made under Section 143(1)(a).",
+        precedenceWeight: 4.0,
+        constitutionalClassification: "JURISDICTIONAL_HIGH_COURT_BINDING",
       },
     ],
     prayer: "In light of the reconciliation and cited judicial ruling, it is respectfully prayed that the proposed prima facie adjustment of ₹1,45,000 be dropped completely and intimation under Section 143(1) be issued accepting the returned income.",
@@ -184,24 +239,24 @@ export function getSampleNoticeDockets(): NoticeDocketItem[] {
       "Cross-verification with Module 2.1 GSTR-2B and Module 2.4 Schedule III establishes that invoices were paid via banking channels (RTGS) with proper GST e-way bills.",
       "No fresh tangible material outside the original assessment record was in the possession of the AO, rendering the reassessment a mere impermissible 'change of opinion'.",
     ],
-    judicialPrecedents: [
+    judicialPrecedents: apexGraphPrecedents.length > 0 ? apexGraphPrecedents : [
       {
         caseTitle: "CIT (International Taxation) v. Brandix Mauritius Holdings Ltd.",
         citation: "456 ITR 34 (SC) / 2023-TIOL-92-SC-IT",
         court: "Supreme Court of India",
         ratio: "Any notice, order or communication issued without a computer-generated DIN is deemed never to have been issued and is invalid in law.",
-      },
-      {
-        caseTitle: "Union of India v. Ashish Agarwal",
-        citation: "444 ITR 1 (SC)",
-        court: "Supreme Court of India",
-        ratio: "Reassessment provisions under the amended regime (Finance Act 2021) must strictly comply with Section 148A inquiries and statutory thresholds.",
+        precedenceWeight: 5.0,
+        isBindingArticle141: true,
+        constitutionalClassification: "SUPREME_COURT_ARTICLE_141",
       },
       {
         caseTitle: "CIT v. Kelvinator of India Ltd.",
         citation: "320 ITR 561 (SC)",
         court: "Supreme Court of India",
         ratio: "Reassessment cannot be initiated on a mere 'change of opinion' without fresh tangible material outside the original assessment record.",
+        precedenceWeight: 5.0,
+        isBindingArticle141: true,
+        constitutionalClassification: "SUPREME_COURT_ARTICLE_141",
       },
     ],
     prayer: "It is respectfully prayed that: (i) the impugned Section 148 notice be quashed as void ab initio for absence of DIN and limitation bar; (ii) the proceedings be dropped in toto; and (iii) in terms of the Faceless Assessment Scheme, an opportunity of personal hearing through Video Conference (VC) be granted prior to passing any adverse order.",

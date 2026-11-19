@@ -20,6 +20,8 @@ import {
   Calendar,
   Download,
   ShieldAlert,
+  ShieldCheck,
+  Terminal,
   TrendingUp,
   Zap,
   Check,
@@ -124,6 +126,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       }
     },
     {
+      id: "cmd-governance-assembly",
+      title: "ICAI SQC-1 Peer Review & Governance Shield (Week 41–44)",
+      subtitle: "3-tier Maker-Checker digital audit trail, UDIN 60-day guardian, and physical USB DSC locker",
+      category: "AUTOPILOT",
+      icon: ShieldCheck,
+      shortcut: "S Q",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("governance-assembly");
+        onClose();
+      }
+    },
+    {
       id: "cmd-notice-assembly",
       title: "Autonomous Faceless Notice Defense Assembly Line (Week 45–48)",
       subtitle: "Circular 19/2019 DIN verification, limitation period tracker, legal brief & stay petition",
@@ -138,14 +153,27 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-vcfo-assembly",
-      title: "Autonomous Virtual CFO & Practice Intelligence Engine (Week 49–52)",
-      subtitle: "13-week rolling cash flow, Section 43B(h) sequencing, bank covenants & SA 210 scope creep alerts",
+      title: "Autonomous Virtual CFO & Practice Intelligence Engine (Week 45–48)",
+      subtitle: "1-Click Banker's Docket (CMA Pack), 13-week cash flow, covenants & SA 210 scope creep alerts",
       category: "AUTOPILOT",
       icon: TrendingUp,
       shortcut: "V A",
       badge: "2035 Auto",
       action: () => {
         onNavigateTab("vcfo-assembly");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-cicd-assembly",
+      title: "Enterprise Hardening & CI/CD Golden Suite (Week 49–52)",
+      subtitle: "50-case golden regression suite, zero-divergence math gate (<= ₹1), and JUnit XML export",
+      category: "AUTOPILOT",
+      icon: Terminal,
+      shortcut: "C I",
+      badge: "2035 Auto",
+      action: () => {
+        onNavigateTab("cicd-assembly");
         onClose();
       }
     },

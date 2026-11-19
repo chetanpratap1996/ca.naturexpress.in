@@ -5,6 +5,7 @@ import {
   compileVcfoBoardDossier,
   generateScopeExpansionNotice,
   generate13WeekCashFlow,
+  generateCmaDocket,
   WeeklyCashFlowBucket
 } from "@/lib/vcfo/autonomousVcfoEngine";
 
@@ -47,6 +48,20 @@ export async function POST(request: NextRequest) {
           clientId: profile.clientId,
           clientName: profile.clientName,
           dossierText,
+          exportedAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    if (action === "EXPORT_CMA_DOCKET") {
+      const profile = vcfoProfiles.find((p) => p.clientId === clientId) || vcfoProfiles[0];
+      const cmaDocket = generateCmaDocket(profile);
+      return NextResponse.json({
+        success: true,
+        data: {
+          clientId: profile.clientId,
+          clientName: profile.clientName,
+          cmaDocket,
           exportedAt: new Date().toISOString(),
         },
       });

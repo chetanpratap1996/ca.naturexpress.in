@@ -45,7 +45,9 @@ import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemb
 import { AutonomousTdsWorkbench } from "@/components/firm/AutonomousTdsWorkbench";
 import { AutonomousMcaWorkbench } from "@/components/firm/AutonomousMcaWorkbench";
 import { AutonomousNoticeWorkbench } from "@/components/firm/AutonomousNoticeWorkbench";
+import { AutonomousGovernanceWorkbench } from "@/components/firm/AutonomousGovernanceWorkbench";
 import { AutonomousVcfoWorkbench } from "@/components/firm/AutonomousVcfoWorkbench";
+import { EnterpriseCiCdWorkbench } from "@/components/firm/EnterpriseCiCdWorkbench";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -718,8 +720,16 @@ export default function Home() {
                 <AutonomousNoticeWorkbench />
               )}
 
+              {activePartnerTab === "governance-assembly" && (
+                <AutonomousGovernanceWorkbench />
+              )}
+
               {activePartnerTab === "vcfo-assembly" && (
                 <AutonomousVcfoWorkbench />
+              )}
+
+              {activePartnerTab === "cicd-assembly" && (
+                <EnterpriseCiCdWorkbench />
               )}
 
               {activePartnerTab === "gstr2b" && (

@@ -24,6 +24,8 @@ import {
   Users,
   Grid,
   Compass,
+  Terminal,
+  ShieldCheck,
   LayoutDashboard
 } from "lucide-react";
 
@@ -271,6 +273,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
   },
   {
+    id: "governance-assembly",
+    label: "ICAI SQC-1 Peer Review & Governance Shield",
+    shortLabel: "Governance Shield (2035)",
+    categoryId: "audit-balancesheet",
+    description: "3-Tier Maker-Checker Digital Trail, UDIN 60-Day Countdown Guardian & Physical USB DSC Vault",
+    icon: ShieldCheck,
+    iconColor: "text-purple-700",
+    badge: "2035 Auto",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+  },
+  {
     id: "vcfo-assembly",
     label: "Autonomous vCFO & Practice Sentinel",
     shortLabel: "vCFO Sentinel (2035)",
@@ -280,6 +293,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     iconColor: "text-amber-600",
     badge: "2035 Auto",
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  {
+    id: "cicd-assembly",
+    label: "Enterprise CI/CD Golden Suite",
+    shortLabel: "CI/CD Suite (2035)",
+    categoryId: "audit-balancesheet",
+    description: "50-Case Golden Regression Suite, Zero-Divergence Math Gate (≤ ₹1), and JUnit XML Export",
+    icon: Terminal,
+    iconColor: "text-emerald-600",
+    badge: "2035 Auto",
+    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
   },
   {
     id: "entity-dna",

@@ -419,13 +419,13 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   },
   {
     id: "bank-audit",
-    label: "Statutory Bank Audit & IRAC / LFAR",
-    shortLabel: "Bank Audit (RBI)",
+    label: "Pillar IV: Statutory Bank Audit & LFAR Master Suite",
+    shortLabel: "Bank Audit (Pillar IV)",
     categoryId: "audit-balancesheet",
-    description: "RBI IRAC Norms, 90-day NPA classification, MOC P&L adjustments, Drawing Power & LFAR Pack",
+    description: "RBI IRAC 90-Day NPAs, Drawing Power Calculator, LFAR Master Pack, Concurrent PMLA CTR/STR, Ghosh & Jilani 42 EWS & Revenue Leakage",
     icon: Building2,
     iconColor: "text-cyan-600",
-    badge: "RBI Audit",
+    badge: "Institutional",
     badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200"
   },
   {

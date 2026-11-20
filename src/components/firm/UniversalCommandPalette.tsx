@@ -242,6 +242,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-pillar-four-bank",
+      title: "Pillar IV: Statutory Bank Audit & LFAR Master Suite",
+      subtitle: "RBI IRAC 90-Day NPAs, Drawing Power, LFAR Pack, PMLA Concurrent, Ghosh & Jilani 42 EWS & Revenue Leakage",
+      category: "AUTOPILOT",
+      icon: Building2,
+      shortcut: "P 4",
+      badge: "Pillar IV",
+      action: () => {
+        onNavigateTab("bank-audit");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

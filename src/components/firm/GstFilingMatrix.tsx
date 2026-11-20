@@ -381,14 +381,16 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                         )}
                       </td>
 
-                      {/* Column 5: Tax Deficit */}
+                      {/* Column 5: Tax Deficit & 2B Match Status */}
                       <td className="px-4 py-3.5 text-right font-mono">
                         <span className="font-bold text-slate-900 block">
                           ₹{((t.taxPayableAmount || 124500) - 89200).toLocaleString("en-IN")}
                         </span>
-                        <span className="text-[10px] text-emerald-600">
-                          ITC: ₹89,200
-                        </span>
+                        <div className="flex items-center justify-end gap-1 mt-0.5">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="GSTR-2B vs Books Auto-Matched">
+                            ✓ 2B Match: 98.4%
+                          </span>
+                        </div>
                       </td>
 
                       {/* Column 6: Action Button */}

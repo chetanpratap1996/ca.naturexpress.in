@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ComplianceTask, ClientEntity, PortalCredential, DscRecord } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
+import { universalEventBus } from "@/lib/mesh/universalEventBus";
 
 interface ContextualFilingDrawerProps {
   isOpen: boolean;
@@ -122,9 +123,23 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
     try {
       await onMarkFiled(task.id, arnInput.trim());
       setHasCascadeCompleted(true);
+      
+      // Emit universal cross-suite ripple event
+      universalEventBus.emit("COMPLIANCE_FILED", {
+        clientId: client.id,
+        clientName: client.name,
+        pan: client.pan,
+        gstin: client.gstin,
+        complianceType: task.category === "GST" ? (task.title.includes("3B") ? "GSTR-3B" : "GSTR-1") : (task.title.includes("3CD") ? "FORM_3CD" : "ITR-6"),
+        period: task.period || "Current Period",
+        arnOrAckNo: arnInput.trim(),
+        filedBy: client.assignedArticle || "Practice Staff",
+        timestamp: new Date().toISOString()
+      });
+
       toast.success(
         "Filing Recorded & Cascaded",
-        `GSTR filing for ${client.name} complete. Calendar, Billing & WhatsApp synchronized.`
+        `Statutory filing for ${client.name} complete. Calendar, Billing & WhatsApp synchronized.`
       );
     } catch (e) {
       toast.error("Filing Error", "Unable to update statutory filing status.");

@@ -181,6 +181,11 @@ export class UniversalEntityDnaMesh {
       };
     }
 
+    // Official CBIC Modulo-36 Checksum Verification for 15th character
+    const expectedChecksum = this.calculateGstinChecksum(cleanGst.substring(0, 14));
+    const actualChecksum = cleanGst.charAt(14);
+    const isChecksumValid = expectedChecksum ? (actualChecksum === expectedChecksum) : true;
+
     return {
       isValid: true,
       code: cleanGst,
@@ -188,9 +193,33 @@ export class UniversalEntityDnaMesh {
       extractedDetails: {
         stateCode,
         embeddedPan,
-        entityType: panResult.extractedDetails?.entityCategory || 'Business'
+        entityType: panResult.extractedDetails?.entityCategory || 'Business',
+        checksumChar: actualChecksum,
+        expectedChecksum,
+        checksumVerified: isChecksumValid ? 'VERIFIED' : 'POSSIBLE_MISMATCH'
       }
     };
+  }
+
+  /**
+   * Official CBIC Modulo-36 Checksum Generator for GSTIN (15th character)
+   */
+  public static calculateGstinChecksum(first14: string): string {
+    if (!first14 || first14.length < 14) return '';
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let sum = 0;
+    for (let i = 0; i < 14; i++) {
+      const char = first14.charAt(i).toUpperCase();
+      const val = chars.indexOf(char);
+      if (val === -1) return '';
+      const factor = (i % 2 === 0) ? 1 : 2;
+      const product = val * factor;
+      const quotient = Math.floor(product / 36);
+      const remainder = product % 36;
+      sum += (quotient + remainder);
+    }
+    const checkDigit = (36 - (sum % 36)) % 36;
+    return chars.charAt(checkDigit);
   }
 
   /**

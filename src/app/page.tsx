@@ -69,6 +69,7 @@ import { TasksCommandCenter } from "@/components/firm/TasksCommandCenter";
 import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
 import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
 import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
+import { AmbientClientContextBar } from "@/components/navigation/AmbientClientContextBar";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -674,6 +675,18 @@ export default function Home() {
           selectedGstin={selectedGstin}
           onOpenDiagnosticOnboarding={() => setIsDiagnosticModalOpen(true)}
         />
+
+        {/* Ambient Client Context Bar (Persistent Zero-Hop Context Header) */}
+        {currentView === "partner" && (
+          <AmbientClientContextBar
+            clients={clients}
+            groups={groups}
+            selectedClientId={selectedEntityId || clients[0]?.id || ""}
+            onSelectClient={handleSelectClient}
+            dscTokens={dscTokens}
+            onNavigateTab={handleTabChange}
+          />
+        )}
 
         {/* Master Flex Layout with Left Sidebar */}
         <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">

@@ -26,7 +26,8 @@ import {
   Compass,
   Terminal,
   ShieldCheck,
-  LayoutDashboard
+  LayoutDashboard,
+  Zap
 } from "lucide-react";
 
 export interface NavCategory {
@@ -204,6 +205,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
   },
   {
+    id: "gst-ims",
+    label: "GST IMS & Rule 37A Sentinel",
+    shortLabel: "GST IMS (2025)",
+    categoryId: "gst-suite",
+    description: "New 2024/2025 Mandate: Accept/Reject/Pending incoming invoices before 14th cutoff & Rule 37A 180-day tracker",
+    icon: Sparkles,
+    iconColor: "text-purple-600",
+    badge: "2025 Mandate",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+  },
+  {
     id: "notices",
     label: "Tax & GST Scrutiny Notices",
     shortLabel: "Scrutiny Notices",
@@ -359,6 +371,39 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     icon: ClipboardCheck,
     iconColor: "text-amber-600",
     badge: "Sec 44AB & 43B(h)",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  {
+    id: "form3cd-clause31",
+    label: "Form 3CD Clause 31 (269SS/T Cash Loans)",
+    shortLabel: "Clause 31 Cash Loans",
+    categoryId: "audit-balancesheet",
+    description: "Forensic scanner for cash loans >= ₹20,000 attracting 100% penalty u/s 271D & 271E",
+    icon: ShieldAlert,
+    iconColor: "text-amber-600",
+    badge: "100% Penalty Guard",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  {
+    id: "bank-audit",
+    label: "Statutory Bank Audit & IRAC / LFAR",
+    shortLabel: "Bank Audit (RBI)",
+    categoryId: "audit-balancesheet",
+    description: "RBI IRAC Norms, 90-day NPA classification, MOC P&L adjustments, Drawing Power & LFAR Pack",
+    icon: Building2,
+    iconColor: "text-cyan-600",
+    badge: "RBI Audit",
+    badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200"
+  },
+  {
+    id: "tally-data-grid",
+    label: "Tally-Speed Voucher Grid Entry",
+    shortLabel: "Tally Voucher Grid",
+    categoryId: "audit-balancesheet",
+    description: "100% Keyboard data entry: Enter to advance, Alt+C to create ledger, Ctrl+A to save",
+    icon: Zap,
+    iconColor: "text-amber-500",
+    badge: "Tally Speed",
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
   },
   {

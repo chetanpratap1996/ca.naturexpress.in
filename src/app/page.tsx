@@ -50,6 +50,10 @@ import { AutonomousGovernanceWorkbench } from "@/components/firm/AutonomousGover
 import { AutonomousVcfoWorkbench } from "@/components/firm/AutonomousVcfoWorkbench";
 import { EnterpriseCiCdWorkbench } from "@/components/firm/EnterpriseCiCdWorkbench";
 import { LegacyMigrationWorkbench } from "@/components/firm/LegacyMigrationWorkbench";
+import { GstImsWorkbench } from "@/components/gst/GstImsWorkbench";
+import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
+import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
+import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
 import { TallyKeyboardOverlay } from "@/components/shared/TallyKeyboardOverlay";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -741,6 +745,24 @@ export default function Home() {
 
               {activePartnerTab === "legacy-migration" && (
                 <LegacyMigrationWorkbench />
+              )}
+
+              {activePartnerTab === "gst-ims" && (
+                <GstImsWorkbench />
+              )}
+
+              {activePartnerTab === "bank-audit" && (
+                <BankAuditWorkbench />
+              )}
+
+              {activePartnerTab === "form3cd-clause31" && (
+                <Form3cdClause31Workbench />
+              )}
+
+              {activePartnerTab === "tally-data-grid" && (
+                <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6">
+                  <TallyDataGrid />
+                </div>
               )}
 
               {activePartnerTab === "gstr2b" && (

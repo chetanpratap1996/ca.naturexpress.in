@@ -217,6 +217,58 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       }
     },
     {
+      id: "cmd-gst-ims",
+      title: "GST IMS (Invoice Management System) & Rule 37A",
+      subtitle: "2024/2025 Mandate: Accept/Reject/Pending incoming invoices before 14th cutoff & Rule 37A tracker",
+      category: "SUITES",
+      icon: Sparkles,
+      shortcut: "G I",
+      badge: "2025 Mandate",
+      action: () => {
+        onNavigateTab("gst-ims");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-bank-audit",
+      title: "Statutory Bank Audit (RBI IRAC & LFAR)",
+      subtitle: "RBI IRAC 90-day NPA classification, MOC P&L adjustments, Drawing Power (DP) & LFAR Pack",
+      category: "SUITES",
+      icon: Building2,
+      shortcut: "B A",
+      badge: "RBI Audit",
+      action: () => {
+        onNavigateTab("bank-audit");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-form3cd-clause31",
+      title: "Form 3CD Clause 31 (269SS/T Cash Loans)",
+      subtitle: "Forensic scanner for cash loans >= ₹20,000 attracting 100% penalty u/s 271D & 271E",
+      category: "SUITES",
+      icon: ShieldAlert,
+      shortcut: "C 3 1",
+      badge: "100% Penalty",
+      action: () => {
+        onNavigateTab("form3cd-clause31");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-tally-data-grid",
+      title: "Tally-Speed Voucher Grid Entry",
+      subtitle: "100% Keyboard data entry: Enter to advance, Alt+C to create ledger, Ctrl+A to save",
+      category: "SUITES",
+      icon: Zap,
+      shortcut: "T G",
+      badge: "Tally Speed",
+      action: () => {
+        onNavigateTab("tally-data-grid");
+        onClose();
+      }
+    },
+    {
       id: "cmd-ais",
       title: "AIS / 26AS SFT Forensic Inspector",
       subtitle: "Rule 114E high-value transactions, 194Q dominance, and notice probability",

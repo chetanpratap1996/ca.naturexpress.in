@@ -910,7 +910,7 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <button
                 onClick={() => setIsDataCalibrateModalOpen(false)}
-                className="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl"
+                className="px-5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition"
               >
                 Apply &amp; Recalculate
               </button>

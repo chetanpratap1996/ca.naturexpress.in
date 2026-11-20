@@ -67,27 +67,27 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
       {/* Living Pulse Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition shadow-2xs ${
+        className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition shadow-xs ${
           isSweeping
-            ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950 dark:text-purple-300"
+            ? "bg-red-50 text-red-700 border-red-300"
             : isAutonomousActive
-            ? "bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 border-emerald-300/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300"
+            ? "bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 border-emerald-300/80"
+            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
         }`}
         title="Practice Autopilot Engine Status"
       >
         <span className="relative flex h-2 w-2">
           {isAutonomousActive && (
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSweeping ? "bg-purple-500" : "bg-emerald-500"}`} />
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSweeping ? "bg-red-500" : "bg-emerald-500"}`} />
           )}
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${isSweeping ? "bg-purple-600" : isAutonomousActive ? "bg-emerald-600" : "bg-slate-400"}`} />
+          <span className={`relative inline-flex rounded-full h-2 w-2 ${isSweeping ? "bg-red-600" : isAutonomousActive ? "bg-emerald-600" : "bg-slate-400"}`} />
         </span>
 
         <span className="hidden sm:inline font-bold">
           {isSweeping ? "Sweeping Practice..." : isAutonomousActive ? "Autopilot" : "Autopilot Paused"}
         </span>
 
-        <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 font-bold hidden md:inline">
+        <span className="font-mono text-[11px] text-slate-500 font-bold hidden md:inline">
           {isAutonomousActive && !isSweeping ? formatTime(secondsToNextSweep) : ""}
         </span>
 
@@ -96,10 +96,10 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xl z-50 text-slate-900 dark:text-white space-y-3.5 animate-in fade-in zoom-in-95">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl p-4 shadow-xl z-50 text-slate-900 space-y-3.5 animate-in fade-in zoom-in-95">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-purple-600" />
+              <Zap className="w-4 h-4 text-red-600" />
               <span className="font-black text-xs uppercase tracking-wide">
                 Practice Autopilot Kernel
               </span>
@@ -108,14 +108,14 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleToggleSound}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
                 title={isMuted ? "Unmute Sound Feedback" : "Mute Sound Feedback"}
               >
                 {isMuted ? <VolumeX className="w-4 h-4 text-slate-400" /> : <Volume2 className="w-4 h-4 text-emerald-600" />}
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -123,15 +123,15 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
           </div>
 
           {/* Toggle Autonomous Mode */}
-          <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
             <div className="space-y-0.5">
-              <span className="text-xs font-bold block">Autonomous Background Sweeps</span>
+              <span className="text-xs font-bold block text-slate-900">Autonomous Background Sweeps</span>
               <span className="text-[10px] text-slate-500 block">Runs every 3 mins in background</span>
             </div>
             <button
               onClick={() => toggleAutonomousMode()}
               className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center ${
-                isAutonomousActive ? "bg-emerald-600 justify-end" : "bg-slate-300 dark:bg-slate-600 justify-start"
+                isAutonomousActive ? "bg-emerald-600 justify-end" : "bg-slate-300 justify-start"
               }`}
             >
               <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
@@ -145,21 +145,21 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
                 Last Sweep Summary ({lastSweepSummary.executionDurationMs}ms)
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2 bg-purple-50 dark:bg-purple-950/40 rounded-lg border border-purple-200/50">
+                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
                   <span className="text-slate-500 block">Tasks Created</span>
-                  <span className="font-bold text-purple-700 dark:text-purple-300">+{lastSweepSummary.tasksSpawned}</span>
+                  <span className="font-bold text-slate-900">+{lastSweepSummary.tasksSpawned}</span>
                 </div>
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200/50">
+                <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
                   <span className="text-slate-500 block">Docs Unlocked</span>
-                  <span className="font-bold text-emerald-700 dark:text-emerald-300">+{lastSweepSummary.vaultDocsAutoUnlocked}</span>
+                  <span className="font-bold text-emerald-700">+{lastSweepSummary.vaultDocsAutoUnlocked}</span>
                 </div>
-                <div className="p-2 bg-red-50 dark:bg-red-950/40 rounded-lg border border-red-200/50">
+                <div className="p-2 bg-red-50 rounded-lg border border-red-200">
                   <span className="text-slate-500 block">Penalty Exposure</span>
-                  <span className="font-bold text-red-700 dark:text-red-300">{formatCurrencyINR(lastSweepSummary.totalLateFeeAudited)}</span>
+                  <span className="font-bold text-red-700">{formatCurrencyINR(lastSweepSummary.totalLateFeeAudited)}</span>
                 </div>
-                <div className="p-2 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-200/50">
+                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
                   <span className="text-slate-500 block">Invoices Drafted</span>
-                  <span className="font-bold text-blue-700 dark:text-blue-300">+{lastSweepSummary.autoInvoicesDrafted}</span>
+                  <span className="font-bold text-slate-900">+{lastSweepSummary.autoInvoicesDrafted}</span>
                 </div>
               </div>
             </div>
@@ -175,7 +175,7 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
               await triggerImmediateSweep();
             }}
             disabled={isSweeping}
-            className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition"
+            className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition"
           >
             <RotateCw className={`w-3.5 h-3.5 ${isSweeping ? "animate-spin" : ""}`} />
             {isSweeping ? "Running Sweep..." : "Trigger Immediate Sweep"}

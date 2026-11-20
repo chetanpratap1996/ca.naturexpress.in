@@ -1119,14 +1119,14 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
       </div>
 
       {/* Taxpayer Profile & Year Control Bar */}
-      <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-md grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <div className="bg-white border-2 border-red-500 text-slate-900 rounded-3xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
         {/* Profile Selector (Supports Real Firm Clients + Presets) */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-indigo-300 uppercase tracking-wider block">
+            <label className="text-xs font-bold text-red-700 uppercase tracking-wider block">
               Taxpayer Assessee Profile
             </label>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-slate-500 font-mono">
               {availableClients.length} clients in firm
             </span>
           </div>
@@ -1134,7 +1134,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
           <select
             value={selectedProfileId}
             onChange={(e) => handleSelectClient(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-xl p-2.5 outline-none focus:border-indigo-400 cursor-pointer"
+            className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-red-500 cursor-pointer"
           >
             <optgroup label="--- REGISTERED FIRM CLIENTS ---">
               {availableClients.filter(c => c.isFirmClient).map((c) => (
@@ -1158,14 +1158,14 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
 
         {/* Assessment Year Toggle */}
         <div>
-          <label className="text-xs font-bold text-indigo-300 uppercase tracking-wider block mb-1">
+          <label className="text-xs font-bold text-red-700 uppercase tracking-wider block mb-1">
             Assessment Year
           </label>
-          <div className="grid grid-cols-3 gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs font-bold text-slate-300">
+          <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">
             <button
               onClick={() => setAssessmentYear("AY 2026-27")}
               className={`py-1.5 rounded-lg transition ${
-                assessmentYear === "AY 2026-27" ? "bg-btred-logo text-white shadow-sm font-black" : "hover:text-white"
+                assessmentYear === "AY 2026-27" ? "bg-red-600 text-white shadow-xs font-black" : "hover:text-slate-900"
               }`}
             >
               AY 26-27
@@ -1173,7 +1173,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
             <button
               onClick={() => setAssessmentYear("AY 2025-26")}
               className={`py-1.5 rounded-lg transition ${
-                assessmentYear === "AY 2025-26" ? "bg-btred-logo text-white shadow-sm font-black" : "hover:text-white"
+                assessmentYear === "AY 2025-26" ? "bg-red-600 text-white shadow-xs font-black" : "hover:text-slate-900"
               }`}
             >
               AY 25-26
@@ -1181,32 +1181,32 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
             <button
               onClick={() => setAssessmentYear("AY 2024-25")}
               className={`py-1.5 rounded-lg transition ${
-                assessmentYear === "AY 2024-25" ? "bg-btred-logo text-white shadow-sm font-black" : "hover:text-white"
+                assessmentYear === "AY 2024-25" ? "bg-red-600 text-white shadow-xs font-black" : "hover:text-slate-900"
               }`}
             >
               AY 24-25
             </button>
           </div>
-          <span className="text-[10px] text-emerald-400 mt-1 block font-semibold">
+          <span className="text-[10px] text-emerald-700 mt-1 block font-semibold">
             Standard Deduction: {formatCurrencyINR(calculation.newRegimeStdDeduction)} in 115BAC
           </span>
         </div>
 
         {/* Age Category */}
         <div>
-          <label className="text-xs font-bold text-indigo-300 uppercase tracking-wider block mb-1">
+          <label className="text-xs font-bold text-red-700 uppercase tracking-wider block mb-1">
             Taxpayer Age Category
           </label>
           <select
             value={taxpayerCategory}
             onChange={(e) => setTaxpayerCategory(e.target.value as any)}
-            className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-xl p-2.5 outline-none focus:border-indigo-400 cursor-pointer"
+            className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-red-500 cursor-pointer"
           >
             <option value="INDIVIDUAL">Resident Individual (&lt; 60 years)</option>
             <option value="SENIOR">Senior Citizen (60 to 79 years — 80TTB ₹50k)</option>
             <option value="SUPER_SENIOR">Super Senior Citizen (&ge; 80 years — ₹5L Exemption)</option>
           </select>
-          <span className="text-[10px] text-slate-400 mt-1 block">
+          <span className="text-[10px] text-slate-500 mt-1 block">
             Basic Exemption in Old: {taxpayerCategory === "SUPER_SENIOR" ? "₹5,00,000" : taxpayerCategory === "SENIOR" ? "₹3,00,000" : "₹2,50,000"}
           </span>
         </div>
@@ -1486,27 +1486,27 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
       </div>
 
       {/* QUICK SCENARIO SIMULATION TOOLBAR */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 rounded-3xl shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-red-50 border border-red-200 text-slate-900 p-4 rounded-3xl shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span className="text-xs font-bold text-slate-200">Instant Advisory What-If Levers:</span>
+          <Sparkles className="w-4 h-4 text-red-600" />
+          <span className="text-xs font-bold text-slate-900">Instant Advisory What-If Levers:</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap text-xs">
           <button
             onClick={handleSimulateNps50k}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-200 font-bold transition border border-slate-700"
+            className="px-3 py-1.5 bg-white hover:bg-slate-100 rounded-xl text-slate-800 font-bold transition border border-slate-200 shadow-2xs"
           >
             +₹50k Tier-1 NPS (80CCD1B)
           </button>
           <button
             onClick={handleSimulateEmployerNps}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-emerald-300 font-bold transition border border-slate-700"
+            className="px-3 py-1.5 bg-white hover:bg-slate-100 rounded-xl text-emerald-700 font-bold transition border border-emerald-200 shadow-2xs"
           >
             +14% Corporate NPS (80CCD2 in 115BAC)
           </button>
           <button
             onClick={() => setHomeLoanInterestSelfOccupied(200000)}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-200 font-bold transition border border-slate-700"
+            className="px-3 py-1.5 bg-white hover:bg-slate-100 rounded-xl text-slate-800 font-bold transition border border-slate-200 shadow-2xs"
           >
             Max Home Loan ₹2L (24b)
           </button>
@@ -1847,7 +1847,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
       {/* MODAL: HRA Exemption Calculator (Rule 2A)                                */}
       {/* ========================================================================= */}
       {showHraCalculator && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
@@ -1937,7 +1937,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
       {/* MODAL: Form 10-IEA Mandatory Opt-out Alert & Payload                     */}
       {/* ========================================================================= */}
       {showForm10IEAModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
@@ -1985,7 +1985,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
                   toast.success("Payload Copied", "Form 10-IEA JSON copied to clipboard for ITD portal.");
                   setShowForm10IEAModal(false);
                 }}
-                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition shadow-sm"
               >
                 Copy Form 10-IEA JSON
               </button>

@@ -202,7 +202,7 @@ export const CaEnterpriseFooter: React.FC<CaEnterpriseFooterProps> = ({
             <div className="pt-2">
               <button
                 onClick={() => onOpenBooking()}
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2"
               >
                 <span>Book In-Office Appointment</span>
                 <ChevronRight className="w-3.5 h-3.5" />

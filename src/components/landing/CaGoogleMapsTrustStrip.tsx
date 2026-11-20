@@ -75,7 +75,7 @@ export const CaGoogleMapsTrustStrip: React.FC<CaGoogleMapsTrustStripProps> = ({
                   href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-sm transition flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-xs transition flex items-center gap-2"
                 >
                   <Navigation className="w-4 h-4 text-btred-400" />
                   <span>Open in Google Maps (Directions)</span>

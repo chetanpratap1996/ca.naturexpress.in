@@ -142,96 +142,96 @@ export function AutonomousVcfoWorkbench() {
   return (
     <div className="space-y-6">
       {/* Top Banner Header */}
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-xl">
+      <div className="rounded-2xl border-2 border-red-500 bg-white p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-300 border border-amber-500/30">
-                <Sparkles className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">
+                <Sparkles className="h-3.5 w-3.5 text-red-600" />
                 Phase 3: Weeks 49–52
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
                 Ind AS 7 Direct Method
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-300">
                 RBI Tandon Norms CR ≥ 1.33:1
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-              Autonomous Virtual CFO & Practice Intelligence Engine
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
+              Autonomous Virtual CFO &amp; Practice Intelligence Engine
             </h1>
-            <p className="mt-1 text-sm text-slate-300 max-w-3xl">
+            <p className="mt-1 text-sm text-slate-600 max-w-3xl">
               13-week rolling cash flow forecasting, Section 43B(h) MSME payment sequencing, bank covenant sentinel, and real-time firm realization rates with SA 210 scope creep addendums.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => handleGenerateCma(selectedProfile)}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-all active:scale-95"
             >
               <FileSpreadsheet className="h-4 w-4" />
-              1-Click Banker's Docket (CMA)
+              1-Click Banker&apos;s Docket (CMA)
             </button>
             <button
               onClick={() => handleExportBoardDossier(selectedProfile)}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-md hover:bg-amber-400 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-800 border border-slate-300 shadow-sm hover:bg-slate-200 transition-all active:scale-95"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 text-red-600" />
               Export Board Dossier
             </button>
           </div>
         </div>
 
         {/* Global Metric Cards */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-800/80 pt-5">
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-200 pt-5">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-500 flex items-center justify-between">
               Firm Realized Revenue
-              <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
+              <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-white">
+            <div className="mt-1 text-xl font-bold text-slate-900">
               ₹{(practiceSummary.totalRealizedRevenueInr / 100000).toFixed(2)} Lakhs
             </div>
-            <div className="text-[11px] text-emerald-400 font-medium mt-0.5">
+            <div className="text-[11px] text-emerald-700 font-medium mt-0.5">
               Across {practiceSummary.firmWideTotalClients} Active Clients
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-500 flex items-center justify-between">
               Average Effective Hourly Rate
-              <Clock className="h-3.5 w-3.5 text-amber-400" />
+              <Clock className="h-3.5 w-3.5 text-amber-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-amber-300">
+            <div className="mt-1 text-xl font-bold text-slate-900">
               ₹{practiceSummary.averageFirmEhrInr.toLocaleString("en-IN")}/hr
             </div>
-            <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+            <div className="text-[11px] text-slate-600 font-medium mt-0.5">
               Target: ₹1,200/hr (Exceeded by +13%)
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
-              Total Unbilled WIP & Debtors
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-500 flex items-center justify-between">
+              Total Unbilled WIP &amp; Debtors
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-rose-300">
+            <div className="mt-1 text-xl font-bold text-red-600">
               ₹{((practiceSummary.unbilledWipPoolInr + practiceSummary.totalDebtorsPoolInr) / 100000).toFixed(2)} Lakhs
             </div>
-            <div className="text-[11px] text-rose-400 font-medium mt-0.5">
+            <div className="text-[11px] text-rose-600 font-medium mt-0.5">
               ₹{(practiceSummary.unbilledWipPoolInr / 100000).toFixed(2)}L Unbilled WIP
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-500 flex items-center justify-between">
               Average Capital Lock-Up
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
+              <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-white">
+            <div className="mt-1 text-xl font-bold text-slate-900">
               {practiceSummary.averageLockUpDays} Days
             </div>
-            <div className="text-[11px] text-blue-300 font-medium mt-0.5">
+            <div className="text-[11px] text-slate-600 font-medium mt-0.5">
               WIP Days + Debtor Days
             </div>
           </div>
@@ -813,11 +813,11 @@ export function AutonomousVcfoWorkbench() {
 
       {/* MODAL: SA 210 SCOPE REVISION NOTICE */}
       {previewNoticeText && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-amber-600" />
+                <FileText className="h-5 w-5 text-red-600" />
                 <h3 className="font-bold text-slate-900">
                   SA 210 Scope Creep Addendum: {selectedNoticeClient}
                 </h3>
@@ -848,7 +848,7 @@ export function AutonomousVcfoWorkbench() {
                   toast.success("Dispatched via WhatsApp Assessee Approval Desk!");
                   setPreviewNoticeText(null);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 shadow"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700 shadow"
               >
                 <Check className="h-3.5 w-3.5" />
                 Dispatch to Assessee (SA 580)
@@ -860,11 +860,11 @@ export function AutonomousVcfoWorkbench() {
 
       {/* MODAL: BOARD ADVISORY DOSSIER */}
       {previewDossierText && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-indigo-600" />
+                <Sparkles className="h-5 w-5 text-red-600" />
                 <h3 className="font-bold text-slate-900">
                   Executive Virtual CFO Board Advisory Dossier
                 </h3>
@@ -876,7 +876,7 @@ export function AutonomousVcfoWorkbench() {
                 ✕
               </button>
             </div>
-            <div className="mt-4 max-h-[28rem] overflow-y-auto rounded-lg bg-slate-900 p-5 font-mono text-xs text-emerald-400 whitespace-pre-wrap leading-relaxed border border-slate-800">
+            <div className="mt-4 max-h-[28rem] overflow-y-auto rounded-lg bg-slate-50 p-5 font-mono text-xs text-slate-800 whitespace-pre-wrap leading-relaxed border border-slate-200">
               {previewDossierText}
             </div>
             <div className="mt-5 flex justify-end gap-3">
@@ -900,7 +900,7 @@ export function AutonomousVcfoWorkbench() {
                   a.click();
                   toast.success("Downloaded Board Dossier file!");
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 shadow"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700 shadow"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download Dossier
@@ -912,11 +912,11 @@ export function AutonomousVcfoWorkbench() {
 
       {/* MODAL: 1-CLICK BANKER'S DOCKET & CMA REPORT PACK */}
       {previewCmaDocket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5 text-indigo-600" />
+                <FileSpreadsheet className="h-5 w-5 text-red-600" />
                 <div>
                   <h3 className="font-bold text-slate-900">
                     CMA Report &amp; Bank Loan Pack (Tandon Method II MPBF)
@@ -934,7 +934,7 @@ export function AutonomousVcfoWorkbench() {
               </button>
             </div>
 
-            <div className="mt-4 max-h-[30rem] overflow-y-auto rounded-lg bg-slate-900 p-5 font-mono text-xs text-amber-300 whitespace-pre-wrap leading-relaxed border border-slate-800">
+            <div className="mt-4 max-h-[30rem] overflow-y-auto rounded-lg bg-slate-50 p-5 font-mono text-xs text-slate-800 whitespace-pre-wrap leading-relaxed border border-slate-200">
               {previewCmaDocket.docketText}
             </div>
 

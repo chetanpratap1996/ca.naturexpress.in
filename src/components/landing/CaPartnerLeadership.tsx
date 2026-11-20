@@ -76,7 +76,7 @@ export const CaPartnerLeadership: React.FC<CaPartnerLeadershipProps> = ({
                 <div className="absolute -inset-1.5 bg-gradient-to-tr from-btred-600 via-amber-500 to-red-500 rounded-[2.5rem] blur-sm opacity-60 group-hover:opacity-100 transition duration-700 animate-glow" />
 
                 {/* Portrait Container */}
-                <div className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-[2.25rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-900 transition-all duration-500 group-hover:scale-[1.02]">
+                <div className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-[2.25rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100 transition-all duration-500 group-hover:scale-[1.02]">
                   <Image
                     src="/images/ca-gunjan-jain.png"
                     alt="CA Gunjan Jain, FCA - Managing Partner GPA & Co. / Brains & Taxes"
@@ -87,20 +87,20 @@ export const CaPartnerLeadership: React.FC<CaPartnerLeadershipProps> = ({
                   />
                   
                   {/* Subtle Gradient Vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-500/20 via-transparent to-transparent opacity-40" />
 
                   {/* Overlaid Title on Image Bottom */}
                   <div className="absolute bottom-3 inset-x-3 text-center pointer-events-none">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-white drop-shadow-md bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-900 drop-shadow-sm bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-slate-200">
                       CA Gunjan Jain, FCA
                     </span>
                   </div>
                 </div>
 
                 {/* Floating ICAI Verified Shield (Top Left) */}
-                <div className="absolute -top-2 -left-2 bg-slate-900 text-amber-400 p-2.5 rounded-2xl shadow-xl border border-amber-400/30 flex items-center gap-1.5 animate-float">
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  <span className="text-[10px] font-black tracking-wider uppercase text-white pr-1">FCA &bull; ICAI</span>
+                <div className="absolute -top-2 -left-2 bg-white text-amber-600 p-2.5 rounded-2xl shadow-xl border border-amber-300 flex items-center gap-1.5 animate-float">
+                  <ShieldCheck className="w-4 h-4 text-amber-500" />
+                  <span className="text-[10px] font-black tracking-wider uppercase text-slate-900 pr-1">FCA &bull; ICAI</span>
                 </div>
 
                 {/* Floating Live Status Pill (Bottom Right) */}

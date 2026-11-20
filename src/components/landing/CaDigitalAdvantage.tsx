@@ -113,35 +113,33 @@ export const CaDigitalAdvantage: React.FC<CaDigitalAdvantageProps> = ({
         </div>
 
         {/* Real Client Portal Vault Access Card (No dummy / fake sandbox buttons) */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-btred-600/15 rounded-full blur-3xl pointer-events-none"></div>
-
+        <div className="bg-white border-2 border-red-500 text-slate-900 rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
             <div className="lg:col-span-8 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-400 text-xs font-bold border border-white/10">
-                <Smartphone className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+                <Smartphone className="w-3.5 h-3.5 text-red-600" />
                 <span>24/7 Digital Client Vault &bull; Included For Every Retained Client</span>
               </div>
 
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-slate-900">
                 Secure 24/7 Client Compliance Vault
               </h3>
 
-              <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
+              <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
                 Every retained client of GPA &amp; Co. receives authenticated access to their statutory audit workpapers, filed ITR acknowledgments, Form 3CD, banker CMA dockets, and MSME Section 43B(h) compliance records.
               </p>
 
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-1">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700 pt-1">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Instant Banker Docket Export</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Live 43B(h) Vendor Countdown</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Tax Notice Reply Tracking</span>
                 </span>
               </div>
@@ -150,7 +148,7 @@ export const CaDigitalAdvantage: React.FC<CaDigitalAdvantageProps> = ({
             <div className="lg:col-span-4 flex flex-col gap-3 justify-center">
               <button
                 onClick={() => onOpenLogin("client")}
-                className="w-full h-12 px-6 rounded-xl bg-btred-600 hover:bg-btred-700 text-white font-bold text-xs shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2"
+                className="w-full h-12 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
               >
                 <KeyRound className="w-4 h-4 shrink-0" />
                 <span>Access Client Portal Login</span>
@@ -160,9 +158,9 @@ export const CaDigitalAdvantage: React.FC<CaDigitalAdvantageProps> = ({
               {onOpenBooking && (
                 <button
                   onClick={() => onOpenBooking("Client Portal Onboarding")}
-                  className="w-full h-11 px-6 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/20 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-11 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 transition-all flex items-center justify-center gap-2"
                 >
-                  <ShieldCheck className="w-4 h-4 text-slate-300 shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-slate-600 shrink-0" />
                   <span>Request Portal Access / Retainer</span>
                 </button>
               )}

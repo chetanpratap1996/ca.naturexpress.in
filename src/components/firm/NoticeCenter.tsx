@@ -483,7 +483,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                     onClick={() => setSelectedAuthority(auth)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition whitespace-nowrap ${
                       selectedAuthority === auth
-                        ? "bg-slate-900 text-white"
+                        ? "bg-red-600 text-white shadow-sm"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -811,7 +811,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                     onClick={() => setAdjournmentDays(15)}
                     className={`py-2 rounded-xl text-xs font-bold border transition ${
                       adjournmentDays === 15 
-                        ? "bg-slate-900 text-white border-slate-900" 
+                        ? "bg-red-600 text-white border-red-600 shadow-sm" 
                         : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -822,7 +822,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                     onClick={() => setAdjournmentDays(30)}
                     className={`py-2 rounded-xl text-xs font-bold border transition ${
                       adjournmentDays === 30 
-                        ? "bg-slate-900 text-white border-slate-900" 
+                        ? "bg-red-600 text-white border-red-600 shadow-sm" 
                         : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -1090,7 +1090,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
               <button
                 type="button"
                 onClick={() => setShowDinModal(false)}
-                className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm"
               >
                 Done
               </button>

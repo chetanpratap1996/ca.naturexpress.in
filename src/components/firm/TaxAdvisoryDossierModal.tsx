@@ -260,18 +260,18 @@ Peer Review Cert: ${firm.peerReviewNo}
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       {/* Container Card */}
       <div className="bg-white text-slate-900 rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-300 my-8 overflow-hidden animate-scaleUp">
         {/* Floating Action Top Bar */}
-        <div className="bg-slate-900 text-white p-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 no-print">
+        <div className="bg-white text-slate-900 p-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 no-print">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-black uppercase tracking-wider text-red-700">
               Statutory Client Advisory Dossier
             </span>
             <span className="text-xs text-slate-400">|</span>
-            <span className="text-xs font-mono text-slate-300">UDIN: {data.udinCode}</span>
+            <span className="text-xs font-mono text-slate-700">UDIN: {data.udinCode}</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -286,7 +286,7 @@ Peer Review Cert: ${firm.peerReviewNo}
 
             <button
               onClick={handleDownloadHtml}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700"
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-300"
               title="Download standalone HTML report"
             >
               <Download className="w-3.5 h-3.5" />
@@ -295,10 +295,10 @@ Peer Review Cert: ${firm.peerReviewNo}
 
             <button
               onClick={handleCopyMemo}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700"
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-300"
               title="Copy formal memo to clipboard"
             >
-              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{isCopied ? "Copied!" : "Copy Memo"}</span>
             </button>
 
@@ -313,7 +313,7 @@ Peer Review Cert: ${firm.peerReviewNo}
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition ml-2"
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition ml-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -559,15 +559,15 @@ Peer Review Cert: ${firm.peerReviewNo}
                     <td className="py-1.5 px-3 text-right text-emerald-700">-{formatCurrencyINR(data.totalPrepaid)}</td>
                     <td className="py-1.5 px-3 font-sans text-[11px] text-slate-500">Form 26AS / AIS ledger credits</td>
                   </tr>
-                  <tr className="bg-slate-900 text-white font-black">
+                  <tr className="bg-red-50 text-slate-900 font-black border-t border-b border-red-200">
                     <td className="py-2 px-3 font-sans">Net Balance {optimalNetBalance > 0 ? "Payable" : "Refundable"}</td>
-                    <td className={`py-2 px-3 text-right ${data.netBalanceNew > 0 ? "text-amber-300" : "text-emerald-400"}`}>
+                    <td className={`py-2 px-3 text-right ${data.netBalanceNew > 0 ? "text-amber-800" : "text-emerald-700"}`}>
                       {formatCurrencyINR(Math.abs(data.netBalanceNew))}
                     </td>
-                    <td className={`py-2 px-3 text-right ${data.netBalanceOld > 0 ? "text-amber-300" : "text-emerald-400"}`}>
+                    <td className={`py-2 px-3 text-right ${data.netBalanceOld > 0 ? "text-amber-800" : "text-emerald-700"}`}>
                       {formatCurrencyINR(Math.abs(data.netBalanceOld))}
                     </td>
-                    <td className="py-2 px-3 font-sans text-[11px] text-slate-300">
+                    <td className="py-2 px-3 font-sans text-[11px] text-slate-600">
                       {data.recommendedRegime === "NEW" ? "Recommended: New Regime" : "Recommended: Old Regime"}
                     </td>
                   </tr>
@@ -695,7 +695,7 @@ Peer Review Cert: ${firm.peerReviewNo}
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
+            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition shadow-sm"
           >
             Close Dossier
           </button>

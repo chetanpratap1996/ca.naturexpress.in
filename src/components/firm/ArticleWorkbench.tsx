@@ -1017,7 +1017,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
         <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
           <button
             onClick={() => setShowAddLogModal(true)}
-            className="flex-1 sm:flex-none bg-slate-900 hover:bg-slate-800 text-white font-bold px-3.5 py-2 rounded-2xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm"
+            className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 rounded-2xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm"
           >
             <Plus className="w-3.5 h-3.5 text-amber-400" />
             Log Work Hours
@@ -1143,7 +1143,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   onClick={() => setStatusFilter(f.id as any)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                     statusFilter === f.id
-                      ? "bg-slate-900 text-white shadow"
+                      ? "bg-red-600 text-white shadow-sm"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
                   }`}
                 >
@@ -1374,9 +1374,9 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
               </span>
               <button
                 onClick={() => setManualUploadModalOpen(true)}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-xs"
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm"
               >
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <Plus className="w-3.5 h-3.5 text-white" />
                 Manual Intake
               </button>
             </div>
@@ -1397,7 +1397,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   onClick={() => setDocStatusFilter(f.id as any)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                     docStatusFilter === f.id
-                      ? "bg-slate-900 text-white shadow"
+                      ? "bg-red-600 text-white shadow-sm"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
                   }`}
                 >
@@ -1643,7 +1643,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   />
                   <button
                     onClick={() => handleTestCustomPassword(DEFAULT_ENCRYPTED_BANK_DOCS[0])}
-                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition whitespace-nowrap"
+                    className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition whitespace-nowrap shadow-sm"
                   >
                     Test Unlock
                   </button>
@@ -1706,7 +1706,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                                 const el = document.getElementById("tally-prime-parser-desk");
                                 if (el) el.scrollIntoView({ behavior: "smooth" });
                               }}
-                              className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-xs"
+                              className="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
                             >
                               Load into Parser &rarr;
                             </button>
@@ -1863,7 +1863,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   className={`p-3.5 rounded-2xl max-w-lg text-xs leading-relaxed space-y-1.5 ${
                     m.isClient
                       ? "bg-white border border-slate-200 text-slate-800 shadow-xs"
-                      : "bg-slate-900 text-white shadow-md"
+                      : "bg-red-600 text-white shadow-sm"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-4 text-[10px] opacity-80 font-bold border-b pb-1 border-current/10">
@@ -2007,7 +2007,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                         }}
                         className={`px-2.5 py-1.5 rounded-xl text-left transition border ${
                           otpPortal === p.id
-                            ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                            ? "bg-red-600 text-white border-red-600 shadow-sm"
                             : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
                         }`}
                       >
@@ -2181,9 +2181,9 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                     <button
                       type="button"
                       onClick={handleStartLiveCall}
-                      className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2"
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs font-black px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2"
                     >
-                      <PhoneCall className="w-4 h-4 text-emerald-400" />
+                      <PhoneCall className="w-4 h-4 text-white" />
                       Start Live Filing Call &amp; Timer
                     </button>
                     <button
@@ -2199,32 +2199,32 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
 
               {/* State 3: LIVE_CALL */}
               {otpCoordinationState === "live_call" && (
-                <div className="bg-slate-900 rounded-2xl p-6 text-white space-y-6 shadow-md border border-slate-800">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="bg-white rounded-2xl p-6 text-slate-900 space-y-6 shadow-sm border-2 border-red-500">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                        <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="text-xs font-black uppercase tracking-wider text-emerald-700">
                           Live Department Filing Call Active
                         </span>
                       </div>
-                      <h4 className="text-base font-black text-white mt-1">
+                      <h4 className="text-base font-black text-slate-900 mt-1">
                         Coordinating with {otpActiveChannel.contactName} ({otpActiveChannel.designation})
                       </h4>
-                      <p className="text-xs text-slate-300 font-medium mt-0.5">
+                      <p className="text-xs text-slate-600 font-medium mt-0.5">
                         Triggered OTP on {otpPortal === "INCOME_TAX" ? "Income Tax Portal (ITBA)" : otpPortal === "GSTN" ? "GST Common Portal" : otpPortal === "MCA_V3" ? "MCA V3 Portal" : "TRACES"}. Have signatory read the 6-digit Aadhaar / SMS EVC code immediately.
                       </p>
                     </div>
 
                     {/* Countdown Clock Display */}
-                    <div className="bg-slate-950 px-5 py-3 rounded-2xl border border-slate-800 flex items-center gap-4 shrink-0 shadow-inner">
+                    <div className="bg-slate-50 px-5 py-3 rounded-2xl border border-slate-200 flex items-center gap-4 shrink-0 shadow-2xs">
                       <div>
-                        <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">
+                        <span className="text-[10px] font-black uppercase text-slate-500 block tracking-wider">
                           OTP TTL Window
                         </span>
                         <div className={`font-mono text-3xl font-black ${
-                          otpCountdownSeconds < 120 ? "text-red-400 animate-pulse" :
-                          otpCountdownSeconds < 300 ? "text-amber-400" : "text-emerald-400"
+                          otpCountdownSeconds < 120 ? "text-red-600 animate-pulse" :
+                          otpCountdownSeconds < 300 ? "text-amber-600" : "text-emerald-700"
                         }`}>
                           {Math.floor(otpCountdownSeconds / 60).toString().padStart(2, "0")}:
                           {(otpCountdownSeconds % 60).toString().padStart(2, "0")}
@@ -2234,9 +2234,9 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                         type="button"
                         onClick={handleExtendTimer}
                         title="Add 5 Minutes to Department OTP Window"
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-bold px-2.5 py-2 rounded-xl transition border border-slate-700 flex flex-col items-center gap-0.5"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold px-2.5 py-2 rounded-xl transition border border-slate-300 flex flex-col items-center gap-0.5"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                        <RotateCcw className="w-3.5 h-3.5 text-red-600" />
                         <span>+5m</span>
                       </button>
                     </div>
@@ -2244,17 +2244,17 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
 
                   {/* Article Clerk Live Script & ARN Capture */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block mb-1">
                         Article Script (Verbal Prompt)
                       </span>
-                      <p className="text-xs text-slate-200 italic leading-relaxed">
+                      <p className="text-xs text-slate-700 italic leading-relaxed">
                         &ldquo;Sir/Ma&apos;am, I have submitted {otpPortal === "INCOME_TAX" ? "the ITR-6 return on ITBA" : otpPortal === "GSTN" ? "GSTR-3B on GSTN" : "the statutory form on MCA"}. Please check your phone for the 6-digit Aadhaar EVC received from the department and kindly read it out.&rdquo;
                       </p>
                     </div>
 
-                    <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 space-y-2">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                      <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">
                         Department Acknowledgement / ARN (Optional Input)
                       </span>
                       <div className="flex items-center gap-2">
@@ -2263,16 +2263,20 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                           value={otpArnInput}
                           onChange={(e) => setOtpArnInput(e.target.value)}
                           placeholder="e.g. AA271026001928C (Leave empty to auto-generate)"
-                          className="w-full bg-slate-900 border border-slate-700 text-white placeholder-slate-500 font-mono text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400"
+                          className="w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 font-mono text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-800">
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-200">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Zero-Knowledge Relay &bull; OTP is never stored or cached</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <span>Zero-Knowledge Relay &bull; OTP is never stored or cached</span>
                     </div>
 
@@ -2417,20 +2421,20 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
           </div>
 
           {/* Statutory Mandate Compliance Box */}
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <span className="text-xs font-black text-white block">
+                <span className="text-xs font-black text-slate-900 block">
                   Statutory Non-Storage Mandate &bull; IT Act Section 66C &amp; UIDAI Circular F.No. 11020/2020
                 </span>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
+                <p className="text-[11px] text-slate-600 leading-relaxed">
                   Chartered Accountancy firms are legally prohibited from collecting, caching, or automatically intercepting Aadhaar OTPs and NetBanking credentials. Brains &amp; Taxes provides synchronous coordination tools exclusively to orchestrate live client relay while preserving full audit defensibility under SA 230.
                 </p>
               </div>
             </div>
             <div className="shrink-0 flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700">
+              <span className="text-[10px] font-mono font-bold bg-white text-slate-700 px-3 py-1.5 rounded-xl border border-slate-300">
                 FRN: 022998C &bull; GPA &amp; Co.
               </span>
             </div>
@@ -2480,9 +2484,9 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                 <button
                   type="button"
                   onClick={() => setShowAddLogModal(true)}
-                  className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
                 >
-                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <Plus className="w-3.5 h-3.5 text-white" />
                   Log Daily Hours
                 </button>
                 <button
@@ -2580,7 +2584,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                 onClick={() => setTimesheetCategoryFilter("ALL")}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                   timesheetCategoryFilter === "ALL"
-                    ? "bg-slate-900 text-white shadow-2xs"
+                    ? "bg-red-600 text-white shadow-sm"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -2600,7 +2604,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   onClick={() => setTimesheetCategoryFilter(c.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     timesheetCategoryFilter === c.id
-                      ? "bg-slate-900 text-white shadow-2xs"
+                      ? "bg-red-600 text-white shadow-sm"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
@@ -2671,7 +2675,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Day pill */}
-                        <span className="font-mono text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-slate-900 text-white tracking-wider">
+                        <span className="font-mono text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 tracking-wider">
                           {dayName} &bull; {dayDate}
                         </span>
 
@@ -2807,21 +2811,21 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
           </div>
 
           {/* Monthly Disbursal Summary Banner */}
-          <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-800">
+          <div className="bg-white text-slate-900 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-2 border-red-500 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                <Receipt className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center shrink-0">
+                <Receipt className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                <span className="text-[10px] font-black uppercase tracking-wider text-red-700 block">
                   Regulation 48 Banking Disbursal Ledger &bull; October 2026
                 </span>
-                <span className="text-sm font-bold text-white">
-                  Monthly Total Outflow: <strong className="font-mono text-emerald-300">₹19,000</strong> &bull; Bank: HDFC Bank CMS CMS-22998
+                <span className="text-sm font-bold text-slate-900">
+                  Monthly Total Outflow: <strong className="font-mono text-emerald-700">₹19,000</strong> &bull; Bank: HDFC Bank CMS CMS-22998
                 </span>
               </div>
             </div>
-            <span className="text-xs font-mono font-bold bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-slate-300">
+            <span className="text-xs font-mono font-bold bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-300 text-slate-700">
               UTR: HDFCN262891024 &bull; 05-Oct-2026
             </span>
           </div>
@@ -3274,7 +3278,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                 </button>
                 <button
                   type="submit"
-                  className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5"
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Save to Form 102/103 Diary
@@ -3436,7 +3440,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   window.print();
                   toast.success("Print Dialog Dispatched", "Form 102/103 Certified Extract sent to system printer.");
                 }}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5"
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Print / Download PDF Extract
@@ -3791,7 +3795,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   setManualDocName("");
                   toast.success("Document Ingested", `Added ${newDoc.fileName} to intake queue awaiting verification.`);
                 }}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
               >
                 Register &amp; Ingest
               </button>

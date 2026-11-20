@@ -461,7 +461,7 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
       <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[92vh] flex flex-col font-sans">
         
         {/* Header */}
@@ -627,28 +627,28 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
                   <button
                     type="button"
                     onClick={() => setSelectedFilter("ALL")}
-                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "ALL" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "ALL" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                   >
                     All
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedFilter("GST")}
-                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "GST" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "GST" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                   >
                     GST
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedFilter("COMPANY")}
-                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "COMPANY" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "COMPANY" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                   >
                     Pvt Ltd
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedFilter("AUDIT")}
-                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "AUDIT" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    className={`px-2.5 py-1.5 rounded-lg font-bold transition ${selectedFilter === "AUDIT" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                   >
                     Tax Audit
                   </button>
@@ -712,22 +712,22 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
             </div>
 
             {/* Chat & Notification Bubble Preview */}
-            <div className="flex-1 bg-slate-900 rounded-2xl p-4 text-white text-xs space-y-3 font-mono shadow-inner overflow-y-auto max-h-[360px] border border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-[10px] text-emerald-400">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="flex-1 bg-slate-50 rounded-2xl p-4 text-slate-900 text-xs space-y-3 font-mono shadow-xs overflow-y-auto max-h-[360px] border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2 text-[10px] text-emerald-700">
+                <span className="flex items-center gap-1.5 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   Client WhatsApp &amp; In-App Notification
                 </span>
-                <span className="text-slate-400 font-sans">Preview for: {eligibleClients[0]?.name || "Client"}</span>
+                <span className="text-slate-500 font-sans">Preview for: {eligibleClients[0]?.name || "Client"}</span>
               </div>
 
-              <div className="bg-emerald-950/60 border border-emerald-800/80 rounded-xl p-3 text-[11px] leading-relaxed text-emerald-100 whitespace-pre-wrap font-sans">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] leading-relaxed text-emerald-950 whitespace-pre-wrap font-sans">
                 {eligibleClients[0] ? renderMessageForClient(eligibleClients[0]) : activeTemplate.body}
               </div>
 
-              <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1">
+              <div className="text-[10px] text-slate-500 flex items-center justify-between pt-1">
                 <span>Free Delivery Engine: Native Intent &amp; DB Sync</span>
-                <span className="text-emerald-400 font-bold">Cost: ₹0.00</span>
+                <span className="text-emerald-700 font-bold">Cost: ₹0.00</span>
               </div>
             </div>
 

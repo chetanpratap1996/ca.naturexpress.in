@@ -188,7 +188,7 @@ export const CaStatutoryCalendar: React.FC<CaStatutoryCalendarProps> = ({
             <button
               onClick={() => setFilter("all")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "all" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                filter === "all" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               All Due Dates
@@ -196,7 +196,7 @@ export const CaStatutoryCalendar: React.FC<CaStatutoryCalendarProps> = ({
             <button
               onClick={() => setFilter("it")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "it" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                filter === "it" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Income Tax
@@ -204,7 +204,7 @@ export const CaStatutoryCalendar: React.FC<CaStatutoryCalendarProps> = ({
             <button
               onClick={() => setFilter("gst")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "gst" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                filter === "gst" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               GST
@@ -212,7 +212,7 @@ export const CaStatutoryCalendar: React.FC<CaStatutoryCalendarProps> = ({
             <button
               onClick={() => setFilter("mca")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "mca" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                filter === "mca" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               MCA / ROC
@@ -307,7 +307,7 @@ export const CaStatutoryCalendar: React.FC<CaStatutoryCalendarProps> = ({
 
           <button
             onClick={() => onOpenBooking("Annual Corporate Retainer (Statutory & Tax)")}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition flex items-center justify-center gap-2 whitespace-nowrap shrink-0 shadow-xs"
+            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition flex items-center justify-center gap-2 whitespace-nowrap shrink-0 shadow-sm"
           >
             <span>Retain Our Practice for FY 2024-25</span>
             <ArrowRight className="w-4 h-4" />

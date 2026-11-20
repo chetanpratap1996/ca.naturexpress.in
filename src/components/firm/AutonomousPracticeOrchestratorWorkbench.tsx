@@ -107,20 +107,19 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-6 -mr-6 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Hero Header - Crisp White & Brand Red Accent */}
+      <div className="bg-white border-2 border-red-500 rounded-2xl p-6 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold mb-2">
-              <Cpu className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold mb-2">
+              <Cpu className="w-3.5 h-3.5 text-red-600" />
               Autonomous Practice Layer: 2035 Zero-Touch Nervous System
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              Universal Entity DNA Mesh & Cross-Suite Auto-Pilot
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+              Universal Entity DNA Mesh &amp; Cross-Suite Auto-Pilot
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-3xl">
-              "Input Once, Sync Everywhere": Real-world Indian statutory validation (PAN, GSTIN, CIN, TAN), 
+            <p className="text-sm text-slate-600 mt-1 max-w-3xl">
+              &quot;Input Once, Sync Everywhere&quot;: Real-world Indian statutory validation (PAN, GSTIN, CIN, TAN), 
               instant cross-suite ripple cascade across all 8 Pillars, automated Tally MOC generation, and 96% Zero-Touch partner autonomy.
             </p>
           </div>
@@ -129,7 +128,7 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
             <button
               onClick={handleTriggerAutonomousRun}
               disabled={isRunning}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-200 transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isRunning ? 'animate-spin' : ''}`} />
               {isRunning ? 'Synchronizing 8 Pillars...' : 'Run 100% Autonomous 8-Pillar Sync'}
@@ -137,45 +136,45 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
           </div>
         </div>
 
-        {/* Global Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-800 text-xs">
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-slate-400 font-semibold uppercase text-[10px]">Zero-Touch Automation</span>
-            <p className="text-2xl font-bold text-emerald-400 mt-0.5">{runReport.overallAutomationScorePct}%</p>
-            <span className="text-[11px] text-slate-400">Zero human data entry</span>
+        {/* Global Key Metrics - Light Cards with Red & Emerald Indicators */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-200 text-xs">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+            <span className="text-slate-500 font-semibold uppercase text-[10px]">Zero-Touch Automation</span>
+            <p className="text-2xl font-bold text-emerald-700 mt-0.5">{runReport.overallAutomationScorePct}%</p>
+            <span className="text-[11px] text-slate-600">Zero human data entry</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-slate-400 font-semibold uppercase text-[10px]">Pillars Orchestrated</span>
-            <p className="text-2xl font-bold text-white mt-0.5">8 / 8 Pillars</p>
-            <span className="text-[11px] text-indigo-400">GST, ITR, 3CD, Bank, TDS, MCA, UDIN, Tally</span>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+            <span className="text-slate-500 font-semibold uppercase text-[10px]">Pillars Orchestrated</span>
+            <p className="text-2xl font-bold text-slate-900 mt-0.5">8 / 8 Pillars</p>
+            <span className="text-[11px] text-red-600 font-medium">GST, ITR, 3CD, Bank, TDS, MCA, UDIN, Tally</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-slate-400 font-semibold uppercase text-[10px]">Statutory Penalties Prevented</span>
-            <p className="text-2xl font-bold text-emerald-400 mt-0.5">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+            <span className="text-slate-500 font-semibold uppercase text-[10px]">Statutory Penalties Prevented</span>
+            <p className="text-2xl font-bold text-red-600 mt-0.5">
               ₹{runReport.totalPenaltiesPreventedInr.toLocaleString('en-IN')}
             </p>
-            <span className="text-[11px] text-slate-400">Sec 271D, 271J, 234E & 50</span>
+            <span className="text-[11px] text-slate-600">Sec 271D, 271J, 234E &amp; 50</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-slate-400 font-semibold uppercase text-[10px]">Tally MOCs Generated</span>
-            <p className="text-2xl font-bold text-sky-400 mt-0.5">{runReport.tallyVouchersGeneratedCount} Vouchers</p>
-            <span className="text-[11px] text-slate-400">Posted via Tally XML Bridge</span>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+            <span className="text-slate-500 font-semibold uppercase text-[10px]">Tally MOCs Generated</span>
+            <p className="text-2xl font-bold text-slate-900 mt-0.5">{runReport.tallyVouchersGeneratedCount} Vouchers</p>
+            <span className="text-[11px] text-slate-600">Posted via Tally XML Bridge</span>
           </div>
         </div>
       </div>
 
       {/* SECTION 1: ENTITY DNA STATUTORY VALIDATOR & REAL CLIENT SELECTOR */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-indigo-400" />
-              Real-World Entity DNA Master & Statutory Validator
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-red-600" />
+              Real-World Entity DNA Master &amp; Statutory Validator
             </h3>
-            <p className="text-xs text-slate-400">Select an institutional client or enter real-world statutory credentials</p>
+            <p className="text-xs text-slate-500">Select an institutional client or enter real-world statutory credentials</p>
           </div>
 
           {/* Client Switcher Buttons */}
@@ -184,8 +183,8 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
               onClick={() => handleSelectClientProfile(SAMPLE_CLIENT_DNA_APEX)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 selectedClient.id === SAMPLE_CLIENT_DNA_APEX.id
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
               }`}
             >
               Apex AutoTech (MP)
@@ -194,8 +193,8 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
               onClick={() => handleSelectClientProfile(SAMPLE_CLIENT_DNA_PRATWI)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 selectedClient.id === SAMPLE_CLIENT_DNA_PRATWI.id
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
               }`}
             >
               Pratwi Solutions (MH)
@@ -206,16 +205,16 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
         {/* Live Statutory Regex Validator Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           {/* PAN Validator */}
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-slate-300">Income Tax PAN (10-Digit)</span>
+              <span className="font-semibold text-slate-800">Income Tax PAN (10-Digit)</span>
               {panValidation.isValid ? (
-                <span className="text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
-                  <CheckCircle2 className="w-3 h-3" /> Valid
+                <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px]">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Valid
                 </span>
               ) : (
-                <span className="text-rose-400 font-semibold flex items-center gap-1 text-[11px]">
-                  <AlertTriangle className="w-3 h-3" /> Invalid
+                <span className="text-red-700 font-semibold bg-red-50 px-2 py-0.5 rounded border border-red-200 flex items-center gap-1 text-[11px]">
+                  <AlertTriangle className="w-3 h-3 text-red-600" /> Invalid
                 </span>
               )}
             </div>
@@ -224,28 +223,28 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
               value={customPan}
               maxLength={10}
               onChange={(e) => setCustomPan(e.target.value.toUpperCase())}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-slate-900 font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none"
             />
             {panValidation.isValid ? (
-              <p className="text-[11px] text-emerald-400">
-                Type: <span className="font-semibold text-white">{panValidation.extractedDetails?.entityCategory}</span> (4th Char: '{panValidation.extractedDetails?.fourthChar}')
+              <p className="text-[11px] text-emerald-700">
+                Type: <span className="font-semibold text-slate-900">{panValidation.extractedDetails?.entityCategory}</span> (4th Char: &apos;{panValidation.extractedDetails?.fourthChar}&apos;)
               </p>
             ) : (
-              <p className="text-[11px] text-rose-400">{panValidation.error}</p>
+              <p className="text-[11px] text-red-600 font-medium">{panValidation.error}</p>
             )}
           </div>
 
           {/* GSTIN Validator */}
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-slate-300">GSTIN (15-Digit)</span>
+              <span className="font-semibold text-slate-800">GSTIN (15-Digit)</span>
               {gstinValidation.isValid ? (
-                <span className="text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
-                  <CheckCircle2 className="w-3 h-3" /> Valid
+                <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px]">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Valid
                 </span>
               ) : (
-                <span className="text-rose-400 font-semibold flex items-center gap-1 text-[11px]">
-                  <AlertTriangle className="w-3 h-3" /> Invalid
+                <span className="text-red-700 font-semibold bg-red-50 px-2 py-0.5 rounded border border-red-200 flex items-center gap-1 text-[11px]">
+                  <AlertTriangle className="w-3 h-3 text-red-600" /> Invalid
                 </span>
               )}
             </div>
@@ -254,24 +253,24 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
               value={customGstin}
               maxLength={15}
               onChange={(e) => setCustomGstin(e.target.value.toUpperCase())}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-slate-900 font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none"
             />
             {gstinValidation.isValid ? (
-              <p className="text-[11px] text-emerald-400">
-                State Code: <span className="font-semibold text-white">{gstinValidation.extractedDetails?.stateCode}</span> • Embedded PAN: <span className="font-semibold text-white">{gstinValidation.extractedDetails?.embeddedPan}</span>
+              <p className="text-[11px] text-emerald-700">
+                State Code: <span className="font-semibold text-slate-900">{gstinValidation.extractedDetails?.stateCode}</span> • Embedded PAN: <span className="font-semibold text-slate-900">{gstinValidation.extractedDetails?.embeddedPan}</span>
               </p>
             ) : (
-              <p className="text-[11px] text-rose-400">{gstinValidation.error}</p>
+              <p className="text-[11px] text-red-600 font-medium">{gstinValidation.error}</p>
             )}
           </div>
 
           {/* CIN Validator */}
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-slate-300">MCA CIN (21-Digit)</span>
+              <span className="font-semibold text-slate-800">MCA CIN (21-Digit)</span>
               {cinValidation?.isValid ? (
-                <span className="text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
-                  <CheckCircle2 className="w-3 h-3" /> Valid
+                <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[11px]">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Valid
                 </span>
               ) : (
                 <span className="text-slate-500 text-[11px]">Non-Corporate / Optional</span>
@@ -282,10 +281,10 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
               value={customCin}
               maxLength={21}
               onChange={(e) => setCustomCin(e.target.value.toUpperCase())}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-slate-900 font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none"
             />
             {cinValidation?.isValid && (
-              <p className="text-[11px] text-emerald-400">
+              <p className="text-[11px] text-emerald-700">
                 {cinValidation.extractedDetails?.companyClass} (Incorp: {cinValidation.extractedDetails?.yearOfIncorporation}, State: {cinValidation.extractedDetails?.stateCode})
               </p>
             )}
@@ -294,21 +293,21 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
       </div>
 
       {/* SECTION 2: CROSS-SUITE RIPPLE DISPATCHER SIMULATOR */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
-        <div className="flex justify-between items-center">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-400" />
-              Live Cross-Suite Event Ripple Simulator ("Input Once, Sync Everywhere")
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-red-600" />
+              Live Cross-Suite Event Ripple Simulator (&quot;Input Once, Sync Everywhere&quot;)
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Simulate a single transaction entry in one module and observe its instantaneous ripple across all related pillars.
             </p>
           </div>
 
           <button
             onClick={handleSimulateRipple}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition-all"
           >
             <Zap className="w-3.5 h-3.5" />
             Dispatch Live Event Ripple
@@ -318,11 +317,11 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
         {/* Simulation Controls */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Trigger Event Type</label>
+            <label className="block text-slate-700 font-semibold mb-1">Trigger Event Type</label>
             <select
               value={simEventType}
               onChange={(e) => setSimEventType(e.target.value as CrossSuiteEventType)}
-              className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white text-xs"
+              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-slate-900 text-xs focus:border-red-500 focus:outline-none"
             >
               <option value="MSME_OVERDUE_INVOICE_FLAGGED">MSME Supplier Bill Unpaid &gt; 45 Days</option>
               <option value="CASH_LOAN_269SS_FLAGGED">Cash Loan Received &gt;= ₹20,000 (Sec 269SS)</option>
@@ -331,47 +330,47 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Counterparty / Supplier Name</label>
+            <label className="block text-slate-700 font-semibold mb-1">Counterparty / Supplier Name</label>
             <input
               type="text"
               value={simCounterparty}
               onChange={(e) => setSimCounterparty(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white text-xs"
+              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-slate-900 text-xs focus:border-red-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Transaction Value (₹)</label>
+            <label className="block text-slate-700 font-semibold mb-1">Transaction Value (₹)</label>
             <input
               type="number"
               value={simAmount}
               onChange={(e) => setSimAmount(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-emerald-400 font-bold text-xs"
+              className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-red-600 font-bold text-xs focus:border-red-500 focus:outline-none"
             />
           </div>
         </div>
 
-        {/* Live Ripple Results */}
+        {/* Live Ripple Results - Light Red Highlight */}
         {simRippleResult && (
-          <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" />
+          <div className="mt-4 p-4 rounded-xl bg-red-50/40 border border-red-200 space-y-4">
+            <div className="flex justify-between items-center border-b border-red-200 pb-2">
+              <span className="text-xs font-bold text-red-700 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 Cross-Suite Ripple Synchronized Across {simRippleResult.impacts.length} Pillars
               </span>
-              <span className="text-[11px] font-mono text-slate-400">{simRippleResult.eventId}</span>
+              <span className="text-[11px] font-mono text-slate-500">{simRippleResult.eventId}</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               {simRippleResult.impacts.map((imp, idx) => (
-                <div key={idx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+                <div key={idx} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1 shadow-xs">
                   <div className="flex justify-between items-start">
-                    <span className="text-indigo-400 font-bold">{imp.pillar}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                    <span className="text-red-700 font-bold">{imp.pillar}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono border border-slate-200">
                       {imp.affectedModule}
                     </span>
                   </div>
-                  <p className="text-slate-300">{imp.actionTaken}</p>
+                  <p className="text-slate-800">{imp.actionTaken}</p>
                   <p className="text-[10px] text-slate-500 font-mono">Statutory Authority: {imp.statutoryRef}</p>
                 </div>
               ))}
@@ -379,19 +378,19 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
 
             {/* Generated Tally XML & WhatsApp Brief Preview */}
             {simRippleResult.generatedTallyMocXml && (
-              <div className="pt-2 border-t border-slate-800 space-y-2">
-                <span className="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
-                  <Terminal className="w-3.5 h-3.5" />
+              <div className="pt-2 border-t border-red-200 space-y-2">
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5 text-red-600" />
                   Auto-Generated Tally XML MOC Voucher (Pillar VIII Sync):
                 </span>
-                <pre className="p-2.5 rounded bg-slate-900 font-mono text-[11px] text-emerald-400 overflow-x-auto">
+                <pre className="p-3 rounded-lg bg-slate-100 font-mono text-[11px] text-slate-800 overflow-x-auto border border-slate-300">
                   {simRippleResult.generatedTallyMocXml}
                 </pre>
               </div>
             )}
 
-            <div className="p-2.5 rounded bg-emerald-950/30 border border-emerald-500/30 text-xs text-emerald-300">
-              <span className="font-semibold">Automated WhatsApp Briefing Line: </span>
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+              <span className="font-bold">Automated WhatsApp Briefing Line: </span>
               {simRippleResult.partnerWhatsAppBriefLine}
             </div>
           </div>
@@ -399,36 +398,36 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
       </div>
 
       {/* SECTION 3: 8-PILLAR AUTONOMOUS EXECUTION STATUS GRID */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-red-600" />
               Full 8-Pillar Autonomous Execution Grid
             </h3>
-            <p className="text-xs text-slate-400">Live operational status across all compliance and audit dimensions</p>
+            <p className="text-xs text-slate-500">Live operational status across all compliance and audit dimensions</p>
           </div>
 
-          <span className="text-xs font-mono text-slate-400">Run ID: {runReport.runId}</span>
+          <span className="text-xs font-mono text-slate-500">Run ID: {runReport.runId}</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {runReport.pillarResults.map(pillar => (
             <div
               key={pillar.pillarNumber}
-              className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 hover:border-slate-700 transition-all"
+              className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 hover:border-red-300 transition-all shadow-xs"
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="text-sm font-bold text-white">{pillar.pillarTitle}</h4>
-                  <span className="text-[11px] text-slate-400">Due: {pillar.statutoryDueDate}</span>
+                  <h4 className="text-sm font-bold text-slate-900">{pillar.pillarTitle}</h4>
+                  <span className="text-[11px] text-slate-500">Due: {pillar.statutoryDueDate}</span>
                 </div>
 
                 <div className="text-right">
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                     pillar.automationStatus === 'AUTO_RESOLVED_CLEAN'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200'
                   }`}>
                     {pillar.automationStatus === 'AUTO_RESOLVED_CLEAN' ? 'Clean (Zero-Touch)' : 'Partner Review'}
                   </span>
@@ -436,19 +435,19 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
                 </div>
               </div>
 
-              <div className="space-y-1 text-xs text-slate-300">
+              <div className="space-y-1.5 text-xs text-slate-700">
                 {pillar.keyOutputs.map((out, i) => (
                   <p key={i} className="flex items-start gap-1.5">
-                    <span className="text-indigo-400">•</span>
+                    <span className="text-red-600 font-bold">•</span>
                     <span>{out}</span>
                   </p>
                 ))}
               </div>
 
               {pillar.penaltiesPreventedInr > 0 && (
-                <div className="pt-2 border-t border-slate-800/80 flex justify-between text-[11px]">
-                  <span className="text-slate-400">Penalties Prevented:</span>
-                  <span className="font-mono font-semibold text-emerald-400">
+                <div className="pt-2 border-t border-slate-200 flex justify-between text-[11px]">
+                  <span className="text-slate-500">Penalties Prevented:</span>
+                  <span className="font-mono font-bold text-red-600">
                     ₹{pillar.penaltiesPreventedInr.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -459,27 +458,27 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
       </div>
 
       {/* SECTION 4: PARTNER 8:00 AM WHATSAPP BRIEFING DISPATCH DESK */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
-        <div className="flex justify-between items-center">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
               Autonomous Partner WhatsApp Briefing Digest
             </h3>
-            <p className="text-xs text-slate-400">Synthesized 8:00 AM morning pulse delivered directly to managing partner mobile</p>
+            <p className="text-xs text-slate-500">Synthesized 8:00 AM morning pulse delivered directly to managing partner mobile</p>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={handleCopyWhatsApp}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold"
             >
-              {copiedBrief ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedBrief ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               {copiedBrief ? 'Copied!' : 'Copy WhatsApp Text'}
             </button>
             <button
               onClick={() => alert('WhatsApp briefing dispatched successfully to Partner mobile!')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm"
             >
               <Send className="w-3.5 h-3.5" />
               Dispatch via WhatsApp API
@@ -487,7 +486,7 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-sans text-slate-200 whitespace-pre-wrap leading-relaxed">
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-wrap leading-relaxed shadow-inner">
           {runReport.whatsAppBriefingText}
         </div>
       </div>

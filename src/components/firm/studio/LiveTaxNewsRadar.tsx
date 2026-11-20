@@ -218,7 +218,7 @@ export const LiveTaxNewsRadar: React.FC<LiveTaxNewsRadarProps> = ({
             onClick={() => setFilterAuthority(auth)}
             className={`px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ${
               filterAuthority === auth
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-red-600 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
             }`}
           >

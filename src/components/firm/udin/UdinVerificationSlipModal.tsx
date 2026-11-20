@@ -273,7 +273,7 @@ export const UdinVerificationSlipModal: React.FC<UdinVerificationSlipModalProps>
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
+            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
           >
             Close Slip
           </button>

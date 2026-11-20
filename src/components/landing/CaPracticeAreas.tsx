@@ -207,7 +207,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
             <button
               onClick={() => setActiveCategoryFilter("all")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                activeCategoryFilter === "all" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                activeCategoryFilter === "all" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               All 8 Disciplines
@@ -215,7 +215,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
             <button
               onClick={() => setActiveCategoryFilter("audit")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                activeCategoryFilter === "audit" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                activeCategoryFilter === "audit" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Audits &amp; CARO
@@ -223,7 +223,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
             <button
               onClick={() => setActiveCategoryFilter("litigation")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                activeCategoryFilter === "litigation" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                activeCategoryFilter === "litigation" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Tax Litigation &amp; GST Defense
@@ -231,7 +231,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
             <button
               onClick={() => setActiveCategoryFilter("cfo")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                activeCategoryFilter === "cfo" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                activeCategoryFilter === "cfo" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Virtual CFO &amp; Bank CMA
@@ -239,7 +239,7 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
             <button
               onClick={() => setActiveCategoryFilter("corporate")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                activeCategoryFilter === "corporate" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                activeCategoryFilter === "corporate" ? "bg-red-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Company Law &amp; Startups
@@ -258,16 +258,16 @@ export const CaPracticeAreas: React.FC<CaPracticeAreasProps> = ({
                 onClick={() => setSelectedPracticeId(p.id)}
                 className={`p-3 sm:p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between ${
                   isSelected
-                    ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-red-500/20"
+                    ? "bg-white text-slate-900 border-2 border-red-500 shadow-sm"
                     : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? "bg-btred-600 text-white" : "bg-white text-btred-600 border border-slate-200"}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? "bg-red-600 text-white" : "bg-white text-red-600 border border-slate-200"}`}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                    isSelected ? "bg-white/10 text-slate-300" : "bg-slate-200/70 text-slate-600"
+                    isSelected ? "bg-red-50 text-red-700 border border-red-200" : "bg-slate-200/70 text-slate-600"
                   }`}>
                     {p.group.toUpperCase()}
                   </span>

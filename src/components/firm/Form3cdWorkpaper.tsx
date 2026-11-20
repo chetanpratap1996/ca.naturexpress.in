@@ -555,9 +555,9 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
                 playSoftClick();
                 setIsForm3caModalOpen(true);
               }}
-              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
             >
-              <Award className="w-4 h-4 text-emerald-400" />
+              <Award className="w-4 h-4 text-white" />
               Form 3CA/3CB Audit Report
             </button>
           </div>
@@ -616,8 +616,8 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeSuite === "clauses_master"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
           <ClipboardCheck className="w-4 h-4" />
@@ -634,11 +634,11 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeSuite === "clause44_engine"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
-          <Table className="w-4 h-4 text-blue-400" />
+          <Table className="w-4 h-4 text-blue-500" />
           Clause 44 GST Expenditure Engine
           <span className="px-2 py-0.5 bg-blue-500/20 text-blue-700 text-[10px] rounded-full font-bold">
             Col 2 to 7
@@ -652,11 +652,11 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeSuite === "clause22_msme"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
-          <Scale className="w-4 h-4 text-amber-400" />
+          <Scale className="w-4 h-4 text-amber-500" />
           Clause 22 &amp; Sec 43B(h) MSME Engine
           <span className="px-2 py-0.5 bg-amber-500/20 text-amber-700 text-[10px] rounded-full font-bold">
             3x RBI Rate
@@ -670,11 +670,11 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeSuite === "clause34_tds"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
-          <CreditCard className="w-4 h-4 text-purple-400" />
+          <CreditCard className="w-4 h-4 text-purple-500" />
           Clause 34 Chapter XVII-B TDS Audit
           <span className="px-2 py-0.5 bg-purple-500/20 text-purple-700 text-[10px] rounded-full font-bold">
             30% Sec 40(a)(ia)
@@ -704,8 +704,8 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                     selectedCategory === f.id
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
                   }`}
                 >
                   {f.label}
@@ -900,14 +900,14 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
                       <td className="p-3 text-right text-rose-700 font-bold bg-rose-50/30">{formatCurrencyINR(r.unregisteredEntitiesInr_Col7)}</td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-900 text-white font-bold">
+                  <tr className="bg-red-50 text-red-950 font-bold border-y-2 border-red-500">
                     <td colSpan={2} className="p-3 font-sans">Total Form 3CD Clause 44 Figures</td>
                     <td className="p-3 text-right">{formatCurrencyINR(clause44Report.summary.totalQualifyingOperatingExpenditure_Col2)}</td>
                     <td className="p-3 text-right">{formatCurrencyINR(clause44Report.summary.totalExemptSupplies_Col3)}</td>
                     <td className="p-3 text-right">{formatCurrencyINR(clause44Report.summary.totalComposition_Col4)}</td>
                     <td className="p-3 text-right">{formatCurrencyINR(clause44Report.summary.totalStandardRegistered_Col5)}</td>
-                    <td className="p-3 text-right text-emerald-400 font-black">{formatCurrencyINR(clause44Report.summary.totalRegisteredEntities_Col6)}</td>
-                    <td className="p-3 text-right text-rose-300 font-black">{formatCurrencyINR(clause44Report.summary.totalUnregisteredEntities_Col7)}</td>
+                    <td className="p-3 text-right text-emerald-700 font-black">{formatCurrencyINR(clause44Report.summary.totalRegisteredEntities_Col6)}</td>
+                    <td className="p-3 text-right text-red-600 font-black">{formatCurrencyINR(clause44Report.summary.totalUnregisteredEntities_Col7)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1077,13 +1077,13 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-900 text-white font-bold">
+                  <tr className="bg-red-50 text-red-950 font-bold border-y-2 border-red-500">
                     <td colSpan={2} className="p-3 font-sans">Total Clause 34(a) Summary</td>
                     <td className="p-3 text-right">{formatCurrencyINR(clause34Report.summary.totalGrossDisbursementsAuditedInr)}</td>
                     <td className="p-3 text-right">{formatCurrencyINR(clause34Report.summary.totalTdsPayableInr)}</td>
-                    <td className="p-3 text-right text-emerald-400">{formatCurrencyINR(clause34Report.summary.totalTdsDeductedInr)}</td>
-                    <td className="p-3 text-right text-rose-400">{formatCurrencyINR(clause34Report.summary.totalDefaultNonDeductionInr)}</td>
-                    <td className="p-3 text-right text-rose-300 font-black">{formatCurrencyINR(clause34Report.summary.totalDisallowanceSection40a_ia_Inr)}</td>
+                    <td className="p-3 text-right text-emerald-700">{formatCurrencyINR(clause34Report.summary.totalTdsDeductedInr)}</td>
+                    <td className="p-3 text-right text-red-600">{formatCurrencyINR(clause34Report.summary.totalDefaultNonDeductionInr)}</td>
+                    <td className="p-3 text-right text-red-700 font-black">{formatCurrencyINR(clause34Report.summary.totalDisallowanceSection40a_ia_Inr)}</td>
                   </tr>
                 </tbody>
               </table>

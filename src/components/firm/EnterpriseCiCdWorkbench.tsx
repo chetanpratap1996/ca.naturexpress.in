@@ -310,7 +310,7 @@ export function EnterpriseCiCdWorkbench() {
 
       {/* CASE INSPECTION MODAL */}
       {selectedCase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
@@ -354,7 +354,7 @@ export function EnterpriseCiCdWorkbench() {
             <div className="mt-5 flex justify-end">
               <button
                 onClick={() => setSelectedCase(null)}
-                className="rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+                className="rounded-lg bg-red-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-700 shadow-sm"
               >
                 Close Inspector
               </button>

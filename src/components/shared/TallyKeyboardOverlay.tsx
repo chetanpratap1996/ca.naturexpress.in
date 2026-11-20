@@ -113,48 +113,48 @@ export function TallyKeyboardOverlay({ onTriggerAction }: TallyKeyboardOverlayPr
       {/* Floating Indicator Pill (Bottom Right) */}
       <div className="fixed bottom-4 right-4 z-40 flex items-center space-x-2">
         {activeNotification && (
-          <div className="bg-slate-900/95 text-emerald-400 border border-emerald-500/40 shadow-xl px-3.5 py-2 rounded-xl text-xs font-mono font-medium flex items-center space-x-2 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+          <div className="bg-white text-emerald-700 border border-emerald-300 shadow-xl px-3.5 py-2 rounded-xl text-xs font-mono font-medium flex items-center space-x-2 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
             <span>{activeNotification}</span>
           </div>
         )}
 
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 shadow-lg px-3 py-1.5 rounded-full text-xs font-mono flex items-center space-x-2 backdrop-blur-md transition-all hover:border-blue-500/50"
+          className="bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 border-2 border-red-500 shadow-lg px-3 py-1.5 rounded-full text-xs font-mono flex items-center space-x-2 backdrop-blur-md transition-all"
           title="Tally & Winman Keyboard Shortcuts (Alt+H)"
         >
-          <Keyboard className="w-3.5 h-3.5 text-blue-400" />
-          <span className="hidden sm:inline font-semibold text-slate-200">Tally Mode</span>
-          <span className="bg-slate-800 px-1.5 py-0.5 rounded text-[10px] text-slate-400 border border-slate-700">Alt+H</span>
+          <Keyboard className="w-3.5 h-3.5 text-red-600" />
+          <span className="hidden sm:inline font-semibold text-slate-900">Tally Mode</span>
+          <span className="bg-red-50 px-1.5 py-0.5 rounded text-[10px] text-red-700 border border-red-200 font-bold">Alt+H</span>
         </button>
       </div>
 
       {/* Shortcuts Cheat-Sheet Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white border-2 border-red-500 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col text-slate-900">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900/50 via-slate-800 to-indigo-900/50 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold">
-                  <Command className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 font-bold">
+                  <Command className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                    <span>TallyPrime & Winman Muscle-Memory Shortcuts</span>
-                    <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <span>TallyPrime &amp; Winman Muscle-Memory Shortcuts</span>
+                    <span className="text-[10px] font-mono uppercase bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full font-bold">
                       Zero Friction
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Staff trained on Tally and Winman can work at 100% velocity without touching the mouse
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -170,26 +170,26 @@ export function TallyKeyboardOverlay({ onTriggerAction }: TallyKeyboardOverlayPr
                       onTriggerAction?.(sc.actionId);
                       setIsOpen(false);
                     }}
-                    className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 hover:border-blue-500/50 cursor-pointer transition flex items-start justify-between group"
+                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-red-50/40 hover:border-red-300 cursor-pointer transition flex items-start justify-between group shadow-2xs"
                   >
                     <div className="space-y-1 pr-2">
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs font-bold text-slate-200 group-hover:text-blue-400 transition">
+                        <span className="text-xs font-bold text-slate-900 group-hover:text-red-600 transition">
                           {sc.label}
                         </span>
                         <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase ${
-                          sc.category === 'NAVIGATION' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
-                          sc.category === 'VOUCHERS' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          sc.category === 'NAVIGATION' ? 'bg-slate-100 text-slate-700 border-slate-300' :
+                          sc.category === 'VOUCHERS' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                          'bg-emerald-50 text-emerald-800 border-emerald-200'
                         }`}>
                           {sc.category}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
                         {sc.description}
                       </p>
                     </div>
-                    <kbd className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs font-mono font-bold text-blue-300 shadow-sm shrink-0">
+                    <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono font-bold text-slate-800 shadow-xs shrink-0">
                       {sc.key}
                     </kbd>
                   </div>
@@ -197,23 +197,23 @@ export function TallyKeyboardOverlay({ onTriggerAction }: TallyKeyboardOverlayPr
               </div>
 
               {/* Pro Tip Box */}
-              <div className="bg-blue-950/30 border border-blue-500/30 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-blue-200">
-                <Sparkles className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <div className="bg-red-50/50 border border-red-200 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-slate-800">
+                <Sparkles className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <span className="font-semibold text-white">Why Articles & Senior CAs Love This:</span>
-                  <p className="text-slate-300 text-[11px]">
-                    Unlike web-based competitors that force you to click with a mouse 50 times per return, our interface is 100% keyboard-navigable. Press <kbd className="px-1.5 py-0.5 bg-slate-800 rounded font-mono text-white text-[10px]">Alt+G</kbd> anytime to open the universal command palette.
+                  <span className="font-bold text-slate-900">Why Articles &amp; Senior CAs Love This:</span>
+                  <p className="text-slate-600 text-[11px]">
+                    Unlike web-based competitors that force you to click with a mouse 50 times per return, our interface is 100% keyboard-navigable. Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-slate-800 text-[10px]">Alt+G</kbd> anytime to open the universal command palette.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-950/70 px-6 py-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-              <span>Press <kbd className="px-1 bg-slate-800 rounded font-mono text-slate-300">Esc</kbd> to close</span>
+            <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-slate-700">Esc</kbd> to close</span>
               <button
                 onClick={() => setIsOpen(false)}
-                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium text-xs transition"
+                className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs transition shadow-sm"
               >
                 Got It
               </button>

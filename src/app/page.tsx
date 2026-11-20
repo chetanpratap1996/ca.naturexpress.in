@@ -174,10 +174,38 @@ export default function Home() {
     deleteDscToken,
   } = useTaxoData(isDemoSandbox);
 
-  // Default to unauthenticated session (require explicit login or sandbox entry)
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("client-pwa");
-  const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
+  // Default to authenticated partner sandbox when ?demo=true, ?view=sandbox or ?tab=... is present
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("demo") === "true" || params.get("view") === "sandbox" || params.get("tab")) {
+          return DEMO_USERS.partner;
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
+  const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("demo") === "true" || params.get("view") === "sandbox" || params.get("tab")) {
+          return "partner";
+        }
+      } catch (e) {}
+    }
+    return "client-pwa";
+  });
+  const [activePartnerTab, setActivePartnerTab] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("tab") || "practice-cockpit";
+      } catch (e) {}
+    }
+    return "practice-cockpit";
+  });
   const [bridgedAuditDisallowances, setBridgedAuditDisallowances] = useState<number | null>(null);
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
@@ -800,7 +828,7 @@ export default function Home() {
               )}
 
               {activePartnerTab === "tally-data-grid" && (
-                <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6">
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
                   <TallyDataGrid />
                 </div>
               )}

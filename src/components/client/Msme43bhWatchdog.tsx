@@ -184,9 +184,9 @@ export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client }) =>
 
         <button
           onClick={handleExportForm3cdSchedule}
-          className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 shadow-sm"
+          className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 shadow-sm"
         >
-          <Download className="w-4 h-4 text-emerald-400" />
+          <Download className="w-4 h-4 text-white" />
           <span>Export 3CD Clause 22 CSV</span>
         </button>
       </div>

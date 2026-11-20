@@ -1047,7 +1047,7 @@ export function PayToReleaseManager({
               </button>
               <button
                 onClick={() => setSelectedInvoiceView(null)}
-                className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm"
               >
                 Close
               </button>
@@ -1140,7 +1140,7 @@ export function PayToReleaseManager({
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <button
                 onClick={() => setBulkDispatchModalOpen(false)}
-                className="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition"
+                className="px-5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm"
               >
                 Done
               </button>
@@ -1151,58 +1151,58 @@ export function PayToReleaseManager({
 
       {/* MODAL 5: SIMULATE CLIENT PWA LOCK SCREEN */}
       {clientPwaPreviewOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-[2.5rem] max-w-sm w-full p-6 shadow-2xl border-4 border-slate-800 space-y-4 text-white relative animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] max-w-sm w-full p-6 shadow-2xl border-4 border-slate-300 space-y-4 text-slate-900 relative animate-in zoom-in-95">
             <button
               onClick={() => setClientPwaPreviewOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1"
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Mobile Header */}
             <div className="text-center pt-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-btred-logo bg-red-950/80 px-2 py-0.5 rounded-full border border-red-800">
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
                 Client Mobile View
               </span>
-              <h4 className="text-base font-black text-white mt-2">Certified Deliverables</h4>
-              <p className="text-xs text-slate-400">Apex AutoTech Private Limited</p>
+              <h4 className="text-base font-black text-slate-900 mt-2">Certified Deliverables</h4>
+              <p className="text-xs text-slate-500">Apex AutoTech Private Limited</p>
             </div>
 
             {/* Locked Deliverables Blurred Preview */}
-            <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 space-y-2 relative overflow-hidden">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 relative overflow-hidden">
               <div className="filter blur-xs opacity-60 space-y-2">
-                <div className="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl text-xs">
+                <div className="flex justify-between items-center bg-white p-2 rounded-xl text-xs border border-slate-200">
                   <span>Form 3CD Tax Audit Final Certification.pdf</span>
                   <span className="font-bold">Download</span>
                 </div>
-                <div className="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl text-xs">
+                <div className="flex justify-between items-center bg-white p-2 rounded-xl text-xs border border-slate-200">
                   <span>ITR-6 Acknowledgment AY 2026-27.pdf</span>
                   <span className="font-bold">Download</span>
                 </div>
               </div>
 
               {/* Overlay Lock Badge */}
-              <div className="absolute inset-0 bg-slate-950/85 flex flex-col items-center justify-center p-3 text-center">
-                <Lock className="w-8 h-8 text-btred-logo mb-1" />
-                <span className="text-xs font-black text-white">Deliverables Temporarily Gated</span>
-                <span className="text-[10px] text-slate-300 max-w-xs mt-0.5">
+              <div className="absolute inset-0 bg-white/90 backdrop-blur-xs flex flex-col items-center justify-center p-3 text-center border-2 border-red-500 rounded-2xl">
+                <Lock className="w-8 h-8 text-red-600 mb-1" />
+                <span className="text-xs font-black text-slate-900">Deliverables Temporarily Gated</span>
+                <span className="text-[10px] text-slate-600 max-w-xs mt-0.5">
                   Outstanding fee of ₹1,18,000 pending settlement u/s 43B(h).
                 </span>
               </div>
             </div>
 
             {/* Instant Unlock Button for Client */}
-            <div className="bg-slate-800 p-3 rounded-2xl border border-slate-700 text-center space-y-2">
-              <div className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1">
-                <QrCode className="w-3.5 h-3.5" /> 1-Tap UPI Settle &amp; Download
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-center space-y-2">
+              <div className="text-xs font-bold text-emerald-700 flex items-center justify-center gap-1">
+                <QrCode className="w-3.5 h-3.5 text-emerald-600" /> 1-Tap UPI Settle &amp; Unlock
               </div>
               <button
                 onClick={() => {
                   setClientPwaPreviewOpen(false);
                   handleSimulatePayment("CLI-APEX-01", 118000);
                 }}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 rounded-xl transition shadow-lg"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md"
               >
                 Pay ₹1,18,000 via UPI &amp; Unlock
               </button>

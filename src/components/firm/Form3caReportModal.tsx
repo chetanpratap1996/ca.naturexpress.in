@@ -143,17 +143,17 @@ Date: 30th September, 2026 | UDIN: ${udinNumber}
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white text-slate-900 rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-300 my-8 overflow-hidden animate-scaleUp">
         {/* Top Control Bar */}
-        <div className="bg-slate-900 text-white p-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 no-print">
+        <div className="bg-white text-slate-900 p-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 no-print">
           <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+            <Award className="w-4 h-4 text-red-600" />
+            <span className="text-xs font-black uppercase tracking-wider text-red-700">
               Form {auditType === "FORM_3CA_3CD" ? "3CA" : "3CB"} Statutory Tax Audit Report
             </span>
             <span className="text-xs text-slate-400">|</span>
-            <span className="text-xs font-mono text-slate-300">UDIN: {udinNumber}</span>
+            <span className="text-xs font-mono text-slate-700">UDIN: {udinNumber}</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -177,7 +177,7 @@ Date: 30th September, 2026 | UDIN: ${udinNumber}
 
             <button
               onClick={handleDownloadHtml}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700"
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-300"
               title="Download standalone HTML file"
             >
               <Download className="w-3.5 h-3.5" />
@@ -186,16 +186,16 @@ Date: 30th September, 2026 | UDIN: ${udinNumber}
 
             <button
               onClick={handleCopyCertificate}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700"
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-300"
               title="Copy audit certificate"
             >
-              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{isCopied ? "Copied!" : "Copy Memo"}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition ml-2"
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition ml-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -345,7 +345,7 @@ Date: 30th September, 2026 | UDIN: ${udinNumber}
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
+            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition shadow-sm"
           >
             Close Report
           </button>

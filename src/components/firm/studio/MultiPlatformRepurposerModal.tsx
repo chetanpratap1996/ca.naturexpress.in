@@ -165,7 +165,7 @@ export const MultiPlatformRepurposerModal: React.FC<MultiPlatformRepurposerModal
             onClick={() => setPlatform("TWITTER")}
             className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition ${
               platform === "TWITTER"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-red-600 text-white shadow-xs"
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
             }`}
           >

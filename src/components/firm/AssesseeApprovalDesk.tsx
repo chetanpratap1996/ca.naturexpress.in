@@ -202,9 +202,9 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
             </button>
             <button
               onClick={() => setIsSendRequestOpen(true)}
-              className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm"
             >
-              <Plus className="w-4 h-4 text-emerald-400" />
+              <Plus className="w-4 h-4 text-white" />
               <span>+ Issue E-Sign Request</span>
             </button>
             <button
@@ -282,7 +282,7 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <button
             onClick={() => setStatusFilter("ALL")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${statusFilter === "ALL" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${statusFilter === "ALL" ? "bg-red-600 text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"}`}
           >
             All Records ({approvals.length})
           </button>

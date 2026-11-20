@@ -153,34 +153,30 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
 
   return (
     <div className="space-y-6">
-      {/* HERO BANNER: 2035 AUTONOMOUS PRACTICE COCKPIT */}
-      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
-        {/* Decorative background glow */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
-
+      {/* HERO BANNER: 2035 AUTONOMOUS PRACTICE COCKPIT - Crisp White & Brand Red */}
+      <div className="rounded-3xl border-2 border-red-500 bg-white p-6 sm:p-8 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 AUTOPILOT: LIVE &amp; ORCHESTRATING
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-xs font-medium text-indigo-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700 border border-red-200">
                 15 Engines Unified
               </span>
-              <span className="text-xs text-slate-400 font-mono">
+              <span className="text-xs text-slate-500 font-mono">
                 Last Sweep: {state.lastSweepTimestamp}
               </span>
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl md:text-4xl">
               Partner 60-Second Autonomous Cockpit
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
               Your practice executes routine compliance with zero human effort. Statements are ingested from WhatsApp, reconciled via Bank OCR, matched against 2B/TRACES, and dispatched for client digital approval automatically.
             </p>
           </div>
@@ -190,16 +186,16 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
             <button
               onClick={handleGlobalSweep}
               disabled={isSweeping}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 text-xs sm:text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-300 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 transition-all active:scale-95 disabled:opacity-50"
             >
-              <RotateCw className={`h-4 w-4 ${isSweeping ? "animate-spin text-emerald-400" : ""}`} />
+              <RotateCw className={`h-4 w-4 ${isSweeping ? "animate-spin text-red-600" : ""}`} />
               {isSweeping ? "Sweeping All Pipelines..." : "Run Global Practice Sweep"}
             </button>
 
             <button
               onClick={handleBatchApprove}
               disabled={isBatchApproving}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-3 text-xs sm:text-sm font-bold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-red-600 hover:bg-red-700 px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
             >
               <Zap className="h-4 w-4" />
               {isBatchApproving ? "Dispatching WhatsApp Approvals..." : `1-Click Approve ${state.totalAutomatedFilingsToday} Clean Returns`}
@@ -207,56 +203,56 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
           </div>
         </div>
 
-        {/* 4 Core Key Metrics */}
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-800/80 pt-6">
-          <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+        {/* 4 Core Key Metrics - Clean White & Red Light Cards */}
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-200 pt-6">
+          <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+            <div className="text-xs font-semibold text-slate-500 flex items-center justify-between">
               Autonomous Completion Rate
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             </div>
-            <div className="mt-2 text-2xl sm:text-3xl font-black text-emerald-400">
+            <div className="mt-2 text-2xl sm:text-3xl font-black text-emerald-700">
               {state.autonomousCompletionRatePcnt}%
             </div>
-            <div className="text-[11px] text-emerald-300 font-medium mt-1">
+            <div className="text-[11px] text-emerald-700 font-medium mt-1">
               Zero Human Actions Required
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+          <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+            <div className="text-xs font-semibold text-slate-500 flex items-center justify-between">
               Staff Hours Saved (Month)
-              <Clock className="h-4 w-4 text-indigo-400" />
+              <Clock className="h-4 w-4 text-red-600" />
             </div>
-            <div className="mt-2 text-2xl sm:text-3xl font-black text-white">
+            <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">
               {state.hoursSavedThisMonth} hrs
             </div>
-            <div className="text-[11px] text-indigo-300 font-medium mt-1">
+            <div className="text-[11px] text-red-700 font-medium mt-1">
               Equivalent to 2.2 Full-Time Articles
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+          <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+            <div className="text-xs font-semibold text-slate-500 flex items-center justify-between">
               Realized Practice Fee
-              <DollarSign className="h-4 w-4 text-amber-400" />
+              <DollarSign className="h-4 w-4 text-amber-600" />
             </div>
-            <div className="mt-2 text-2xl sm:text-3xl font-black text-amber-300">
+            <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">
               ₹{(state.realizedRevenueThisMonthInr / 100000).toFixed(2)}L
             </div>
-            <div className="text-[11px] text-slate-300 font-medium mt-1">
+            <div className="text-[11px] text-slate-600 font-medium mt-1">
               ₹{(state.unbilledWipInr / 100000).toFixed(2)}L WIP Guarded
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
+          <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+            <div className="text-xs font-semibold text-slate-500 flex items-center justify-between">
               Exceptions Needing Partner
-              <AlertTriangle className="h-4 w-4 text-rose-400" />
+              <AlertTriangle className="h-4 w-4 text-red-600" />
             </div>
-            <div className="mt-2 text-2xl sm:text-3xl font-black text-rose-300">
+            <div className="mt-2 text-2xl sm:text-3xl font-black text-red-600">
               {pendingExceptions.length} Items
             </div>
-            <div className="text-[11px] text-rose-300 font-medium mt-1">
+            <div className="text-[11px] text-red-700 font-medium mt-1">
               Actionable Partner Triage Desk
             </div>
           </div>

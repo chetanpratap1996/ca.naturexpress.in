@@ -318,8 +318,8 @@ export const AutonomousGstAssemblyLine: React.FC = () => {
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     triageFilter === tab.id
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
                   }`}
                 >
                   {tab.label}
@@ -609,20 +609,20 @@ export const AutonomousGstAssemblyLine: React.FC = () => {
                 <span className="font-bold">Brains &amp; Taxes Client Desk (Verified)</span>
                 <span>Today, 10:14 AM</span>
               </div>
-              <div className="bg-emerald-950/80 rounded-xl p-3 border border-emerald-700/50 space-y-2">
-                <div className="font-bold text-sm text-emerald-100">
+              <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 space-y-2">
+                <div className="font-bold text-sm text-emerald-900">
                   ⚡ GSTR-3B Sign-Off Required ({activeProfile.period})
                 </div>
-                <p className="text-[11px] text-emerald-200 leading-relaxed">
+                <p className="text-[11px] text-emerald-800 leading-relaxed">
                   Hi {activeProfile.clientName}, your monthly GST return has been autonomously audited and 100% verified against GSTR-2B.
                 </p>
-                <div className="bg-black/30 rounded-lg p-2 font-mono text-[11px] space-y-1">
+                <div className="bg-white/90 border border-emerald-200 rounded-lg p-2 font-mono text-[11px] space-y-1 text-slate-800">
                   <div>• Gross Output Tax: {formatCurrencyINR(activeProfile.computation.totalOutputTax)}</div>
                   <div>• Verified Eligible ITC: {formatCurrencyINR(activeProfile.computation.netEligibleItcIgst + activeProfile.computation.netEligibleItcCgst + activeProfile.computation.netEligibleItcSgst)}</div>
-                  <div className="text-emerald-300 font-bold">• Net Cash Payable (PMT-06): {formatCurrencyINR(activeProfile.computation.offset.totalCashPayable)}</div>
+                  <div className="text-emerald-700 font-bold">• Net Cash Payable (PMT-06): {formatCurrencyINR(activeProfile.computation.offset.totalCashPayable)}</div>
                 </div>
                 <div className="pt-1">
-                  <div className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-center py-2 rounded-lg cursor-pointer">
+                  <div className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-2 rounded-lg cursor-pointer shadow-sm">
                     Click to Review &amp; Sign Off (OTP)
                   </div>
                 </div>
@@ -635,10 +635,10 @@ export const AutonomousGstAssemblyLine: React.FC = () => {
             <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">
               Cryptographic Execution Audit Log (ICAI SA 500)
             </h4>
-            <div className="bg-slate-900 text-slate-200 font-mono text-[11px] p-4 rounded-xl space-y-1 max-h-48 overflow-y-auto">
+            <div className="bg-slate-50 text-slate-800 font-mono text-[11px] p-4 rounded-xl space-y-1 max-h-48 overflow-y-auto border border-slate-200">
               {activeProfile.auditLog.map((log, i) => (
                 <div key={i} className="leading-relaxed">
-                  <span className="text-indigo-400">›</span> {log}
+                  <span className="text-red-600 font-bold">&gt;</span> {log}
                 </div>
               ))}
             </div>
@@ -836,7 +836,7 @@ export const AutonomousGstAssemblyLine: React.FC = () => {
                   toast.success("JSON Export Ready", "Validated GSTR-3B payload exported for GSTN offline utility.");
                   playSoftClick();
                 }}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
               >
                 <FileText className="w-3.5 h-3.5" /> Export GSTR-3B Computation JSON
               </button>

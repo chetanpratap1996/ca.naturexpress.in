@@ -364,9 +364,9 @@ export function WhatsAppAiWorkbench({
             <button
               onClick={handleBatchChaseAll}
               disabled={isBatchChasing}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-2 disabled:opacity-60"
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-2 disabled:opacity-60"
             >
-              <Zap className="w-4 h-4 text-amber-400" />
+              <Zap className="w-4 h-4 text-white" />
               {isBatchChasing ? "Evaluating..." : "1-Click Batch Chaser"}
             </button>
 
@@ -503,9 +503,9 @@ export function WhatsAppAiWorkbench({
               <button
                 type="button"
                 onClick={handleDispatchCloudApi}
-                className="w-full px-3 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <Zap className="w-3.5 h-3.5 text-white" />
                 <span>Cloud API Push</span>
               </button>
             </div>
@@ -514,7 +514,7 @@ export function WhatsAppAiWorkbench({
           {/* Interactive WhatsApp Chat Device Simulator */}
           <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col h-[560px]">
             {/* WhatsApp Chat Header */}
-            <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between">
+            <div className="p-3.5 bg-emerald-800 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 font-black text-xs">
                   {selectedClient?.name ? selectedClient.name.slice(0, 2).toUpperCase() : "CA"}

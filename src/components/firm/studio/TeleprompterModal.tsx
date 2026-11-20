@@ -76,20 +76,20 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
   }[fontSize];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-      <div className="bg-slate-950 border border-slate-800 rounded-3xl max-w-4xl w-full h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white border-2 border-red-500 rounded-3xl max-w-4xl w-full h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-900">
         
         {/* Top Control Bar */}
-        <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3 flex-wrap">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <span className="p-2 rounded-xl bg-pink-500/20 text-pink-400 font-bold text-xs uppercase flex items-center gap-1.5">
-              <Eye className="w-4 h-4" /> Live Teleprompter
+            <span className="p-2 rounded-xl bg-red-50 text-red-700 font-bold text-xs uppercase flex items-center gap-1.5 border border-red-200">
+              <Eye className="w-4 h-4 text-red-600" /> Live Teleprompter
             </span>
             <div className="hidden sm:block">
-              <h3 className="text-sm font-bold text-white truncate max-w-xs">
+              <h3 className="text-sm font-bold text-slate-900 truncate max-w-xs">
                 {script.title}
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Target: ~{script.durationSec}s Reel | {script.category}
               </p>
             </div>
@@ -98,7 +98,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {/* Player controls */}
           <div className="flex items-center gap-2">
             {/* Speed Buttons */}
-            <div className="bg-slate-800 p-1 rounded-xl flex items-center text-xs font-bold">
+            <div className="bg-slate-100 border border-slate-200 p-1 rounded-xl flex items-center text-xs font-bold text-slate-700">
               {[
                 { label: "1x", val: 1 },
                 { label: "1.5x", val: 2 },
@@ -180,50 +180,50 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
         </div>
 
         {/* Timer Bar */}
-        <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs font-mono text-slate-400">
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-2 flex items-center justify-between text-xs font-mono text-slate-600">
           <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? "bg-red-500 animate-pulse" : "bg-slate-600"}`} />
-            <span>{isPlaying ? "RECORDING SCROLL ACTIVE" : "PAUSED"}</span>
+            <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? "bg-red-600 animate-pulse" : "bg-slate-400"}`} />
+            <span className="font-bold">{isPlaying ? "RECORDING SCROLL ACTIVE" : "PAUSED"}</span>
           </div>
           <div>
-            Elapsed: <strong className="text-pink-400">{elapsedSec}s</strong> / Target: ~{script.durationSec}s
+            Elapsed: <strong className="text-red-600">{elapsedSec}s</strong> / Target: ~{script.durationSec}s
           </div>
         </div>
 
         {/* Teleprompter Scroll Screen */}
         <div 
           ref={scrollContainerRef}
-          className={`flex-1 overflow-y-auto p-8 sm:p-16 space-y-12 select-none scrollbar-none transition-transform ${
+          className={`flex-1 overflow-y-auto p-8 sm:p-16 space-y-12 select-none scrollbar-none transition-transform bg-white ${
             isMirrored ? "-scale-x-100" : ""
           }`}
           style={{ scrollBehavior: "smooth" }}
         >
           {/* Eyeline Indicator Marker */}
-          <div className="sticky top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-pink-500/50 to-transparent pointer-events-none" />
+          <div className="sticky top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-red-500/50 to-transparent pointer-events-none" />
 
           {/* Hook Segment */}
-          <div className="space-y-3 border-l-4 border-pink-500 pl-6 bg-pink-950/20 p-6 rounded-2xl">
-            <div className="text-xs font-mono font-bold tracking-widest uppercase text-pink-400 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" /> 0-3 SECONDS VIRAL HOOK (LOOK DIRECTLY INTO CAMERA)
+          <div className="space-y-3 border-l-4 border-red-600 pl-6 bg-red-50 p-6 rounded-2xl border border-red-200">
+            <div className="text-xs font-mono font-bold tracking-widest uppercase text-red-700 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-red-600" /> 0-3 SECONDS VIRAL HOOK (LOOK DIRECTLY INTO CAMERA)
             </div>
-            <p className={`font-black text-white ${fontSizeClasses}`}>
-              "{script.hook}"
+            <p className={`font-black text-slate-900 ${fontSizeClasses}`}>
+              &quot;{script.hook}&quot;
             </p>
           </div>
 
           {/* Director Cue 1 */}
-          <div className="text-xs font-mono text-slate-500 uppercase tracking-wider bg-slate-900/60 py-1.5 px-4 rounded-full inline-block">
+          <div className="text-xs font-mono text-slate-600 uppercase tracking-wider bg-slate-100 border border-slate-200 py-1.5 px-4 rounded-full inline-block">
             🎬 DIRECTOR CUE: Deliver breakdown with punchy, high-energy cadence
           </div>
 
           {/* Script Body Breakdown */}
-          <div className="space-y-10 pl-6 border-l-2 border-slate-800">
+          <div className="space-y-10 pl-6 border-l-2 border-slate-200">
             {script.body.map((item, idx) => (
               <div key={idx} className="space-y-2">
-                <span className="text-xs font-mono font-bold text-pink-400 uppercase tracking-wider block">
+                <span className="text-xs font-mono font-bold text-red-700 uppercase tracking-wider block">
                   Point {idx + 1}
                 </span>
-                <p className={`font-bold text-slate-200 ${fontSizeClasses}`}>
+                <p className={`font-bold text-slate-800 ${fontSizeClasses}`}>
                   {item}
                 </p>
               </div>

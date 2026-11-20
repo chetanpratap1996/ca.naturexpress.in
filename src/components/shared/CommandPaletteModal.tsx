@@ -685,7 +685,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center pt-2 sm:pt-14 p-2 sm:p-4 animate-fadeIn"
+      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-start justify-center pt-2 sm:pt-14 p-2 sm:p-4 animate-fadeIn"
       onClick={onClose}
     >
       <div 
@@ -750,7 +750,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               onClick={() => setActiveCategory(tab.id)}
               className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 text-[11px] ${
                 activeCategory === tab.id
-                  ? "bg-slate-900 text-white shadow-xs"
+                  ? "bg-red-600 text-white shadow-xs"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
               }`}
             >

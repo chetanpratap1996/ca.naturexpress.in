@@ -157,14 +157,14 @@ export const Sa230AuditDossierModal: React.FC<Sa230AuditDossierModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[92vh] flex flex-col font-sans">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-md">
-              <Award className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center font-bold shadow-md">
+              <Award className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -191,7 +191,7 @@ export const Sa230AuditDossierModal: React.FC<Sa230AuditDossierModalProps> = ({
             <button
               onClick={() => setActiveSection("ALL")}
               className={`px-3 py-1 rounded-xl font-bold transition ${
-                activeSection === "ALL" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                activeSection === "ALL" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               Full Audit Package
@@ -199,7 +199,7 @@ export const Sa230AuditDossierModal: React.FC<Sa230AuditDossierModalProps> = ({
             <button
               onClick={() => setActiveSection("BALANCE_SHEET")}
               className={`px-3 py-1 rounded-xl font-bold transition ${
-                activeSection === "BALANCE_SHEET" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                activeSection === "BALANCE_SHEET" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               Balance Sheet
@@ -207,7 +207,7 @@ export const Sa230AuditDossierModal: React.FC<Sa230AuditDossierModalProps> = ({
             <button
               onClick={() => setActiveSection("PROFIT_LOSS")}
               className={`px-3 py-1 rounded-xl font-bold transition ${
-                activeSection === "PROFIT_LOSS" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                activeSection === "PROFIT_LOSS" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               P&amp;L Statement
@@ -215,7 +215,7 @@ export const Sa230AuditDossierModal: React.FC<Sa230AuditDossierModalProps> = ({
             <button
               onClick={() => setActiveSection("MCA_RATIOS")}
               className={`px-3 py-1 rounded-xl font-bold transition ${
-                activeSection === "MCA_RATIOS" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                activeSection === "MCA_RATIOS" ? "bg-red-600 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               11 MCA Ratios
@@ -549,7 +549,7 @@ export const Sa230AuditDossierModal: React.FC<Sa230AuditDossierModalProps> = ({
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
+            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
           >
             Close Dossier
           </button>

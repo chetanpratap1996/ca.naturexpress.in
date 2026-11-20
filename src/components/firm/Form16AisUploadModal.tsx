@@ -394,7 +394,7 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-scaleUp max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -555,7 +555,7 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
             />
             <button
               onClick={() => parseDocumentContent(pastedText, "Pasted_Payload.json")}
-              className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+              className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-sm"
             >
               Parse Text
             </button>

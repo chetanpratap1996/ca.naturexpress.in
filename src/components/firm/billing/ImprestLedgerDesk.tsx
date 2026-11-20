@@ -298,7 +298,7 @@ export function ImprestLedgerDesk({
       </div>
 
       {/* Control Bar & Filter Strip */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Client Entity Selector */}
           <div className="flex items-center gap-2">
@@ -306,7 +306,7 @@ export function ImprestLedgerDesk({
             <select
               value={selectedEntityId}
               onChange={(e) => setSelectedEntityId(e.target.value)}
-              className="text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="ALL">All Clients ({clients.length} Entities)</option>
               {clients.map((c) => {
@@ -327,7 +327,7 @@ export function ImprestLedgerDesk({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="ALL">All Statutory Categories</option>
               {Object.entries(STATUTORY_CATEGORY_LABELS).map(([k, v]) => (
@@ -348,14 +348,14 @@ export function ImprestLedgerDesk({
               placeholder="Search SRN, CIN, Challan..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {activeClient && selectedEntityId !== "ALL" && (
             <button
               onClick={() => handleViewCertificate(activeClient)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 whitespace-nowrap"
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg border border-slate-300 transition-all flex items-center gap-1.5 whitespace-nowrap"
               title="View Rule 33 Pure Agent Certificate"
             >
               <FileText className="w-3.5 h-3.5 text-emerald-600" />
@@ -377,13 +377,13 @@ export function ImprestLedgerDesk({
 
       {/* Selected Client Specific Snapshot (If single client chosen) */}
       {selectedEntityId !== "ALL" && activeClient && (
-        <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">
+              <span className="font-bold text-sm text-slate-900">
                 {activeClient.name}
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">
+              <span className="text-xs font-mono px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-600">
                 PAN: {activeClient.pan}
               </span>
               {clientSummaries[activeClient.id]?.isDeficit && (
@@ -392,7 +392,7 @@ export function ImprestLedgerDesk({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+            <p className="text-xs text-slate-600">
               Primary Contact: {activeClient.primaryContact?.name || "Managing Director"} ({activeClient.primaryContact?.phone || "+91 98200 44101"})
             </p>
           </div>
@@ -400,7 +400,7 @@ export function ImprestLedgerDesk({
           <div className="flex items-center gap-6">
             <div className="text-right">
               <span className="text-[11px] text-slate-500 block">Available Imprest Balance</span>
-              <span className={`text-lg font-black ${clientSummaries[activeClient.id]?.currentAvailableBalance < 0 ? "text-red-600" : "text-emerald-700 dark:text-emerald-400"}`}>
+              <span className={`text-lg font-black ${clientSummaries[activeClient.id]?.currentAvailableBalance < 0 ? "text-red-600" : "text-emerald-700"}`}>
                 {clientSummaries[activeClient.id]?.currentAvailableBalance < 0 ? "-" : ""}
                 {formatCurrencyINR(Math.abs(clientSummaries[activeClient.id]?.currentAvailableBalance || 0))}
               </span>
@@ -417,22 +417,22 @@ export function ImprestLedgerDesk({
       )}
 
       {/* Imprest Transaction Ledger Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-emerald-600" />
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+            <Receipt className="w-4 h-4 text-red-600" />
+            <h3 className="font-bold text-sm text-slate-900">
               Pure Agent Transaction Ledger ({filteredTransactions.length} records)
             </h3>
           </div>
           <span className="text-xs text-slate-500">
-            Audit Standard: ICAI SA 500 & CGST Rule 33
+            Audit Standard: ICAI SA 500 &amp; CGST Rule 33
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase font-semibold">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
               <tr>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Entity</th>
@@ -444,7 +444,7 @@ export function ImprestLedgerDesk({
                 <th className="py-3 px-4 text-center">Rule 33</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-slate-400">
@@ -457,21 +457,21 @@ export function ImprestLedgerDesk({
                   const isAdvance = txn.transactionType === "ADVANCE_RECEIVED";
 
                   return (
-                    <tr key={txn.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr key={txn.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
                         {formatDate(txn.date)}
                       </td>
-                      <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white max-w-[200px] truncate">
+                      <td className="py-3 px-4 font-semibold text-slate-900 max-w-[200px] truncate">
                         {txn.entityName}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         {isAdvance ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
                             Client Advance
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                             <ArrowUpRight className="w-3 h-3 text-blue-600" />
                             Govt Disbursement
                           </span>
@@ -482,14 +482,14 @@ export function ImprestLedgerDesk({
                           <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${catConfig.badgeColor}`}>
                             {catConfig.authority}
                           </span>
-                          <p className="text-xs text-slate-700 dark:text-slate-300 truncate max-w-xs" title={txn.description}>
+                          <p className="text-xs text-slate-700 truncate max-w-xs" title={txn.description}>
                             {txn.description}
                           </p>
                         </div>
                       </td>
                       <td className="py-3 px-4 font-mono text-[11px]">
                         {txn.govtPortalRef ? (
-                          <span className="text-slate-900 dark:text-slate-200 font-semibold block">{txn.govtPortalRef}</span>
+                          <span className="text-slate-900 font-semibold block">{txn.govtPortalRef}</span>
                         ) : null}
                         {txn.challanNumber ? (
                           <span className="text-slate-500 block text-[10px]">Challan: {txn.challanNumber}</span>
@@ -502,13 +502,13 @@ export function ImprestLedgerDesk({
                         {txn.paymentMode.replace(/_/g, " ")}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-xs whitespace-nowrap">
-                        <span className={isAdvance ? "text-emerald-600 dark:text-emerald-400" : "text-slate-900 dark:text-white"}>
+                        <span className={isAdvance ? "text-emerald-600" : "text-slate-900"}>
                           {isAdvance ? "+" : "-"}{formatCurrencyINR(txn.amount)}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-800"
                           title="Verified Rule 33 Pure Agent Pass-through (0% GST)"
                         >
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -525,21 +525,21 @@ export function ImprestLedgerDesk({
 
       {/* Modal: Record Statutory Government Disbursement */}
       {isDisbursementModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                  <ArrowUpRight className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                  <ArrowUpRight className="w-4 h-4 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">Record Statutory Disbursement</h3>
+                  <h3 className="font-bold text-base text-slate-900">Record Statutory Disbursement</h3>
                   <p className="text-xs text-slate-500">Rule 33 CGST Pure Agent Pass-Through</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsDisbursementModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -547,11 +547,11 @@ export function ImprestLedgerDesk({
 
             <div className="space-y-3.5 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Client Entity</label>
+                <label className="font-semibold text-slate-700 block mb-1">Client Entity</label>
                 <select
                   value={formEntityId}
                   onChange={(e) => setFormEntityId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-medium"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-medium"
                 >
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -562,11 +562,11 @@ export function ImprestLedgerDesk({
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Statutory Category</label>
+                <label className="font-semibold text-slate-700 block mb-1">Statutory Category</label>
                 <select
                   value={formCategory}
                   onChange={(e) => setFormCategory(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-medium"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-medium"
                 >
                   {Object.entries(STATUTORY_CATEGORY_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>
@@ -578,21 +578,21 @@ export function ImprestLedgerDesk({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Disbursed Amount (₹)</label>
+                  <label className="font-semibold text-slate-700 block mb-1">Disbursed Amount (₹)</label>
                   <input
                     type="number"
                     placeholder="e.g. 14400"
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-mono font-bold text-slate-900 dark:text-white"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Payment Channel</label>
+                  <label className="font-semibold text-slate-700 block mb-1">Payment Channel</label>
                   <select
                     value={formPaymentMode}
                     onChange={(e) => setFormPaymentMode(e.target.value as any)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-medium"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-medium"
                   >
                     <option value="NET_BANKING_FIRM_ESCROW">Net Banking (Firm Escrow)</option>
                     <option value="CORPORATE_CREDIT_CARD">Corporate Credit Card</option>
@@ -603,39 +603,39 @@ export function ImprestLedgerDesk({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Govt Portal Ref / SRN</label>
+                  <label className="font-semibold text-slate-700 block mb-1">Govt Portal Ref / SRN</label>
                   <input
                     type="text"
                     placeholder="e.g. SRN AA9201948"
                     value={formGovtRef}
                     onChange={(e) => setFormGovtRef(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-mono"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Challan / CIN Number</label>
+                  <label className="font-semibold text-slate-700 block mb-1">Challan / CIN Number</label>
                   <input
                     type="text"
                     placeholder="e.g. CH-88192 / CIN-0291"
                     value={formChallanNo}
                     onChange={(e) => setFormChallanNo(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-mono"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Description / Purpose</label>
+                <label className="font-semibold text-slate-700 block mb-1">Description / Purpose</label>
                 <input
                   type="text"
                   placeholder="e.g. MCA-21 ROC filing fees for Form AOC-4 & MGT-7"
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
                 />
               </div>
 
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-800">
                 <span className="font-bold flex items-center gap-1 mb-0.5">
                   <ShieldCheck className="w-3.5 h-3.5" /> Rule 33 Statutory Warranty:
                 </span>
@@ -643,10 +643,10 @@ export function ImprestLedgerDesk({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200">
               <button
                 onClick={() => setIsDisbursementModalOpen(false)}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 font-semibold"
+                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold"
               >
                 Cancel
               </button>
@@ -664,21 +664,21 @@ export function ImprestLedgerDesk({
 
       {/* Modal: Deposit Client Advance */}
       {isAdvanceModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
                   <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">Deposit Client Statutory Advance</h3>
+                  <h3 className="font-bold text-base text-slate-900">Deposit Client Statutory Advance</h3>
                   <p className="text-xs text-slate-500">Replenish Client Pure Agent Escrow</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAdvanceModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -686,11 +686,11 @@ export function ImprestLedgerDesk({
 
             <div className="space-y-3.5 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Client Entity</label>
+                <label className="font-semibold text-slate-700 block mb-1">Client Entity</label>
                 <select
                   value={formEntityId}
                   onChange={(e) => setFormEntityId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-medium"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-medium"
                 >
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -701,32 +701,32 @@ export function ImprestLedgerDesk({
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Advance Amount Received (₹)</label>
+                <label className="font-semibold text-slate-700 block mb-1">Advance Amount Received (₹)</label>
                 <input
                   type="number"
                   placeholder="e.g. 50000"
                   value={formAmount}
                   onChange={(e) => setFormAmount(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-mono font-bold text-slate-900 dark:text-white"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Deposit Description / UTR Ref</label>
+                <label className="font-semibold text-slate-700 block mb-1">Deposit Description / UTR Ref</label>
                 <input
                   type="text"
                   placeholder="e.g. NEFT UTR AXSK291048 - Statutory Advance for FY 2026-27 filings"
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200">
               <button
                 onClick={() => setIsAdvanceModalOpen(false)}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 font-semibold"
+                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold"
               >
                 Cancel
               </button>
@@ -744,26 +744,26 @@ export function ImprestLedgerDesk({
 
       {/* Modal: Rule 33 Pure Agent Certificate Preview */}
       {isCertModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">Rule 33 CGST Pure Agent Certificate</h3>
+                <ShieldCheck className="w-5 h-5 text-red-600" />
+                <h3 className="font-bold text-base text-slate-900">Rule 33 CGST Pure Agent Certificate</h3>
               </div>
               <button
                 onClick={() => setIsCertModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs overflow-y-auto max-h-96 leading-relaxed whitespace-pre-wrap border border-slate-800">
+            <div className="bg-slate-50 text-slate-800 p-4 rounded-xl font-mono text-xs overflow-y-auto max-h-96 leading-relaxed whitespace-pre-wrap border border-slate-200">
               {certContent}
             </div>
 
-            <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-between items-center pt-3 border-t border-slate-200">
               <span className="text-xs text-slate-500">ICAI SA 500 Audit Evidence Standard</span>
               <div className="flex items-center gap-2">
                 <button
@@ -771,7 +771,7 @@ export function ImprestLedgerDesk({
                     navigator.clipboard.writeText(certContent);
                     toast.success("Copied to Clipboard", "Pure Agent certificate copy ready");
                   }}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-lg"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg"
                 >
                   Copy Text
                 </button>

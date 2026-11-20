@@ -611,9 +611,9 @@ export const Gstr2bReconciler: React.FC = () => {
                 playSoftClick();
                 setIsTable4DrawerOpen(true);
               }}
-              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
             >
-              <FileCheck className="w-4 h-4 text-emerald-400" />
+              <FileCheck className="w-4 h-4 text-white" />
               GSTR-3B Table 4 Values
             </button>
           </div>
@@ -670,8 +670,8 @@ export const Gstr2bReconciler: React.FC = () => {
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeTab === "matrix"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -688,11 +688,11 @@ export const Gstr2bReconciler: React.FC = () => {
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeTab === "sec17_5"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
-          <ShieldAlert className="w-4 h-4 text-amber-400" />
+          <ShieldAlert className="w-4 h-4 text-amber-500" />
           Section 17(5) &amp; Vendor Risk
           <span className="px-2 py-0.5 bg-amber-500/20 text-amber-700 text-[10px] rounded-full font-bold">
             {vendorProfiles.length} Vendors
@@ -706,13 +706,13 @@ export const Gstr2bReconciler: React.FC = () => {
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeTab === "rule42_43"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
-          <Calculator className="w-4 h-4 text-blue-400" />
+          <Calculator className="w-4 h-4 text-slate-600" />
           Rule 42 &amp; 43 Pro-Rata Reversal
-          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-700 text-[10px] rounded-full font-bold">
+          <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] rounded-full font-bold">
             Workpaper
           </span>
         </button>
@@ -724,11 +724,11 @@ export const Gstr2bReconciler: React.FC = () => {
           }}
           className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition whitespace-nowrap ${
             activeTab === "notices"
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
           }`}
         >
-          <MessageSquare className="w-4 h-4 text-emerald-400" />
+          <MessageSquare className="w-4 h-4 text-emerald-600" />
           Defaulting Vendor Chaser Desk
           <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-700 text-[10px] rounded-full font-bold">
             Sec 16(2)(aa)
@@ -763,8 +763,8 @@ export const Gstr2bReconciler: React.FC = () => {
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                     filterStatus === f.id
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
                   }`}
                 >
                   {f.label}
@@ -1291,12 +1291,12 @@ export const Gstr2bReconciler: React.FC = () => {
                     </td>
                     <td className="p-3 text-slate-500 text-[11px]">Exempt turnover common credit ratio</td>
                   </tr>
-                  <tr className="bg-slate-900 text-white font-bold">
+                  <tr className="bg-red-50 text-red-950 font-bold border-y-2 border-red-500">
                     <td className="p-3">Net ITC Available [4(A) - 4(B)]</td>
-                    <td className="p-3 text-right font-mono text-emerald-400 font-black">
+                    <td className="p-3 text-right font-mono text-emerald-700 font-black">
                       {formatCurrencyINR(recoReport.summary.matchedEligibleItc - r42Result.totalMonthlyReversal)}
                     </td>
-                    <td className="p-3 text-slate-300 text-[11px]">Credited to Electronic Credit Ledger</td>
+                    <td className="p-3 text-slate-600 text-[11px]">Credited to Electronic Credit Ledger</td>
                   </tr>
                 </tbody>
               </table>
@@ -1311,7 +1311,7 @@ export const Gstr2bReconciler: React.FC = () => {
                   toast.success("Copied to Clipboard", "Table 4 values copied for GST portal.");
                   setIsTable4DrawerOpen(false);
                 }}
-                className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
               >
                 <Copy className="w-3.5 h-3.5" /> Copy Values
               </button>
@@ -1375,7 +1375,7 @@ export const Gstr2bReconciler: React.FC = () => {
                   navigator.clipboard.writeText(selectedNotice.whatsappMessageText);
                   toast.success("Text Copied", "Notice copied to clipboard.");
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
               >
                 <Copy className="w-3.5 h-3.5" /> Copy Text
               </button>

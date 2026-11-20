@@ -207,7 +207,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
               onClick={() => setShowSettings(!showSettings)}
               className={`p-2 rounded-xl transition border ${
                 showSettings
-                  ? "bg-slate-900 text-white border-slate-900"
+                  ? "bg-red-600 text-white border-red-600 shadow-sm"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
               }`}
               title="Notification Settings"
@@ -313,7 +313,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 onClick={() => setActiveCategoryFilter(cat)}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition whitespace-nowrap ${
                   activeCategoryFilter === cat
-                    ? "bg-slate-900 text-white"
+                    ? "bg-red-600 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
                 }`}
               >

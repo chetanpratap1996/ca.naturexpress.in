@@ -476,25 +476,25 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
               </button>
             </div>
 
-            <div className="max-w-lg bg-emerald-900 text-white rounded-2xl p-4 shadow-md font-sans text-xs space-y-2">
-              <div className="flex items-center justify-between text-[10px] text-emerald-200">
+            <div className="max-w-lg bg-emerald-50 text-slate-900 border border-emerald-200 rounded-2xl p-4 shadow-sm font-sans text-xs space-y-2">
+              <div className="flex items-center justify-between text-[10px] text-emerald-800">
                 <span className="font-bold">Brains &amp; Taxes Litigation Desk (Verified)</span>
                 <span>Today, 10:17 AM</span>
               </div>
-              <div className="bg-emerald-950/80 rounded-xl p-3 border border-emerald-700/50 space-y-2">
-                <div className="font-bold text-sm text-emerald-100">
+              <div className="bg-white rounded-xl p-3 border border-emerald-200 space-y-2">
+                <div className="font-bold text-sm text-emerald-950">
                   ⚖ Notice Received: Section {activeDocket.section.replace(/_/g, " ")} ({activeDocket.assessmentYearOrPeriod})
                 </div>
-                <p className="text-[11px] text-emerald-200 leading-relaxed">
+                <p className="text-[11px] text-slate-700 leading-relaxed">
                   Hi {activeDocket.clientName}, we have intercepted a tax notice from NFAC regarding {activeDocket.assessmentYearOrPeriod}.
                 </p>
-                <div className="bg-black/30 rounded-lg p-2 font-mono text-[11px] space-y-1">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 font-mono text-[11px] space-y-1 text-slate-800">
                   <div>• Alleged Demand: {formatCurrencyINR(activeDocket.allegedDemandInr)}</div>
-                  <div className="text-emerald-300 font-bold">• DIN Status: {activeDocket.dinStatus.replace(/_/g, " ")}</div>
+                  <div className="text-emerald-700 font-bold">• DIN Status: {activeDocket.dinStatus.replace(/_/g, " ")}</div>
                   <div>• Statutory Reply Due: {activeDocket.limitationDueDate} ({activeDocket.daysRemaining} days left)</div>
                 </div>
                 <div className="pt-1">
-                  <div className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-center py-2 rounded-lg cursor-pointer">
+                  <div className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-2 rounded-lg cursor-pointer shadow-sm">
                     Review Prepared Legal Defense Brief
                   </div>
                 </div>
@@ -576,11 +576,11 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
               </div>
 
               {/* Petition Formal Draft */}
-              <div className="bg-slate-900 text-slate-200 p-5 rounded-xl font-mono text-xs leading-relaxed space-y-2">
-                <div className="text-indigo-400 font-bold uppercase text-[11px]">
+              <div className="bg-slate-50 text-slate-800 p-5 rounded-xl font-mono text-xs leading-relaxed space-y-2 border border-slate-200">
+                <div className="text-red-600 font-bold uppercase text-[11px]">
                   FORMAL STAY PETITION TEXT — SECTION 220(6)
                 </div>
-                <p className="text-slate-300">
+                <p className="text-slate-700">
                   {activeDocket.stayPetition.petitionText}
                 </p>
               </div>

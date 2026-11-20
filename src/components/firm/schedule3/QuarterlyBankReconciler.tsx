@@ -50,21 +50,21 @@ export const QuarterlyBankReconciler: React.FC<QuarterlyBankReconcilerProps> = (
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white rounded-2xl p-6 border border-blue-500/30 shadow-xl">
+      <div className="bg-white text-slate-900 rounded-2xl p-6 border-2 border-red-500 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                CARO 2020 Cl (ii)(b) & Schedule III
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                CARO 2020 Cl (ii)(b) &amp; Schedule III
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 Sanction Limit &gt; ₹5.00 Crore
               </span>
             </div>
-            <h2 className="text-xl font-bold tracking-tight">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">
               Quarterly Bank Statements vs Books of Account Reconciliation
             </h2>
-            <p className="text-xs text-slate-300 max-w-2xl">
+            <p className="text-xs text-slate-600 max-w-2xl">
               Mandatory reconciliation of stock and book-debts statements filed with banks/financial institutions against general ledger balances. Discrepancies exceeding 10% or material variances must be qualified in the audit report.
             </p>
           </div>
@@ -72,7 +72,7 @@ export const QuarterlyBankReconciler: React.FC<QuarterlyBankReconcilerProps> = (
           <div className="flex items-center gap-3">
             <button
               onClick={handleCopySchedule}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
             >
               {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {isCopied ? "Copied" : "Copy Schedule"}
@@ -82,11 +82,11 @@ export const QuarterlyBankReconciler: React.FC<QuarterlyBankReconcilerProps> = (
       </div>
 
       {/* Reconciliation Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            <FileSpreadsheet className="w-4 h-4 text-red-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
               Quarterly Reconciled Positions (FY 2025-26)
             </span>
           </div>
@@ -96,8 +96,8 @@ export const QuarterlyBankReconciler: React.FC<QuarterlyBankReconcilerProps> = (
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-semibold text-[11px] text-slate-500 border-b border-slate-200 dark:border-slate-800">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 uppercase font-semibold text-[11px] text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Quarter</th>
                 <th className="py-3 px-4">Lending Bank</th>
@@ -110,13 +110,13 @@ export const QuarterlyBankReconciler: React.FC<QuarterlyBankReconcilerProps> = (
                 <th className="py-3 px-4">Auditor / Reconciliation Notes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {reconciliations.map((row) => (
-                <tr key={row.quarter} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                <tr key={row.quarter} className="hover:bg-slate-50/50">
+                  <td className="py-3 px-4 font-bold text-slate-900">
                     {row.quarter} <span className="font-normal text-[11px] text-slate-400">({row.quarterEnd})</span>
                   </td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{row.bankName}</td>
+                  <td className="py-3 px-4 text-slate-600">{row.bankName}</td>
                   <td className="py-3 px-4 text-right font-mono font-medium">{formatCurrencyINR(row.bookStockInr)}</td>
                   <td className="py-3 px-4 text-right font-mono font-medium">{formatCurrencyINR(row.bankReturnStockInr)}</td>
                   <td className={`py-3 px-4 text-right font-mono font-bold ${row.stockVarianceInr === 0 ? "text-emerald-600" : "text-amber-600"}`}>
@@ -130,12 +130,12 @@ export const QuarterlyBankReconciler: React.FC<QuarterlyBankReconcilerProps> = (
                         Discrepancy
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                         Agreed
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-[11px] text-slate-600 dark:text-slate-400 italic">
+                  <td className="py-3 px-4 text-[11px] text-slate-600 italic">
                     {row.reconciliationRemarks}
                   </td>
                 </tr>

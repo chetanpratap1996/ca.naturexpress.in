@@ -129,35 +129,33 @@ export const ClientProfileSection: React.FC<ClientProfileSectionProps> = ({
     <div className="space-y-4 sm:space-y-6 animate-in fade-in zoom-in-95 duration-200">
       
       {/* 1. HERO ACCOUNT CARD */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-5 sm:p-7 shadow-lg border border-slate-700/60 relative overflow-hidden">
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+      <div className="bg-white border-2 border-red-500 text-slate-900 rounded-3xl p-5 sm:p-7 shadow-sm relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3.5 sm:gap-5">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black text-xl sm:text-2xl shadow-xl shadow-emerald-500/20 shrink-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-600 text-white flex items-center justify-center font-black text-xl sm:text-2xl shadow-md shrink-0">
               {contactName.split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase() || "PS"}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black text-white">{contactName}</h2>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <BadgeCheck className="w-3 h-3" />
+                <h2 className="text-lg sm:text-xl font-black text-slate-900">{contactName}</h2>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <BadgeCheck className="w-3 h-3 text-emerald-600" />
                   Verified Assessee
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-300 font-medium mt-0.5">{contactDesignation}</p>
-              <p className="text-xs text-emerald-400 font-bold mt-1 flex items-center gap-1">
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">{contactDesignation}</p>
+              <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5" />
                 {client.name}
               </p>
             </div>
           </div>
 
-          <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0">
-            <span className="text-[11px] text-slate-400 font-mono">
-              Promoter Group: <strong className="text-white">{client.groupName}</strong>
+          <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
+            <span className="text-[11px] text-slate-500 font-mono">
+              Promoter Group: <strong className="text-slate-800">{client.groupName}</strong>
             </span>
-            <span className="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-xl border border-slate-700 font-mono">
+            <span className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl border border-slate-200 font-mono">
               Entity ID: {client.id.slice(0, 8)}...
             </span>
           </div>
@@ -287,7 +285,7 @@ export const ClientProfileSection: React.FC<ClientProfileSectionProps> = ({
             <button
               type="submit"
               disabled={isUpdatingPassword || !newPassword}
-              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95"
+              className="w-full py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 active:scale-95"
             >
               <Lock className="w-3.5 h-3.5" />
               <span>{isUpdatingPassword ? "Updating Password..." : "Save New Password"}</span>
@@ -375,17 +373,17 @@ export const ClientProfileSection: React.FC<ClientProfileSectionProps> = ({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-extrabold text-sm">{DEFAULT_FIRM_BRANDING.firmName}</span>
-              <span className="text-[10px] font-mono font-bold bg-slate-800 text-emerald-400 px-2 py-0.5 rounded border border-slate-700">
+              <span className="font-extrabold text-sm text-slate-900">{DEFAULT_FIRM_BRANDING.firmName}</span>
+              <span className="text-[10px] font-mono font-bold bg-white text-red-600 px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
                 FRN: {DEFAULT_FIRM_BRANDING.frn}
               </span>
             </div>
-            <div className="text-[11px] text-slate-300 space-y-0.5 pt-1 border-t border-slate-800">
-              <p><strong>Managing Partner:</strong> {DEFAULT_FIRM_BRANDING.managingPartner}</p>
-              <p><strong>Assigned Article Assistant:</strong> Kriti Jain</p>
-              <p className="text-slate-400 text-[10px] pt-1">{DEFAULT_FIRM_BRANDING.headOffice}</p>
+            <div className="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-200">
+              <p><strong className="text-slate-800">Managing Partner:</strong> {DEFAULT_FIRM_BRANDING.managingPartner}</p>
+              <p><strong className="text-slate-800">Assigned Article Assistant:</strong> Kriti Jain</p>
+              <p className="text-slate-500 text-[10px] pt-1">{DEFAULT_FIRM_BRANDING.headOffice}</p>
             </div>
           </div>
 

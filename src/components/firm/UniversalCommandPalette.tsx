@@ -519,14 +519,14 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
       <div 
-        className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[75vh]"
+        className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[75vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/30">
-          <Search className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+        <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
+          <Search className="w-5 h-5 text-red-600 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -536,15 +536,15 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="w-full bg-transparent text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 outline-none"
+            className="w-full bg-transparent text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none"
           />
           <div className="flex items-center gap-1.5 shrink-0">
-            <kbd className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+            <kbd className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-600">
               ESC
             </kbd>
             <button 
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
             >
               <X className="w-4 h-4" />
             </button>
@@ -552,7 +552,7 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         </div>
 
         {/* Results List */}
-        <div className="p-2 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+        <div className="p-2 overflow-y-auto divide-y divide-slate-100">
           {filteredCommands.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400">
               No matching commands or clients found.
@@ -571,17 +571,17 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`p-3 rounded-2xl cursor-pointer flex items-center justify-between transition-all ${
                     isSelected 
-                      ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-950 dark:text-indigo-200" 
-                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      ? "bg-red-50 text-slate-900 border border-red-200" 
+                      : "text-slate-700 hover:bg-slate-50"
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                       item.category === "AUTOPILOT"
-                        ? "bg-indigo-600 text-white"
+                        ? "bg-red-600 text-white"
                         : isSelected
-                        ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-slate-100 text-slate-600"
                     }`}>
                       <Icon className="w-4 h-4" />
                     </div>
@@ -589,12 +589,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold">{item.title}</span>
                         {item.badge && (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300">
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-red-100 text-red-800 border border-red-200">
                             {item.badge}
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
                         {item.subtitle}
                       </div>
                     </div>
@@ -602,12 +602,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
 
                   <div className="flex items-center gap-2 shrink-0">
                     {item.shortcut && (
-                      <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-200/60 dark:bg-slate-800 text-slate-500">
+                      <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-600 border border-slate-200">
                         {item.shortcut}
                       </kbd>
                     )}
                     {isSelected && (
-                      <ArrowRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <ArrowRight className="w-4 h-4 text-red-600" />
                     )}
                   </div>
                 </div>
@@ -617,13 +617,13 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         </div>
 
         {/* Footer Shortcut Helper */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500">
           <div className="flex items-center gap-3">
             <span>Navigation: <kbd className="font-mono font-bold">↑</kbd> <kbd className="font-mono font-bold">↓</kbd></span>
             <span>Execute: <kbd className="font-mono font-bold">↵ Enter</kbd></span>
           </div>
-          <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
-            Linear-Grade Power Palette
+          <span className="text-[10px] font-mono text-red-600 font-bold">
+            Universal Statutory Command Palette
           </span>
         </div>
       </div>

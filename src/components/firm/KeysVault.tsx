@@ -614,7 +614,7 @@ export const KeysVault: React.FC<KeysVaultProps> = ({
                 onClick={() => setPortalFilter(pType)}
                 className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition whitespace-nowrap ${
                   portalFilter === pType
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? "bg-red-600 text-white shadow-sm"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-200"
                 }`}
               >

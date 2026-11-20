@@ -1124,24 +1124,24 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
       )}
 
       {/* BRS Financial Integrity & Account Ribbon */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-5 shadow-md">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
+      <div className="bg-white border-2 border-red-500 text-slate-900 rounded-3xl p-5 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0">
-              <CreditCard className="w-5 h-5 text-indigo-300" />
+            <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center shrink-0">
+              <CreditCard className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <div className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+              <div className="text-xs font-bold text-red-700 uppercase tracking-wider flex items-center gap-2">
                 <span>Active Account Ledger</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                <span className="text-emerald-400 text-[11px] font-semibold">Live Statement Feed</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span className="text-emerald-700 text-[11px] font-semibold">Live Statement Feed</span>
               </div>
-              <div className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+              <div className="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
                 <span>{activeProfile.bankName}</span>
-                <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-mono font-normal">
+                <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
                   A/c: {activeProfile.accountNumber}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-mono font-normal">
+                <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
                   IFSC: {activeProfile.ifsc}
                 </span>
               </div>
@@ -1149,22 +1149,22 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
           </div>
 
           <div className="flex items-center gap-3 flex-wrap text-xs">
-            <div className="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-300">
-              <span className="text-slate-400">Statement Period:</span> <strong className="text-white">{activeProfile.statementPeriod}</strong>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700">
+              <span className="text-slate-500">Statement Period:</span> <strong className="text-slate-900">{activeProfile.statementPeriod}</strong>
             </div>
             <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-bold ${
               brsMetrics.isBalanced 
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-                : "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                : "bg-rose-50 border-rose-200 text-rose-700"
             }`}>
               {brsMetrics.isBalanced ? (
                 <>
-                  <CheckCheck className="w-4 h-4 text-emerald-400" />
+                  <CheckCheck className="w-4 h-4 text-emerald-600" />
                   <span>BRS Reconciled: ₹0 Discrepancy</span>
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
                   <span>BRS Difference: {formatCurrencyINR(brsMetrics.diff)}</span>
                 </>
               )}
@@ -1174,61 +1174,61 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
 
         {/* BRS 4-Column Stat Matrix */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-3">
-            <span className="text-[11px] text-slate-400 font-bold block uppercase tracking-wider">1. Opening Balance</span>
-            <div className="text-lg font-black text-slate-100 mt-0.5 font-mono">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-2xs">
+            <span className="text-[11px] text-slate-500 font-bold block uppercase tracking-wider">1. Opening Balance</span>
+            <div className="text-lg font-black text-slate-900 mt-0.5 font-mono">
               {formatCurrencyINR(brsMetrics.opening)}
             </div>
-            <span className="text-[10px] text-slate-400">As per bank statement</span>
+            <span className="text-[10px] text-slate-500">As per bank statement</span>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-3">
-            <span className="text-[11px] text-emerald-400 font-bold block uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-2xs">
+            <span className="text-[11px] text-emerald-700 font-bold block uppercase tracking-wider flex items-center gap-1">
               <span>+ Total Inflows (Cr)</span>
             </span>
-            <div className="text-lg font-black text-emerald-400 mt-0.5 font-mono">
+            <div className="text-lg font-black text-emerald-700 mt-0.5 font-mono">
               +{formatCurrencyINR(brsMetrics.totalDeposits)}
             </div>
-            <span className="text-[10px] text-slate-400">{transactions.filter(t => t.deposit > 0).length} Credit Entries</span>
+            <span className="text-[10px] text-slate-500">{transactions.filter(t => t.deposit > 0).length} Credit Entries</span>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-3">
-            <span className="text-[11px] text-rose-400 font-bold block uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-2xs">
+            <span className="text-[11px] text-red-600 font-bold block uppercase tracking-wider flex items-center gap-1">
               <span>- Total Outflows (Dr)</span>
             </span>
-            <div className="text-lg font-black text-rose-400 mt-0.5 font-mono">
+            <div className="text-lg font-black text-red-600 mt-0.5 font-mono">
               -{formatCurrencyINR(brsMetrics.totalWithdrawals)}
             </div>
-            <span className="text-[10px] text-slate-400">{transactions.filter(t => t.withdrawal > 0).length} Debit Entries</span>
+            <span className="text-[10px] text-slate-500">{transactions.filter(t => t.withdrawal > 0).length} Debit Entries</span>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-3">
-            <span className="text-[11px] text-indigo-300 font-bold block uppercase tracking-wider">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-2xs">
+            <span className="text-[11px] text-slate-600 font-bold block uppercase tracking-wider">
               = Closing Balance
             </span>
-            <div className="text-lg font-black text-white mt-0.5 font-mono">
+            <div className="text-lg font-black text-slate-900 mt-0.5 font-mono">
               {formatCurrencyINR(brsMetrics.calculatedClosing)}
             </div>
-            <span className="text-[10px] text-emerald-400 font-semibold">100% Math Verified ✓</span>
+            <span className="text-[10px] text-emerald-700 font-semibold">100% Math Verified ✓</span>
           </div>
         </div>
 
         {/* Statutory Summary Pills (ICAI SA 500) */}
-        <div className="pt-3 border-t border-slate-700/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-slate-400 font-semibold">Statutory Ledgers:</span>
+            <span className="text-[11px] text-slate-500 font-semibold">Statutory Ledgers:</span>
             {brsReport.statutorySummary.gstPaid > 0 && (
-              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg font-mono">
+              <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-mono">
                 GST: {formatCurrencyINR(brsReport.statutorySummary.gstPaid)}
               </span>
             )}
             {brsReport.statutorySummary.advanceTaxPaid > 0 && (
-              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg font-mono">
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-300 rounded-lg font-mono">
                 Adv Tax: {formatCurrencyINR(brsReport.statutorySummary.advanceTaxPaid)}
               </span>
             )}
             {brsReport.statutorySummary.tdsDeposited > 0 && (
-              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg font-mono">
+              <span className="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-lg font-mono">
                 TDS: {formatCurrencyINR(brsReport.statutorySummary.tdsDeposited)}
               </span>
             )}
@@ -2095,7 +2095,7 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                   toast.success("Query Copied", "WhatsApp message text copied to clipboard.");
                   setIsWhatsAppModalOpen(false);
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
               >
                 <Copy className="w-3.5 h-3.5" /> Copy Text
               </button>
@@ -2120,11 +2120,11 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
       {/* MODAL 4: Tally Prime XML Code Inspector                                  */}
       {/* ========================================================================= */}
       {isXmlInspectorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold">
                   <FileCode className="w-4 h-4" />
                 </div>
                 <div>
@@ -2138,7 +2138,7 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
             </div>
 
             {/* XML Text Area with Mono Font */}
-            <div className="flex-1 overflow-auto bg-slate-900 text-slate-200 p-4 rounded-2xl font-mono text-[11px] leading-relaxed border border-slate-800 select-all">
+            <div className="flex-1 overflow-auto bg-slate-50 text-slate-800 p-4 rounded-2xl font-mono text-[11px] leading-relaxed border border-slate-200 select-all">
               <pre>{generateTallyXml()}</pre>
             </div>
 
@@ -2281,7 +2281,7 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
               </span>
               <button
                 onClick={() => setIsRulesModalOpen(false)}
-                className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Done
               </button>

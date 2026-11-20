@@ -120,20 +120,18 @@ export function GstImsWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 border border-purple-800/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      {/* Top Banner - White & Brand Red */}
+      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
               <span>Mandatory GST 2.0 Engine (2024 / 2025 Mandate)</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              GST IMS (Invoice Management System) & Rule 37A Sentinel
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              GST IMS (Invoice Management System) &amp; Rule 37A Sentinel
             </h1>
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <p className="text-sm text-slate-600 leading-relaxed">
               Take decisive recipient actions (<strong>Accept</strong>, <strong>Reject</strong>, <strong>Keep Pending</strong>) before the 14th cutoff to dictate GSTR-2B generation. Track Rule 37A supplier GSTR-3B defaults to eliminate ₹50(1) interest liabilities.
             </p>
           </div>
@@ -141,7 +139,7 @@ export function GstImsWorkbench() {
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <button
               onClick={handleBatchAcceptClean}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 flex items-center space-x-2 transition"
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Batch Accept Exact Matches</span>
@@ -149,7 +147,7 @@ export function GstImsWorkbench() {
 
             <button
               onClick={handleBatchRejectMismatches}
-              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 flex items-center space-x-2 transition"
+              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
             >
               <XCircle className="w-4 h-4" />
               <span>Batch Reject Mismatches</span>
@@ -160,67 +158,67 @@ export function GstImsWorkbench() {
 
       {/* KPI Telemetry Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
             IMS Accepted ITC (GSTR-2B)
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-emerald-400">
+            <span className="text-2xl font-black text-emerald-700">
               ₹{(stats.acceptedItc / 1000).toFixed(1)}k
             </span>
-            <span className="text-xs font-mono text-slate-400">({stats.acceptedCount} Invoices)</span>
+            <span className="text-xs font-mono text-slate-500">({stats.acceptedCount} Invoices)</span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Flows to GSTR-3B Table 4(A)(5)</p>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
             IMS Rejected / Variance
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-rose-400">
+            <span className="text-2xl font-black text-red-600">
               ₹{(stats.rejectedItc / 1000).toFixed(1)}k
             </span>
-            <span className="text-xs font-mono text-slate-400">({stats.rejectedCount} Invoices)</span>
+            <span className="text-xs font-mono text-slate-500">({stats.rejectedCount} Invoices)</span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Blocked from 2B; Supplier must amend</p>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
             IMS Kept Pending
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-amber-400">
+            <span className="text-2xl font-black text-amber-800">
               ₹{(stats.pendingItc / 1000).toFixed(1)}k
             </span>
-            <span className="text-xs font-mono text-slate-400">({stats.pendingCount} Invoices)</span>
+            <span className="text-xs font-mono text-slate-500">({stats.pendingCount} Invoices)</span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Rolls forward to next tax period</p>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
             Rule 37A At-Risk ITC
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-orange-400">
+            <span className="text-2xl font-black text-red-600">
               ₹{(stats.rule37aAtRiskAmount / 1000).toFixed(1)}k
             </span>
-            <span className="text-xs font-mono text-rose-400 font-bold">18% p.a.</span>
+            <span className="text-xs font-mono text-red-600 font-bold">18% p.a.</span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Supplier default in GSTR-3B</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('IMS_INVOICES')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
             activeTab === 'IMS_INVOICES'
-              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -231,11 +229,11 @@ export function GstImsWorkbench() {
           onClick={() => setActiveTab('RULE_37A')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
             activeTab === 'RULE_37A'
-              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <ShieldAlert className="w-3.5 h-3.5 text-orange-400" />
+          <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
           <span>Rule 37A 180-Day Reversal Tracker ({rule37aList.length})</span>
         </button>
       </div>
@@ -244,15 +242,15 @@ export function GstImsWorkbench() {
       {activeTab === 'IMS_INVOICES' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
-            <div className="flex items-center space-x-2 w-full sm:w-auto">
-              <Search className="w-4 h-4 text-slate-400 ml-2" />
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center space-x-2 w-full sm:w-auto bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+              <Search className="w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search supplier, GSTIN, invoice..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="bg-transparent border-0 text-xs text-white placeholder-slate-500 focus:outline-none w-full sm:w-64"
+                className="bg-transparent border-0 text-xs text-slate-900 placeholder-slate-400 focus:outline-none w-full sm:w-64"
               />
             </div>
 
@@ -263,8 +261,8 @@ export function GstImsWorkbench() {
                   onClick={() => setStatusFilter(f)}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
                     statusFilter === f
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-red-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
                   {f === 'ALL' ? 'All' : f === 'PENDING' ? 'Pending Action' : f === 'ACCEPT' ? 'Accepted' : f === 'REJECT' ? 'Rejected' : 'Mismatches'}
@@ -278,22 +276,22 @@ export function GstImsWorkbench() {
             {filteredInvoices.map(inv => (
               <div
                 key={inv.id}
-                className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 hover:border-purple-500/40 transition space-y-3"
+                className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 hover:border-red-300 transition space-y-3 shadow-sm"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-bold text-white">{inv.supplierTradeName}</h4>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      <h4 className="text-sm font-bold text-slate-900">{inv.supplierTradeName}</h4>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
                         {inv.invoiceType}
                       </span>
                       {inv.itcEligibility === 'INELIGIBLE_17_5' && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200 font-bold">
                           Sec 17(5) Blocked
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-mono text-slate-400 mt-0.5">
+                    <p className="text-xs font-mono text-slate-500 mt-0.5">
                       GSTIN: {inv.supplierGstin} • Inv: {inv.invoiceNumber} • Date: {inv.invoiceDate}
                     </p>
                   </div>
@@ -304,8 +302,8 @@ export function GstImsWorkbench() {
                       onClick={() => handleActionChange(inv.id, 'ACCEPT')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition border ${
                         inv.currentAction === 'ACCEPT'
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-600/30'
-                          : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-emerald-400'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:text-emerald-700'
                       }`}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -316,8 +314,8 @@ export function GstImsWorkbench() {
                       onClick={() => handleActionChange(inv.id, 'REJECT')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition border ${
                         inv.currentAction === 'REJECT'
-                          ? 'bg-rose-600 text-white border-rose-400 shadow-md shadow-rose-600/30'
-                          : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-rose-400'
+                          ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:text-red-700'
                       }`}
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -328,8 +326,8 @@ export function GstImsWorkbench() {
                       onClick={() => handleActionChange(inv.id, 'PENDING')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition border ${
                         inv.currentAction === 'PENDING'
-                          ? 'bg-amber-600 text-white border-amber-400 shadow-md shadow-amber-600/30'
-                          : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-amber-400'
+                          ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:text-amber-800'
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
@@ -339,32 +337,32 @@ export function GstImsWorkbench() {
                 </div>
 
                 {/* Financial Values & AI Recommendation Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-800 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 block mb-0.5">Portal Invoice Value</span>
-                    <span className="font-mono text-slate-200">
-                      Taxable: ₹{inv.taxableValue.toLocaleString('en-IN')} | Tax: <strong className="text-purple-300">₹{inv.totalTax.toLocaleString('en-IN')}</strong>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-200 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 block mb-0.5">Portal Invoice Value</span>
+                    <span className="font-mono text-slate-800">
+                      Taxable: ₹{inv.taxableValue.toLocaleString('en-IN')} | Tax: <strong className="text-red-600">₹{inv.totalTax.toLocaleString('en-IN')}</strong>
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 block mb-0.5">Books of Accounts Match</span>
-                    <span className="font-mono text-slate-200">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 block mb-0.5">Books of Accounts Match</span>
+                    <span className="font-mono text-slate-800">
                       {inv.bookTaxableValue ? (
-                        <>Taxable: ₹{inv.bookTaxableValue.toLocaleString('en-IN')} | Diff: <span className={inv.varianceAmount === 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>₹{inv.varianceAmount?.toLocaleString('en-IN')}</span></>
+                        <>Taxable: ₹{inv.bookTaxableValue.toLocaleString('en-IN')} | Diff: <span className={inv.varianceAmount === 0 ? 'text-emerald-700 font-bold' : 'text-red-600 font-bold'}>₹{inv.varianceAmount?.toLocaleString('en-IN')}</span></>
                       ) : (
-                        <span className="text-amber-400 font-bold">Not Found in Purchase Register</span>
+                        <span className="text-amber-800 font-bold">Not Found in Purchase Register</span>
                       )}
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-800/40 text-purple-200 flex items-start space-x-2">
-                    <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 flex items-start space-x-2">
+                    <Sparkles className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold text-white block text-[11px]">
+                      <span className="font-bold text-slate-900 block text-[11px]">
                         AI Recommendation: {inv.recommendedAction}
                       </span>
-                      <p className="text-[10px] text-slate-300 leading-snug">
+                      <p className="text-[10px] text-slate-600 leading-snug">
                         {inv.recommendationReason}
                       </p>
                     </div>
@@ -379,27 +377,27 @@ export function GstImsWorkbench() {
       {/* TAB 2: Rule 37A 180-Day Reversal Tracker */}
       {activeTab === 'RULE_37A' && (
         <div className="space-y-4">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
                   <span>Rule 37A Statutory Reversal Ledger (FY 2024-25 / 2025-26)</span>
-                  <span className="text-[10px] font-mono uppercase bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] font-mono uppercase bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full font-bold">
                     Statutory Guard
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   If vendor files GSTR-1 but does not file GSTR-3B by 30th November of subsequent FY, recipient MUST reverse ITC in Table 4(B)(2). Reclaimable without interest in Table 4(A)(5) when filed!
                 </p>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border border-slate-800 rounded-xl overflow-hidden font-mono">
-                <thead className="bg-slate-950/80 text-slate-400 text-[10px]">
+              <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden font-mono">
+                <thead className="bg-slate-100 text-slate-700 text-[10px]">
                   <tr>
-                    <th className="p-3">Supplier Name & GSTIN</th>
-                    <th className="p-3">Invoice & FY</th>
+                    <th className="p-3">Supplier Name &amp; GSTIN</th>
+                    <th className="p-3">Invoice &amp; FY</th>
                     <th className="p-3 text-right">ITC Claimed</th>
                     <th className="p-3 text-center">Supplier 3B</th>
                     <th className="p-3">Statutory Deadline</th>
@@ -407,50 +405,50 @@ export function GstImsWorkbench() {
                     <th className="p-3 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100 text-slate-700">
                   {rule37aList.map(rec => (
-                    <tr key={rec.id} className="hover:bg-slate-800/40">
+                    <tr key={rec.id} className="hover:bg-slate-50">
                       <td className="p-3">
-                        <span className="font-sans font-semibold text-white block">{rec.supplierName}</span>
-                        <span className="text-[10px] text-slate-400">{rec.supplierGstin}</span>
+                        <span className="font-sans font-semibold text-slate-900 block">{rec.supplierName}</span>
+                        <span className="text-[10px] text-slate-500">{rec.supplierGstin}</span>
                       </td>
                       <td className="p-3">
-                        <span className="text-slate-200 block">{rec.invoiceNumber}</span>
-                        <span className="text-[10px] text-slate-400">{rec.financialYear}</span>
+                        <span className="text-slate-800 block">{rec.invoiceNumber}</span>
+                        <span className="text-[10px] text-slate-500">{rec.financialYear}</span>
                       </td>
-                      <td className="p-3 text-right font-bold text-white">
+                      <td className="p-3 text-right font-bold text-slate-900">
                         ₹{rec.itcClaimedAmount.toLocaleString('en-IN')}
                       </td>
                       <td className="p-3 text-center">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           rec.supplierGstr3bStatus === 'FILED' 
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-red-50 text-red-700 border border-red-200 animate-pulse'
                         }`}>
                           {rec.supplierGstr3bStatus}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-300">
+                      <td className="p-3 text-slate-600">
                         {rec.reversalDeadline}
                       </td>
                       <td className="p-3 text-right">
                         {rec.interestExposure > 0 ? (
-                          <span className="font-bold text-rose-400">₹{rec.interestExposure.toLocaleString('en-IN')}</span>
+                          <span className="font-bold text-red-600">₹{rec.interestExposure.toLocaleString('en-IN')}</span>
                         ) : (
-                          <span className="text-emerald-400 font-bold">₹0</span>
+                          <span className="text-emerald-700 font-bold">₹0</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
                         {rec.supplierGstr3bStatus === 'NOT_FILED' ? (
                           <button
                             onClick={() => handleSendVendorReminder(rec.id, rec.supplierName)}
-                            className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-[11px] font-bold flex items-center space-x-1.5 shadow-md shadow-orange-600/20 mx-auto transition"
+                            className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold flex items-center space-x-1.5 shadow-sm mx-auto transition"
                           >
                             <Send className="w-3 h-3" />
                             <span>{rec.vendorNotified ? 'Re-send WhatsApp' : 'Dispatch Notice'}</span>
                           </button>
                         ) : (
-                          <span className="text-emerald-400 text-[11px] font-semibold flex items-center justify-center space-x-1">
+                          <span className="text-emerald-700 text-[11px] font-semibold flex items-center justify-center space-x-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Re-claimed in 4A(5)</span>
                           </span>

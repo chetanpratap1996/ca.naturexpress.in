@@ -126,79 +126,79 @@ export function AutonomousGovernanceWorkbench() {
   return (
     <div className="space-y-6">
       {/* Top Banner Header */}
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 p-6 text-white shadow-xl">
+      <div className="rounded-2xl border-2 border-red-500 bg-white p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/20 px-3 py-1 text-xs font-semibold text-purple-300 border border-purple-500/30">
-                <ShieldCheck className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">
+                <ShieldCheck className="h-3.5 w-3.5 text-red-600" />
                 Phase 3: Weeks 41–44
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
                 ICAI SQC-1 Certified
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-300">
                 SA 210 &amp; SA 500 Compliant
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
               ICAI SQC-1 Peer Review &amp; Governance Shield
             </h1>
-            <p className="mt-1 text-sm text-slate-300 max-w-3xl">
+            <p className="mt-1 text-sm text-slate-600 max-w-3xl">
               3-tier Maker-Checker digital audit trail (Article $\to$ AI Manager $\to$ Partner sign-off), 60-day UDIN countdown guardian, and physical USB DSC token custody locker.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-xl bg-white/10 px-4 py-2 text-center border border-white/20">
-              <div className="text-[11px] text-purple-300 font-semibold uppercase">SQC-1 Audit Score</div>
-              <div className="text-xl font-bold text-white">{data.sqc1ComplianceScore}%</div>
+            <div className="rounded-xl bg-slate-50 px-4 py-2 text-center border border-slate-200">
+              <div className="text-[11px] text-red-700 font-semibold uppercase">SQC-1 Audit Score</div>
+              <div className="text-xl font-bold text-slate-900">{data.sqc1ComplianceScore}%</div>
             </div>
           </div>
         </div>
 
         {/* Global Metric Cards */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-purple-800/60 pt-5">
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-purple-200 flex items-center justify-between">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-200 pt-5">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-700 flex items-center justify-between">
               Swarm Pipeline State
-              <Layers className="h-3.5 w-3.5 text-purple-400" />
+              <Layers className="h-3.5 w-3.5 text-red-600" />
             </div>
-            <div className="mt-1 text-base font-bold text-white">
+            <div className="mt-1 text-base font-bold text-slate-900">
               {session?.currentState?.replace(/_/g, " ") || "ACTIVE"}
             </div>
-            <div className="text-[11px] text-purple-300 mt-0.5">3-Tier Verification</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">3-Tier Verification</div>
           </div>
 
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-purple-200 flex items-center justify-between">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-700 flex items-center justify-between">
               Active UDINs Tracked
-              <Award className="h-3.5 w-3.5 text-amber-400" />
+              <Award className="h-3.5 w-3.5 text-amber-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-amber-300">{data.udinRecords.length} Reports</div>
-            <div className="text-[11px] text-slate-300 mt-0.5">Strict 60-Day Mandate</div>
+            <div className="mt-1 text-xl font-bold text-slate-900">{data.udinRecords.length} Reports</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Strict 60-Day Mandate</div>
           </div>
 
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-purple-200 flex items-center justify-between">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-700 flex items-center justify-between">
               Expiring Soon (&lt;15d)
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-rose-300">
+            <div className="mt-1 text-xl font-bold text-rose-600">
               {data.udinRecords.filter((u: any) => u.daysRemaining <= 15).length} Pending
             </div>
-            <div className="text-[11px] text-rose-300 mt-0.5">Immediate Action Required</div>
+            <div className="text-[11px] text-rose-600 font-medium mt-0.5">Immediate Action Required</div>
           </div>
 
-          <div className="rounded-xl bg-white/5 p-3.5 backdrop-blur-sm border border-white/10">
-            <div className="text-xs font-medium text-purple-200 flex items-center justify-between">
+          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
+            <div className="text-xs font-medium text-slate-700 flex items-center justify-between">
               DSC Token Custody
-              <Usb className="h-3.5 w-3.5 text-blue-400" />
+              <Usb className="h-3.5 w-3.5 text-slate-600" />
             </div>
-            <div className="mt-1 text-xl font-bold text-white">
+            <div className="mt-1 text-xl font-bold text-slate-900">
               {data.dscTokens.filter((d: any) => d.status === "AVAILABLE_IN_VAULT").length} / {data.dscTokens.length} Safe
             </div>
-            <div className="text-[11px] text-blue-300 mt-0.5">Physical Safe Locker</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Physical Safe Locker</div>
           </div>
         </div>
       </div>
@@ -543,7 +543,7 @@ export function AutonomousGovernanceWorkbench() {
 
       {/* DSC CHECKOUT MODAL */}
       {selectedDsc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
             <h3 className="font-bold text-slate-900 text-base">
               Check Out USB DSC Token: {selectedDsc.serialNumber}

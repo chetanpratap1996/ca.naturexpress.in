@@ -154,19 +154,19 @@ export function InstitutionalCotiDossier({ initialData }: { initialData?: Partia
   return (
     <div className="space-y-6">
       {/* Action Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
+      <div className="bg-white border-2 border-red-500 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm no-print">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600">
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white flex items-center space-x-2">
+            <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
               <span>Computation of Total Income (COTI)</span>
-              <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-                Banker & ITO Certified
+              <span className="text-[10px] font-mono uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                Banker &amp; ITO Certified
               </span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               The institutional standard layout recognized across all Indian banks and Income Tax circles
             </p>
           </div>
@@ -175,13 +175,13 @@ export function InstitutionalCotiDossier({ initialData }: { initialData?: Partia
         <div className="flex items-center space-x-2 w-full sm:w-auto">
           <button
             onClick={() => setViewMode(viewMode === 'STANDARD_SHEET' ? 'BANK_LOAN_PACK' : 'STANDARD_SHEET')}
-            className="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium transition"
+            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-xs text-slate-700 font-semibold transition"
           >
             {viewMode === 'STANDARD_SHEET' ? 'Switch to Bank Loan Pack' : 'Standard Sheet'}
           </button>
           <button
             onClick={handlePrint}
-            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-md shadow-blue-600/20 transition"
+            className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print / Save PDF</span>

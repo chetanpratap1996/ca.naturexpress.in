@@ -275,7 +275,7 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
               onClick={() => setActiveTab("calc")}
               className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                 activeTab === "calc"
-                  ? "bg-slate-900 text-white shadow-xs"
+                  ? "bg-red-600 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
@@ -287,7 +287,7 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
               onClick={() => setActiveTab("gstin")}
               className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                 activeTab === "gstin"
-                  ? "bg-slate-900 text-white shadow-xs"
+                  ? "bg-red-600 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
@@ -299,7 +299,7 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
               onClick={() => setActiveTab("tb")}
               className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                 activeTab === "tb"
-                  ? "bg-slate-900 text-white shadow-xs"
+                  ? "bg-red-600 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
@@ -507,29 +507,29 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
               </div>
 
               {/* Total Financial Exposure Card */}
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-5 shadow-md space-y-3">
+              <div className="bg-white border-2 border-red-500 text-slate-900 rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                     Total Potential Statutory &amp; Penalty Exposure
                   </span>
-                  <ShieldAlert className="w-5 h-5 text-btred-400" />
+                  <ShieldAlert className="w-5 h-5 text-red-600" />
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
-                  <span className="text-2xl sm:text-4xl font-black tracking-tight text-white">{formatInr(calculations.totalExposureInr)}</span>
-                  <span className="text-[11px] sm:text-xs font-normal text-slate-400">(If left unresolved at audit sign-off)</span>
+                  <span className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900">{formatInr(calculations.totalExposureInr)}</span>
+                  <span className="text-[11px] sm:text-xs font-normal text-slate-500">(If left unresolved at audit sign-off)</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Sec 44AB Tax Audit:</span>
-                    <span className={`font-bold ${calculations.isTaxAuditMandatory ? "text-red-400" : "text-emerald-400"}`}>
+                    <span className="text-slate-500 block text-[10px]">Sec 44AB Tax Audit:</span>
+                    <span className={`font-bold ${calculations.isTaxAuditMandatory ? "text-red-600" : "text-emerald-600"}`}>
                       {calculations.isTaxAuditMandatory ? "MANDATORY" : "EXEMPT (<₹10 Cr Digital)"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Sec 43B(h) Tax Shock:</span>
-                    <span className="font-bold text-amber-400">
+                    <span className="text-slate-500 block text-[10px]">Sec 43B(h) Tax Shock:</span>
+                    <span className="font-bold text-amber-700">
                       {formatInr(calculations.msmeTaxDisallowanceInr)} added tax
                     </span>
                   </div>
@@ -596,9 +596,9 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
                 <button
                   type="button"
                   onClick={() => setIsMemoOpen(true)}
-                  className="w-full h-11 px-5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-2 border border-slate-800"
+                  className="w-full h-11 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center justify-center gap-2 border border-slate-300 shadow-2xs"
                 >
-                  <FileText className="w-4 h-4 text-btred-400" />
+                  <FileText className="w-4 h-4 text-red-600" />
                   <span>View &amp; Print Official Pre-Audit Memorandum</span>
                   <ExternalLink className="w-3.5 h-3.5 opacity-60" />
                 </button>
@@ -875,13 +875,13 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
         {/* PRE-AUDIT STATUTORY DIAGNOSTIC MEMORANDUM MODAL (PRINTABLE / PDF READY) */}
         {/* ========================================================================= */}
         {isMemoOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
             <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-3xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
               
               {/* Modal Control Bar (Excluded from print) */}
-              <div className="bg-slate-900 text-white px-5 sm:px-7 py-3 flex items-center justify-between no-print shrink-0">
+              <div className="bg-white border-b border-slate-200 text-slate-900 px-5 sm:px-7 py-3 flex items-center justify-between no-print shrink-0">
                 <div className="flex items-center gap-2 text-xs font-bold">
-                  <FileText className="w-4 h-4 text-btred-400" />
+                  <FileText className="w-4 h-4 text-red-600" />
                   <span className="truncate">Official Statutory Memorandum &bull; GPA &amp; Co.</span>
                 </div>
 
@@ -889,16 +889,16 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="px-3.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition flex items-center gap-1.5"
                   >
-                    <Printer className="w-3.5 h-3.5 text-btred-300" />
+                    <Printer className="w-3.5 h-3.5 text-red-600" />
                     <span>Print / Save PDF</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsMemoOpen(false)}
-                    className="w-8 h-8 rounded-full hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition"
+                    className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -995,16 +995,16 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
                 </div>
 
                 {/* Total Exposure Summary */}
-                <div className="bg-slate-900 text-white rounded-xl p-4 flex items-center justify-between">
+                <div className="bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-4 flex items-center justify-between shadow-2xs">
                   <div>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-bold">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-bold">
                       Aggregated Statutory &amp; Penalty Exposure
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-white">
+                    <span className="text-xl sm:text-2xl font-black text-slate-900">
                       {formatInr(calculations.totalExposureInr)}
                     </span>
                   </div>
-                  <span className="text-xs text-amber-400 font-bold px-3 py-1 bg-white/10 rounded-lg">
+                  <span className="text-xs text-amber-800 font-bold px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg">
                     {calculations.riskTier} Risk Classification
                   </span>
                 </div>

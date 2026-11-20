@@ -239,7 +239,7 @@ export const CaCreatorContentStudio: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4 text-pink-400" />
               <span>+ Custom Script</span>
@@ -362,7 +362,7 @@ export const CaCreatorContentStudio: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsTeleprompterOpen(true)}
-                  className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                  className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
                   title="Open Full-Screen Teleprompter with Auto-Scroll"
                 >
                   <Play className="w-3.5 h-3.5 fill-white" />

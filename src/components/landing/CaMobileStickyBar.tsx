@@ -48,9 +48,9 @@ export const CaMobileStickyBar: React.FC<CaMobileStickyBarProps> = ({
         {/* 4. Client Login */}
         <button
           onClick={() => onOpenLogin("client")}
-          className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-900 text-white shadow-xs active:bg-black"
+          className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-50 text-slate-800 border border-slate-200/80 active:bg-slate-100"
         >
-          <KeyRound className="w-4 h-4 text-btred-400 mb-0.5" />
+          <KeyRound className="w-4 h-4 text-btred-600 mb-0.5" />
           <span className="text-[10px] font-bold">Portal</span>
         </button>
       </div>

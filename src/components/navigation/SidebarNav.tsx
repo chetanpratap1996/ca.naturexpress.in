@@ -274,7 +274,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                           >
                             <Icon className={`w-4 h-4 ${isActive ? "text-white" : item.iconColor}`} />
                             {/* Hover tooltip */}
-                            <span className="absolute left-full ml-2 px-2 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition z-50">
+                            <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-[11px] font-bold rounded-lg shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition z-50">
                               {item.label}
                             </span>
                           </button>

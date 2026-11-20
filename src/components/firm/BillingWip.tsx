@@ -1304,18 +1304,18 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
               </div>
 
               {/* Real-time Math Summary */}
-              <div className="p-3 bg-slate-900 text-white rounded-xl space-y-1 font-mono text-[11px]">
-                <div className="flex justify-between text-slate-400">
+              <div className="p-3 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl space-y-1 font-mono text-[11px]">
+                <div className="flex justify-between text-slate-500">
                   <span>Taxable Services:</span>
-                  <span>₹{computedBreakdown.taxableAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-slate-900 font-bold">₹{computedBreakdown.taxableAmount.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex justify-between text-slate-500">
                   <span>{posResult.isInterState ? "IGST (18%):" : "CGST (9%) + SGST (9%):"}</span>
-                  <span>+₹{computedBreakdown.totalGstAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-slate-900 font-bold">+₹{computedBreakdown.totalGstAmount.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex justify-between font-bold text-white pt-1 border-t border-slate-700">
+                <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-200">
                   <span>Gross Invoice Amount:</span>
-                  <span>₹{computedBreakdown.grossInvoiceAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-red-600">₹{computedBreakdown.grossInvoiceAmount.toLocaleString("en-IN")}</span>
                 </div>
                 {applyTds && (
                   <div className="flex justify-between text-amber-400">

@@ -197,40 +197,39 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
 
   return (
     <div className="space-y-6 animate-fadeIn font-sans">
-      {/* Promoter Liability Protection Hero Banner (Matching Exact Dark Palette) */}
-      <div className="bg-[#0f172a] text-white rounded-3xl p-6 sm:p-7 shadow-lg relative overflow-hidden border border-slate-800">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Promoter Liability Protection Hero Banner */}
+      <div className="bg-white border-2 border-red-500 text-slate-900 rounded-3xl p-6 sm:p-7 shadow-sm relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 bg-red-950/80 border border-red-700/60 text-red-400 text-[11px] font-bold rounded-full flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-red-400" /> Promoter Liability Protection
+              <span className="px-2.5 py-0.5 bg-red-50 border border-red-200 text-red-700 text-[11px] font-bold rounded-full flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-red-600" /> Promoter Liability Protection
               </span>
-              <span className="text-[11px] text-slate-400 font-medium">
+              <span className="text-[11px] text-slate-500 font-medium">
                 Companies Act 2013 &bull; Section 164(2) &bull; CBDT Project Insight
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Director Personal Risk &amp; MCA Penalty Shield
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
               Real-time vigilance against Section 164(2) disqualifications, DIN freezes, MCA compounding daily penalties, and personal tax mismatches across all group entities.
             </p>
           </div>
 
           {/* Right Status Badge in Hero Banner */}
-          <div className="flex items-center gap-3 bg-slate-900/90 border border-emerald-500/30 px-5 py-3 rounded-2xl shrink-0 backdrop-blur-sm shadow-inner">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center gap-3 bg-slate-50 border border-emerald-200 px-5 py-3 rounded-2xl shrink-0 shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <div className="text-xs font-black text-white flex items-center gap-1.5">
+              <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                 All DINs Active &amp; Verified
               </div>
-              <div className="text-[10px] text-emerald-400 font-medium">
+              <div className="text-[10px] text-emerald-700 font-bold">
                 Zero disqualification risk detected
               </div>
-              <div className="text-[9px] text-slate-400 mt-0.5">
+              <div className="text-[9px] text-slate-500 mt-0.5">
                 MCA V3 Synced Today
               </div>
             </div>
@@ -488,7 +487,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
 
       {/* Verify Vouchers Modal */}
       {selectedFlagForUpload && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2 text-slate-900">
@@ -594,7 +593,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
 
       {/* MCA Master Data Quick Inspection Modal */}
       {isMasterDataModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2 text-slate-900">
@@ -659,7 +658,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setIsMasterDataModalOpen(false)}
-                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition"
+                className="px-4 py-2 bg-red-600 text-white font-bold text-xs rounded-xl hover:bg-red-700 transition shadow-sm"
               >
                 Close Record
               </button>

@@ -354,8 +354,8 @@ export const AutonomousTdsWorkbench: React.FC = () => {
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     triageFilter === tab.id
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
                   }`}
                 >
                   {tab.label}
@@ -696,25 +696,25 @@ export const AutonomousTdsWorkbench: React.FC = () => {
             </div>
 
             {/* Simulated WhatsApp Preview Bubble */}
-            <div className="mt-4 max-w-lg bg-emerald-900 text-white rounded-2xl p-4 shadow-md font-sans text-xs space-y-2">
-              <div className="flex items-center justify-between text-[10px] text-emerald-200">
+            <div className="mt-4 max-w-lg bg-emerald-50 text-slate-900 border border-emerald-200 rounded-2xl p-4 shadow-sm font-sans text-xs space-y-2">
+              <div className="flex items-center justify-between text-[10px] text-emerald-800">
                 <span className="font-bold">Brains &amp; Taxes TDS Desk (Verified)</span>
                 <span>Today, 09:19 AM</span>
               </div>
-              <div className="bg-emerald-950/80 rounded-xl p-3 border border-emerald-700/50 space-y-2">
-                <div className="font-bold text-sm text-emerald-100">
+              <div className="bg-white rounded-xl p-3 border border-emerald-200 space-y-2">
+                <div className="font-bold text-sm text-emerald-950">
                   ⚡ Form 26Q ({activeProfile.quarter} FY {activeProfile.financialYear}) Sign-Off Required
                 </div>
-                <p className="text-[11px] text-emerald-200 leading-relaxed">
+                <p className="text-[11px] text-slate-700 leading-relaxed">
                   Hi {activeProfile.clientName}, your quarterly TDS return has been autonomously audited and 100% reconciled against Challan 281 receipts.
                 </p>
-                <div className="bg-black/30 rounded-lg p-2 font-mono text-[11px] space-y-1">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 font-mono text-[11px] space-y-1 text-slate-800">
                   <div>• Deductees Count: {activeProfile.totalDeducteesCount} records</div>
                   <div>• Total TDS Deducted: {formatCurrencyINR(activeProfile.totalTdsDeducted)}</div>
-                  <div className="text-emerald-300 font-bold">• Total Deposited (Challan 281): {formatCurrencyINR(activeProfile.totalChallanDeposited)}</div>
+                  <div className="text-emerald-700 font-bold">• Total Deposited (Challan 281): {formatCurrencyINR(activeProfile.totalChallanDeposited)}</div>
                 </div>
                 <div className="pt-1">
-                  <div className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-center py-2 rounded-lg cursor-pointer">
+                  <div className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-2 rounded-lg cursor-pointer shadow-sm">
                     Click to Authorize Filing (OTP)
                   </div>
                 </div>
@@ -727,10 +727,10 @@ export const AutonomousTdsWorkbench: React.FC = () => {
             <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">
               Cryptographic Execution Audit Log (ICAI SA 500)
             </h4>
-            <div className="bg-slate-900 text-slate-200 font-mono text-[11px] p-4 rounded-xl space-y-1 max-h-48 overflow-y-auto">
+            <div className="bg-slate-50 text-slate-800 font-mono text-[11px] p-4 rounded-xl space-y-1 max-h-48 overflow-y-auto border border-slate-200">
               {activeProfile.auditLog.map((log, i) => (
                 <div key={i} className="leading-relaxed">
-                  <span className="text-amber-400">›</span> {log}
+                  <span className="text-red-600 font-bold">&gt;</span> {log}
                 </div>
               ))}
             </div>

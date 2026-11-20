@@ -622,26 +622,26 @@ export const AutonomousMcaWorkbench: React.FC = () => {
             </div>
 
             {/* Simulated WhatsApp Preview Bubble */}
-            <div className="mt-4 max-w-lg bg-emerald-900 text-white rounded-2xl p-4 shadow-md font-sans text-xs space-y-2">
-              <div className="flex items-center justify-between text-[10px] text-emerald-200">
+            <div className="mt-4 max-w-lg bg-emerald-50 text-slate-900 border border-emerald-200 rounded-2xl p-4 shadow-sm font-sans text-xs space-y-2">
+              <div className="flex items-center justify-between text-[10px] text-emerald-800">
                 <span className="font-bold">Brains &amp; Taxes ROC Desk (Verified)</span>
                 <span>Today, 10:34 AM</span>
               </div>
-              <div className="bg-emerald-950/80 rounded-xl p-3 border border-emerald-700/50 space-y-2">
-                <div className="font-bold text-sm text-emerald-100">
+              <div className="bg-white rounded-xl p-3 border border-emerald-200 space-y-2">
+                <div className="font-bold text-sm text-emerald-950">
                   ⚡ Annual ROC Docket ({activeProfile.financialYear}) Sign-Off Required
                 </div>
-                <p className="text-[11px] text-emerald-200 leading-relaxed">
+                <p className="text-[11px] text-slate-700 leading-relaxed">
                   Hi {activeProfile.clientName}, your annual ROC filing docket (Forms AOC-4 &amp; MGT-7A) has been autonomously compiled and verified against audited financial statements.
                 </p>
-                <div className="bg-black/30 rounded-lg p-2 font-mono text-[11px] space-y-1">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 font-mono text-[11px] space-y-1 text-slate-800">
                   <div>• CIN: {activeProfile.cinOrLlp}</div>
                   <div>• Form AOC-4: Financial Statements &amp; Notes to Accounts</div>
                   <div>• Form MGT-7A: Annual Return of Company (Small Co)</div>
-                  <div className="text-emerald-300 font-bold">• Section 403 Late Fee Exposure: ₹0 (On-time compliance)</div>
+                  <div className="text-emerald-700 font-bold">• Section 403 Late Fee Exposure: ₹0 (On-time compliance)</div>
                 </div>
                 <div className="pt-1">
-                  <div className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-center py-2 rounded-lg cursor-pointer">
+                  <div className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-2 rounded-lg cursor-pointer shadow-sm">
                     Click to Authorize Filing (DSC/OTP)
                   </div>
                 </div>
@@ -654,10 +654,10 @@ export const AutonomousMcaWorkbench: React.FC = () => {
             <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">
               Cryptographic Execution Audit Log (ICAI SA 500)
             </h4>
-            <div className="bg-slate-900 text-slate-200 font-mono text-[11px] p-4 rounded-xl space-y-1 max-h-48 overflow-y-auto">
+            <div className="bg-slate-50 text-slate-800 font-mono text-[11px] p-4 rounded-xl space-y-1 max-h-48 overflow-y-auto border border-slate-200">
               {activeProfile.auditLog.map((log, i) => (
                 <div key={i} className="leading-relaxed">
-                  <span className="text-purple-400">›</span> {log}
+                  <span className="text-red-600 font-bold">&gt;</span> {log}
                 </div>
               ))}
             </div>
@@ -683,7 +683,7 @@ export const AutonomousMcaWorkbench: React.FC = () => {
                 toast.success("MCA v3 Pre-Scrutiny JSON Exported", "Validated AOC-4 and MGT-7 schema payloads exported for portal upload.");
                 playSoftClick();
               }}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
             >
               <Download className="w-4 h-4" /> Export MCA v3 Pre-Scrutiny Payload (JSON)
             </button>

@@ -53,7 +53,7 @@ export const Sa580CertificateModal: React.FC<Sa580CertificateModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Modal Controls Header (Non-printable) */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 print:hidden">
@@ -76,7 +76,7 @@ export const Sa580CertificateModal: React.FC<Sa580CertificateModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
             >
               <Printer className="w-4 h-4" />
               <span>Print / Save PDF</span>

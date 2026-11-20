@@ -255,6 +255,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-pillar-five-tds",
+      title: "Pillar V: TDS, TRACES & Remittance Suite",
+      subtitle: "Forms 24Q/26Q/27Q/27EQ FVU & CSI Matcher, TRACES 234E/201(1A) Default Analyzer, Sec 197 & Form 15CA/CB",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "P 5",
+      badge: "Pillar V",
+      action: () => {
+        onNavigateTab("pillar-five-tds");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

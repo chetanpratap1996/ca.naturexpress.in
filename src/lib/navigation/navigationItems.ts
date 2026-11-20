@@ -273,6 +273,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
   },
   {
+    id: "pillar-five-tds",
+    label: "Pillar V: TDS, TRACES & Remittance Suite",
+    shortLabel: "TDS & TRACES (Pillar V)",
+    categoryId: "income-tax-tds",
+    description: "Forms 24Q/26Q/27Q/27EQ FVU & CSI Matcher, TRACES 234E/201(1A) Default Analyzer, Sec 197 Guardian, Form 15CA/CB & Form 16 Signer",
+    icon: Sparkles,
+    iconColor: "text-amber-600",
+    badge: "Institutional",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+  },
+  {
     id: "itr-calc",
     label: "ITR Tax Engine (115BAC)",
     shortLabel: "ITR Calculator",

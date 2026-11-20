@@ -54,6 +54,7 @@ import { GstImsWorkbench } from "@/components/gst/GstImsWorkbench";
 import { PillarOneGstEnterpriseWorkbench } from "@/components/gst/PillarOneGstEnterpriseWorkbench";
 import { PillarTwoDirectTaxWorkbench } from "@/components/itr/PillarTwoDirectTaxWorkbench";
 import { PillarThreeTaxAuditWorkbench } from "@/components/taxAudit/PillarThreeTaxAuditWorkbench";
+import { PillarFiveTdsEnterpriseWorkbench } from "@/components/tds/PillarFiveTdsEnterpriseWorkbench";
 import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
 import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
 import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
@@ -760,6 +761,10 @@ export default function Home() {
 
               {activePartnerTab === "pillar-three-audit" && (
                 <PillarThreeTaxAuditWorkbench />
+              )}
+
+              {activePartnerTab === "pillar-five-tds" && (
+                <PillarFiveTdsEnterpriseWorkbench />
               )}
 
               {activePartnerTab === "gst-ims" && (

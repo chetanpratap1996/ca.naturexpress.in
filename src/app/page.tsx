@@ -217,18 +217,8 @@ const DOMAIN_DEFAULT_TAB: Record<DomainId, string> = {
 };
 
 export default function Home() {
-  // Check if entering sandbox directly or via practice tab deep link
-  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("demo") === "true" || params.get("view") === "sandbox" || !!params.get("tab");
-      } catch (e) {
-        return false;
-      }
-    }
-    return false;
-  });
+  // Practice Desk runs in live partner mode with Pratwi Solutions Private Limited as lead anchor
+  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(true);
 
   // Use persistent hook - receives sandbox flag
   const {
@@ -257,41 +247,11 @@ export default function Home() {
     deleteDscToken,
   } = useTaxoData(isDemoSandbox);
 
-  // Default to authenticated partner sandbox when ?demo=true, ?view=sandbox or ?tab=... is present
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get("demo") === "true" || params.get("view") === "sandbox" || params.get("tab")) {
-          return DEMO_USERS.partner;
-        }
-      } catch (e) {}
-    }
-    return null;
-  });
-  const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get("demo") === "true" || params.get("view") === "sandbox" || params.get("tab")) {
-          return "partner";
-        }
-      } catch (e) {}
-    }
-    return "client-pwa";
-  });
-  const [activePartnerTab, setActivePartnerTab] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("tab") || "tasks-matrix";
-      } catch (e) {}
-    }
-    return "tasks-matrix";
-  });
-  const [activeDomain, setActiveDomain] = useState<DomainId>(() => {
-    return TAB_TO_DOMAIN[activePartnerTab] || "tasks";
-  });
+  // Default to authenticated Managing Partner (CA Gunjan Jain, GPA & Co.)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
+  const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
+  const [activePartnerTab, setActivePartnerTab] = useState<string>("tasks-matrix");
+  const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
 
   useEffect(() => {
     if (TAB_TO_DOMAIN[activePartnerTab]) {

@@ -99,6 +99,83 @@ export const SANDBOX_GROUPS: ClientGroup[] = [
 
 export const SANDBOX_CLIENTS: ClientEntity[] = [
   {
+    id: "CLI-PRATWI-01",
+    groupId: "GRP-DIRECT",
+    groupName: "Direct Practice Clients",
+    name: "Pratwi Solutions Private Limited",
+    tradeName: "Pratwi Solutions",
+    type: "PVT_LTD",
+    pan: "AANCP9915B",
+    gstin: "09AANCP9915B1Z4",
+    cin: "U74999UP2024PTC199821",
+    tan: "KNPP01821C",
+    turnoverCr: 10.0,
+    digitalTxnPct: 97.2,
+    partnerInCharge: "CA Gunjan Jain",
+    assignedArticle: "Kriti Jain (Article)",
+    incorporationYear: 2024,
+    penaltyRiskAccrued: 0,
+    healthScore: 97,
+    registeredAddress: "Sector 62, Electronic City, Noida, Uttar Pradesh - 201309",
+    authorizedCapitalCr: 1.0,
+    paidUpCapitalCr: 0.5,
+    primaryContact: {
+      name: "Chetan Pratap Singh",
+      phone: "8077170715",
+      email: "chetanpratap1996@gmail.com",
+      designation: "Director / Authorized Signatory"
+    },
+    gstinRecords: [
+      {
+        gstin: "09AANCP9915B1Z4",
+        stateCode: "09",
+        stateName: "Uttar Pradesh",
+        tradeName: "Pratwi Solutions - Noida HQ",
+        registrationType: "REGULAR",
+        filingFrequency: "MONTHLY",
+        status: "ACTIVE",
+        jurisdictionCenter: "Sector 62 Division, CGST Noida",
+        jurisdictionState: "Ward 4, SGST UP",
+        eWayBillEnabled: true,
+        eInvoiceApplicable: true
+      }
+    ],
+    directors: [
+      {
+        din: "19982101",
+        name: "Chetan Pratap Singh",
+        pan: "AANCP9915B",
+        designation: "Managing Director",
+        appointmentDate: "2024-01-15",
+        dir3KycStatus: "COMPLIANT",
+        dscValidityEnd: "2028-01-15"
+      }
+    ],
+    bankAccounts: [
+      {
+        id: "BNK-PRATWI-01",
+        bankName: "ICICI Bank",
+        accountNumber: "657005601799",
+        accountType: "CURRENT",
+        ifsc: "ICIC0006570",
+        branch: "Sector 62, Noida",
+        statementPassword: "AANCP9915B",
+        isPrimary: true
+      }
+    ],
+    complianceBaselines: [
+      {
+        assessmentYear: "2025-26",
+        formType: "ITR-6",
+        acknowledgementNo: "119823401922025",
+        filingDate: "2025-10-25",
+        taxPaidAmount: 220000,
+        refundClaimedAmount: 0,
+        status: "PROCESSED_143_1"
+      }
+    ]
+  },
+  {
     id: "CLI-APEX-01",
     groupId: "GRP-APEX",
     groupName: "The Apex Industrial Group",
@@ -525,83 +602,6 @@ export const SANDBOX_CLIENTS: ClientEntity[] = [
         filingDate: "2025-10-15",
         taxPaidAmount: 340000,
         refundClaimedAmount: 85000,
-        status: "PROCESSED_143_1"
-      }
-    ]
-  },
-  {
-    id: "CLI-PRATWI-01",
-    groupId: "GRP-DIRECT",
-    groupName: "Direct Practice Clients",
-    name: "Pratwi Solutions Private Limited",
-    tradeName: "Pratwi Solutions",
-    type: "PVT_LTD",
-    pan: "AANCP9915B",
-    gstin: "09AANCP9915B1Z4",
-    cin: "U74999UP2024PTC199821",
-    tan: "KNPP01821C",
-    turnoverCr: 10.0,
-    digitalTxnPct: 97.2,
-    partnerInCharge: "CA Gunjan Jain",
-    assignedArticle: "Kriti Jain (Article)",
-    incorporationYear: 2024,
-    penaltyRiskAccrued: 0,
-    healthScore: 97,
-    registeredAddress: "Sector 62, Electronic City, Noida, Uttar Pradesh - 201309",
-    authorizedCapitalCr: 1.0,
-    paidUpCapitalCr: 0.5,
-    primaryContact: {
-      name: "Chetan Pratap Singh",
-      phone: "8077170715",
-      email: "chetanpratap1996@gmail.com",
-      designation: "Director / Authorized Signatory"
-    },
-    gstinRecords: [
-      {
-        gstin: "09AANCP9915B1Z4",
-        stateCode: "09",
-        stateName: "Uttar Pradesh",
-        tradeName: "Pratwi Solutions - Noida HQ",
-        registrationType: "REGULAR",
-        filingFrequency: "MONTHLY",
-        status: "ACTIVE",
-        jurisdictionCenter: "Sector 62 Division, CGST Noida",
-        jurisdictionState: "Ward 4, SGST UP",
-        eWayBillEnabled: true,
-        eInvoiceApplicable: true
-      }
-    ],
-    directors: [
-      {
-        din: "19982101",
-        name: "Chetan Pratap Singh",
-        pan: "AANCP9915B",
-        designation: "Managing Director",
-        appointmentDate: "2024-01-15",
-        dir3KycStatus: "COMPLIANT",
-        dscValidityEnd: "2028-01-15"
-      }
-    ],
-    bankAccounts: [
-      {
-        id: "BNK-PRATWI-01",
-        bankName: "ICICI Bank",
-        accountNumber: "657005601799",
-        accountType: "CURRENT",
-        ifsc: "ICIC0006570",
-        branch: "Sector 62, Noida",
-        statementPassword: "AANCP9915B",
-        isPrimary: true
-      }
-    ],
-    complianceBaselines: [
-      {
-        assessmentYear: "2025-26",
-        formType: "ITR-6",
-        acknowledgementNo: "119823401922025",
-        filingDate: "2025-10-25",
-        taxPaidAmount: 220000,
-        refundClaimedAmount: 0,
         status: "PROCESSED_143_1"
       }
     ]

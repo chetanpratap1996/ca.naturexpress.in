@@ -205,6 +205,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
   },
   {
+    id: "pillar-one-gst",
+    label: "Pillar I: GST 2.0 Command Center",
+    shortLabel: "GST 2.0 (Pillar I)",
+    categoryId: "gst-suite",
+    description: "GST IMS Auto-Disposition, Rule 37A 180-Day ITC, GSTR-9/9C DRC-03, E-Way Bill 4h Sentinel, Multi-GSTIN & DRC-01B/C Replier",
+    icon: Sparkles,
+    iconColor: "text-purple-600",
+    badge: "Institutional",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+  },
+  {
     id: "gst-ims",
     label: "GST IMS & Rule 37A Sentinel",
     shortLabel: "GST IMS (2025)",
@@ -249,6 +260,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     iconColor: "text-btred-logo",
     badge: "2035 Auto",
     badgeColor: "bg-red-50 text-btred-logo border-red-200"
+  },
+  {
+    id: "pillar-two-tax",
+    label: "Pillar II: Direct Tax & Capital Gains Suite",
+    shortLabel: "Direct Tax (Pillar II)",
+    categoryId: "income-tax-tds",
+    description: "Budget 2024 STCG/LTCG Forensic Engine, Sec 32 Additional Depreciation, Form 10-IEA Lockout Guard, Schedule FA/FSI & Crypto 115BBH",
+    icon: Calculator,
+    iconColor: "text-amber-600",
+    badge: "Institutional",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
   },
   {
     id: "itr-calc",
@@ -350,6 +372,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     iconColor: "text-emerald-600",
     badge: "Tally XML",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
+  },
+  {
+    id: "pillar-three-audit",
+    label: "Pillar III: Form 3CD Institutional Audit Suite",
+    shortLabel: "Form 3CD (Pillar III)",
+    categoryId: "audit-balancesheet",
+    description: "ICDS I-X Adjustments, Clause 21 Disallowances (40a/40A3), Clause 26 Sec 43B, Clause 31 269SS/T, Clause 32 8-Yr Loss Matrix & Clause 40 Ratios",
+    icon: ClipboardCheck,
+    iconColor: "text-blue-600",
+    badge: "Institutional",
+    badgeColor: "bg-blue-50 text-blue-700 border-blue-200"
   },
   {
     id: "schedule3-audit",

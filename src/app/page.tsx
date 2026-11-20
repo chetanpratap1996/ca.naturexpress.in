@@ -51,6 +51,9 @@ import { AutonomousVcfoWorkbench } from "@/components/firm/AutonomousVcfoWorkben
 import { EnterpriseCiCdWorkbench } from "@/components/firm/EnterpriseCiCdWorkbench";
 import { LegacyMigrationWorkbench } from "@/components/firm/LegacyMigrationWorkbench";
 import { GstImsWorkbench } from "@/components/gst/GstImsWorkbench";
+import { PillarOneGstEnterpriseWorkbench } from "@/components/gst/PillarOneGstEnterpriseWorkbench";
+import { PillarTwoDirectTaxWorkbench } from "@/components/itr/PillarTwoDirectTaxWorkbench";
+import { PillarThreeTaxAuditWorkbench } from "@/components/taxAudit/PillarThreeTaxAuditWorkbench";
 import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
 import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
 import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
@@ -745,6 +748,18 @@ export default function Home() {
 
               {activePartnerTab === "legacy-migration" && (
                 <LegacyMigrationWorkbench />
+              )}
+
+              {activePartnerTab === "pillar-one-gst" && (
+                <PillarOneGstEnterpriseWorkbench />
+              )}
+
+              {activePartnerTab === "pillar-two-tax" && (
+                <PillarTwoDirectTaxWorkbench />
+              )}
+
+              {activePartnerTab === "pillar-three-audit" && (
+                <PillarThreeTaxAuditWorkbench />
               )}
 
               {activePartnerTab === "gst-ims" && (

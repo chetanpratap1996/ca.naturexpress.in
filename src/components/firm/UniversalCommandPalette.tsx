@@ -203,6 +203,45 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-pillar-one-gst",
+      title: "Pillar I: GST 2.0 Command Center",
+      subtitle: "IMS Auto-Disposition, Rule 37A Reversals, GSTR-9/9C DRC-03, E-Way Bill & DRC-01B/C Replier",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "P 1",
+      badge: "Pillar I",
+      action: () => {
+        onNavigateTab("pillar-one-gst");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-pillar-two-tax",
+      title: "Pillar II: Direct Tax & Capital Gains Suite",
+      subtitle: "Budget 2024 STCG/LTCG Forensic Engine, Sec 32 Depreciation, Form 10-IEA Lockout & Crypto 115BBH",
+      category: "AUTOPILOT",
+      icon: Calculator,
+      shortcut: "P 2",
+      badge: "Pillar II",
+      action: () => {
+        onNavigateTab("pillar-two-tax");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-pillar-three-audit",
+      title: "Pillar III: Form 3CD Institutional Audit Suite",
+      subtitle: "ICDS I-X Adjustments, Clause 21 Disallowances (40a/40A3), Sec 43B Dues, 269SS/T & Clause 40 Ratios",
+      category: "AUTOPILOT",
+      icon: ClipboardCheck,
+      shortcut: "P 3",
+      badge: "Pillar III",
+      action: () => {
+        onNavigateTab("pillar-three-audit");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

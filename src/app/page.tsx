@@ -58,6 +58,7 @@ import { PillarFiveTdsEnterpriseWorkbench } from "@/components/tds/PillarFiveTds
 import { PillarSixMcaEnterpriseWorkbench } from "@/components/mca/PillarSixMcaEnterpriseWorkbench";
 import PillarSevenGovernanceWorkbench from "@/components/governance/PillarSevenGovernanceWorkbench";
 import PillarEightTallyDesktopWorkbench from "@/components/desktop/PillarEightTallyDesktopWorkbench";
+import AutonomousPracticeOrchestratorWorkbench from "@/components/firm/AutonomousPracticeOrchestratorWorkbench";
 import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
 import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
 import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
@@ -720,6 +721,10 @@ export default function Home() {
 
               {activePartnerTab === "practice-cockpit" && (
                 <AutonomousPracticeCockpit onNavigateTab={handleTabChange} />
+              )}
+
+              {activePartnerTab === "autonomous-orchestrator" && (
+                <AutonomousPracticeOrchestratorWorkbench />
               )}
 
               {activePartnerTab === "gst-assembly" && (

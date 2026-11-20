@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   LayoutDashboard,
   Keyboard,
+  Cpu,
   Zap
 } from "lucide-react";
 
@@ -123,6 +124,18 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     iconColor: "text-emerald-500",
     badge: "2035 Pulse",
     badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    isDashboard: true
+  },
+  {
+    id: "autonomous-orchestrator",
+    label: "Autonomous 8-Pillar Practice Orchestrator",
+    shortLabel: "Auto Orchestrator",
+    categoryId: "task-management",
+    description: "2035 Zero-Touch Nervous System: Single Input, Everywhere Ripple across all 8 Pillars, Real Statutory Validators & Tally Sync",
+    icon: Cpu,
+    iconColor: "text-indigo-500",
+    badge: "Zero-Touch Mesh",
+    badgeColor: "bg-indigo-50 text-indigo-800 border-indigo-200",
     isDashboard: true
   },
   {

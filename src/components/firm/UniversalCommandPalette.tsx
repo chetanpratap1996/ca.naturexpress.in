@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   Terminal,
   TrendingUp,
+  Cpu,
   Zap,
   Check,
   Command,
@@ -200,6 +201,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       badge: "Master Switch",
       action: () => {
         onNavigateTab("legacy-migration");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-autonomous-orchestrator",
+      title: "Autonomous 8-Pillar Practice Orchestrator",
+      subtitle: "2035 Zero-Touch Nervous System: Single Input, Everywhere Ripple across all 8 Pillars, Real Statutory Validators & Tally Sync",
+      category: "AUTOPILOT",
+      icon: Cpu,
+      shortcut: "A U T O",
+      badge: "Zero-Touch Mesh",
+      action: () => {
+        onNavigateTab("autonomous-orchestrator");
         onClose();
       }
     },

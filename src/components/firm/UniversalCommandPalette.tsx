@@ -281,6 +281,32 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-pillar-seven-governance",
+      title: "Pillar VII: ICAI SQC-1 Peer Review, UDIN & Article Management",
+      subtitle: "18-Digit UDIN Bulk Generator with 60-Day Clock, SQC-1 PAF/CAF Workpapers, Reg 48/59 Article Diary & Physical DSC Vault",
+      category: "AUTOPILOT",
+      icon: ShieldCheck,
+      shortcut: "P 7",
+      badge: "Pillar VII",
+      action: () => {
+        onNavigateTab("pillar-seven-governance");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-pillar-eight-desktop",
+      title: "Pillar VIII: Tally-Speed Mastery, MDI Desktop & Sync Bridge",
+      subtitle: "Tally-Speed Voucher Grid (Enter/Alt+C/Ctrl+A), Multi-Client MDI Switcher, TallyPrime XML Sync, Rule 33 Pure Agent Billing & 8 AM WhatsApp Digest",
+      category: "AUTOPILOT",
+      icon: Terminal,
+      shortcut: "P 8",
+      badge: "Pillar VIII",
+      action: () => {
+        onNavigateTab("pillar-eight-desktop");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

@@ -27,6 +27,7 @@ import {
   Terminal,
   ShieldCheck,
   LayoutDashboard,
+  Keyboard,
   Zap
 } from "lucide-react";
 
@@ -462,6 +463,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
   },
   {
+    id: "pillar-eight-desktop",
+    label: "Pillar VIII: Tally-Speed Mastery, MDI Desktop & Sync Bridge",
+    shortLabel: "Tally Desktop (Pillar VIII)",
+    categoryId: "audit-balancesheet",
+    description: "Tally-speed accounting grid, Multi-Window MDI 3-client switcher, bidirectional TallyPrime XML sync bridge, Rule 33 Pure Agent billing, and 8:00 AM WhatsApp digest",
+    icon: Keyboard,
+    iconColor: "text-sky-600",
+    badge: "Institutional",
+    badgeColor: "bg-sky-50 text-sky-700 border-sky-200"
+  },
+  {
     id: "vcfo",
     label: "vCFO Advisory & Ratios",
     shortLabel: "vCFO Advisory",
@@ -584,6 +596,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     icon: Award,
     iconColor: "text-indigo-400",
     badge: "SQC-1",
+    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
+  },
+  {
+    id: "pillar-seven-governance",
+    label: "Pillar VII: ICAI SQC-1 Peer Review, UDIN & Article Management",
+    shortLabel: "Governance (Pillar VII)",
+    categoryId: "client-desk",
+    description: "Bulk 18-digit UDIN generator with 60-day countdown & QR watermarking, SQC-1 PAF/CAF audit workpapers, Reg 48/59 Article Form 108 diary, and physical DSC safe vault",
+    icon: ShieldCheck,
+    iconColor: "text-indigo-600",
+    badge: "Institutional",
     badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
   },
   {

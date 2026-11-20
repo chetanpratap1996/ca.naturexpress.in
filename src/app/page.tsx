@@ -56,6 +56,8 @@ import { PillarTwoDirectTaxWorkbench } from "@/components/itr/PillarTwoDirectTax
 import { PillarThreeTaxAuditWorkbench } from "@/components/taxAudit/PillarThreeTaxAuditWorkbench";
 import { PillarFiveTdsEnterpriseWorkbench } from "@/components/tds/PillarFiveTdsEnterpriseWorkbench";
 import { PillarSixMcaEnterpriseWorkbench } from "@/components/mca/PillarSixMcaEnterpriseWorkbench";
+import PillarSevenGovernanceWorkbench from "@/components/governance/PillarSevenGovernanceWorkbench";
+import PillarEightTallyDesktopWorkbench from "@/components/desktop/PillarEightTallyDesktopWorkbench";
 import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
 import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
 import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
@@ -770,6 +772,14 @@ export default function Home() {
 
               {activePartnerTab === "pillar-six-mca" && (
                 <PillarSixMcaEnterpriseWorkbench />
+              )}
+
+              {activePartnerTab === "pillar-seven-governance" && (
+                <PillarSevenGovernanceWorkbench />
+              )}
+
+              {activePartnerTab === "pillar-eight-desktop" && (
+                <PillarEightTallyDesktopWorkbench />
               )}
 
               {activePartnerTab === "gst-ims" && (

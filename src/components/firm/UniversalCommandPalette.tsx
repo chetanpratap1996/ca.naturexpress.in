@@ -268,6 +268,19 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
         onClose();
       }
     },
+    {
+      id: "cmd-pillar-six-mca",
+      title: "Pillar VI: Company Law, MCA V3 & Secretarial Suite",
+      subtitle: "Form DPT-3 Return of Deposits, Form MSME-1 Dues, 30th Sep Director KYC, SS-1/SS-2 Minute Book & Form BEN-2 SBO",
+      category: "AUTOPILOT",
+      icon: Building2,
+      shortcut: "P 6",
+      badge: "Pillar VI",
+      action: () => {
+        onNavigateTab("pillar-six-mca");
+        onClose();
+      }
+    },
     // Tax & Audit Suites
     {
       id: "cmd-gstr2b",

@@ -319,6 +319,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 
   // --- SUITE 4: AUDIT & BALANCE SHEET (Blackhorse / Microvista Replacer) ---
   {
+    id: "pillar-six-mca",
+    label: "Pillar VI: Company Law, MCA V3 & Secretarial Suite",
+    shortLabel: "MCA V3 (Pillar VI)",
+    categoryId: "audit-balancesheet",
+    description: "Form DPT-3 Return of Deposits, Form MSME-1 Dues, 30th Sep Director KYC, SS-1/SS-2 Minute Book & Form BEN-2 SBO Detector",
+    icon: Sparkles,
+    iconColor: "text-purple-600",
+    badge: "Institutional",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+  },
+  {
     id: "mca-assembly",
     label: "Autonomous MCA & ROC Assembly",
     shortLabel: "MCA Assembly (2035)",

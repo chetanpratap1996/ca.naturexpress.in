@@ -63,6 +63,12 @@ import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
 import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
 import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
 import { TallyKeyboardOverlay } from "@/components/shared/TallyKeyboardOverlay";
+import { DomainRail, DomainId } from "@/components/navigation/DomainRail";
+import { DomainSubTabHeader, DOMAIN_SUBTABS } from "@/components/navigation/DomainSubTabHeader";
+import { TasksCommandCenter } from "@/components/firm/TasksCommandCenter";
+import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
+import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
+import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SaasGateway } from "@/components/gateway/SaasGateway";
@@ -133,6 +139,82 @@ import {
   Compass
 } from "lucide-react";
 
+const TAB_TO_DOMAIN: Record<string, DomainId> = {
+  // 1. Tasks & Practice
+  "tasks-matrix": "tasks",
+  calendar: "tasks",
+  tasks: "tasks",
+  "workload-matrix": "tasks",
+  "autonomous-orchestrator": "tasks",
+  "practice-cockpit": "tasks",
+  dashboard: "tasks",
+  "batch-dispatch": "tasks",
+  "inward-outward": "tasks",
+
+  // 2. GST Suite
+  "gst-filing": "gst",
+  "pillar-one-gst": "gst",
+  "gst-ims": "gst",
+  gstr2b: "gst",
+  "gst-assembly": "gst",
+  "entity-dna": "gst",
+
+  // 3. Income Tax & Audit
+  "itr-matrix": "tax-audit",
+  "pillar-two-tax": "tax-audit",
+  "pillar-three-audit": "tax-audit",
+  "pillar-five-tds": "tax-audit",
+  "tds-assembly": "tax-audit",
+  "tax-audit-3cd": "tax-audit",
+  "form3cd-clause31": "tax-audit",
+  "schedule3-audit": "tax-audit",
+  "ais-analyzer": "tax-audit",
+  "itr-calc": "tax-audit",
+  "engagement-letter": "tax-audit",
+
+  // 4. Notices & Secretarial
+  notices: "notices-udin",
+  "notice-assembly": "notices-udin",
+  "pillar-six-mca": "notices-udin",
+  "mca-assembly": "notices-udin",
+  "notice-drafter": "notices-udin",
+  "assessee-approval": "notices-udin",
+  "udin-vault": "notices-udin",
+  "peer-review": "notices-udin",
+
+  // 5. Billing & Realization
+  "billing-matrix": "billing-wip",
+  billing: "billing-wip",
+  "pay-to-release": "billing-wip",
+  "pillar-eight-desktop": "billing-wip",
+  "tally-data-grid": "billing-wip",
+  "bank-parser": "billing-wip",
+  "bank-audit": "billing-wip",
+  "anti-poaching": "billing-wip",
+
+  // 6. Client Master & Governance
+  "client-master": "client-master",
+  "whatsapp-ai": "client-master",
+  "pillar-seven-governance": "client-master",
+  "governance-assembly": "client-master",
+  vcfo: "client-master",
+  "vcfo-assembly": "client-master",
+  "growth-engine": "client-master",
+  dsc: "client-master",
+  "content-studio": "client-master",
+  "legacy-migration": "client-master",
+  "cicd-assembly": "client-master",
+};
+
+const DOMAIN_DEFAULT_TAB: Record<DomainId, string> = {
+  tasks: "tasks-matrix",
+  gst: "gst-filing",
+  "tax-audit": "itr-matrix",
+  "notices-udin": "notices",
+  "billing-wip": "billing-matrix",
+  "client-master": "client-master",
+};
+
 export default function Home() {
   // Check if entering sandbox directly or via practice tab deep link
   const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(() => {
@@ -201,11 +283,20 @@ export default function Home() {
     if (typeof window !== "undefined") {
       try {
         const params = new URLSearchParams(window.location.search);
-        return params.get("tab") || "practice-cockpit";
+        return params.get("tab") || "tasks-matrix";
       } catch (e) {}
     }
-    return "practice-cockpit";
+    return "tasks-matrix";
   });
+  const [activeDomain, setActiveDomain] = useState<DomainId>(() => {
+    return TAB_TO_DOMAIN[activePartnerTab] || "tasks";
+  });
+
+  useEffect(() => {
+    if (TAB_TO_DOMAIN[activePartnerTab]) {
+      setActiveDomain(TAB_TO_DOMAIN[activePartnerTab]);
+    }
+  }, [activePartnerTab]);
   const [bridgedAuditDisallowances, setBridgedAuditDisallowances] = useState<number | null>(null);
   const [activeClientTab, setActiveClientTab] = useState<string>("progress");
   const [isClientQuickActionOpen, setIsClientQuickActionOpen] = useState(false);
@@ -343,10 +434,6 @@ export default function Home() {
 
   // Synchronized Tab Navigation with Browser History & Deep Linking
   const handleTabChange = (tab: string) => {
-    if (tab === "client-master") {
-      setIsClientMasterOpen(true);
-      return;
-    }
     if (currentView === "client-pwa") {
       setActiveClientTab(tab as any);
     } else {
@@ -358,6 +445,14 @@ export default function Home() {
           window.history.pushState({ tab }, "", url.toString());
         } catch (e) {}
       }
+    }
+  };
+
+  const handleSelectDomain = (domainId: DomainId) => {
+    setActiveDomain(domainId);
+    const defaultTab = DOMAIN_DEFAULT_TAB[domainId];
+    if (defaultTab) {
+      handleTabChange(defaultTab);
     }
   };
 
@@ -582,16 +677,13 @@ export default function Home() {
 
         {/* Master Flex Layout with Left Sidebar */}
         <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">
-          {/* Collapsible Left Sidebar (Only in Partner View) */}
+          {/* Left Domain Rail (Alt+1 to Alt+6) */}
           {currentView === "partner" && (
-            <SidebarNav
-              activeTab={activePartnerTab}
-              onNavigateTab={(tab) => handleTabChange(tab)}
-              isMobileDrawerOpen={isMobileDrawerOpen}
-              onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
-              onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
-              onOpenClientMaster={() => setIsClientMasterOpen(true)}
-              clientCount={clients.length}
+            <DomainRail
+              activeDomain={activeDomain}
+              onSelectDomain={handleSelectDomain}
+              urgentTaskCount={tasks.filter(t => t.status !== "FILED_AND_COMPLETED").length}
+              activeNoticeCount={notices.length}
             />
           )}
 
@@ -633,6 +725,15 @@ export default function Home() {
                 }}
               />
 
+              {/* Contextual Sub-Tab Header for Active Domain */}
+              <DomainSubTabHeader
+                activeDomain={activeDomain}
+                activeSubTab={activePartnerTab}
+                onSelectDomain={handleSelectDomain}
+                onSelectSubTab={(tabId) => handleTabChange(tabId)}
+                taskCount={tasks.length}
+              />
+
               {/* 1. EXECUTIVE DASHBOARD (PRIMARY FIRST PAGE WITH 4 MASTER KPI CARDS) */}
               {activePartnerTab === "dashboard" && (
                 <ExecutiveDashboard
@@ -663,6 +764,49 @@ export default function Home() {
               )}
 
               {/* Active Content */}
+              {/* OPERATIONAL MATRIX COCKPITS */}
+              {activePartnerTab === "tasks-matrix" && (
+                <TasksCommandCenter
+                  tasks={tasks}
+                  clients={clients}
+                  onUpdateTask={updateTask}
+                  onRefreshData={refreshData}
+                  onNavigateTab={handleTabChange}
+                />
+              )}
+
+              {activePartnerTab === "gst-filing" && (
+                <GstFilingMatrix
+                  tasks={tasks}
+                  clients={clients}
+                  credentials={portalCredentials}
+                  dscTokens={dscTokens}
+                  onUpdateTask={updateTask}
+                  onRefreshData={refreshData}
+                />
+              )}
+
+              {activePartnerTab === "itr-matrix" && (
+                <ItrAuditMatrix
+                  tasks={tasks}
+                  clients={clients}
+                  credentials={portalCredentials}
+                  dscTokens={dscTokens}
+                  onUpdateTask={updateTask}
+                  onRefreshData={refreshData}
+                />
+              )}
+
+              {activePartnerTab === "billing-matrix" && (
+                <BillingWipMatrix
+                  invoices={invoices}
+                  clients={clients}
+                  payConfigs={payConfigs as any}
+                  onRefreshData={refreshData}
+                  onReconcileInvoice={reconcileInvoice}
+                />
+              )}
+
               {activePartnerTab === "growth-engine" && (
                 <PracticeGrowthCockpit onClientConverted={() => refreshData()} />
               )}
@@ -885,8 +1029,10 @@ export default function Home() {
               {activePartnerTab === "notices" && (
                 <NoticeCenter 
                   notices={notices} 
+                  credentials={portalCredentials}
+                  clients={clients}
                   onNoticeUpdated={refreshData}
-                  onNavigateToDrafter={() => handleTabChange("notice-drafter")}
+                  onNavigateTab={handleTabChange}
                 />
               )}
 

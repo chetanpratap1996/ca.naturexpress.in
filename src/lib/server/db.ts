@@ -45,6 +45,52 @@ import {
 import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 import { ImprestTransactionItem, DEFAULT_IMPREST_TRANSACTIONS } from "@/lib/billing/pureAgentImprest";
+import { Gstr2bInvoice, BooksPurchaseInvoice } from "@/lib/gst/recoMatcher";
+
+export interface ClientGstReconciliationItem {
+  id: string;
+  clientId: string;
+  clientGstin: string;
+  period: string;
+  updatedAt: string;
+  invoicesAudited: number;
+  totalTaxableInr: number;
+  totalTaxInr: number;
+  missingItcInr: number;
+  eligibleItcInr: number;
+  ineligible17_5ItcInr: number;
+  rule37aRiskCount: number;
+  vendorNoticeCount: number;
+  gstr2bInvoices: Gstr2bInvoice[];
+  booksInvoices: BooksPurchaseInvoice[];
+}
+
+export interface ClientAisDataItem {
+  id: string;
+  clientId: string;
+  pan: string;
+  assessmentYear: string;
+  updatedAt: string;
+  totalSftAmount: number;
+  sftItemCount: number;
+  totalTdsAmount: number;
+  discrepancyRiskCount: number;
+  records: any[];
+}
+
+export interface ClientTrialBalanceItem {
+  id: string;
+  clientId: string;
+  financialYear: string;
+  updatedAt: string;
+  totalDebit: number;
+  totalCredit: number;
+  isBalanced: boolean;
+  ledgerCount: number;
+  sec43bMsmeDisallowanceInr: number;
+  sec40aDisallowanceInr: number;
+  caroClauseCount: number;
+}
 
 export interface DatabaseSchema {
   firmMetrics: typeof FIRM_METRICS;
@@ -67,6 +113,9 @@ export interface DatabaseSchema {
   partnerMetrics: PartnerRealizationMetrics[];
   notifications: NotificationItem[];
   imprestTransactions?: ImprestTransactionItem[];
+  clientGstReconciliations?: ClientGstReconciliationItem[];
+  clientAisData?: ClientAisDataItem[];
+  clientTrialBalances?: ClientTrialBalanceItem[];
   lastUpdated: string;
 }
 
@@ -164,6 +213,9 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.notices || parsed.notices.length === 0) { parsed.notices = SANDBOX_NOTICES; modified = true; }
     if (!parsed.clients || parsed.clients.length === 0) { parsed.clients = SANDBOX_CLIENTS; modified = true; }
     if (!parsed.groups || parsed.groups.length === 0) { parsed.groups = SANDBOX_GROUPS; modified = true; }
+    if (!parsed.clientGstReconciliations) { parsed.clientGstReconciliations = []; modified = true; }
+    if (!parsed.clientAisData) { parsed.clientAisData = []; modified = true; }
+    if (!parsed.clientTrialBalances) { parsed.clientTrialBalances = []; modified = true; }
 
     // Auto-generate statutory compliance obligations for any client without tasks
     if (!parsed.tasks) parsed.tasks = [];

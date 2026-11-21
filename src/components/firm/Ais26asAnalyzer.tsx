@@ -8,6 +8,7 @@ import { ClientEntity } from "@/lib/types";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
 import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
 import { SftEngine, RULE_114E_THRESHOLDS, SftTransactionCode, CategorizedSftItem } from "@/lib/ais/sftEngine";
+import { parseOfficialAisJson } from "@/lib/parsers/aisParser";
 import { AisCrossReconciler, BooksIncomeSourceItem, CrossReconciliationReport, CrossReconciliationItem } from "@/lib/ais/aisCrossReconciler";
 import { InsightNoticeForecaster, ScrutinyForecastResult, AisPortalFeedbackPayload, AisFeedbackOption } from "@/lib/ais/insightNoticeForecaster";
 
@@ -323,9 +324,13 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
 
-  // Modals
+  // Modals & Upload State
   const [isNoticeLetterModalOpen, setIsNoticeLetterModalOpen] = useState(false);
   const [isFeedbackPayloadModalOpen, setIsFeedbackPayloadModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [aisFile, setAisFile] = useState<File | null>(null);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [customAisRecords, setCustomAisRecords] = useState<AisRecord[] | null>(null);
 
   // Active Client Entity
   const activeClients = useMemo(() => {
@@ -339,8 +344,58 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
   // Client Profile
   const activeProfile = useMemo<ClientAisProfile>(() => {
     const id = currentEntity?.id || "CLI-APEX-01";
-    return CLIENT_AIS_PROFILES[id] || CLIENT_AIS_PROFILES["CLI-APEX-01"];
-  }, [currentEntity]);
+    const base = CLIENT_AIS_PROFILES[id] || CLIENT_AIS_PROFILES["CLI-APEX-01"];
+    if (customAisRecords) {
+      return {
+        ...base,
+        pan: currentEntity?.pan || base.pan,
+        records: customAisRecords
+      };
+    }
+    return base;
+  }, [currentEntity, customAisRecords]);
+
+  const handleProcessAisFile = async () => {
+    if (!aisFile) {
+      toast.error("File Required", "Please select an official AIS JSON file.");
+      return;
+    }
+    setIsProcessingUpload(true);
+    try {
+      const text = await aisFile.text();
+      const res = parseOfficialAisJson(text);
+      if (res.success && res.records.length > 0) {
+        setCustomAisRecords(res.records);
+        playSuccessChime();
+        toast.success("AIS Ingested", `Loaded ${res.totalRecords} records (SFT: ${res.sftCount}, TDS: ${res.tdsCount})`);
+
+        // Persist to Server Database
+        await fetch("/api/ais/reconciliation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pan: res.pan || currentEntity?.pan || "ABFPS1234E",
+            assessmentYear: res.assessmentYear || "AY 2026-27",
+            financialYear: res.financialYear || "FY 2025-26",
+            isSeniorCitizen: false,
+            aisRecords: res.records,
+            booksItems: activeProfile.booksLedgers,
+            clientAnnualTurnoverInr: activeProfile.annualTurnoverInr
+          })
+        });
+
+        setIsUploadModalOpen(false);
+        setAisFile(null);
+        window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
+      } else {
+        toast.error("AIS Parse Error", res.errors[0] || "Could not parse JSON format");
+      }
+    } catch (e: any) {
+      toast.error("Upload Error", e.message || "Failed to process AIS file");
+    } finally {
+      setIsProcessingUpload(false);
+    }
+  };
 
   // Execute Books vs AIS Cross-Reconciliation
   const crossRecoReport = useMemo<CrossReconciliationReport>(() => {
@@ -491,6 +546,18 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
               <Radio className="w-3.5 h-3.5 animate-pulse" />
               RMS Risk: {noticeForecast.rmsScrutinyScore}/100 ({noticeForecast.scrutinyRiskTier})
             </div>
+
+            {/* Real File Upload Trigger */}
+            <button
+              onClick={() => {
+                playSoftClick();
+                setIsUploadModalOpen(true);
+              }}
+              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+            >
+              <Upload className="w-4 h-4 text-rose-400" />
+              Upload AIS JSON
+            </button>
 
             {/* Legal Notice Action Button */}
             <button
@@ -984,6 +1051,92 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: OFFICIAL ITD AIS JSON DROPZONE                                      */}
+      {/* ========================================================================= */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold">
+                  <Upload className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Official ITD AIS / TIS JSON Ingestion</h3>
+                  <p className="text-[11px] text-slate-500">Government AIS Download for PAN: {activeProfile.pan}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsUploadModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-rose-200 bg-rose-50/40 rounded-2xl p-6 text-center space-y-2">
+                <div className="w-10 h-10 mx-auto rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <FileCode className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800 cursor-pointer hover:underline block">
+                    {aisFile ? (
+                      <span className="text-emerald-700 font-bold flex items-center justify-center gap-1">
+                        <Check className="w-4 h-4 text-emerald-600" /> {aisFile.name} ({(aisFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    ) : (
+                      "Select or Drop Official AIS JSON File"
+                    )}
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setAisFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[10px] text-slate-500 mt-1">Direct download from Income Tax Portal (e-Filing 2.0 &gt; Services &gt; AIS)</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 100% Deterministic Rule 114E SFT Parser
+                </div>
+                <p>Categorizes SFT-001 (Cash &ge; ₹10L), SFT-004 (Time deposits), SFT-017 (Securities), and Sec 194J/194A TDS credits without external API calls.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <button
+                onClick={() => setIsUploadModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isProcessingUpload || !aisFile}
+                onClick={handleProcessAisFile}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+              >
+                {isProcessingUpload ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Ingesting &amp; Classifying...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5" /> Parse &amp; Categorize AIS
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

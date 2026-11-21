@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -19,10 +19,11 @@ import {
 } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
-import { playSuccessChime, playUnlockChord } from "@/lib/audio/soundEffects";
+import { playSuccessChime } from "@/lib/audio/soundEffects";
+import { AutopilotExecutionSummary } from "@/lib/automation/practiceAutopilot";
 
 interface AutopilotPulseCockpitProps {
-  onTriggerSweep: () => Promise<any> | void;
+  onTriggerSweep?: () => Promise<any> | void;
   isRunning?: boolean;
 }
 
@@ -32,25 +33,54 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localRunning, setLocalRunning] = useState(false);
-  const [lastSweepTime, setLastSweepTime] = useState<string>("Today, 6:30 PM");
+  const [lastSweepTime, setLastSweepTime] = useState<string>("Today, 02:00 AM");
+  const [liveSummary, setLiveSummary] = useState<AutopilotExecutionSummary | null>(null);
+
+  const fetchLatestPosture = async () => {
+    try {
+      const res = await fetch("/api/firm-autopilot");
+      const data = await res.json();
+      if (data?.summary) {
+        setLiveSummary(data.summary);
+      }
+    } catch (e) {
+      // ignore background read
+    }
+  };
+
+  useEffect(() => {
+    fetchLatestPosture();
+    const handler = () => {
+      fetchLatestPosture();
+    };
+    window.addEventListener("bt_autopilot_sweep_completed", handler);
+    return () => window.removeEventListener("bt_autopilot_sweep_completed", handler);
+  }, []);
 
   const handleRunSweep = async () => {
     setLocalRunning(true);
     toast.info("Autonomous Sweep Started", "Executing 9-Cycle Practice Autopilot across GST, AIS, Form 3CD, CARO, and ITR...");
     
     try {
-      if (onTriggerSweep) {
+      const res = await fetch("/api/firm-autopilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      
+      if (data?.summary) {
+        setLiveSummary(data.summary);
+        setLastSweepTime("Just now");
+        playSuccessChime();
+        toast.success(
+          "Autonomous Practice Sweep Complete",
+          `9 cycles finished in ${data.summary.executionDurationMs}ms. ${data.summary.gstr2bInvoicesAudited || 0} GST invoices reconciled, ₹${((data.summary.totalClientTaxSavingsIdentifiedInr || 0) / 100000).toFixed(2)}L client tax savings identified.`
+        );
+      } else if (onTriggerSweep) {
         await onTriggerSweep();
-      } else {
-        // Fallback simulation
-        await new Promise(r => setTimeout(r, 1200));
+        playSuccessChime();
+        setLastSweepTime("Just now");
       }
-      playSuccessChime();
-      setLastSweepTime("Just now");
-      toast.success(
-        "Autonomous Practice Sweep Complete",
-        "9 cycles finished in 842ms. 142 GST invoices reconciled, ₹1.84L client tax savings identified, CARO 2020 verified."
-      );
     } catch (err: any) {
       toast.error("Autopilot Error", err.message || "Failed to execute sweep");
     } finally {
@@ -79,6 +109,9 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
                 </span>
                 <span className="hidden md:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
                   9-Cycle Practice Autopilot
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 hidden lg:inline">
+                  Last Sweep: {lastSweepTime}
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 hidden sm:block mt-0.5">
@@ -120,8 +153,14 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
               <div className="flex items-center gap-1.5 text-blue-700 text-[10px] font-bold uppercase">
                 <FileSpreadsheet className="w-3 h-3" /> GSTR-2B Reco
               </div>
-              <div className="text-base font-bold text-slate-900 mt-1">142 Invoices</div>
-              <div className="text-[10px] text-emerald-700 font-medium">₹1.84L ITC Recovered</div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary ? `${liveSummary.gstr2bInvoicesAudited || 0} Invoices` : "0 Invoices"}
+              </div>
+              <div className="text-[10px] text-emerald-700 font-medium">
+                {liveSummary?.missingItcRecoverableInr 
+                  ? `₹${((liveSummary.missingItcRecoverableInr) / 100000).toFixed(2)}L Missing ITC` 
+                  : "Zero Missing ITC"}
+              </div>
             </div>
 
             {/* 2. AIS SFT Forensic */}
@@ -129,8 +168,14 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
               <div className="flex items-center gap-1.5 text-teal-700 text-[10px] font-bold uppercase">
                 <FileSearch className="w-3 h-3" /> AIS Forensic
               </div>
-              <div className="text-base font-bold text-slate-900 mt-1">28 SFT Items</div>
-              <div className="text-[10px] text-slate-600">194Q Dominance OK</div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary ? `${liveSummary.aisSftTransactionsClassified || 0} SFT Items` : "0 SFT Items"}
+              </div>
+              <div className="text-[10px] text-slate-600">
+                {liveSummary?.scrutinyNoticeRisksFlagged 
+                  ? `${liveSummary.scrutinyNoticeRisksFlagged} Risk Discrepancies` 
+                  : "Rule 114E Clean"}
+              </div>
             </div>
 
             {/* 3. Form 3CD Tax Audit */}
@@ -138,7 +183,11 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
               <div className="flex items-center gap-1.5 text-amber-700 text-[10px] font-bold uppercase">
                 <Award className="w-3 h-3" /> Form 3CD Audit
               </div>
-              <div className="text-base font-bold text-slate-900 mt-1">₹3.20L Add-back</div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary 
+                  ? `₹${((liveSummary.form3cdDisallowancesAuditedInr || 0) / 100000).toFixed(2)}L Add-back` 
+                  : "₹0 Add-back"}
+              </div>
               <div className="text-[10px] text-amber-700">Sec 43B(h) &amp; 40(a)(ia)</div>
             </div>
 
@@ -147,8 +196,10 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
               <div className="flex items-center gap-1.5 text-indigo-700 text-[10px] font-bold uppercase">
                 <Layers className="w-3 h-3" /> CARO 2020
               </div>
-              <div className="text-base font-bold text-slate-900 mt-1">21/21 Clauses</div>
-              <div className="text-[10px] text-emerald-700 font-medium">Zero Cash Losses</div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary?.caroClausesEvaluated ? `${liveSummary.caroClausesEvaluated} Clauses` : "21 Clauses"}
+              </div>
+              <div className="text-[10px] text-emerald-700 font-medium">Statutory Ledger Check</div>
             </div>
 
             {/* 5. Dual-Regime ITR */}
@@ -156,8 +207,14 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
               <div className="flex items-center gap-1.5 text-purple-700 text-[10px] font-bold uppercase">
                 <Calculator className="w-3 h-3" /> 115BAC Optimizer
               </div>
-              <div className="text-base font-bold text-slate-900 mt-1">₹1.84L Savings</div>
-              <div className="text-[10px] text-purple-700">Form 10-IEA Checked</div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary 
+                  ? `₹${((liveSummary.totalClientTaxSavingsIdentifiedInr || 0) / 100000).toFixed(2)}L Savings` 
+                  : "₹0 Savings"}
+              </div>
+              <div className="text-[10px] text-purple-700">
+                {liveSummary?.itrDualRegimesOptimized ? `${liveSummary.itrDualRegimesOptimized} Clients` : "Finance Act 2024"}
+              </div>
             </div>
 
             {/* 6. Pay-to-Release */}
@@ -165,7 +222,9 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
               <div className="flex items-center gap-1.5 text-emerald-700 text-[10px] font-bold uppercase">
                 <Lock className="w-3 h-3" /> Fee Gatekeeper
               </div>
-              <div className="text-base font-bold text-slate-900 mt-1">Active Lock</div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary?.deliverableGatesActive ? `${liveSummary.deliverableGatesActive} Active Gates` : "Good Standing"}
+              </div>
               <div className="text-[10px] text-emerald-700 font-medium">Sec 16 3x RBI Rate</div>
             </div>
           </div>

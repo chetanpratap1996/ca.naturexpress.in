@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SftEngine } from "@/lib/ais/sftEngine";
 import { AisCrossReconciler, AisRecordInput, BooksIncomeSourceItem } from "@/lib/ais/aisCrossReconciler";
 import { InsightNoticeForecaster } from "@/lib/ais/insightNoticeForecaster";
+import { ensureDatabase, saveDatabase, ClientAisDataItem } from "@/lib/server/db";
 
 export async function GET(req: NextRequest) {
   try {
@@ -168,6 +169,41 @@ export async function POST(req: NextRequest) {
       booksItems,
       clientAnnualTurnoverInr: clientAnnualTurnoverInr || 0
     });
+
+    // Persist real AIS state into Database
+    try {
+      const db = ensureDatabase();
+      if (!db.clientAisData) db.clientAisData = [];
+
+      const client = db.clients.find(c => c.pan?.toUpperCase() === pan.toUpperCase());
+      const clientId = client?.id || `CLI-${pan}`;
+
+      const totalSft = aisRecords.filter((r: any) => r.sourceType === "SFT_HIGH_VALUE").reduce((acc: number, r: any) => acc + (r.reportedAmount || 0), 0);
+      const totalTds = aisRecords.filter((r: any) => r.sourceType === "TDS_26AS").reduce((acc: number, r: any) => acc + (r.taxDeducted || 0), 0);
+
+      const item: ClientAisDataItem = {
+        id: `ais-${pan}-${Date.now()}`,
+        clientId,
+        pan,
+        assessmentYear: assessmentYear || "AY 2026-27",
+        updatedAt: new Date().toISOString(),
+        totalSftAmount: totalSft,
+        sftItemCount: aisRecords.filter((r: any) => r.sourceType === "SFT_HIGH_VALUE").length,
+        totalTdsAmount: totalTds,
+        discrepancyRiskCount: report.reconciledItems.filter(i => i.recoStatus !== "MATCHED_IN_ITR").length,
+        records: aisRecords
+      };
+
+      const existingIdx = db.clientAisData.findIndex(a => a.pan.toUpperCase() === pan.toUpperCase() && a.assessmentYear === item.assessmentYear);
+      if (existingIdx !== -1) {
+        db.clientAisData[existingIdx] = item;
+      } else {
+        db.clientAisData.push(item);
+      }
+      await saveDatabase(db);
+    } catch (saveErr) {
+      console.warn("Could not persist AIS data to DB:", saveErr);
+    }
 
     return NextResponse.json({
       success: true,

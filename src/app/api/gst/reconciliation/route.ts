@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RecoMatcher, Gstr2bInvoice, BooksPurchaseInvoice } from "@/lib/gst/recoMatcher";
 import { ItcClassifier } from "@/lib/gst/itcClassifier";
+import { ensureDatabase, saveDatabase, ClientGstReconciliationItem } from "@/lib/server/db";
 
 export async function GET(req: NextRequest) {
   try {
@@ -310,6 +311,45 @@ export async function POST(req: NextRequest) {
         record.recommendedAction = cls.auditRecommendation;
         report.summary.ineligibleSec17_5Itc += (record.gstr2bTotalTax || record.booksTotalTax);
       }
+    }
+
+    // Persist real reconciliation state into Database
+    try {
+      const db = ensureDatabase();
+      if (!db.clientGstReconciliations) db.clientGstReconciliations = [];
+
+      const client = db.clients.find(c => c.gstin?.toUpperCase() === clientGstin.toUpperCase());
+      const clientId = client?.id || `CLI-${clientGstin}`;
+
+      const item: ClientGstReconciliationItem = {
+        id: `reco-${clientGstin}-${Date.now()}`,
+        clientId,
+        clientGstin,
+        period: taxPeriod,
+        updatedAt: new Date().toISOString(),
+        invoicesAudited: report.summary.totalRecords,
+        totalTaxableInr: gstr2bInvoices.reduce((acc: number, i: any) => acc + (i.taxableValue || 0), 0),
+        totalTaxInr: report.summary.total2bItc,
+        missingItcInr: report.summary.provisionalMissing2bItc || 0,
+        eligibleItcInr: report.summary.matchedEligibleItc,
+        ineligible17_5ItcInr: report.summary.ineligibleSec17_5Itc,
+        rule37aRiskCount: report.records.filter(r => r.rule37aRisk).length,
+        vendorNoticeCount: report.records.filter(r => r.matchStatus === "MISSING_IN_2B").length,
+        gstr2bInvoices,
+        booksInvoices
+      };
+
+      const existingIdx = db.clientGstReconciliations.findIndex(
+        r => r.clientGstin.toUpperCase() === clientGstin.toUpperCase() && r.period === taxPeriod
+      );
+      if (existingIdx !== -1) {
+        db.clientGstReconciliations[existingIdx] = item;
+      } else {
+        db.clientGstReconciliations.push(item);
+      }
+      await saveDatabase(db);
+    } catch (saveErr) {
+      console.warn("Could not persist GST reconciliation to DB:", saveErr);
     }
 
     return NextResponse.json({

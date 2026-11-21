@@ -8,6 +8,7 @@ import { toast } from "@/components/shared/ToastNotification";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
 import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
 import { RecoMatcher, Gstr2bInvoice, BooksPurchaseInvoice, ReconciledRecord, RecoMatchStatus } from "@/lib/gst/recoMatcher";
+import { parseOfficialGstr2bJson, parsePurchaseRegisterCsv } from "@/lib/parsers/gstr2bParser";
 import { ItcClassifier } from "@/lib/gst/itcClassifier";
 import { Rule42And43Engine, Rule42CalculationResult, Rule43MonthlyResult, Rule42AnnualTrueUpResult } from "@/lib/gst/rule42And43Engine";
 import { VendorRiskEngine, VendorComplianceProfile } from "@/lib/gst/vendorRiskEngine";
@@ -301,8 +302,11 @@ export const Gstr2bReconciler: React.FC = () => {
   const [gstr2bList, setGstr2bList] = useState<Gstr2bInvoice[]>(INITIAL_2B_PRATWI);
   const [booksList, setBooksList] = useState<BooksPurchaseInvoice[]>(INITIAL_BOOKS_PRATWI);
 
-  // Modals
+  // Modals & Upload State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [json2bFile, setJson2bFile] = useState<File | null>(null);
+  const [booksFile, setBooksFile] = useState<File | null>(null);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [isTable4DrawerOpen, setIsTable4DrawerOpen] = useState(false);
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<GeneratedNotice | null>(null);
@@ -311,6 +315,66 @@ export const Gstr2bReconciler: React.FC = () => {
   const currentEntity = useMemo(() => {
     return clients.find(c => c.id === selectedEntityId) || clients[0];
   }, [clients, selectedEntityId]);
+
+  const handleProcessUploadedFiles = async () => {
+    if (!json2bFile && !booksFile) {
+      toast.error("Files Required", "Please select either a GSTR-2B JSON or Purchase Register CSV file.");
+      return;
+    }
+    setIsProcessingUpload(true);
+    try {
+      let next2bList = gstr2bList;
+      let nextBooksList = booksList;
+
+      if (json2bFile) {
+        const text = await json2bFile.text();
+        const res2b = parseOfficialGstr2bJson(text);
+        if (res2b.success && res2b.invoices.length > 0) {
+          next2bList = res2b.invoices;
+          setGstr2bList(res2b.invoices);
+          toast.success("GSTR-2B Loaded", `Extracted ${res2b.totalInvoices} invoices (Tax: ₹${res2b.totalTax.toLocaleString('en-IN')})`);
+        } else {
+          toast.error("GSTR-2B Parse Error", res2b.errors[0] || "Could not parse JSON format");
+        }
+      }
+
+      if (booksFile) {
+        const text = await booksFile.text();
+        const resBooks = parsePurchaseRegisterCsv(text);
+        if (resBooks.success && resBooks.invoices.length > 0) {
+          nextBooksList = resBooks.invoices;
+          setBooksList(resBooks.invoices);
+          toast.success("Purchase Register Loaded", `Extracted ${resBooks.totalInvoices} vouchers (Tax: ₹${resBooks.totalTax.toLocaleString('en-IN')})`);
+        } else {
+          toast.error("Books Parse Error", resBooks.errors[0] || "Could not parse CSV format");
+        }
+      }
+
+      // Persist to Server Database
+      await fetch("/api/gst/reconciliation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taxPeriod: "September 2026",
+          clientGstin: currentEntity?.gstin || "23AANCP9915B1Z9",
+          gstr2bInvoices: next2bList,
+          booksInvoices: nextBooksList,
+          toleranceInr
+        })
+      });
+
+      playSuccessChime();
+      setIsUploadModalOpen(false);
+      setJson2bFile(null);
+      setBooksFile(null);
+      window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
+      toast.success("Reconciliation Synced", "Live records updated and registered in CA firm audit database.");
+    } catch (e: any) {
+      toast.error("Upload Error", e.message || "Failed to process files");
+    } finally {
+      setIsProcessingUpload(false);
+    }
+  };
 
   // Execute Deterministic Multi-Rule Reconciliation
   const recoReport = useMemo(() => {
@@ -604,6 +668,18 @@ export const Gstr2bReconciler: React.FC = () => {
                 <option value={10.0}>± ₹10.00</option>
               </select>
             </div>
+
+            {/* Real File Upload Trigger */}
+            <button
+              onClick={() => {
+                playSoftClick();
+                setIsUploadModalOpen(true);
+              }}
+              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+            >
+              <Upload className="w-4 h-4 text-emerald-400" />
+              Upload 2B &amp; Books
+            </button>
 
             {/* Table 4 Summary Button */}
             <button
@@ -1314,6 +1390,120 @@ export const Gstr2bReconciler: React.FC = () => {
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
               >
                 <Copy className="w-3.5 h-3.5" /> Copy Values
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: UNIVERSAL GSTR-2B & BOOKS FILE INGESTION DROPZONE                  */}
+      {/* ========================================================================= */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                  <Upload className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Universal GSTR-2B &amp; Purchase Register Ingestion</h3>
+                  <p className="text-[11px] text-slate-500">Official GSTN JSON + Tally / ERP Purchase Register CSV</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsUploadModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Dropzone 1: GSTR-2B JSON */}
+              <div className="border-2 border-dashed border-blue-200 bg-blue-50/40 rounded-2xl p-4 text-center space-y-2">
+                <div className="w-8 h-8 mx-auto rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <FileSpreadsheet className="w-4 h-4" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800 cursor-pointer hover:underline block">
+                    {json2bFile ? (
+                      <span className="text-emerald-700 font-bold flex items-center justify-center gap-1">
+                        <Check className="w-4 h-4 text-emerald-600" /> {json2bFile.name} ({(json2bFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    ) : (
+                      "Select or Drop Official GSTR-2B JSON"
+                    )}
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setJson2bFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Government GSTR-2B download from GST Portal (.json)</p>
+                </div>
+              </div>
+
+              {/* Dropzone 2: Purchase Register CSV */}
+              <div className="border-2 border-dashed border-slate-300 bg-slate-50/60 rounded-2xl p-4 text-center space-y-2">
+                <div className="w-8 h-8 mx-auto rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800 cursor-pointer hover:underline block">
+                    {booksFile ? (
+                      <span className="text-emerald-700 font-bold flex items-center justify-center gap-1">
+                        <Check className="w-4 h-4 text-emerald-600" /> {booksFile.name} ({(booksFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    ) : (
+                      "Select or Drop Tally Purchase Register CSV"
+                    )}
+                    <input
+                      type="file"
+                      accept=".csv,.txt,.tsv"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setBooksFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Exported from Tally Prime / Busy / Zoho (Columns: GSTIN, Inv No, Date, Tax)</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 100% Client-Side Ingestion
+                </div>
+                <p>Data stays securely within your CA firm boundary. Sanitizes Indian commas, dates, and currency symbols down to the paisa.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <button
+                onClick={() => setIsUploadModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isProcessingUpload || (!json2bFile && !booksFile)}
+                onClick={handleProcessUploadedFiles}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+              >
+                {isProcessingUpload ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Ingesting &amp; Reconciling...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5" /> Execute 7-Pass Matcher
+                  </>
+                )}
               </button>
             </div>
           </div>

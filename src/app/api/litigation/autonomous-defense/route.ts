@@ -249,6 +249,18 @@ export async function POST(request: NextRequest) {
         actionLabel: "Review Brief"
       });
 
+      // Autonomous Client Portal Notification
+      await createNotification({
+        title: `Statutory Notice Analyzed: ${newDocket.section}`,
+        message: `Statutory notice for ${newDocket.assessmentYearOrPeriod} has been ingested and analyzed. Autonomous legal defense workpaper prepared.`,
+        category: "NOTICE",
+        priority: "HIGH",
+        targetTab: "director-risk",
+        recipientRole: "CLIENT",
+        recipientEntityId: newDocket.clientId,
+        metadata: { docketId: newDocket.id, din: newDocket.dinOrNoticeNo }
+      });
+
       await saveDatabase(db);
 
       return NextResponse.json({
@@ -296,6 +308,18 @@ export async function POST(request: NextRequest) {
         entityId: approvedDocket.clientId,
         link: "/admin",
         actionLabel: "View Docket"
+      });
+
+      // Autonomous Client Portal Notification
+      await createNotification({
+        title: `Defense Approved: Section ${approvedDocket.section}`,
+        message: `Senior Partner CA Gunjan Jain has approved your statutory defense brief for Section ${approvedDocket.section} (DIN: ${approvedDocket.dinOrNoticeNo || "Lacking"}). Scheduled for Department portal filing.`,
+        category: "NOTICE",
+        priority: "HIGH",
+        targetTab: "director-risk",
+        recipientRole: "CLIENT",
+        recipientEntityId: approvedDocket.clientId,
+        metadata: { docketId: approvedDocket.id }
       });
 
       await saveDatabase(db);

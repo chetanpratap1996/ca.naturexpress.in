@@ -5,7 +5,8 @@ import {
   resolveTdsDefault, 
   TdsClientAssemblyProfile 
 } from "@/lib/tds/autonomousTdsEngine";
-import { logAuditEvent, createNotification } from "@/lib/server/db";
+import { logAuditEvent, createNotification, ensureDatabase, saveDatabase } from "@/lib/server/db";
+import { DocumentItem } from "@/lib/types";
 
 // In-memory runtime cache for the session (initialized with institutional sample profiles)
 let runtimeTdsProfiles: TdsClientAssemblyProfile[] = getSampleTdsProfiles();
@@ -103,6 +104,38 @@ export async function POST(request: NextRequest) {
       runtimeTdsProfiles[profileIndex].auditLog.push(
         `[${new Date().toLocaleTimeString()}] Batch dispatched ${updatedCerts.length} Form 16/16A certificates via WhatsApp Cloud API.`
       );
+
+      // Autonomous Client Notification & Vault Deposit
+      await createNotification({
+        title: `Form 16/16A Certificates Issued (${updatedCerts.length} Certs)`,
+        message: `TRACES-generated TDS certificates for ${runtimeTdsProfiles[profileIndex].clientName} have been cryptographically signed and archived into your Document Vault.`,
+        category: "COMPLIANCE",
+        priority: "NORMAL",
+        targetTab: "vault",
+        recipientRole: "CLIENT",
+        recipientEntityId: clientId,
+        metadata: { certCount: updatedCerts.length }
+      });
+
+      try {
+        const db = ensureDatabase();
+        const certDoc: DocumentItem = {
+          id: `DOC-F16-${Date.now()}`,
+          entityId: clientId,
+          entityName: runtimeTdsProfiles[profileIndex].clientName,
+          category: "CHALLAN",
+          fileName: `Form16A_TRACES_Batch_Q1_2026.zip`,
+          fileSize: "2.8 MB",
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: "FIRM_STAFF",
+          isPasswordProtected: false,
+          isUnlocked: true,
+          financialYear: "FY 2026-27",
+          reviewStatus: "APPROVED",
+        };
+        db.documents = [certDoc, ...(db.documents || [])];
+        await saveDatabase(db);
+      } catch {}
 
       return NextResponse.json({
         success: true,

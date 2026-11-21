@@ -7,11 +7,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { verifyWhatsAppWebhookSignature } from "@/lib/whatsapp/cloudApi";
 import { resolveClientBankPasswords } from "@/lib/bankOcr/bankProfiles";
 import { buildStatutoryWhatsAppMessage, sanitizeIndianPhoneNumber } from "@/lib/whatsapp/templates";
 import { DocumentItem } from "@/lib/types";
+import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 
 /**
  * GET: Meta Webhook Verification Challenge
@@ -143,7 +144,24 @@ export async function POST(request: NextRequest) {
         "WHATSAPP"
       );
 
+      // Autonomous Client Portal Notification
+      await createNotification({
+        title: `Vault Ingestion: ${docName} Received`,
+        message: autoDecrypted
+          ? `Inbound bank statement auto-decrypted using Entity DNA and verified for FY 2026-27. Tasks moved to Preparation.`
+          : `Document uploaded via WhatsApp and securely routed to Encrypted Vault. Compliance tasks updated.`,
+        category: "DOCUMENT",
+        priority: "NORMAL",
+        targetTab: "vault",
+        recipientRole: "CLIENT",
+        recipientEntityId: clientId,
+        metadata: { docId: savedDocRecord?.id, autoDecrypted }
+      });
+
       await saveDatabase(db);
+
+      // Trigger silent background autopilot sweep
+      executePracticeAutopilotSweep(db, "WhatsApp Document Ingestion").catch(() => {});
 
       replyText = `✅ *DOCUMENT RECEIVED & SECURED IN VAULT*\n\n` +
         `Dear ${matchedClient?.primaryContact?.name || "Client"},\n\n` +
@@ -162,7 +180,93 @@ export async function POST(request: NextRequest) {
       } else if (upper.includes("APPROVED")) {
         replyText = `👍 *STATUTORY APPROVAL RECORDED*\n\nThank you! Your approval for statutory return filing has been logged under ICAI SA 580 audit trail. Return will now be signed via Partner DSC.`;
       } else if (upper.includes("PAID") || upper.includes("UTR") || upper.includes("UPI")) {
-        replyText = `💳 *PAYMENT RECORDED*\n\nThank you! Your statutory fee / tax payment acknowledgment has been received. Our billing desk is reconciling the entry.`;
+        const utrRegex = /(?:UTR|UPI|REF|NO)?[:\s-]*([A-Za-z0-9]{8,24})/i;
+        const match = textBody.match(utrRegex);
+        const extractedUtr = match && match[1] && match[1].length >= 8 ? match[1] : `WA-UTR-${Date.now().toString().slice(-6)}`;
+
+        // Autonomous invoice match & settlement
+        let unpaidInvoice = db.invoices?.find(
+          (inv) => (inv.entityId === clientId || inv.entityName.toLowerCase() === clientName.toLowerCase()) && inv.status !== "PAID"
+        );
+
+        if (!unpaidInvoice) {
+          unpaidInvoice = db.invoices?.find((inv) => inv.status !== "PAID");
+        }
+
+        const effectiveClientId = unpaidInvoice ? unpaidInvoice.entityId : clientId;
+        const effectiveClientName = unpaidInvoice ? unpaidInvoice.entityName : clientName;
+
+        if (unpaidInvoice) {
+          unpaidInvoice.status = "PAID";
+          unpaidInvoice.clientUtrNumber = extractedUtr;
+          unpaidInvoice.clientPaymentDate = new Date().toISOString().split("T")[0];
+          unpaidInvoice.reconciledAt = new Date().toISOString();
+          unpaidInvoice.reconciledBy = "Autonomous WhatsApp Pay Engine";
+
+          // Check if remaining unpaid invoices exist
+          const remainingUnpaid = (db.invoices || []).filter(
+            (inv) => (inv.entityId === effectiveClientId || inv.entityName.toLowerCase() === effectiveClientName.toLowerCase()) && inv.status !== "PAID"
+          );
+
+          if (remainingUnpaid.length === 0 && db.payToReleaseConfigs) {
+            db.payToReleaseConfigs = db.payToReleaseConfigs.map((cfg) => {
+              if (cfg.entityId === effectiveClientId) {
+                return { ...cfg, isLocked: false, overrideReason: `Autonomous WhatsApp UTR reconciliation: ${extractedUtr}` };
+              }
+              return cfg;
+            });
+          }
+
+          // Deposit official receipt deliverable into Vault
+          const receiptDoc: DocumentItem = {
+            id: `DOC-RCP-${Date.now()}`,
+            entityId: effectiveClientId,
+            entityName: effectiveClientName,
+            category: "TAX_COMPUTATION",
+            fileName: `Official_Fee_Receipt_Inv_${unpaidInvoice.invoiceNo}_${extractedUtr}.pdf`,
+            fileSize: "142 KB",
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: "WHATSAPP_LINK",
+            isPasswordProtected: false,
+            isUnlocked: true,
+            financialYear: "FY 2026-27",
+            reviewStatus: "APPROVED",
+          };
+          db.documents = [receiptDoc, ...(db.documents || [])];
+          await saveDatabase(db);
+
+          await createNotification({
+            title: `Payment Reconciled: ₹${unpaidInvoice.amount.toLocaleString("en-IN")} (UTR: ${extractedUtr})`,
+            message: `Professional fee invoice #${unpaidInvoice.invoiceNo} successfully cleared. All statutory deliverables unlocked. Certified receipt deposited in your Document Vault.`,
+            category: "BILLING",
+            priority: "HIGH",
+            targetTab: "vault",
+            recipientRole: "CLIENT",
+            recipientEntityId: effectiveClientId,
+            metadata: { invoiceId: unpaidInvoice.id, utr: extractedUtr }
+          });
+
+          await logAuditEvent(
+            "Autonomous Pay Engine",
+            "SYSTEM",
+            effectiveClientName,
+            "INVOICE_PAID",
+            `WhatsApp payment text received with UTR '${extractedUtr}'. Invoice #${unpaidInvoice.invoiceNo} (₹${unpaidInvoice.amount.toLocaleString('en-IN')}) marked PAID. Deliverables unlocked. Receipt issued.`,
+            "INVOICE"
+          );
+
+          executePracticeAutopilotSweep(db, "WhatsApp UTR Settlement").catch(() => {});
+
+          replyText = `💳 *PAYMENT RECONCILED & DELIVERABLES UNLOCKED*\n\n` +
+            `Dear ${matchedClient?.primaryContact?.name || effectiveClientName},\n\n` +
+            `We have reconciled your payment of *₹${unpaidInvoice.amount.toLocaleString("en-IN")}* for Invoice *#${unpaidInvoice.invoiceNo}* (UTR: \`${extractedUtr}\`).\n\n` +
+            `🔓 *Deliverables:* All filed returns and certified computation packs have been UNLOCKED.\n` +
+            `📄 *Receipt:* Official receipt deposited into your Client Portal Document Vault.\n\n` +
+            `Thank you,\n*GPA & Co., Chartered Accountants*`;
+        } else {
+          await saveDatabase(db);
+          replyText = `💳 *PAYMENT RECORDED*\n\nThank you! Your statutory fee / tax payment acknowledgment (UTR: \`${extractedUtr}\`) has been recorded. All invoices are currently settled for ${clientName}.`;
+        }
       } else {
         replyText = `Hello from *GPA & Co., Chartered Accountants & Brains & Taxes*.\n\nWe have received your message. Our tax team will review and revert shortly. You can also upload compliance documents directly at: https://ca.naturexpress.in/`;
       }

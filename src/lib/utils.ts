@@ -59,26 +59,14 @@ export function isValidPan(pan?: string): boolean {
   return VALID_PAN_ENTITY_TYPES.has(entityChar);
 }
 
+import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
+
 /**
  * Validates Indian Goods & Services Tax Identification Number (GSTIN)
- * Format: 2-digit State Code + 10-char PAN + 1 Entity Code + 'Z' + 1 Checksum Char
+ * Format: 2-digit State Code + 10-char PAN + 1 Entity Code + 'Z' + 1 Checksum Char (Mod-36 Verified)
  */
 export function isValidGstin(gstin?: string): boolean {
-  if (!gstin) return false;
-  const clean = gstin.trim().toUpperCase();
-  if (clean.length !== 15) return false;
-  
-  const regex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-  if (!regex.test(clean)) return false;
-
-  // Validate state code (01 to 38 or special codes 97, 99)
-  const stateCode = parseInt(clean.substring(0, 2), 10);
-  const isValidState = (stateCode >= 1 && stateCode <= 38) || stateCode === 97 || stateCode === 99;
-  if (!isValidState) return false;
-
-  // Validate embedded PAN
-  const embeddedPan = clean.substring(2, 12);
-  return isValidPan(embeddedPan);
+  return validateGstinDetailed(gstin).isValid;
 }
 
 /**

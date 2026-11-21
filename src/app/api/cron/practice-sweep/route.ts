@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 
 /**
  * Headless Server-Side Autopilot Cron Daemon
@@ -10,7 +11,8 @@ import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 async function handleSweep(req: NextRequest) {
   const startTime = Date.now();
   try {
-    // Cron Security: verify secret token in production
+    const auth = await authenticateServerRequest(req);
+    // Cron Security: verify secret token in production, or allow authenticated internal session / Vercel Cron
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers.get("authorization");
     const isVercelCron = req.headers.get("x-vercel-cron") !== null;
@@ -20,7 +22,8 @@ async function handleSweep(req: NextRequest) {
       !cronSecret || // In dev or if CRON_SECRET not configured, allow run
       isVercelCron ||
       authHeader === `Bearer ${cronSecret}` ||
-      urlSecret === cronSecret;
+      urlSecret === cronSecret ||
+      auth.isAuthenticated;
 
     if (!isAuthorized) {
       return NextResponse.json({ success: false, error: "Unauthorized cron execution." }, { status: 401 });

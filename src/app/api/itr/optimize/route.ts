@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DualRegimeOptimizer, ItrIncomeParameters } from "@/lib/itr/dualRegimeOptimizer";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification, ClientItrComputationItem } from "@/lib/server/db";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+import { DocumentItem } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
   try {
@@ -169,6 +170,35 @@ export async function POST(req: NextRequest) {
           actionLabel: "View Form 10-IEA"
         });
       }
+
+      // Autonomous Client Portal Notification
+      await createNotification({
+        title: `ITR Tax Computation Prepared: Saved ₹${result.taxSavingsRupees.toLocaleString("en-IN")}`,
+        message: `Dual-regime evaluation finalized for ${params.assessmentYear || "AY 2026-27"}. Optimal regime identified: ${result.recommendedRegime === "NEW_115BAC" ? "New Regime (Section 115BAC)" : "Old Tax Regime"}. Computation archived in Vault.`,
+        category: "COMPLIANCE",
+        priority: "NORMAL",
+        targetTab: "vault",
+        recipientRole: "CLIENT",
+        recipientEntityId: targetClientId,
+        metadata: { compId: computationItem.id, recommendedRegime: result.recommendedRegime, taxSavings: result.taxSavingsRupees }
+      });
+
+      // Deposit certified computation deliverable into Vault
+      const compDoc: DocumentItem = {
+        id: `DOC-ITR-${Date.now()}`,
+        entityId: targetClientId,
+        entityName: params.taxpayerName,
+        category: "TAX_COMPUTATION",
+        fileName: `ITR_Computation_AY2026-27_${params.pan}.pdf`,
+        fileSize: "320 KB",
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: "FIRM_STAFF",
+        isPasswordProtected: false,
+        isUnlocked: true,
+        financialYear: "FY 2025-26",
+        reviewStatus: "APPROVED",
+      };
+      db.documents = [compDoc, ...(db.documents || [])];
 
       await saveDatabase(db);
 

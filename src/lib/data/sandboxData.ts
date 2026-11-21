@@ -975,6 +975,22 @@ export const SANDBOX_NOTICES: NoticeRecord[] = [
 ];
 
 export const SANDBOX_INVOICES: InvoiceItem[] = [
+  // Pratwi Solutions Active Retainer Invoice
+  {
+    id: "INV-001",
+    invoiceNo: "GPA/2026-27/098",
+    entityId: "CLI-PRATWI-01",
+    entityName: "Pratwi Solutions Private Limited",
+    groupId: "GRP-PRATWI",
+    serviceDescription: "Autonomous Tax & Regulatory Representation (FY 2026-27)",
+    taxableAmount: 50000,
+    gstRate: 18,
+    gstAmount: 9000,
+    amount: 59000,
+    dueDate: "2026-11-15",
+    status: "PENDING",
+    sacCode: "998231"
+  },
   // Overdue / Locked Deliverable
   {
     id: "INV-2026-089",

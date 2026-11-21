@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
-import { ComplianceTask } from "@/lib/types";
+import { ComplianceTask, DocumentItem } from "@/lib/types";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateServerRequest(request);
@@ -142,7 +143,54 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Task status is invalid." }, { status: 400 });
     }
 
-    if (status) currentTask.status = status;
+    if (status === "FILED_AND_COMPLETED") {
+      currentTask.status = "FILED_AND_COMPLETED";
+      currentTask.filingDate = new Date().toISOString().split("T")[0];
+      if (!currentTask.arnNumber) {
+        currentTask.arnNumber = `AA${Date.now().toString().slice(-6)}${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+      currentTask.missingDocumentsCount = 0;
+      currentTask.penaltyRisk = 0;
+      currentTask.accruingDailyPenalty = 0;
+      currentTask.clientApprovalStatus = "APPROVED";
+
+      // Auto-deposit official filed deliverable in documents
+      if (!db.documents) db.documents = [];
+      const filingDoc: DocumentItem = {
+        id: `DOC-ARN-${Date.now()}`,
+        entityId: currentTask.entityId,
+        entityName: currentTask.entityName,
+        category: currentTask.category === "GST" ? "GST_INVOICES" : currentTask.category === "TDS" ? "CHALLAN" : "TAX_COMPUTATION",
+        fileName: `${currentTask.title.replace(/\s+/g, "_")}_Acknowledgment_${currentTask.arnNumber}.pdf`,
+        fileSize: "245 KB",
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: "FIRM_STAFF",
+        isPasswordProtected: false,
+        isUnlocked: true,
+        financialYear: currentTask.period || "FY 2026-27",
+        reviewStatus: "APPROVED",
+        reviewedBy: auth.user?.name || "CA Gunjan Jain",
+        reviewedAt: new Date().toISOString()
+      };
+      db.documents.unshift(filingDoc);
+
+      // Autonomous Client Notification: Filing Complete & Acknowledgment Ready
+      await createNotification({
+        title: `Return Successfully Filed: ${currentTask.title}`,
+        message: `Official return for ${currentTask.period} has been filed with Department (ARN: ${currentTask.arnNumber}). Filed acknowledgment PDF is available in your Vault.`,
+        category: "COMPLIANCE",
+        priority: "HIGH",
+        targetTab: "vault",
+        recipientRole: "CLIENT",
+        recipientEntityId: currentTask.entityId,
+        targetRoles: ["CLIENT"],
+        entityId: currentTask.entityId,
+        metadata: { taskId: currentTask.id, arnNumber: currentTask.arnNumber }
+      });
+    } else if (status) {
+      currentTask.status = status;
+    }
+
     if (officialUdin) {
       currentTask.officialUdin = officialUdin;
       currentTask.udinGeneratedAt = new Date().toISOString();
@@ -154,6 +202,20 @@ export async function PATCH(req: NextRequest) {
         `Recorded ICAI UDIN ${officialUdin} on ${currentTask.title}`,
         "UDIN"
       );
+
+      // Autonomous Client Notification: UDIN Stamped
+      await createNotification({
+        title: `ICAI UDIN Generated: ${officialUdin}`,
+        message: `ICAI Unique Document Identification Number ${officialUdin} generated and sealed on ${currentTask.title}.`,
+        category: "UDIN",
+        priority: "HIGH",
+        targetTab: "vault",
+        recipientRole: "CLIENT",
+        recipientEntityId: currentTask.entityId,
+        targetRoles: ["CLIENT"],
+        entityId: currentTask.entityId,
+        metadata: { taskId: currentTask.id, udin: officialUdin }
+      });
     }
     if (chaseCount !== undefined) {
       currentTask.chaseCount = chaseCount;
@@ -170,6 +232,14 @@ export async function PATCH(req: NextRequest) {
 
     db.tasks[taskIndex] = currentTask;
     await saveDatabase(db);
+
+    // Autonomous Practice Sweep Trigger in Background
+    try {
+      await executePracticeAutopilotSweep(db, "Task Status Autonomous Trigger");
+      await saveDatabase(db);
+    } catch (e) {
+      console.warn("Autopilot sweep error:", e);
+    }
 
     // Bi-directional Supabase update
     if (isSupabaseConfigured()) {

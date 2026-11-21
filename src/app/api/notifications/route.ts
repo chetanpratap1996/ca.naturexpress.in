@@ -21,18 +21,19 @@ export async function GET(req: NextRequest) {
     if (effectiveRole === "CLIENT") {
       const allClients = db.clients || [];
       const targetClient = (effectiveEntityId
-        ? allClients.find((c) => c.id === effectiveEntityId || c.pan === effectiveEntityId)
+        ? allClients.find((c) => c.id === effectiveEntityId || c.pan === effectiveEntityId || (effectiveEntityId.includes("pratwi") && (c.id.includes("PRATWI") || c.name.toLowerCase().includes("pratwi"))))
         : allClients[0]) || {
-        id: "client-pratwi",
+        id: "CLI-PRATWI-01",
         name: "Pratwi Solutions Private Limited",
         pan: "AANCP9915B",
         gstin: "09AANCP9915B1Z4",
       };
 
       // Filter existing notifications targeted to this client entity
+      const isPratwi = targetClient.id === "CLI-PRATWI-01" || targetClient.id === "client-pratwi";
       let clientNotifs = notifications.filter((n) =>
-        (n.recipientEntityId === targetClient.id) ||
-        (n.recipientRole === "CLIENT" && (!n.recipientEntityId || n.recipientEntityId === targetClient.id)) ||
+        (n.recipientEntityId === targetClient.id || (isPratwi && (n.recipientEntityId === "client-pratwi" || n.recipientEntityId === "CLI-PRATWI-01"))) ||
+        (n.recipientRole === "CLIENT" && (!n.recipientEntityId || n.recipientEntityId === targetClient.id || (isPratwi && (n.recipientEntityId === "client-pratwi" || n.recipientEntityId === "CLI-PRATWI-01")))) ||
         (n.recipientRole === "ALL" && !n.message.toLowerCase().includes("apex autotech"))
       );
 

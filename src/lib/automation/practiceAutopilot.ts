@@ -15,7 +15,7 @@ import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 import { StatutoryPenaltyEngine } from "@/lib/statutoryDueDates/penaltyEngine";
 import { resolveClientBankPasswords } from "@/lib/bankOcr/bankProfiles";
 import { determinePlaceOfSupply, calculateTaxAndTds, calculateMsmeCompoundInterest } from "@/lib/billing/invoicingEngine";
-import { ComplianceTask, DocumentItem, InvoiceItem, PayToReleaseConfig, BlockedDeliverableType } from "@/lib/types";
+import { ComplianceTask, DocumentItem, InvoiceItem, PayToReleaseConfig, BlockedDeliverableType, NotificationItem } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { DualRegimeOptimizer } from "@/lib/itr/dualRegimeOptimizer";
 
@@ -93,6 +93,48 @@ export async function executePracticeAutopilotSweep(
   let dscTokensAudited = 0;
   let form10IeaPendingCount = 0;
 
+  // Helper: Deterministic, Idempotent Client Notification Dispatcher
+  const todayStr = new Date().toISOString().split("T")[0];
+  const pushClientNotification = (notifInput: {
+    idKey: string;
+    title: string;
+    message: string;
+    category: NotificationItem["category"];
+    priority?: NotificationItem["priority"];
+    targetTab?: string;
+    recipientEntityId: string;
+    metadata?: Record<string, any>;
+  }) => {
+    if (!db.notifications) db.notifications = [];
+    const alreadyExists = db.notifications.some(
+      (n) =>
+        n.metadata?.idKey === notifInput.idKey ||
+        (n.recipientEntityId === notifInput.recipientEntityId && n.title === notifInput.title && n.createdAt.startsWith(todayStr))
+    );
+    if (alreadyExists) return false;
+
+    const newNotif: NotificationItem = {
+      id: `NOTIF-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      title: notifInput.title,
+      message: notifInput.message,
+      category: notifInput.category,
+      priority: notifInput.priority || "NORMAL",
+      targetTab: notifInput.targetTab || "progress",
+      actionUrl: notifInput.targetTab || "progress",
+      recipientRole: "CLIENT",
+      recipientEntityId: notifInput.recipientEntityId,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      metadata: {
+        ...(notifInput.metadata || {}),
+        idKey: notifInput.idKey,
+      },
+    };
+
+    db.notifications.unshift(newNotif);
+    return true;
+  };
+
   // -------------------------------------------------------------
   // CYCLE 1: STATUTORY TASK AUTO-SPAWNER (Entity DNA Driven)
   // -------------------------------------------------------------
@@ -112,6 +154,18 @@ export async function executePracticeAutopilotSweep(
         if (!exists) {
           db.tasks.unshift(t);
           tasksSpawned++;
+
+          // Autonomous Client Notification: New Statutory Return Queued
+          pushClientNotification({
+            idKey: `task-spawned-${t.id}`,
+            title: `Statutory Filing Queued: ${t.title}`,
+            message: `Mandatory return for ${t.period} (Due: ${t.dueDate}) scheduled. Automated preparation and compliance registers queued under GPA & Co. Autopilot.`,
+            category: "COMPLIANCE",
+            priority: "NORMAL",
+            targetTab: "progress",
+            recipientEntityId: client.id,
+            metadata: { taskId: t.id, dueDate: t.dueDate },
+          });
         }
       }
     }
@@ -127,7 +181,31 @@ export async function executePracticeAutopilotSweep(
       if (task.status === "FILED_AND_COMPLETED") return task;
 
       const dueDate = new Date(task.dueDate);
+      const diffMs = dueDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 3600 * 24));
       const daysOverdue = Math.max(0, Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 3600 * 24)));
+
+      // Milestone Notifications: T-7, T-3, T-1
+      if (diffDays > 0 && diffDays <= 7) {
+        const milestone = diffDays === 1 ? "T-1" : diffDays <= 3 ? "T-3" : "T-7";
+        const urgencyTitle =
+          diffDays === 1
+            ? `Final Day: ${task.title} Due Tomorrow`
+            : diffDays <= 3
+            ? `Urgent: ${task.title} Due in ${diffDays} Days`
+            : `Statutory Due Date Reminder: ${task.title}`;
+
+        pushClientNotification({
+          idKey: `task-deadline-${task.id}-${milestone}`,
+          title: urgencyTitle,
+          message: `${task.title} for ${task.period} is due on ${task.dueDate} (${diffDays} day${diffDays > 1 ? "s" : ""} remaining). Our automated desk is preparing your filings to ensure zero penalty under Section 47.`,
+          category: "COMPLIANCE",
+          priority: diffDays <= 3 ? "URGENT" : "HIGH",
+          targetTab: "progress",
+          recipientEntityId: task.entityId,
+          metadata: { taskId: task.id, diffDays, milestone },
+        });
+      }
 
       if (daysOverdue > 0) {
         openTasksUpdated++;
@@ -141,6 +219,7 @@ export async function executePracticeAutopilotSweep(
           });
           task.penaltyRisk = feeResult.totalLateFeeInr;
           task.section50Interest = feeResult.accruedInterestInr;
+          task.accruingDailyPenalty = 50;
           totalLateFeeAudited += feeResult.totalLateFeeInr;
         } else if (task.category.includes("ITR") || task.category.includes("INCOME_TAX")) {
           const feeResult = StatutoryPenaltyEngine.calculateIncomeTaxLateFeeAndInterest({
@@ -149,8 +228,23 @@ export async function executePracticeAutopilotSweep(
             unpaidTaxInr: 25000,
           });
           task.penaltyRisk = feeResult.totalLateFeeInr;
+          task.accruingDailyPenalty = 200;
           totalLateFeeAudited += feeResult.totalLateFeeInr;
         }
+
+        task.priority = "CRITICAL";
+
+        // Proactive Overdue Alert to Client Portal
+        pushClientNotification({
+          idKey: `task-overdue-${task.id}-${todayStr}`,
+          title: `Statutory Due Date Passed: ${task.title}`,
+          message: `${task.title} is past due date (${task.dueDate}). Statutory late filing fee of ₹${task.accruingDailyPenalty || 50}/day under Section 47 / 234 is accruing. Return queued for immediate sign-off.`,
+          category: "COMPLIANCE",
+          priority: "CRITICAL",
+          targetTab: "progress",
+          recipientEntityId: task.entityId,
+          metadata: { taskId: task.id, daysOverdue },
+        });
       }
       return task;
     });
@@ -162,8 +256,8 @@ export async function executePracticeAutopilotSweep(
   // -------------------------------------------------------------
   if (db.documents && db.documents.length > 0) {
     db.documents = db.documents.map((doc) => {
+      const client = db.clients.find((c) => c.id === doc.entityId || c.name === doc.entityName);
       if (doc.isPasswordProtected && !doc.isUnlocked) {
-        const client = db.clients.find((c) => c.id === doc.entityId || c.name === doc.entityName);
         if (client) {
           const passwords = resolveClientBankPasswords(client, "HDFC_BANK");
           if (passwords.length > 0) {
@@ -184,9 +278,43 @@ export async function executePracticeAutopilotSweep(
                 return t;
               });
             }
+
+            // Autonomous Client Notification: Bank Statement Auto-Decrypted
+            pushClientNotification({
+              idKey: `doc-unlocked-${doc.id}`,
+              title: `Bank Statement Decrypted & Verified`,
+              message: `Statement "${doc.fileName}" for ${client.name} has been automatically decrypted. Compliance tasks have moved to In Preparation.`,
+              category: "DOCUMENT",
+              priority: "NORMAL",
+              targetTab: "progress",
+              recipientEntityId: client.id,
+              metadata: { docId: doc.id },
+            });
           }
         }
       }
+
+      // Also auto-advance any open tasks in DOCUMENTS_AWAITED for clients with uploaded documents
+      if (client && db.tasks) {
+        const awaitingTasks = db.tasks.filter((t) => t.entityId === client.id && t.status === "DOCUMENTS_AWAITED");
+        for (const at of awaitingTasks) {
+          at.status = "IN_PREPARATION";
+          at.missingDocumentsCount = 0;
+          tasksAutoAdvanced++;
+
+          pushClientNotification({
+            idKey: `task-adv-${at.id}-${doc.id}`,
+            title: `Workflow Started: ${at.title}`,
+            message: `Documents verified for ${at.title}. Preparation of statutory computations has commenced automatically.`,
+            category: "DOCUMENT",
+            priority: "NORMAL",
+            targetTab: "progress",
+            recipientEntityId: client.id,
+            metadata: { taskId: at.id, docId: doc.id },
+          });
+        }
+      }
+
       return doc;
     });
     logMessages.push(`Cycle 3 (Vault Decryptor): Auto-unlocked ${vaultDocsAutoUnlocked} statements. Advanced ${tasksAutoAdvanced} tasks to In-Preparation.`);
@@ -197,8 +325,6 @@ export async function executePracticeAutopilotSweep(
   // -------------------------------------------------------------
   if (!db.payToReleaseConfigs) db.payToReleaseConfigs = [];
   if (db.invoices && db.invoices.length > 0) {
-    const firmGstin = DEFAULT_FIRM_BRANDING.gstin || "27AAACF2299R1ZG";
-
     for (const client of db.clients) {
       const clientInvoices = db.invoices.filter((i) => i.entityId === client.id && i.status !== "PAID");
       const unpaidTotal = clientInvoices.reduce((acc, curr) => acc + curr.amount, 0);
@@ -214,6 +340,18 @@ export async function executePracticeAutopilotSweep(
           msmeOverdueInvoicesDetected++;
           const interestResult = calculateMsmeCompoundInterest(inv.amount, inv.dueDate, 45);
           totalMsmeInterestAccrued += interestResult.interestPayableCompounded;
+
+          // Proactive MSME Disallowance Warning to Client Portal
+          pushClientNotification({
+            idKey: `msme-alert-${inv.id}`,
+            title: `MSME Section 43B(h) Disallowance Risk`,
+            message: `Invoice #${inv.invoiceNo} (₹${inv.amount.toLocaleString("en-IN")}) is overdue past 45 days. Settle immediately to prevent statutory tax disallowance and 3x RBI compound interest.`,
+            category: "BILLING",
+            priority: "URGENT",
+            targetTab: "msme-watchdog",
+            recipientEntityId: client.id,
+            metadata: { invoiceId: inv.id },
+          });
         }
       }
 
@@ -221,11 +359,23 @@ export async function executePracticeAutopilotSweep(
       let existingCfg = db.payToReleaseConfigs.find((c) => c.entityId === client.id);
 
       if (existingCfg) {
+        const wasLocked = existingCfg.isLocked;
         existingCfg.totalOutstandingAmount = unpaidTotal;
         existingCfg.oldestInvoiceDays = maxOverdueDays;
         existingCfg.isLocked = hasOverdueDues;
         if (hasOverdueDues) {
           deliverableGatesActive++;
+        } else if (wasLocked && !hasOverdueDues) {
+          // Account became cleared: Auto-Unlock Deliverables Notification
+          pushClientNotification({
+            idKey: `gate-unlocked-${client.id}-${todayStr}`,
+            title: `Deliverables Unlocked: Account in Good Standing`,
+            message: `All statutory professional fees settled for ${client.name}. Certified deliverables (Form 3CD, ITR-6 Acknowledgment, Balance Sheet) are now unlocked in your Vault.`,
+            category: "BILLING",
+            priority: "HIGH",
+            targetTab: "vault",
+            recipientEntityId: client.id,
+          });
         }
       } else {
         const newCfg: PayToReleaseConfig = {
@@ -283,6 +433,18 @@ export async function executePracticeAutopilotSweep(
 
       db.invoices.unshift(draftInvoice);
       autoInvoicesDrafted++;
+
+      // Autonomous Client Notification: Invoice Drafted
+      pushClientNotification({
+        idKey: `inv-drafted-${draftInvoice.id}`,
+        title: `Professional Fee Invoice Generated: #${draftInvoice.invoiceNo}`,
+        message: `Tax invoice of ₹${draftInvoice.amount.toLocaleString("en-IN")} generated for ${draftInvoice.serviceDescription} under SAC 998231. Verified for Place of Supply.`,
+        category: "BILLING",
+        priority: "NORMAL",
+        targetTab: "billing",
+        recipientEntityId: client.id,
+        metadata: { invoiceId: draftInvoice.id },
+      });
     }
   }
   logMessages.push(`Cycle 5 (Billing Autopilot): Auto-drafted ${autoInvoicesDrafted} SAC 9982 tax invoices with Section 194J TDS deductions.`);
@@ -295,6 +457,19 @@ export async function executePracticeAutopilotSweep(
       gstr2bInvoicesAudited += (reco.invoicesAudited || 0);
       missingItcRecoverableInr += (reco.missingItcInr || 0);
       vendorNoticesDrafted += (reco.vendorNoticeCount || 0);
+
+      if (reco.missingItcInr && reco.missingItcInr > 0) {
+        pushClientNotification({
+          idKey: `gstr2b-reco-${reco.clientId}-${todayStr}`,
+          title: `GSTR-2B Reco: ₹${reco.missingItcInr.toLocaleString("en-IN")} Missing ITC Flagged`,
+          message: `Autonomous matching vs Purchase Register completed. ₹${reco.missingItcInr.toLocaleString("en-IN")} ITC withheld from defaulting suppliers under Rule 37A/Rule 88C.`,
+          category: "COMPLIANCE",
+          priority: "HIGH",
+          targetTab: "vendor-hold",
+          recipientEntityId: reco.clientId,
+          metadata: { missingItc: reco.missingItcInr },
+        });
+      }
     }
     logMessages.push(`Cycle 6 (GSTR-2B Reco): Reconciled ${gstr2bInvoicesAudited} invoices across ${db.clientGstReconciliations.length} active client reconciliations. Identified ₹${missingItcRecoverableInr.toLocaleString('en-IN')} missing ITC.`);
   } else {
@@ -318,6 +493,19 @@ export async function executePracticeAutopilotSweep(
     for (const docket of db.noticeDockets) {
       demandUnderShieldInr += (docket.allegedDemandInr || 0);
       if (docket.dinStatus === "MISSING_DIN_FATAL") fatalDinNoticesFlagged++;
+
+      if (docket.daysRemaining <= 7 && docket.defenseStatus !== "FILED_TO_PORTAL") {
+        pushClientNotification({
+          idKey: `notice-alert-${docket.id}-${docket.daysRemaining <= 3 ? "urgent" : "warning"}`,
+          title: `Statutory Notice Action Required (Due in ${docket.daysRemaining} Days)`,
+          message: `Notice response for ${docket.section} (DIN: ${docket.dinOrNoticeNo || "Lacking"}) is approaching statutory limitation. GPA & Co. defense workpaper and adjournment petition prepared.`,
+          category: "NOTICE",
+          priority: docket.daysRemaining <= 3 ? "CRITICAL" : "HIGH",
+          targetTab: "director-risk",
+          recipientEntityId: docket.clientId,
+          metadata: { docketId: docket.id, daysRemaining: docket.daysRemaining },
+        });
+      }
     }
     logMessages.push(`Cycle 7 (Notice Sentinel): Monitored ${db.noticeDockets.length} statutory dockets (₹${demandUnderShieldInr.toLocaleString('en-IN')} demand shielded). Flagged ${fatalDinNoticesFlagged} notices with fatal DIN defects (Circular 19/2019 / Brandix Mauritius).`);
   }
@@ -346,6 +534,21 @@ export async function executePracticeAutopilotSweep(
     const inSafe = db.dscTokens.filter(t => t.currentCustodian === "Firm Master Safe").length;
     const checkedOut = db.dscTokens.length - inSafe;
     const expiringSoon = db.dscTokens.filter(t => t.daysToExpiry <= 30 || t.expiryStatus === "EXPIRED").length;
+
+    for (const token of db.dscTokens) {
+      if (token.daysToExpiry <= 30 || token.expiryStatus === "EXPIRING_SOON" || token.expiryStatus === "EXPIRED") {
+        pushClientNotification({
+          idKey: `dsc-expiry-${token.id}`,
+          title: `Director DSC Expiring: ${token.holderName}`,
+          message: `Cryptographic token for ${token.holderName} (${token.entityName}) expires in ${token.daysToExpiry} days (${token.validTill}). Renewal queued under practice protocol to prevent portal lockout.`,
+          category: "SECURITY",
+          priority: "HIGH",
+          targetTab: "director-risk",
+          recipientEntityId: token.entityId,
+          metadata: { tokenId: token.id, daysToExpiry: token.daysToExpiry },
+        });
+      }
+    }
     logMessages.push(`Cycle 8 (DSC Hardware Vault): Audited ${dscTokensAudited} cryptographic tokens (${inSafe} in Master Safe, ${checkedOut} checked out, ${expiringSoon} expiring in <=30 days). Zero unauthorized private key exposure.`);
   }
 
@@ -409,6 +612,20 @@ export async function executePracticeAutopilotSweep(
       }
     }
     logMessages.push(`Cycle 9 (ITR Dual-Regime): Executed Section 115BAC vs Old Regime optimization across ${itrDualRegimesOptimized} clients. Identified ₹${totalClientTaxSavingsIdentifiedInr.toLocaleString('en-IN')} aggregate tax savings.`);
+
+    if (totalClientTaxSavingsIdentifiedInr > 0) {
+      for (const client of db.clients) {
+        pushClientNotification({
+          idKey: `itr-regime-${client.id}-${todayStr.slice(0, 7)}`,
+          title: `Dual-Regime Tax Optimization: Saved under Optimal Tax Regime`,
+          message: `Autonomous calculation compared Section 115BAC vs Old Regime for ${client.name}. Deduction portfolio analyzed to minimize statutory tax cashflow.`,
+          category: "COMPLIANCE",
+          priority: "NORMAL",
+          targetTab: "cash-forecast",
+          recipientEntityId: client.id,
+        });
+      }
+    }
   }
 
   const durationMs = Date.now() - startTime;

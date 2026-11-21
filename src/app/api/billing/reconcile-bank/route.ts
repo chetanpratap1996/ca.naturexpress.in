@@ -3,6 +3,8 @@ import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from 
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { reconcileFirmBankStatement } from "@/lib/billing/bankReceiptReconciler";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { DocumentItem } from "@/lib/types";
+import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,18 +68,61 @@ export async function POST(req: NextRequest) {
             "INVOICE"
           );
 
-          // Real-time in-app notification
+          // Real-time in-app notification for Staff
           await createNotification({
             title: `Fee Realized: ${match.invoiceNo}`,
             message: `Bank credit of ₹${match.matchedAmount.toLocaleString("en-IN")} matched with ${match.entityName} (UTR: ${match.utrNumber}). 0% Gateway commission.`,
             category: "BILLING",
             priority: "HIGH",
-            targetRoles: ["SUPER_ADMIN", "PARTNER", "STAFF", "CLIENT"],
+            targetRoles: ["SUPER_ADMIN", "PARTNER", "STAFF"],
             entityId: match.entityId,
             link: "/admin",
             actionLabel: "View Receipt",
             metadata: { invoiceId: match.invoiceId, utr: match.utrNumber, amount: match.matchedAmount }
           });
+
+          // Autonomous Client Notification on Client Portal
+          await createNotification({
+            title: `Fee Payment Reconciled: ₹${match.matchedAmount.toLocaleString("en-IN")}`,
+            message: `Bank credit reconciled for Invoice #${match.invoiceNo} (UTR: ${match.utrNumber}). All statutory deliverables unlocked. Certified receipt deposited in your Vault.`,
+            category: "BILLING",
+            priority: "HIGH",
+            targetTab: "vault",
+            recipientRole: "CLIENT",
+            recipientEntityId: match.entityId,
+            metadata: { invoiceId: match.invoiceId, utr: match.utrNumber }
+          });
+
+          // Check if all dues for this entity are settled
+          const entityRemainingUnpaid = (db.invoices || []).filter(
+            (i) => i.entityId === match.entityId && i.id !== inv.id && i.status !== "PAID"
+          );
+
+          if (entityRemainingUnpaid.length === 0 && db.payToReleaseConfigs) {
+            db.payToReleaseConfigs = db.payToReleaseConfigs.map((cfg) => {
+              if (cfg.entityId === match.entityId) {
+                return { ...cfg, isLocked: false, overrideReason: `Auto Bank Reconcile UTR ${match.utrNumber}` };
+              }
+              return cfg;
+            });
+          }
+
+          // Deposit certified payment receipt into documents vault
+          const receiptDoc: DocumentItem = {
+            id: `DOC-RCP-${Date.now()}-${match.invoiceNo}`,
+            entityId: match.entityId,
+            entityName: match.entityName,
+            category: "TAX_COMPUTATION",
+            fileName: `Fee_Receipt_Inv_${match.invoiceNo}_${match.utrNumber}.pdf`,
+            fileSize: "138 KB",
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: "FIRM_STAFF",
+            isPasswordProtected: false,
+            isUnlocked: true,
+            financialYear: "FY 2026-27",
+            reviewStatus: "APPROVED",
+          };
+          db.documents = [receiptDoc, ...(db.documents || [])];
 
           // Bi-directional Supabase cloud sync if configured
           if (isSupabaseConfigured()) {
@@ -98,6 +143,7 @@ export async function POST(req: NextRequest) {
       }
 
       await saveDatabase(db);
+      executePracticeAutopilotSweep(db, "Bank Statement Auto-Reconcile").catch(() => {});
     }
 
     return NextResponse.json({

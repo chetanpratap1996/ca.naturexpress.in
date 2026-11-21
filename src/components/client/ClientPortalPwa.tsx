@@ -16,6 +16,11 @@ import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
+  playNotificationChime, 
+  showBrowserNotification, 
+  requestBrowserNotificationPermission 
+} from "@/lib/notifications";
+import { 
   CheckCircle2, 
   Clock, 
   UploadCloud, 
@@ -118,7 +123,8 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
     deletePortalCredential,
     submitClientUtr,
     uploadDocument,
-    instantUpiUnlock
+    instantUpiUnlock,
+    refreshData
   } = dataHook;
 
   const clientsList = (hookClients && hookClients.length > 0) ? hookClients : INITIAL_CLIENTS;
@@ -145,25 +151,55 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
     setShowInstallModal,
   } = usePwaInstall();
 
+  const lastUnreadCountRef = useRef<number | null>(null);
+
   React.useEffect(() => {
     const entityId = selectedEntityId || currentUser?.clientEntityId || "";
     const params = new URLSearchParams({ role: "CLIENT" });
     if (entityId) params.set("clientEntityId", entityId);
-    fetch(`/api/notifications?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.unreadCount !== undefined) {
-          setUnreadIntimationsCount(data.unreadCount);
+
+    const pollAutonomousUpdates = async () => {
+      try {
+        // Trigger silent background sweep
+        fetch("/api/cron/practice-sweep").catch(() => {});
+
+        // Fetch notifications
+        const res = await fetch(`/api/notifications?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.unreadCount !== undefined) {
+            if (lastUnreadCountRef.current !== null && data.unreadCount > lastUnreadCountRef.current) {
+              // New background notification arrived!
+              playNotificationChime();
+              if (data.notifications && data.notifications.length > 0) {
+                const latest = data.notifications[0];
+                showBrowserNotification(latest);
+                toast.info(latest.title, latest.message);
+              }
+              if (refreshData) refreshData();
+            }
+            lastUnreadCountRef.current = data.unreadCount;
+            setUnreadIntimationsCount(data.unreadCount);
+          }
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        // Silent catch for offline or unmounted state
+      }
+    };
+
+    pollAutonomousUpdates();
+    const interval = setInterval(pollAutonomousUpdates, 15000);
 
     const handler = () => {
       setUnreadIntimationsCount((c) => c + 1);
+      if (refreshData) refreshData();
     };
     window.addEventListener("bt_notification_received", handler);
-    return () => window.removeEventListener("bt_notification_received", handler);
-  }, [selectedEntityId, currentUser?.clientEntityId]);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("bt_notification_received", handler);
+    };
+  }, [selectedEntityId, currentUser?.clientEntityId, refreshData]);
 
   const isQuickModalActive = externalQuickActionOpen !== undefined 
     ? externalQuickActionOpen 
@@ -609,6 +645,39 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         />
 
         <main className="flex-1 w-full min-w-0 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 pb-28 lg:pb-12 max-w-[1720px] mx-auto overflow-x-hidden">
+
+      {/* 2027 AUTONOMOUS TASK ENGINE STATUS RADAR */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-4 border border-slate-700/60 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400">
+            <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75"></span>
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black tracking-wide text-white uppercase">2027 Autonomous Task Engine Active</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">Zero-Touch Autopilot</span>
+            </div>
+            <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+              Statutory cutoffs monitored &bull; Tasks auto-advance upon document receipt &bull; UTR fee reconciliations automated &bull; Certified deliverables auto-released.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <button
+            onClick={async () => {
+              const perm = await requestBrowserNotificationPermission();
+              if (perm === "granted") {
+                playNotificationChime();
+                toast.success("Desktop Alerts Enabled", "You will receive instant statutory filing intimations on your device.");
+              }
+            }}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600 transition flex items-center gap-1.5"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Enable Device Push Alerts
+          </button>
+        </div>
+      </div>
 
       {/* Success Notification Banner */}
       {uploadSuccessMessage && (

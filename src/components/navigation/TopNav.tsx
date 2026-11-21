@@ -101,20 +101,29 @@ export const TopNav: React.FC<TopNavProps> = ({
       if (activeClientEntityId) params.set("clientEntityId", activeClientEntityId);
     }
     const queryStr = params.toString() ? `?${params.toString()}` : "";
-    fetch(`/api/notifications${queryStr}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.unreadCount !== undefined) {
-          setUnreadCount(data.unreadCount);
-        }
-      })
-      .catch(() => {});
+    const fetchUnread = () => {
+      fetch(`/api/notifications${queryStr}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.unreadCount !== undefined) {
+            setUnreadCount(data.unreadCount);
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 20000);
 
     const handler = () => {
       setUnreadCount((c) => c + 1);
+      fetchUnread();
     };
     window.addEventListener("bt_notification_received", handler);
-    return () => window.removeEventListener("bt_notification_received", handler);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("bt_notification_received", handler);
+    };
   }, [isClientView, activeClientEntityId]);
 
   // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K / Alt+G for Tally mode)

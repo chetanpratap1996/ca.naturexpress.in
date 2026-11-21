@@ -80,6 +80,19 @@ export async function POST(request: NextRequest) {
         "COMPLIANCE"
       );
 
+      // Autonomous Client Notification when clean
+      if (updatedProfile.status === "CLEAN_AUTO_DISPATCHED") {
+        await createNotification({
+          title: `MCA Annual Filing Pre-Cleared: AOC-4 & MGT-7`,
+          message: `All statutory exceptions resolved under Companies Act 2013 for ${updatedProfile.clientName}. Annual return and financial statements assembled for ROC submission.`,
+          category: "COMPLIANCE",
+          priority: "NORMAL",
+          targetTab: "director-risk",
+          recipientRole: "CLIENT",
+          recipientEntityId: updatedProfile.clientId,
+        });
+      }
+
       return NextResponse.json({
         success: true,
         profile: updatedProfile,

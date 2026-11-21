@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification, ClientTrialBalanceItem } from "@/lib/server/db";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 
 export async function GET(req: NextRequest) {
   try {
@@ -123,8 +124,25 @@ export async function POST(req: NextRequest) {
       "COMPLIANCE"
     );
 
+    // Autonomous Client Portal Notification
+    await createNotification({
+      title: `Financial Statements Mapped: FY ${financialYear}`,
+      message: sec43bMsmeDisallowanceInr > 0
+        ? `Schedule III mapping complete (${tbItem.ledgerCount} ledgers). Flagged ₹${sec43bMsmeDisallowanceInr.toLocaleString("en-IN")} MSME payables under Sec 43B(h) / Form 3CD Clause 22.`
+        : `Schedule III Balance Sheet & P&L mapped (${tbItem.ledgerCount} ledgers). 21 CARO clauses evaluated.`,
+      category: "COMPLIANCE",
+      priority: sec43bMsmeDisallowanceInr > 0 ? "HIGH" : "NORMAL",
+      targetTab: "director-risk",
+      recipientRole: "CLIENT",
+      recipientEntityId: clientId,
+      metadata: { tbId: tbItem.id, sec43b: sec43bMsmeDisallowanceInr }
+    });
+
     // Save database atomically
     await saveDatabase(db);
+
+    // Silent background autopilot sweep
+    executePracticeAutopilotSweep(db, "Trial Balance Mapping").catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -5,7 +5,7 @@ import { ClientEntity, ClientGroup } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { isValidPan, isValidGstin } from "@/lib/utils";
-import { validateClientMasterCsv } from "@/lib/fileIntelligence/documentValidator";
+import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
 import { 
   normalizePhone10, 
   DEMO_USERS 
@@ -113,6 +113,83 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Live GSTIN Lookup & Mod-36 State
+  const [isFetchingGst, setIsFetchingGst] = useState(false);
+  const [gstAutoData, setGstAutoData] = useState<{
+    legalName?: string;
+    tradeName?: string;
+    status?: string;
+    stateName?: string;
+    taxpayerType?: string;
+    address?: string;
+    creditsRemaining?: number;
+    filingHistory?: Array<{ returnType: string; returnPeriod: string; filingStatus: string; filingDate: string; arn: string }>;
+  } | null>(null);
+
+  // 1-Click Live GSTIN Auto-fetch handler
+  const handleFetchGstDetails = async (targetGstin?: string) => {
+    const raw = targetGstin || gstin;
+    const clean = raw.trim().toUpperCase();
+    if (!clean) {
+      toast.error("GSTIN Required", "Please enter a 15-character GSTIN first.");
+      return;
+    }
+
+    // Step 1: 0ms offline validation check (protects paid API credits)
+    const validation = validateGstinDetailed(clean);
+    if (!validation.isValid) {
+      toast.error("Invalid GSTIN Checksum", validation.error || "Please verify typos before calling GST portal.");
+      return;
+    }
+
+    setIsFetchingGst(true);
+    try {
+      const res = await fetch(`/api/gst/lookup?gstin=${encodeURIComponent(clean)}&returns=true`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error("GST Portal Lookup Failed", data.error || "Unable to fetch taxpayer details.");
+        return;
+      }
+
+      const p = data.data;
+      const returns = data.returnsData?.returns || [];
+      setGstAutoData({
+        legalName: p.legalName,
+        tradeName: p.tradeName,
+        status: p.status,
+        stateName: p.stateName,
+        taxpayerType: p.taxpayerType,
+        address: p.address,
+        creditsRemaining: data.creditsRemaining,
+        filingHistory: returns
+      });
+
+      // Auto-populate form fields
+      if (p.legalName) {
+        setEntityName(p.legalName);
+      }
+      if (p.pan) {
+        setPan(p.pan);
+      }
+      if (p.pan && p.pan.length >= 4) {
+        const pan4 = p.pan.charAt(3);
+        if (pan4 === "C") setType("PVT_LTD");
+        else if (pan4 === "P") setType("PROPRIETORSHIP");
+        else if (pan4 === "F") setType("LLP");
+        else if (pan4 === "T" || pan4 === "A") setType("TRUST_NGO");
+      }
+
+      toast.success(
+        "GSTIN Verified Live",
+        `${p.legalName} (${p.status}) | ${p.stateName}. Legal details auto-filled!`
+      );
+    } catch (err: any) {
+      toast.error("Network Error", err.message || "Failed to reach GST verification service.");
+    } finally {
+      setIsFetchingGst(false);
+    }
+  };
 
   // Generate 1-Tap WhatsApp Link for a client with 4-Digit Access PIN
   const generateClientWhatsAppUrl = (client: ClientEntity) => {
@@ -270,42 +347,43 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     reader.onload = async (evt) => {
       try {
         const text = evt.target?.result as string;
-        const validation = validateClientMasterCsv(text);
-
-        if (!validation.isValid || validation.validRows.length === 0) {
-          toast.error("Import Rejected", validation.summaryMessage);
-          if (validation.invalidRows.length > 0) {
-            toast.error(
-              "Formatting Errors Found",
-              `Row ${validation.invalidRows[0].rowNumber}: ${validation.invalidRows[0].errors.join(", ")}`
-            );
-          }
+        const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        if (lines.length <= 1) {
+          alert("CSV is empty or missing data rows.");
           setIsImporting(false);
           return;
         }
 
-        const batchPayload: Partial<ClientEntity>[] = validation.validRows.map((v) => ({
-          name: v.name,
-          type: (v.entityType as any) || "PVT_LTD",
-          pan: v.pan,
-          gstin: v.gstin,
-          turnoverCr: 5.0,
-          incorporationYear: 2024,
-          partnerInCharge: "CA Gunjan Jain",
-          assignedArticle: "Kriti Jain (Article)",
-          primaryContact: {
-            name: v.name.split(" ")[0] || "Promoter",
-            phone: v.phone || "+91 98000 00000",
-            email: v.email || "accounts@client.com",
-            designation: "Director / Authorized Signatory",
-          },
-        }));
+        const batchPayload: Partial<ClientEntity>[] = [];
 
-        if (validation.invalidRows.length > 0) {
-          toast.warning(
-            "Partial Rejection",
-            `${validation.invalidRows.length} rows were skipped due to invalid PAN/GSTIN format.`
-          );
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i];
+          const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+          const cols = matches 
+            ? matches.map((m) => m.replace(/^"|"$/g, "").trim()) 
+            : row.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+          
+          if (cols.length >= 3 && cols[0] && cols[2]) {
+            const rawPhone = cols[5] || "+91 98000 00000";
+            const directorName = cols[4] || "Promoter";
+
+            batchPayload.push({
+              name: cols[0],
+              type: (cols[1] as any) || "PVT_LTD",
+              pan: cols[2].toUpperCase().trim(),
+              gstin: cols[3] ? cols[3].toUpperCase().trim() : undefined,
+              turnoverCr: parseFloat(cols[7]) || 5.0,
+              incorporationYear: 2024,
+              partnerInCharge: "CA Gunjan Jain",
+              assignedArticle: cols[8] || "Kriti Jain (Article)",
+              primaryContact: {
+                name: directorName,
+                phone: rawPhone,
+                email: cols[6] || "accounts@client.com",
+                designation: "Director / Authorized Signatory",
+              },
+            });
+          }
         }
 
         if (batchPayload.length === 0) {
@@ -1306,17 +1384,96 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">GSTIN (Optional)</label>
-                  <input
-                    type="text"
-                    maxLength={15}
-                    value={gstin}
-                    onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                    placeholder="e.g. 27AABCM1234A1Z5"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-mono font-bold focus:outline-none focus:border-btred-logo"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-700">GSTIN (Optional)</label>
+                    {gstin && gstin.trim().length === 15 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        validateGstinDetailed(gstin).isValid
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-rose-50 text-rose-700 border border-rose-200"
+                      }`}>
+                        {validateGstinDetailed(gstin).isValid
+                          ? `✓ Checksum Valid (${validateGstinDetailed(gstin).stateName})`
+                          : "⚠ Invalid Checksum"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={15}
+                      value={gstin}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setGstin(val);
+                        // If user pastes 10-char PAN or fills GSTIN, auto-extract PAN
+                        if (val.length >= 12 && !pan) {
+                          setPan(val.substring(2, 12));
+                        }
+                      }}
+                      placeholder="e.g. 33AAACC1206D1ZN"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-mono font-bold focus:outline-none focus:border-btred-logo"
+                    />
+                    {gstin && gstin.trim().length === 15 && validateGstinDetailed(gstin).isValid && (
+                      <button
+                        type="button"
+                        onClick={() => handleFetchGstDetails()}
+                        disabled={isFetchingGst}
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl whitespace-nowrap flex items-center gap-1.5 text-xs transition shadow-sm disabled:opacity-50"
+                        title="Fetch Legal Name, PAN, Status & Address from Live GST Portal"
+                      >
+                        {isFetchingGst ? (
+                          <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        Auto-Fill
+                      </button>
+                    )}
+                  </div>
+                  {gstin && gstin.trim().length === 15 && !validateGstinDetailed(gstin).isValid && (
+                    <p className="text-[10px] text-rose-600 font-medium mt-1">
+                      {validateGstinDetailed(gstin).error}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {/* Live GST Verified Details Card */}
+              {gstAutoData && (
+                <div className="mt-3 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Live GST Portal Verified
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                      Status: {gstAutoData.status} | {gstAutoData.taxpayerType}
+                    </span>
+                  </div>
+                  <div className="text-slate-700 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-1 pt-1 border-t border-emerald-200/60">
+                    <div><strong>Legal:</strong> {gstAutoData.legalName}</div>
+                    <div><strong>Trade:</strong> {gstAutoData.tradeName}</div>
+                    {gstAutoData.address && (
+                      <div className="sm:col-span-2"><strong>Address:</strong> {gstAutoData.address}</div>
+                    )}
+                  </div>
+                  {gstAutoData.filingHistory && gstAutoData.filingHistory.length > 0 && (
+                    <div className="pt-1.5 mt-1 border-t border-emerald-200/60">
+                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
+                        Recent Returns (GSTR-1 &amp; GSTR-3B):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {gstAutoData.filingHistory.slice(0, 4).map((ret, idx) => (
+                          <span key={idx} className="text-[10px] bg-white border border-emerald-200 rounded px-1.5 py-0.5 text-slate-700 font-mono">
+                            {ret.returnType} ({ret.returnPeriod}): <strong className="text-emerald-700">{ret.filingStatus}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">

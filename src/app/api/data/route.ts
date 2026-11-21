@@ -279,7 +279,16 @@ export async function GET(request: NextRequest) {
       }
       localData.notices = [];
       localData.auditTrail = [];
-      localData.payToReleaseConfigs = [];
+      if (localData.payToReleaseConfigs) {
+        localData.payToReleaseConfigs = localData.payToReleaseConfigs.filter(
+          (p: any) => p.entityId === auth.clientEntityId
+        );
+      }
+      if (localData.notifications) {
+        localData.notifications = localData.notifications.filter(
+          (n: any) => n.recipientEntityId === auth.clientEntityId || n.recipientRole === "ALL" || (n.recipientRole === "CLIENT" && !n.recipientEntityId)
+        );
+      }
       localData.firmMetrics = {
         name: "GPA & Co., Chartered Accountants",
         totalClients: localData.clients.length,

@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   generateBuildId: async () => {
-    return `build-${Date.now()}`;
+    return "taxobrain-build-v1";
   },
 
   // ─── Webpack Customization ────────────────────────────────────────────────

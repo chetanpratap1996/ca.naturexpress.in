@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RecoMatcher, Gstr2bInvoice, BooksPurchaseInvoice } from "@/lib/gst/recoMatcher";
 import { ItcClassifier } from "@/lib/gst/itcClassifier";
-import { ensureDatabase, saveDatabase, ClientGstReconciliationItem } from "@/lib/server/db";
+import { ensureDatabase, saveDatabase, ClientGstReconciliationItem, createNotification, logAuditEvent } from "@/lib/server/db";
+import { DocumentItem } from "@/lib/types";
+import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 
 export async function GET(req: NextRequest) {
   try {
@@ -347,7 +349,49 @@ export async function POST(req: NextRequest) {
       } else {
         db.clientGstReconciliations.push(item);
       }
+
+      // Autonomous Client Portal Notification
+      await createNotification({
+        title: `GSTR-2B Reco: ₹${report.summary.matchedEligibleItc.toLocaleString("en-IN")} Eligible ITC`,
+        message: report.summary.provisionalMissing2bItc > 0
+          ? `Reconciliation complete for ${taxPeriod}. Identified ₹${report.summary.provisionalMissing2bItc.toLocaleString("en-IN")} missing ITC across defaulting vendors. Recovery workpaper filed.`
+          : `Reconciliation complete for ${taxPeriod}. 100% books ITC matched with GSTR-2B portal data.`,
+        category: "COMPLIANCE",
+        priority: report.summary.provisionalMissing2bItc > 0 ? "HIGH" : "NORMAL",
+        targetTab: report.summary.provisionalMissing2bItc > 0 ? "vendor-hold" : "vault",
+        recipientRole: "CLIENT",
+        recipientEntityId: clientId,
+        metadata: { recoId: item.id, missingItc: report.summary.provisionalMissing2bItc }
+      });
+
+      // Deposit GST reconciliation pack into Document Vault
+      const recoDoc: DocumentItem = {
+        id: `DOC-GST-RECO-${Date.now()}`,
+        entityId: clientId,
+        entityName: client?.name || `GSTIN ${clientGstin}`,
+        category: "GST_INVOICES",
+        fileName: `GSTR2B_vs_Books_Reco_${taxPeriod.replace(/\s+/g, "_")}_${clientGstin}.pdf`,
+        fileSize: "365 KB",
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: "FIRM_STAFF",
+        isPasswordProtected: false,
+        isUnlocked: true,
+        financialYear: "FY 2026-27",
+        reviewStatus: "APPROVED",
+      };
+      db.documents = [recoDoc, ...(db.documents || [])];
+
+      await logAuditEvent(
+        "Autonomous GST Engine",
+        "SYSTEM",
+        client?.name || clientGstin,
+        "GST_RECONCILIATION_COMPLETED",
+        `GSTR-2B reconciliation completed for ${taxPeriod} (${clientGstin}). ${item.invoicesAudited} invoices audited. ₹${item.eligibleItcInr.toLocaleString("en-IN")} eligible ITC, ₹${item.missingItcInr.toLocaleString("en-IN")} missing ITC.`,
+        "COMPLIANCE"
+      );
+
       await saveDatabase(db);
+      executePracticeAutopilotSweep(db, "GSTR-2B Reconciliation").catch(() => {});
     } catch (saveErr) {
       console.warn("Could not persist GST reconciliation to DB:", saveErr);
     }

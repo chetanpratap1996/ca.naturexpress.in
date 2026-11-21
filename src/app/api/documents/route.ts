@@ -11,6 +11,7 @@ import { DocumentItem } from "@/lib/types";
 import fs from "fs";
 import path from "path";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
 
 export async function GET(req: NextRequest) {
   try {
@@ -113,6 +114,20 @@ export async function POST(req: NextRequest) {
             task.penaltyRisk = 0;
             task.accruingDailyPenalty = 0;
             task.clientApprovalStatus = "APPROVED";
+
+            // Autonomous Client Notification for Completed Filing
+            await createNotification({
+              title: `Return Successfully Filed: ${task.title}`,
+              message: `Official statutory return for ${task.period} has been filed with the Department (ARN: ${task.arnNumber}). Filed acknowledgment PDF is available in your Vault.`,
+              category: "COMPLIANCE",
+              priority: "HIGH",
+              targetTab: "vault",
+              recipientRole: "CLIENT",
+              recipientEntityId: task.entityId,
+              targetRoles: ["CLIENT"],
+              entityId: task.entityId,
+              metadata: { taskId: task.id, arnNumber: task.arnNumber }
+            });
           }
         }
 
@@ -211,15 +226,27 @@ export async function POST(req: NextRequest) {
 
     db.documents.unshift(newDoc);
 
-    if (taskId) {
-      const taskIndex = db.tasks.findIndex((t) => t.id === taskId);
-      if (taskIndex !== -1) {
-        if (db.tasks[taskIndex].missingDocumentsCount > 0) {
-          db.tasks[taskIndex].missingDocumentsCount -= 1;
-        }
-        if (db.tasks[taskIndex].status === "DOCUMENTS_AWAITED") {
-          db.tasks[taskIndex].status = "IN_PREPARATION";
-        }
+    // Autonomous Task Matching & Self-Advancement
+    let targetTask = taskId ? db.tasks.find((t) => t.id === taskId) : null;
+    if (!targetTask && db.tasks) {
+      targetTask = db.tasks.find((t) => {
+        const matchesClient = t.entityId === targetEntityId || (t.entityName && newDoc.entityName && t.entityName.toLowerCase() === newDoc.entityName.toLowerCase());
+        if (!matchesClient || t.status === "FILED_AND_COMPLETED") return false;
+        if (newDoc.category === "BANK_STATEMENT") return t.status === "DOCUMENTS_AWAITED" || t.category === "GST" || t.category === "INCOME_TAX";
+        if (newDoc.category === "GST_INVOICES") return t.category === "GST";
+        if (newDoc.category === "TAX_COMPUTATION" || newDoc.category === "AUDIT_REPORT") return t.category === "INCOME_TAX" || t.category === "TAX_AUDIT";
+        if (newDoc.category === "CHALLAN") return t.category === "TDS" || t.category === "GST";
+        return t.status === "DOCUMENTS_AWAITED";
+      }) || null;
+    }
+
+    if (targetTask) {
+      newDoc.taskId = targetTask.id;
+      if (targetTask.missingDocumentsCount > 0) {
+        targetTask.missingDocumentsCount = Math.max(0, targetTask.missingDocumentsCount - 1);
+      }
+      if (targetTask.status === "DOCUMENTS_AWAITED") {
+        targetTask.status = "IN_PREPARATION";
       }
     }
 
@@ -234,9 +261,10 @@ export async function POST(req: NextRequest) {
       "DOCUMENT"
     );
 
+    // 1. Notify Firm Staff
     await createNotification(
       `New Document Uploaded: ${newDoc.fileName}`,
-      `${newDoc.entityName} uploaded ${newDoc.fileName} (${newDoc.category}). Pending audit verification.`,
+      `${newDoc.entityName} uploaded ${newDoc.fileName} (${newDoc.category}). ${targetTask ? `Auto-linked to ${targetTask.title}.` : "Pending audit verification."}`,
       "DOCUMENT",
       "NORMAL",
       "workbench",
@@ -244,7 +272,29 @@ export async function POST(req: NextRequest) {
       newDoc.entityId
     );
 
-    return NextResponse.json({ success: true, document: newDoc });
+    // 2. Autonomous Client Notification (Always notify client portal!)
+    await createNotification({
+      title: `Document Received & Verified: ${newDoc.fileName}`,
+      message: `Your ${newDoc.category.replace(/_/g, " ")} (${newDoc.fileName}) has been verified. ${targetTask ? `Task "${targetTask.title}" has automatically advanced to In Preparation.` : "Securely archived in your Firm Master Vault."}`,
+      category: "DOCUMENT",
+      priority: "NORMAL",
+      targetTab: "progress",
+      recipientRole: "CLIENT",
+      recipientEntityId: targetEntityId,
+      targetRoles: ["CLIENT"],
+      entityId: targetEntityId,
+      metadata: { docId: newDoc.id, taskId: targetTask?.id }
+    });
+
+    // 3. Autonomous Practice Sweep Trigger in Background
+    try {
+      await executePracticeAutopilotSweep(db, "Inbound Document Autonomous Engine");
+      await saveDatabase(db);
+    } catch (sweepErr) {
+      console.warn("Background autonomous sweep error:", sweepErr);
+    }
+
+    return NextResponse.json({ success: true, document: newDoc, targetTask });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

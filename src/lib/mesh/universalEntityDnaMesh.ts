@@ -427,7 +427,41 @@ export const SAMPLE_CLIENT_DNA_APEX: ClientEntityDna = {
   ]
 };
 
-export const SAMPLE_CLIENT_DNA_PRATWI: ClientEntityDna = {
+export const SAMPLE_CLIENT_DNA_BRAINSTAXES: ClientEntityDna = {
+  id: 'CLI-BT-01',
+  legalName: 'Brains & Taxes Private Limited',
+  tradeName: 'Brains & Taxes',
+  entityType: 'PVT_LTD',
+  pan: 'AABCU9821F',
+  gstin: '23AABCU9821F1ZX',
+  cin: 'U74110MP2017PTC043716',
+  tan: 'BPLB01821C',
+  registeredAddress: 'Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001',
+  stateCode: '23',
+  stateName: 'Madhya Pradesh',
+  turnoverFy2526: 100000000,
+  digitalTxnPct: 97.2,
+  primaryBank: {
+    bankName: 'ICICI Bank (New Palasia, Indore)',
+    accountNo: '657005601799',
+    ifsc: 'ICIC0006570',
+    sanctionedLimit: 20000000,
+    interestRateSpread: 1.65
+  },
+  directors: [
+    {
+      name: 'Chetan Pratap Singh',
+      din: '19982101',
+      pan: 'AABCU9821F',
+      shareholdingPct: 60.0,
+      dir3KycStatus: 'COMPLIANT'
+    }
+  ]
+};
+
+export const SAMPLE_CLIENT_DNA_PRATWI: ClientEntityDna = SAMPLE_CLIENT_DNA_BRAINSTAXES;
+
+export const SAMPLE_CLIENT_DNA_LEGACY_PRATWI: ClientEntityDna = {
   id: 'CLI-PRATWI-01',
   legalName: 'Pratwi Solutions Private Limited',
   tradeName: 'Pratwi Tech',

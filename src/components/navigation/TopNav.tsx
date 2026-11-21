@@ -194,19 +194,8 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           </div>
 
-          {/* CENTER: Universal Client Switcher (Entity DNA Spine) & Role Switcher */}
+          {/* CENTER: Role Switcher (Partner / Staff) */}
           <div className="flex items-center gap-2 shrink-0">
-            {!isClientMode && clients.length > 0 && onSelectClient && (
-              <UniversalClientSwitcher
-                clients={clients}
-                groups={groups}
-                selectedClientId={activeClientEntityId || clients[0]?.id || ""}
-                onSelectClient={onSelectClient}
-                selectedGstin={selectedGstin}
-                onOpenDiagnosticOnboarding={onOpenDiagnosticOnboarding}
-              />
-            )}
-
             {isClientMode ? (
               <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 rounded-xl shadow-xs shrink-0">
                 <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

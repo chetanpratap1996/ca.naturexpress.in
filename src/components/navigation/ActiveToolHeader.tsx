@@ -98,26 +98,8 @@ export const ActiveToolHeader: React.FC<ActiveToolHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Context Switcher & Workspace Actions */}
+      {/* Right: Workspace Actions */}
       <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap sm:flex-nowrap">
-        {/* Quick Client Entity Selector if multiple clients exist */}
-        {clients.length > 0 && onSelectClient && (
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl text-xs">
-            <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <select
-              value={selectedClientId || clients[0]?.id}
-              onChange={(e) => onSelectClient(e.target.value)}
-              className="bg-transparent text-slate-800 font-bold text-xs focus:outline-none max-w-[140px] sm:max-w-[200px] truncate"
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Fullscreen Focus Toggle */}
         <button
           onClick={toggleFullscreen}

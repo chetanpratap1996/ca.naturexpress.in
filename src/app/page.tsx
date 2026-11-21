@@ -217,7 +217,7 @@ const DOMAIN_DEFAULT_TAB: Record<DomainId, string> = {
 };
 
 export default function Home() {
-  // Practice Desk runs in live partner mode with Pratwi Solutions Private Limited as lead anchor
+  // Practice Desk runs in live partner mode for GPA & Co. and Brains & Taxes
   const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(true);
 
   // Use persistent hook - receives sandbox flag
@@ -626,8 +626,8 @@ export default function Home() {
           isSandbox={isDemoSandbox}
           onToggleSidebar={() => setIsMobileDrawerOpen((prev) => !prev)}
           onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
-          activeClientEntityId={selectedEntityId || currentUser?.clientEntityId || clients[0]?.id || "client-pratwi"}
-          activeClientName={clients.find(c => c.id === (selectedEntityId || currentUser?.clientEntityId || clients[0]?.id))?.name || "Pratwi Solutions Private Limited"}
+          activeClientEntityId={selectedEntityId || currentUser?.clientEntityId || clients[0]?.id || "client-bt-01"}
+          activeClientName={clients.find(c => c.id === (selectedEntityId || currentUser?.clientEntityId || clients[0]?.id))?.name || "Brains & Taxes Private Limited"}
           isClientMode={currentView === "client-pwa" || (currentView as any) === "client"}
           clients={clients}
           groups={groups}
@@ -635,18 +635,6 @@ export default function Home() {
           selectedGstin={selectedGstin}
           onOpenDiagnosticOnboarding={() => setIsDiagnosticModalOpen(true)}
         />
-
-        {/* Ambient Client Context Bar (Persistent Zero-Hop Context Header) */}
-        {currentView === "partner" && (
-          <AmbientClientContextBar
-            clients={clients}
-            groups={groups}
-            selectedClientId={selectedEntityId || clients[0]?.id || ""}
-            onSelectClient={handleSelectClient}
-            dscTokens={dscTokens}
-            onNavigateTab={handleTabChange}
-          />
-        )}
 
         {/* Master Flex Layout with Left Sidebar */}
         <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">

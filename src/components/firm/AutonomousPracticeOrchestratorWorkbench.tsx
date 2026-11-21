@@ -197,7 +197,7 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
               }`}
             >
-              Pratwi Solutions (MH)
+              Brains & Taxes (MP)
             </button>
           </div>
         </div>

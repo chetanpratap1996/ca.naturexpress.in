@@ -93,30 +93,30 @@ export const SANDBOX_GROUPS: ClientGroup[] = [
     totalTurnoverCr: 10.0,
     unbilledWipTotal: 40000,
     overdueFeesTotal: 90000,
-    entityIds: ["CLI-PRATWI-01"]
+    entityIds: ["CLI-BT-01"]
   }
 ];
 
 export const SANDBOX_CLIENTS: ClientEntity[] = [
   {
-    id: "CLI-PRATWI-01",
+    id: "CLI-BT-01",
     groupId: "GRP-DIRECT",
     groupName: "Direct Practice Clients",
-    name: "Pratwi Solutions Private Limited",
-    tradeName: "Pratwi Solutions",
+    name: "Brains & Taxes Private Limited",
+    tradeName: "Brains & Taxes",
     type: "PVT_LTD",
-    pan: "AANCP9915B",
-    gstin: "09AANCP9915B1Z4",
-    cin: "U74999UP2024PTC199821",
-    tan: "KNPP01821C",
+    pan: "AABCU9821F",
+    gstin: "23AABCU9821F1ZX",
+    cin: "U74110MP2017PTC043716",
+    tan: "BPLB01821C",
     turnoverCr: 10.0,
     digitalTxnPct: 97.2,
     partnerInCharge: "CA Gunjan Jain",
     assignedArticle: "Kriti Jain (Article)",
-    incorporationYear: 2024,
+    incorporationYear: 2017,
     penaltyRiskAccrued: 0,
     healthScore: 97,
-    registeredAddress: "Sector 62, Electronic City, Noida, Uttar Pradesh - 201309",
+    registeredAddress: "Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001",
     authorizedCapitalCr: 1.0,
     paidUpCapitalCr: 0.5,
     primaryContact: {
@@ -127,15 +127,15 @@ export const SANDBOX_CLIENTS: ClientEntity[] = [
     },
     gstinRecords: [
       {
-        gstin: "09AANCP9915B1Z4",
-        stateCode: "09",
-        stateName: "Uttar Pradesh",
-        tradeName: "Pratwi Solutions - Noida HQ",
+        gstin: "23AABCU9821F1ZX",
+        stateCode: "23",
+        stateName: "Madhya Pradesh",
+        tradeName: "Brains & Taxes - Indore HQ",
         registrationType: "REGULAR",
         filingFrequency: "MONTHLY",
         status: "ACTIVE",
-        jurisdictionCenter: "Sector 62 Division, CGST Noida",
-        jurisdictionState: "Ward 4, SGST UP",
+        jurisdictionCenter: "Indore Division, CGST MP",
+        jurisdictionState: "Circle 2, SGST MP",
         eWayBillEnabled: true,
         eInvoiceApplicable: true
       }
@@ -144,22 +144,22 @@ export const SANDBOX_CLIENTS: ClientEntity[] = [
       {
         din: "19982101",
         name: "Chetan Pratap Singh",
-        pan: "AANCP9915B",
+        pan: "AABCU9821F",
         designation: "Managing Director",
-        appointmentDate: "2024-01-15",
+        appointmentDate: "2017-08-15",
         dir3KycStatus: "COMPLIANT",
         dscValidityEnd: "2028-01-15"
       }
     ],
     bankAccounts: [
       {
-        id: "BNK-PRATWI-01",
+        id: "BNK-BT-01",
         bankName: "ICICI Bank",
         accountNumber: "657005601799",
         accountType: "CURRENT",
         ifsc: "ICIC0006570",
-        branch: "Sector 62, Noida",
-        statementPassword: "AANCP9915B",
+        branch: "New Palasia, Indore",
+        statementPassword: "AABCU9821F",
         isPrimary: true
       }
     ],
@@ -710,8 +710,8 @@ export const SANDBOX_TASKS: ComplianceTask[] = [
   // 2. In Preparation & Review
   {
     id: "TSK-05",
-    entityId: "CLI-PRATWI-01",
-    entityName: "Pratwi Solutions Private Limited",
+    entityId: "CLI-BT-01",
+    entityName: "Brains & Taxes Private Limited",
     groupId: "GRP-DIRECT",
     category: "INCOME_TAX",
     title: "ITR-6 Corporate Income Tax Filing",
@@ -725,7 +725,7 @@ export const SANDBOX_TASKS: ComplianceTask[] = [
     accruingDailyPenalty: 0,
     missingDocumentsCount: 0,
     chaseCount: 1,
-    pan: "AANCP9915B",
+    pan: "AABCU9821F",
     cin: "U74999UP2024PTC199821",
     clientApprovalStatus: "PENDING",
     penaltyNote: "Sec 234F: Max Late Fee ₹5,000 Flat"
@@ -821,8 +821,8 @@ export const SANDBOX_TASKS: ComplianceTask[] = [
   },
   {
     id: "TSK-10",
-    entityId: "CLI-PRATWI-01",
-    entityName: "Pratwi Solutions Private Limited",
+    entityId: "CLI-BT-01",
+    entityName: "Brains & Taxes Private Limited",
     groupId: "GRP-DIRECT",
     category: "GST",
     title: "GSTR-1 Outward Supplies Return",
@@ -838,8 +838,8 @@ export const SANDBOX_TASKS: ComplianceTask[] = [
     chaseCount: 0,
     arnNumber: "AA0909260029410",
     filingDate: "2026-10-10",
-    pan: "AANCP9915B",
-    gstin: "09AANCP9915B1Z4"
+    pan: "AABCU9821F",
+    gstin: "23AABCU9821F1ZX"
   },
   {
     id: "TSK-11",
@@ -931,8 +931,8 @@ export const SANDBOX_NOTICES: NoticeRecord[] = [
   },
   {
     id: "NTC-03",
-    entityId: "CLI-PRATWI-01",
-    entityName: "Pratwi Solutions Private Limited",
+    entityId: "CLI-BT-01",
+    entityName: "Brains & Taxes Private Limited",
     groupId: "GRP-DIRECT",
     authority: "INCOME_TAX",
     section: "Section 143(1)(a) Prima Facie Adjustment",
@@ -946,7 +946,7 @@ export const SANDBOX_NOTICES: NoticeRecord[] = [
     assignedPartner: "CA Gunjan Jain",
     assessmentYear: "AY 2025-26 (FY 2024-25)",
     issuingOfficer: "Centralized Processing Centre (CPC), Income Tax Department, Bengaluru",
-    pan: "AANCP9915B",
+    pan: "AABCU9821F",
     summary: "Proposed disallowance of Section 43B statutory employee provident fund contribution paid before ITR due date but after month cutoff."
   },
   {
@@ -994,8 +994,8 @@ export const SANDBOX_INVOICES: InvoiceItem[] = [
   {
     id: "INV-2026-094",
     invoiceNo: "GPA/2026-27/094",
-    entityId: "CLI-PRATWI-01",
-    entityName: "Pratwi Solutions Private Limited",
+    entityId: "CLI-BT-01",
+    entityName: "Brains & Taxes Private Limited",
     groupId: "GRP-DIRECT",
     serviceDescription: "Annual Statutory Company Audit & Corporate ITR Filing Retainer",
     taxableAmount: 76271,
@@ -1101,7 +1101,7 @@ export const SANDBOX_PAY_TO_RELEASE_CONFIGS: PayToReleaseConfig[] = [
     lockReason: "Statutory Tax Audit Fee INV-2026-089 (₹1,18,000) exceeds 30-day grace period. Locked automatically by Fee Release Gatekeeper."
   },
   {
-    entityId: "CLI-PRATWI-01",
+    entityId: "CLI-BT-01",
     isLocked: true,
     totalOutstandingAmount: 90000,
     oldestInvoiceDays: 45,
@@ -1187,12 +1187,12 @@ export const SANDBOX_DSC_TOKENS: DscRecord[] = [
     vaultSlot: "Cabinet A - Locker 08"
   },
   {
-    id: "CLI-PRATWI-01",
-    entityId: "CLI-PRATWI-01",
-    entityName: "Pratwi Solutions Private Limited",
+    id: "CLI-BT-01",
+    entityId: "CLI-BT-01",
+    entityName: "Brains & Taxes Private Limited",
     groupId: "GRP-DIRECT",
     holderName: "Chetan Pratap Singh (Director)",
-    pan: "AANCP9915B",
+    pan: "AABCU9821F",
     serialNumber: "ePass-9915-BTA",
     tokenType: "ePass2003",
     validTill: "2027-12-15",
@@ -1267,8 +1267,8 @@ export const SANDBOX_DOCUMENTS: DocumentItem[] = [
   },
   {
     id: "DOC-05",
-    entityId: "CLI-PRATWI-01",
-    entityName: "Pratwi Solutions Private Limited",
+    entityId: "CLI-BT-01",
+    entityName: "Brains & Taxes Private Limited",
     category: "TAX_COMPUTATION",
     fileName: "ITR6_Tax_Computation_115BAA_AY26-27.pdf",
     fileSize: "850 KB",

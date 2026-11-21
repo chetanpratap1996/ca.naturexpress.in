@@ -51,6 +51,29 @@ export async function GET(request: NextRequest) {
         .reduce((acc, m) => acc + (m.amount || 0), 0);
     }
 
+    // Sprint 3: Notice Defense, Hardware DSC Vault & ITR Dual-Regime Computations
+    let fatalDinNoticesFlagged = 0;
+    let demandUnderShieldInr = 0;
+    if (db.noticeDockets && db.noticeDockets.length > 0) {
+      for (const docket of db.noticeDockets) {
+        demandUnderShieldInr += (docket.allegedDemandInr || 0);
+        if (docket.dinStatus === "MISSING_DIN_FATAL") fatalDinNoticesFlagged++;
+      }
+    }
+
+    const dscTokensAudited = db.dscTokens?.length || 0;
+
+    let totalClientTaxSavingsIdentifiedInr = 0;
+    let form10IeaPendingCount = 0;
+    if (db.clientItrComputations && db.clientItrComputations.length > 0) {
+      for (const c of db.clientItrComputations) {
+        totalClientTaxSavingsIdentifiedInr += (c.taxSavingsInr || 0);
+        if (c.form10IeaRequired && c.form10IeaStatus === "REQUIRED_PENDING") {
+          form10IeaPendingCount++;
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       posture: {
@@ -83,8 +106,12 @@ export async function GET(request: NextRequest) {
         scrutinyNoticeRisksFlagged,
         form3cdDisallowancesAuditedInr,
         caroClausesEvaluated,
-        itrDualRegimesOptimized: db.clients?.length || 0,
-        totalClientTaxSavingsIdentifiedInr: 184000,
+        itrDualRegimesOptimized: db.clientItrComputations?.length || db.clients?.length || 0,
+        totalClientTaxSavingsIdentifiedInr,
+        fatalDinNoticesFlagged,
+        demandUnderShieldInr,
+        dscTokensAudited,
+        form10IeaPendingCount,
         executionDurationMs: 640,
         systemHealthScore: 98,
         logMessages: []

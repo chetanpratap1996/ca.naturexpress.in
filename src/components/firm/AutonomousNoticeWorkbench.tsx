@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sparkles,
   Zap,
@@ -28,7 +28,8 @@ import {
   Download,
   Copy,
   Video,
-  Gavel
+  Gavel,
+  Upload
 } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
@@ -38,6 +39,7 @@ import {
   getSampleNoticeDockets,
   approveNoticeDefense
 } from "@/lib/litigation/autonomousNoticeEngine";
+import { NoticeUploadModal, ExtractedNoticeData } from "./litigation/NoticeUploadModal";
 
 export const AutonomousNoticeWorkbench: React.FC = () => {
   const [dockets, setDockets] = useState<NoticeDocketItem[]>(() => getSampleNoticeDockets());
@@ -45,27 +47,125 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"dossier" | "sentinel" | "stay">("dossier");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isApproving, setIsApproving] = useState<boolean>(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [isLoadingDockets, setIsLoadingDockets] = useState<boolean>(false);
 
-  const activeDocket = dockets.find((d) => d.id === selectedDocketId) || dockets[0];
+  const fetchDockets = async () => {
+    try {
+      setIsLoadingDockets(true);
+      const res = await fetch("/api/litigation/autonomous-defense");
+      const data = await res.json();
+      if (data.success && data.dockets && data.dockets.length > 0) {
+        setDockets(data.dockets);
+        if (!selectedDocketId || !data.dockets.some((d: any) => d.id === selectedDocketId)) {
+          setSelectedDocketId(data.dockets[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load notice dockets", err);
+    } finally {
+      setIsLoadingDockets(false);
+    }
+  };
 
-  const handleApproveDefense = () => {
+  useEffect(() => {
+    fetchDockets();
+  }, []);
+
+  const activeDocket = dockets.find((d) => d.id === selectedDocketId) || dockets[0] || getSampleNoticeDockets()[0];
+
+  const handleApproveDefense = async () => {
+    if (!activeDocket) return;
     setIsApproving(true);
     playSoftClick();
 
-    setTimeout(() => {
-      const updated = approveNoticeDefense(
-        dockets,
-        activeDocket.id,
-        "Defense brief and interim stay petition vetted and approved by CA Partner."
-      );
-      setDockets(updated);
+    try {
+      const res = await fetch("/api/litigation/autonomous-defense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "APPROVE_DEFENSE",
+          docketId: activeDocket.id,
+          partnerNote: "Defense brief and interim stay petition vetted and approved by CA Partner."
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.docket) {
+        setDockets((prev) => prev.map((d) => (d.id === data.docket.id ? data.docket : d)));
+        playSuccessChime();
+        toast.success(
+          "Defense Brief Approved for e-Filing",
+          `Legal dossier for ${activeDocket.section} approved. Ready for direct upload to NFAC portal.`
+        );
+      } else {
+        toast.error("Approval Failed", data.error || "Unable to approve defense brief.");
+      }
+    } catch (err: any) {
+      toast.error("Network Error", err.message);
+    } finally {
       setIsApproving(false);
-      playSuccessChime();
-      toast.success(
-        "Defense Brief Approved for e-Filing",
-        `Legal dossier for ${activeDocket.section} approved. Ready for direct upload to NFAC portal.`
-      );
-    }, 1000);
+    }
+  };
+
+  const handleApplyNoticeData = async (data: ExtractedNoticeData) => {
+    try {
+      playSoftClick();
+      toast.info("Ingesting Notice", "Validating DIN and running legal graph reranker...");
+
+      const res = await fetch("/api/litigation/autonomous-defense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "INGEST_NOTICE",
+          noticeType: data.noticeType,
+          dinOrRef: data.dinOrRef,
+          noticeDate: data.noticeDate,
+          replyDeadline: data.replyDeadline,
+          demandAmountNumeric: data.demandAmountNumeric,
+          clientName: data.clientName,
+          pan: data.pan,
+          gstin: data.gstin,
+          authority: data.authority,
+          allegationSummary: data.allegationSummary,
+          sourceFile: data.sourceFile
+        })
+      });
+      const result = await res.json();
+      if (result.success && result.docket) {
+        setDockets((prev) => [result.docket, ...prev.filter((d) => d.id !== result.docket.id)]);
+        setSelectedDocketId(result.docket.id);
+        setIsUploadModalOpen(false);
+        playSuccessChime();
+        toast.success(
+          "Notice Ingested & Defense Assembled",
+          `DIN Status: ${result.docket.dinStatus}. Assembled preliminary objections and stay petition.`
+        );
+      } else {
+        toast.error("Ingestion Failed", result.error || "Could not ingest statutory notice.");
+      }
+    } catch (err: any) {
+      toast.error("Error", err.message);
+    }
+  };
+
+  const handleResetBaseline = async () => {
+    try {
+      playSoftClick();
+      const res = await fetch("/api/litigation/autonomous-defense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RESET_DOCKETS" })
+      });
+      const data = await res.json();
+      if (data.success && data.dockets) {
+        setDockets(data.dockets);
+        setSelectedDocketId(data.dockets[0]?.id || "");
+        toast.info("Reset Dockets", "Notice dockets reset to institutional baseline.");
+      }
+    } catch (err) {
+      setDockets(getSampleNoticeDockets());
+      toast.info("Reset Dockets", "Notice dockets reset to institutional baseline.");
+    }
   };
 
   const handleCopyText = (text: string, label: string) => {
@@ -102,8 +202,17 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
             </p>
           </div>
 
-          {/* Docket Switcher & Reset Button */}
-          <div className="flex items-center gap-3">
+          {/* Docket Switcher, Ingest Notice & Reset Button */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition flex items-center gap-1.5"
+              title="Upload and ingest notice PDF or JSON"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Ingest Scrutiny Notice</span>
+            </button>
+
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5">
               <Building2 className="w-4 h-4 text-slate-500 ml-2" />
               <select
@@ -123,15 +232,12 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
             </div>
 
             <button
-              onClick={() => {
-                setDockets(getSampleNoticeDockets());
-                toast.info("Reset Dockets", "Notice dockets reset to institutional baseline.");
-                playSoftClick();
-              }}
+              onClick={handleResetBaseline}
+              disabled={isLoadingDockets}
               className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"
               title="Reset Baseline"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isLoadingDockets ? "animate-spin text-indigo-600" : ""}`} />
             </button>
           </div>
         </div>
@@ -592,6 +698,13 @@ export const AutonomousNoticeWorkbench: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Notice Ingestion Modal */}
+      <NoticeUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onApplyNoticeData={handleApplyNoticeData}
+      />
     </div>
   );
 };

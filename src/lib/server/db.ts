@@ -42,10 +42,11 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_PORTAL_CREDENTIALS
 } from "@/lib/data/mockData";
-import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS, SANDBOX_INVOICES } from "@/lib/data/sandboxData";
+import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS, SANDBOX_INVOICES, SANDBOX_DSC_TOKENS } from "@/lib/data/sandboxData";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 import { ImprestTransactionItem, DEFAULT_IMPREST_TRANSACTIONS } from "@/lib/billing/pureAgentImprest";
 import { Gstr2bInvoice, BooksPurchaseInvoice } from "@/lib/gst/recoMatcher";
+import { NoticeDocketItem, getSampleNoticeDockets } from "@/lib/litigation/autonomousNoticeEngine";
 
 export interface ClientGstReconciliationItem {
   id: string;
@@ -92,6 +93,25 @@ export interface ClientTrialBalanceItem {
   caroClauseCount: number;
 }
 
+export interface ClientItrComputationItem {
+  id: string;
+  clientId: string;
+  clientName: string;
+  pan: string;
+  assessmentYear: string;
+  updatedAt: string;
+  category: "INDIVIDUAL" | "SENIOR" | "SUPER_SENIOR" | "CORPORATE";
+  recommendedRegime: "NEW_115BAC" | "OLD_REGIME";
+  taxSavingsInr: number;
+  totalIncomeOldInr: number;
+  totalTaxOldInr: number;
+  totalIncomeNewInr: number;
+  totalTaxNewInr: number;
+  form10IeaRequired: boolean;
+  form10IeaStatus: "NOT_APPLICABLE" | "REQUIRED_PENDING" | "FILED_ACKNOWLEDGED";
+  computaxPayload?: any;
+}
+
 export interface DatabaseSchema {
   firmMetrics: typeof FIRM_METRICS;
   groups: ClientGroup[];
@@ -116,6 +136,8 @@ export interface DatabaseSchema {
   clientGstReconciliations?: ClientGstReconciliationItem[];
   clientAisData?: ClientAisDataItem[];
   clientTrialBalances?: ClientTrialBalanceItem[];
+  noticeDockets?: NoticeDocketItem[];
+  clientItrComputations?: ClientItrComputationItem[];
   lastUpdated: string;
 }
 
@@ -214,9 +236,12 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.clients || parsed.clients.length === 0) { parsed.clients = SANDBOX_CLIENTS; modified = true; }
     if (!parsed.groups || parsed.groups.length === 0) { parsed.groups = SANDBOX_GROUPS; modified = true; }
     if (!parsed.invoices || parsed.invoices.length === 0) { parsed.invoices = SANDBOX_INVOICES; modified = true; }
+    if (!parsed.dscTokens || parsed.dscTokens.length === 0) { parsed.dscTokens = SANDBOX_DSC_TOKENS; modified = true; }
     if (!parsed.clientGstReconciliations) { parsed.clientGstReconciliations = []; modified = true; }
     if (!parsed.clientAisData) { parsed.clientAisData = []; modified = true; }
     if (!parsed.clientTrialBalances) { parsed.clientTrialBalances = []; modified = true; }
+    if (!parsed.noticeDockets || parsed.noticeDockets.length === 0) { parsed.noticeDockets = getSampleNoticeDockets(); modified = true; }
+    if (!parsed.clientItrComputations) { parsed.clientItrComputations = []; modified = true; }
 
     // Auto-generate statutory compliance obligations for any client without tasks
     if (!parsed.tasks) parsed.tasks = [];

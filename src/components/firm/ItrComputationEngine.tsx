@@ -283,6 +283,8 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
   const [showHraCalculator, setShowHraCalculator] = useState(false);
   const [showForm10IEAModal, setShowForm10IEAModal] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [isSavingComputation, setIsSavingComputation] = useState(false);
+  const [savedStatus, setSavedStatus] = useState<string | null>(null);
 
   // HRA Calculator state
   const [hraBasicSalary, setHraBasicSalary] = useState(600000);
@@ -570,6 +572,76 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
       "CompuTax / Winman Payload Exported",
       `Validated pre-filing bridge for ${taxpayerName} (${taxpayerPan}) downloaded. Import-ready for CompuTax, Winman, and TaxPro.`
     );
+  };
+
+  // Lock and Save Dual-Regime Computation to Practice Database
+  const handleLockAndSaveComputation = async () => {
+    setIsSavingComputation(true);
+    playSoftClick();
+    try {
+      const payload = {
+        action: "SAVE_COMPUTATION",
+        clientId: selectedProfileId,
+        selectedRegime: calculation.recommendedRegime === "OLD" ? "OLD_REGIME" : "NEW_115BAC",
+        params: {
+          taxpayerName,
+          pan: taxpayerPan,
+          category: taxpayerCategory,
+          assessmentYear,
+          salaryGross,
+          salaryExemptions,
+          professionalTax,
+          annualRentReceived,
+          municipalTaxesPaid,
+          homeLoanInterestSelfOccupied,
+          hasPgbpIncome: isPresumptive || regularBusinessProfit > 0,
+          isPresumptive,
+          presumptiveScheme,
+          businessTurnover: isPresumptive ? businessGrossTurnover : 0,
+          regularBusinessProfit: !isPresumptive ? regularBusinessProfit : 0,
+          stcg111A,
+          ltcg112A,
+          otherLtcg112,
+          savingsInterest,
+          fdInterestAndDividends,
+          familyPension: 0,
+          sec80C,
+          sec80D_Self,
+          sec80D_ParentsSenior,
+          sec80D_Checkup,
+          sec80CCD_1B,
+          sec80CCD_2_Employer,
+          sec80E_EduLoan,
+          sec80G_Donations,
+          sec80JJAA: 0,
+          tdsPaid,
+          advanceTaxPaid,
+          tcsPaid: 0
+        }
+      };
+
+      const res = await fetch("/api/itr/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        playSuccessChime();
+        setSavedStatus("SAVED");
+        toast.success(
+          "Computation Locked & Saved to Practice DB",
+          `AY ${assessmentYear} calculation for ${taxpayerName} saved. Recommended: ${data.data?.recommendedRegime} (Savings: ${formatCurrencyINR(data.data?.difference || 0)}).`
+        );
+        setTimeout(() => setSavedStatus(null), 4000);
+      } else {
+        toast.error("Save Failed", data.error || "Could not save computation");
+      }
+    } catch (err: any) {
+      toast.error("Network Error", err.message);
+    } finally {
+      setIsSavingComputation(false);
+    }
   };
 
   // =========================================================================
@@ -1084,6 +1156,21 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
           >
             <Send className="w-3.5 h-3.5" />
             <span>1-Click WhatsApp Advice</span>
+          </button>
+
+          {/* Lock & Save to Practice DB */}
+          <button
+            onClick={handleLockAndSaveComputation}
+            disabled={isSavingComputation}
+            className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-2xl flex items-center gap-1.5 transition shadow-sm ring-2 ring-emerald-500/20"
+            title="Lock computation and persist to firm practice database"
+          >
+            {isSavingComputation ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            )}
+            <span>{savedStatus === "SAVED" ? "Locked to DB ✓" : "Lock & Save to DB"}</span>
           </button>
 
           {/* CompuTax / Winman Pre-filing Bridge */}

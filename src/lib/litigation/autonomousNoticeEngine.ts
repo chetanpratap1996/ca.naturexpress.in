@@ -88,19 +88,34 @@ export interface NoticeDocketItem {
  * Format: 14-character alphanumeric string (e.g. ITBA/AST/S/148/2026-27/1048891244)
  */
 export function validateNoticeDin(din: string): DinValidationState {
-  if (!din || din.trim().length === 0 || din.toUpperCase().includes("NO_DIN")) {
+  if (
+    !din ||
+    din.trim().length === 0 ||
+    din.toUpperCase().includes("NO_DIN") ||
+    din.toUpperCase().startsWith("MANUAL") ||
+    din.toUpperCase().startsWith("REF-") ||
+    din.toUpperCase().includes("WITHOUT_DIN")
+  ) {
     return "MISSING_DIN_FATAL";
   }
 
-  // Check standard CBDT / ITBA structure
-  const isItbaPattern = /ITBA\/[A-Z]+\/[A-Z0-9\/_-]+/.test(din);
-  const isGstnPattern = /ZA[0-9]{2}[0-9]{2}[0-9A-Z]{10}/.test(din) || din.startsWith("DRC") || din.startsWith("ASMT");
+  // Check standard CBDT / ITBA structure (e.g. ITBA/AST/S/148/2026-27/1048891244)
+  const isItbaPattern = din.startsWith("ITBA/") && din.length >= 18;
+  
+  // Check standard GSTN DIN structure (e.g. ZA270124000192A or standard DRC/ASMT reference)
+  const isGstnPattern = /^ZA[0-9]{2}[0-9]{2}[0-9A-Z]{10}$/i.test(din) ||
+    /^(DRC|ASMT)-[0-9A-Z/_-]+$/i.test(din);
 
-  if (isItbaPattern || isGstnPattern || din.length >= 10) {
+  if (isItbaPattern || isGstnPattern) {
     return "AUTHENTICATED_VALID";
   }
 
-  return "INVALID_UNVERIFIED";
+  // Pure alphanumeric computer-generated DIN (14-28 chars)
+  if (/^[0-9A-Z]{14,28}$/i.test(din)) {
+    return "AUTHENTICATED_VALID";
+  }
+
+  return "MISSING_DIN_FATAL";
 }
 
 /**

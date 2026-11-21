@@ -15,7 +15,10 @@ import {
   ChevronDown, 
   ChevronUp,
   Activity,
-  Award
+  Award,
+  Gavel,
+  KeyRound,
+  ShieldAlert
 } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
@@ -147,7 +150,7 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
 
         {/* Collapsible Telemetry Dashboard */}
         {isExpanded && (
-          <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs animate-fadeIn">
+          <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 text-xs animate-fadeIn">
             {/* 1. GST Auto-Reco */}
             <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
               <div className="flex items-center gap-1.5 text-blue-700 text-[10px] font-bold uppercase">
@@ -213,11 +216,41 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
                   : "₹0 Savings"}
               </div>
               <div className="text-[10px] text-purple-700">
-                {liveSummary?.itrDualRegimesOptimized ? `${liveSummary.itrDualRegimesOptimized} Clients` : "Finance Act 2024"}
+                {liveSummary?.form10IeaPendingCount 
+                  ? `${liveSummary.form10IeaPendingCount} Form 10-IEA Due`
+                  : "Finance Act 2024"}
               </div>
             </div>
 
-            {/* 6. Pay-to-Release */}
+            {/* 6. Notice Defense Shield */}
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-1.5 text-rose-700 text-[10px] font-bold uppercase">
+                <Gavel className="w-3 h-3" /> Notice Defense
+              </div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary?.demandUnderShieldInr 
+                  ? `₹${((liveSummary.demandUnderShieldInr) / 100000).toFixed(1)}L Shield` 
+                  : "Active Defense"}
+              </div>
+              <div className="text-[10px] text-rose-600 font-medium">
+                {liveSummary?.fatalDinNoticesFlagged 
+                  ? `${liveSummary.fatalDinNoticesFlagged} DIN Defect Void`
+                  : "Circular 19/2019"}
+              </div>
+            </div>
+
+            {/* 7. Hardware DSC Vault */}
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-1.5 text-cyan-700 text-[10px] font-bold uppercase">
+                <KeyRound className="w-3 h-3" /> DSC Safe Vault
+              </div>
+              <div className="text-base font-bold text-slate-900 mt-1">
+                {liveSummary?.dscTokensAudited ? `${liveSummary.dscTokensAudited} Tokens` : "Safe Custody"}
+              </div>
+              <div className="text-[10px] text-cyan-700 font-medium">Zero Private Key Leak</div>
+            </div>
+
+            {/* 8. Pay-to-Release */}
             <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
               <div className="flex items-center gap-1.5 text-emerald-700 text-[10px] font-bold uppercase">
                 <Lock className="w-3 h-3" /> Fee Gatekeeper

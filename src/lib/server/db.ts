@@ -42,7 +42,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_PORTAL_CREDENTIALS
 } from "@/lib/data/mockData";
-import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
+import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS, SANDBOX_INVOICES } from "@/lib/data/sandboxData";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 import { ImprestTransactionItem, DEFAULT_IMPREST_TRANSACTIONS } from "@/lib/billing/pureAgentImprest";
 import { Gstr2bInvoice, BooksPurchaseInvoice } from "@/lib/gst/recoMatcher";
@@ -166,7 +166,7 @@ export function ensureDatabase(): DatabaseSchema {
     clients: INITIAL_CLIENTS.length > 0 ? INITIAL_CLIENTS : SANDBOX_CLIENTS,
     tasks: INITIAL_TASKS,
     notices: INITIAL_NOTICES.length > 0 ? INITIAL_NOTICES : SANDBOX_NOTICES,
-    invoices: INITIAL_INVOICES,
+    invoices: INITIAL_INVOICES.length > 0 ? INITIAL_INVOICES : SANDBOX_INVOICES,
     dscTokens: INITIAL_DSC_TOKENS,
     portalCredentials: INITIAL_PORTAL_CREDENTIALS,
     documents: INITIAL_DOCUMENTS,
@@ -213,6 +213,7 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.notices || parsed.notices.length === 0) { parsed.notices = SANDBOX_NOTICES; modified = true; }
     if (!parsed.clients || parsed.clients.length === 0) { parsed.clients = SANDBOX_CLIENTS; modified = true; }
     if (!parsed.groups || parsed.groups.length === 0) { parsed.groups = SANDBOX_GROUPS; modified = true; }
+    if (!parsed.invoices || parsed.invoices.length === 0) { parsed.invoices = SANDBOX_INVOICES; modified = true; }
     if (!parsed.clientGstReconciliations) { parsed.clientGstReconciliations = []; modified = true; }
     if (!parsed.clientAisData) { parsed.clientAisData = []; modified = true; }
     if (!parsed.clientTrialBalances) { parsed.clientTrialBalances = []; modified = true; }

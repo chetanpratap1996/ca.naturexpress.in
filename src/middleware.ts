@@ -16,12 +16,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Private by default for all API endpoints except public auth & consultation intake routes
+  // 2. Private by default for all API endpoints except public auth, consultation, & token-secured cron routes
   const isPublicApi = 
     pathname === "/api/auth/login" || 
     pathname === "/api/auth/logout" ||
     pathname === "/api/growth/consultation" ||
-    pathname === "/api/notifications";
+    pathname === "/api/notifications" ||
+    pathname.startsWith("/api/cron/") ||
+    pathname === "/api/growth/cron";
   if (pathname.startsWith("/api/") && !isPublicApi) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated) {

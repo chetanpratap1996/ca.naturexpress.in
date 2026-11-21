@@ -35,10 +35,12 @@ import {
   Calendar,
   ArrowRight,
   HelpCircle,
-  Percent
+  Percent,
+  UploadCloud
 } from "lucide-react";
 import { openWhatsAppPreset, createWhatsAppWebLink, sanitizeIndianPhoneNumber, generateDynamicUpiUri } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
+import { BankStatementReconcileModal } from "./billing/BankStatementReconcileModal";
 
 interface PayToReleaseManagerProps {
   configs: PayToReleaseConfig[];
@@ -83,6 +85,7 @@ export function PayToReleaseManager({
   const [bulkDispatchModalOpen, setBulkDispatchModalOpen] = useState(false);
   const [dispatchRecipients, setDispatchRecipients] = useState<WhatsAppDispatchRecipient[]>([]);
   const [sentStatuses, setSentStatuses] = useState<Record<string, boolean>>({});
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
 
   // Watermark Preview Modal State
   const [watermarkPreviewDoc, setWatermarkPreviewDoc] = useState<{
@@ -411,36 +414,48 @@ export function PayToReleaseManager({
   return (
     <div className="space-y-6">
       {/* 1. High-Contrast Executive Banner */}
-      <div className="bg-gradient-to-r from-red-50/90 via-white to-amber-50/40 border border-red-200 rounded-3xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
+      <div className="bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/40 border border-emerald-200 rounded-3xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="px-2.5 py-1 text-xs font-black uppercase tracking-wider bg-red-100 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5 shadow-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-btred-logo" /> High-Value Recovery Engine
+              <span className="px-2.5 py-1 text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full flex items-center gap-1.5 shadow-xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" /> Autonomous Fee Realization
+              </span>
+              <span className="text-xs text-emerald-900 font-bold bg-teal-100/70 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                0% Gateway Fee &bull; Direct Bank Credit
               </span>
               <span className="text-xs text-slate-700 font-bold bg-amber-100/70 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                Section 43B(h) / MSME Protection
+                MSMED Act Sec 15 &amp; 16 Protection
               </span>
             </div>
             <h2 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <Lock className="w-6 h-6 text-btred-logo" /> &quot;Pay-to-Release&quot; Fee Gatekeeper
+              <ShieldCheck className="w-6 h-6 text-emerald-600" /> Autonomous Fee Realization &amp; Retainer Dashboard
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed font-medium">
-              Eliminate uncollected CA retainers. Automatically lock Form 3CD, ITR-V, and signed balance sheet downloads until outstanding invoices are settled via Dynamic UPI QR or verified RTGS/NEFT UTR.
+              Eliminate payment gateway commissions and uncollected CA retainers. Auto-clear invoices by uploading firm bank statements (ICICI/HDFC/SBI CSV) or collecting directly via NPCI Dynamic UPI QR codes with zero 2% intermediary deductions.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 min-w-[220px] text-right shadow-sm text-slate-900">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Locked Outstanding Recovery</div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 min-w-[200px] text-right shadow-sm text-slate-900">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Outstanding Fees</div>
               <div className="text-2xl font-black text-emerald-700 mt-0.5">₹{totalLockedAmount.toLocaleString("en-IN")}</div>
-              <div className="text-[11px] text-slate-600 font-semibold mt-0.5">{lockedClientsCount} client(s) currently gated</div>
+              <div className="text-[11px] text-slate-600 font-semibold mt-0.5">{lockedClientsCount} client(s) with pending dues</div>
             </div>
+
+            <button
+              onClick={() => setIsBankModalOpen(true)}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-sm whitespace-nowrap"
+              title="Upload ICICI/HDFC/SBI Bank Statement to Auto-Clear Invoices"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Auto-Reconcile Bank Statement</span>
+            </button>
 
             <button
               onClick={handleOpenBulkHub}
               disabled={lockedClientsCount === 0}
-              className="bg-btred-logo hover:bg-red-700 text-white font-bold text-xs px-4 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-sm disabled:opacity-50 whitespace-nowrap"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-sm disabled:opacity-50 whitespace-nowrap"
               title="Open WhatsApp Reminder Dispatch Center"
             >
               <Send className="w-3.5 h-3.5" />
@@ -1384,6 +1399,14 @@ export function PayToReleaseManager({
           </div>
         </div>
       )}
+      {/* Bank Statement Auto-Reconcile Modal */}
+      <BankStatementReconcileModal
+        isOpen={isBankModalOpen}
+        onClose={() => setIsBankModalOpen(false)}
+        onReconciliationComplete={() => {
+          if (onRefreshData) onRefreshData();
+        }}
+      />
     </div>
   );
 }

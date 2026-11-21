@@ -179,6 +179,33 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
     return map;
   }, [ledgers]);
 
+  // Helper to persist ingested Trial Balance to server-side database
+  const persistTrialBalance = async (result: TbParseResult, targetClientId: string, targetClientName: string) => {
+    try {
+      await fetch("/api/schedule3/trial-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: targetClientId,
+          clientName: targetClientName,
+          financialYear: "2025-26",
+          totalDebit: result.totalDebit,
+          totalCredit: result.totalCredit,
+          isBalanced: result.isBalanced,
+          ledgerCount: result.totalLedgers,
+          anomaliesSummary: result.anomaliesSummary,
+          ledgers: result.ledgers,
+        }),
+      });
+      // Trigger Autopilot refresh event
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
+      }
+    } catch (err) {
+      console.error("Failed to persist trial balance to backend:", err);
+    }
+  };
+
   // File Upload Handler (XML / CSV)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,6 +231,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
 
         setTbResult(res);
         setLedgers(res.ledgers);
+        persistTrialBalance(res, activeClient.id, activeClient.name);
         toast.success(
           "Trial Balance Ingested",
           `Extracted ${res.totalLedgers} ledgers. Status: ${res.isBalanced ? "Mathematical Balanced ✅" : "Unbalanced ⚠️"}`
@@ -231,6 +259,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
 
     setTbResult(res);
     setLedgers(res.ledgers);
+    persistTrialBalance(res, activeClient.id, activeClient.name);
     setIsPasteModalOpen(false);
     setPastedContent("");
     toast.success(
@@ -1017,6 +1046,9 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
           if (meta) {
             setCustomClientMeta(meta);
           }
+          const targetId = meta ? "CL-ACTIVE" : selectedClientId;
+          const targetName = meta ? meta.name : activeClient.name;
+          persistTrialBalance(res, targetId, targetName);
           toast.success(
             "Trial Balance Ingested",
             `Loaded ${res.totalLedgers} ledgers. Status: ${res.isBalanced ? "Balanced (₹0)" : "Unbalanced"}`

@@ -181,7 +181,7 @@ export async function executePracticeAutopilotSweep(
   }
 
   // -------------------------------------------------------------
-  // CYCLE 4: PAY-TO-RELEASE & MSME SEC 16 INTEREST GATEKEEPER
+  // CYCLE 4: AUTONOMOUS FEE REALIZATION & MSME SEC 16 INTEREST SENTINEL
   // -------------------------------------------------------------
   if (!db.payToReleaseConfigs) db.payToReleaseConfigs = [];
   if (db.invoices && db.invoices.length > 0) {
@@ -205,44 +205,35 @@ export async function executePracticeAutopilotSweep(
         }
       }
 
-      // Enforce Deliverable Lock if invoices > 30 days overdue
-      const shouldLock = unpaidTotal > 0 && maxOverdueDays > 30;
+      const hasOverdueDues = unpaidTotal > 0 && maxOverdueDays > 30;
       let existingCfg = db.payToReleaseConfigs.find((c) => c.entityId === client.id);
 
       if (existingCfg) {
         existingCfg.totalOutstandingAmount = unpaidTotal;
         existingCfg.oldestInvoiceDays = maxOverdueDays;
-        existingCfg.isLocked = shouldLock;
-        if (shouldLock) {
-          existingCfg.blockedDeliverables = [
-            "ITR_ACKNOWLEDGMENT",
-            "FORM_3CD_PDF",
-            "BALANCE_SHEET_SIGNED",
-            "ROC_MGT7_AOC4",
-          ];
+        existingCfg.isLocked = hasOverdueDues;
+        if (hasOverdueDues) {
           deliverableGatesActive++;
         }
       } else {
         const newCfg: PayToReleaseConfig = {
           entityId: client.id,
-          isLocked: shouldLock,
+          isLocked: hasOverdueDues,
           totalOutstandingAmount: unpaidTotal,
           oldestInvoiceDays: maxOverdueDays,
           gracePeriodDays: 30,
-          blockedDeliverables: shouldLock
-            ? ["ITR_ACKNOWLEDGMENT", "FORM_3CD_PDF", "BALANCE_SHEET_SIGNED", "ROC_MGT7_AOC4"]
-            : [],
+          blockedDeliverables: [],
           instantUpiVpa: DEFAULT_FIRM_BRANDING.firmUpiVpa || "BRAINSANDTAXES@icici",
           merchantName: DEFAULT_FIRM_BRANDING.firmName || "GPA & Co., Chartered Accountants",
-          lockReason: shouldLock
-            ? `Statutory professional fee of ₹${unpaidTotal.toLocaleString("en-IN")} overdue past 30 days.`
+          lockReason: hasOverdueDues
+            ? `Statutory professional fee of ₹${unpaidTotal.toLocaleString("en-IN")} overdue past 30 days. Accruing MSMED Section 16 interest.`
             : "Account in good standing.",
         };
         db.payToReleaseConfigs.push(newCfg);
-        if (shouldLock) deliverableGatesActive++;
+        if (hasOverdueDues) deliverableGatesActive++;
       }
     }
-    logMessages.push(`Cycle 4 (Pay-to-Release): Managed ${deliverableGatesActive} active deliverable locks. Detected ${msmeOverdueInvoicesDetected} invoices in MSME 45-day overdue (Accrued 3x RBI interest: ₹${totalMsmeInterestAccrued.toLocaleString("en-IN")}).`);
+    logMessages.push(`Cycle 4 (Fee Realization Sentinel): Monitored ₹${db.invoices.filter(i => i.status !== "PAID").reduce((a, c) => a + c.amount, 0).toLocaleString("en-IN")} outstanding fees across ${db.clients.length} clients. Detected ${msmeOverdueInvoicesDetected} invoices in MSME 45-day overdue (Accrued 3x RBI interest: ₹${totalMsmeInterestAccrued.toLocaleString("en-IN")}). Zero gateway fee dynamic UPI active.`);
   }
 
   // -------------------------------------------------------------

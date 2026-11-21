@@ -25,11 +25,13 @@ import {
   Sparkles,
   ArrowUpRight,
   Receipt,
-  Zap
+  Zap,
+  UploadCloud
 } from "lucide-react";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
 import { ImprestLedgerDesk } from "@/components/firm/billing/ImprestLedgerDesk";
+import { BankStatementReconcileModal } from "@/components/firm/billing/BankStatementReconcileModal";
 import {
   CA_SAC_SERVICES,
   determinePlaceOfSupply,
@@ -110,6 +112,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
   const [reconcileModalInvoice, setReconcileModalInvoice] = useState<InvoiceItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -523,6 +526,14 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
             >
               <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
               Rule 33 Imprest Ledger
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsBankModalOpen(true)}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5"
+            >
+              <UploadCloud className="w-3.5 h-3.5" /> Auto-Reconcile Bank
             </button>
 
             <button
@@ -1348,6 +1359,14 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           </form>
         </div>
       )}
+      {/* Bank Statement Auto-Reconcile Modal */}
+      <BankStatementReconcileModal
+        isOpen={isBankModalOpen}
+        onClose={() => setIsBankModalOpen(false)}
+        onReconciliationComplete={() => {
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 };

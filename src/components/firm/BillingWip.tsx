@@ -32,6 +32,7 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
 import { ImprestLedgerDesk } from "@/components/firm/billing/ImprestLedgerDesk";
 import { BankStatementReconcileModal } from "@/components/firm/billing/BankStatementReconcileModal";
+import { ValueDeliveredDesk } from "@/components/firm/billing/ValueDeliveredDesk";
 import {
   CA_SAC_SERVICES,
   determinePlaceOfSupply,
@@ -108,7 +109,7 @@ interface BillingWipProps {
 export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], onRefresh }) => {
   const [invoiceList, setInvoiceList] = useState<InvoiceItem[]>(invoices);
   const [wipJobs, setWipJobs] = useState<WipJobItem[]>(DEFAULT_WIP_JOBS);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement">("all");
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
   const [reconcileModalInvoice, setReconcileModalInvoice] = useState<InvoiceItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
@@ -519,6 +520,17 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab("value_statement")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                activeTab === "value_statement" ? "bg-red-50 border border-btred-logo text-btred-logo shadow-sm" : "text-btred-logo bg-red-50/50 hover:bg-red-50 border border-red-100"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
+              💎 Paisa Bachaya Kitna
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab("imprest_ledger")}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
                 activeTab === "imprest_ledger" ? "bg-teal-700 text-white shadow-sm" : "text-teal-800 bg-teal-50 hover:bg-teal-100"
@@ -546,8 +558,12 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           </div>
         </div>
 
-        {/* When activeTab is imprest_ledger, render Rule 33 Pure Agent Imprest Desk */}
-        {activeTab === "imprest_ledger" ? (
+        {/* When activeTab is value_statement, render Tier-2 Value Realization & 1-Tap UPI Hub */}
+        {activeTab === "value_statement" ? (
+          <div className="p-4">
+            <ValueDeliveredDesk />
+          </div>
+        ) : activeTab === "imprest_ledger" ? (
           <div className="p-4">
             <ImprestLedgerDesk clients={clients} onRefresh={onRefresh} />
           </div>
@@ -728,6 +744,15 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                             title="View Official Tax Invoice"
                           >
                             <FileText className="w-3.5 h-3.5 text-slate-600" />
+                          </button>
+
+                          <button
+                            onClick={() => setActiveTab("value_statement")}
+                            className="px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-xl text-btred-logo text-xs font-bold hover:bg-red-100 transition flex items-center gap-1"
+                            title="View Paisa Bachaya Kitna Value Card"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
+                            <span className="text-[11px]">Value</span>
                           </button>
 
                           {inv.status !== "PAID" && (

@@ -28,7 +28,8 @@ export async function middleware(request: NextRequest) {
     pathname === "/api/gst/lookup" ||
     pathname.startsWith("/api/gst/hsn") ||
     pathname === "/api/litigation/notice-parse" ||
-    pathname === "/api/litigation/predictive-risk";
+    pathname === "/api/litigation/predictive-risk" ||
+    pathname === "/api/billing/value-statement";
   if (pathname.startsWith("/api/") && !isPublicApi) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated) {

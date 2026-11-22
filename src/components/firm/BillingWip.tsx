@@ -35,6 +35,7 @@ import { ImprestLedgerDesk } from "@/components/firm/billing/ImprestLedgerDesk";
 import { BankStatementReconcileModal } from "@/components/firm/billing/BankStatementReconcileModal";
 import { ValueDeliveredDesk } from "@/components/firm/billing/ValueDeliveredDesk";
 import { TieredGatekeeperDesk } from "@/components/firm/billing/TieredGatekeeperDesk";
+import { ScopeCreepDesk } from "@/components/firm/billing/ScopeCreepDesk";
 import {
   CA_SAC_SERVICES,
   determinePlaceOfSupply,
@@ -111,7 +112,7 @@ interface BillingWipProps {
 export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], onRefresh }) => {
   const [invoiceList, setInvoiceList] = useState<InvoiceItem[]>(invoices);
   const [wipJobs, setWipJobs] = useState<WipJobItem[]>(DEFAULT_WIP_JOBS);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement" | "tiered_gatekeeper">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement" | "tiered_gatekeeper" | "scope_creep">("all");
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
   const [reconcileModalInvoice, setReconcileModalInvoice] = useState<InvoiceItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
@@ -546,6 +547,19 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
 
             <button
               type="button"
+              onClick={() => setActiveTab("scope_creep")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                activeTab === "scope_creep"
+                  ? "bg-btred-logo text-white shadow-sm"
+                  : "text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              ⚡ Scope Creep (Anchor)
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab("imprest_ledger")}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
                 activeTab === "imprest_ledger" ? "bg-teal-700 text-white shadow-sm" : "text-teal-800 bg-teal-50 hover:bg-teal-100"
@@ -573,8 +587,12 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           </div>
         </div>
 
-        {/* When activeTab is tiered_gatekeeper, render Phase 2 Relationship-Tiered Gatekeeper */}
-        {activeTab === "tiered_gatekeeper" ? (
+        {/* When activeTab is scope_creep, render Phase 3 Autonomous Scope Creep Engine */}
+        {activeTab === "scope_creep" ? (
+          <div className="p-4">
+            <ScopeCreepDesk />
+          </div>
+        ) : activeTab === "tiered_gatekeeper" ? (
           <div className="p-4">
             <TieredGatekeeperDesk />
           </div>
@@ -781,6 +799,15 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                           >
                             <Shield className="w-3.5 h-3.5 text-slate-600" />
                             <span className="text-[11px]">Gate</span>
+                          </button>
+
+                          <button
+                            onClick={() => setActiveTab("scope_creep")}
+                            className="px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-bold hover:bg-amber-100 transition flex items-center gap-1"
+                            title="View Scope Creep & Live Agreement"
+                          >
+                            <Zap className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="text-[11px]">Scope</span>
                           </button>
 
                           {inv.status !== "PAID" && (

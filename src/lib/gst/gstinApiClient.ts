@@ -184,3 +184,42 @@ export async function lookupGstReturns(rawGstin: string, fy?: string) {
     return { success: false, error: err.message || String(err) };
   }
 }
+
+/**
+ * Fetch GSTR-2B Statement for connected GSTIN via gstinapi.in GSP Integration
+ * Requires 1-time taxpayer authorization via GST Portal OTP with GSP BVM IT Consulting
+ */
+export async function fetchGstr2bFromApi(params: {
+  gstin: string;
+  returnPeriod: string; // MMYYYY format e.g. "102026"
+}) {
+  const { gstin, returnPeriod } = params;
+  const validation = validateGstinDetailed(gstin);
+  if (!validation.isValid) {
+    return { success: false, error: validation.error };
+  }
+
+  const apiKey = process.env.GSTIN_API_KEY || "gak_a23317e2eb7b4ba4a0fae0b6f6c8b618";
+  const baseUrl = process.env.GSTIN_API_BASE_URL || "https://www.gstinapi.in/v1";
+
+  try {
+    const res = await fetch(`${baseUrl}/gstr2b/fetch`, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        gstin: validation.cleanGstin,
+        return_period: returnPeriod
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const resJson = await res.json();
+    return resJson;
+  } catch (err: any) {
+    return { success: false, error: `GSTR-2B Sync Error: ${err.message || String(err)}` };
+  }
+}

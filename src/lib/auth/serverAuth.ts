@@ -206,9 +206,9 @@ export async function authenticateServerRequest(request: NextRequest): Promise<S
             : verified.role === "ARTICLE"
             ? "Article Assistant"
             : "Client Portal User"),
-        firmId: verified.firmId || "FRM-022998C",
+        firmId: verified.firmId || "FRM-024310C",
         firmName: verified.firmName || "GPA & Co., Chartered Accountants",
-        firmFrn: verified.firmFrn || "022998C",
+        firmFrn: verified.firmFrn || "024310C",
         clientGroupId: verified.clientGroupId,
         clientEntityId: verified.clientEntityId,
         token: rawToken,
@@ -237,16 +237,16 @@ export async function authenticateServerRequest(request: NextRequest): Promise<S
       phone: "+91 98937 23639",
       role: "PARTNER",
       designation: "Managing Partner (FCA)",
-      firmId: "FRM-022998C",
+      firmId: "FRM-024310C",
       firmName: "GPA & Co., Chartered Accountants",
-      firmFrn: "022998C",
+      firmFrn: "024310C",
       token: signSessionToken({
         id: "USR-SANDBOX-PARTNER",
         name: "CA Gunjan Jain",
         email: "partner@brainsandtaxes.com",
         phone: "+91 98937 23639",
         role: "PARTNER",
-        firmId: "FRM-022998C",
+        firmId: "FRM-024310C",
         isSandbox: true,
       }),
       expiresAt: new Date(Date.now() + 86400000).toISOString(),
@@ -304,9 +304,9 @@ export async function authenticateServerRequest(request: NextRequest): Promise<S
               : role === "ARTICLE"
               ? "Firm Staff"
               : "Client Portal User",
-          firmId: profile?.firm_id || "FRM-022998C",
+          firmId: profile?.firm_id || "FRM-024310C",
           firmName: "GPA & Co., Chartered Accountants",
-          firmFrn: "022998C",
+          firmFrn: "024310C",
           clientGroupId: profile?.client_group_id || undefined,
           clientEntityId: profile?.client_entity_id || undefined,
           token: rawToken || "supabase-session",

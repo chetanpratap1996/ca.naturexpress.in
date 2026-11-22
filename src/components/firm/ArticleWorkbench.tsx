@@ -1008,7 +1008,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
 
           <div className="text-xs text-slate-500 font-medium mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>Principal Mentor: <strong className="text-slate-800 font-bold">CA Gunjan Jain, FCA (M.No. 518492)</strong></span>
-            <span>Firm: <strong className="text-slate-800 font-bold">GPA &amp; Co. (FRN: 022998C)</strong></span>
+            <span>Firm: <strong className="text-slate-800 font-bold">GPA &amp; Co. (FRN: 024310C)</strong></span>
             <span>Permissible Leaves: <strong className="text-emerald-700 font-bold">10 / 24 Days Used (Reg 59)</strong></span>
             <span>Form 108 Due: <strong className="text-slate-800 font-bold">14 Aug 2026</strong></span>
           </div>
@@ -2435,7 +2435,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
             </div>
             <div className="shrink-0 flex items-center gap-2">
               <span className="text-[10px] font-mono font-bold bg-white text-slate-700 px-3 py-1.5 rounded-xl border border-slate-300">
-                FRN: 022998C &bull; GPA &amp; Co.
+                FRN: 024310C &bull; GPA &amp; Co.
               </span>
             </div>
           </div>
@@ -2737,7 +2737,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
           <div className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-slate-100 gap-4">
             <div className="space-y-0.5">
               <span className="text-xs text-slate-700 font-bold block">
-                Principal in Charge: <strong>CA Gunjan Jain, FCA (M.No. 518492 &bull; FRN: 022998C)</strong>
+                Principal in Charge: <strong>CA Gunjan Jain, FCA (M.No. 518492 &bull; FRN: 024310C)</strong>
               </span>
               <p className="text-[11px] text-slate-500">
                 Form 108 Certification Readiness: <strong>Contemporaneously Recorded &amp; Peer-Review Defensible</strong>
@@ -3318,7 +3318,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                 <div>
                   <h4 className="font-black text-slate-900 text-sm">GPA &amp; CO., CHARTERED ACCOUNTANTS</h4>
                   <span className="text-[11px] font-mono text-slate-600 block">
-                    FRN: 022998C &bull; Peer Review Certificate: PRC-014928
+                    FRN: 024310C &bull; Peer Review Certificate: PRC-014928
                   </span>
                   <span className="text-[10px] text-slate-500">
                     704-706, World Trade Centre, Barakhamba Lane, Connaught Place, New Delhi - 110001

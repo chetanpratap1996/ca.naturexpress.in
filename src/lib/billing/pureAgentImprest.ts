@@ -209,7 +209,7 @@ In terms of Rule 33 of CGST Rules, 2017, the disbursements of ₹${summary.total
 are EXCLUDED from the taxable value of supply and attract 0% Goods and Services Tax.
 
 For ${firmName}
-Chartered Accountants (FRN: 022998C)
+Chartered Accountants (FRN: 024310C)
 
 [Digital Verification Seal - ICAI SA 500 Audit Evidence]
 ================================================================================

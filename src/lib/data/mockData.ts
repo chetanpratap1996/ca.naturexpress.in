@@ -16,7 +16,7 @@ import {
 export const FIRM_METRICS = {
   name: "GPA & Co., Chartered Accountants",
   companyName: "Brains & Taxes Private Limited",
-  frn: "022998C",
+  frn: "024310C",
   peerReviewStatus: "Compliant (ICAI Certified Validity till 2028)",
   totalClients: 0,
   activeEntities: 0,

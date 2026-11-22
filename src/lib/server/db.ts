@@ -298,7 +298,7 @@ export async function logAuditEvent(
   const db = ensureDatabase();
   const timestamp = new Date().toISOString();
   const previousLog = (db.auditTrail && db.auditTrail.length > 0) ? db.auditTrail[0] : null;
-  const previousHash = previousLog?.hash || "GENESIS_ROOT_HASH_022998C";
+  const previousHash = previousLog?.hash || "GENESIS_ROOT_HASH_024310C";
   const rawPayload = `${previousHash}|${timestamp}|${actorName}|${actorRole}|${entityName}|${action}|${details}|${category}`;
   const hash = crypto.createHash("sha256").update(rawPayload).digest("hex");
 

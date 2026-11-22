@@ -229,7 +229,7 @@ export function generateMsmeLegalDemandNoticeText(params: {
                     ${firmName.toUpperCase()}
                   CHARTERED ACCOUNTANTS | TAX & AUDIT ADVISORY
               ${firmAddress}
-          Udyam Registration No.: ${evaluation.udyamRegistrationNo} | ICAI FRN: 022998C
+          Udyam Registration No.: ${evaluation.udyamRegistrationNo} | ICAI FRN: 024310C
 ================================================================================
 
 REF: GPA/MSME-RECOV/${evaluation.invoiceNo}/${new Date().getFullYear()}
@@ -296,7 +296,7 @@ CHARTERED ACCOUNTANTS
 _____________________________
 ${partnerName}
 Managing Partner | Fellow Chartered Accountant
-Enrollment No.: 034912 | ICAI FRN: 022998C
+Enrollment No.: 419751 | ICAI FRN: 024310C
 `.trim();
 }
 

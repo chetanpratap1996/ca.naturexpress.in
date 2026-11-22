@@ -44,9 +44,22 @@ export function ValueDeliveredDesk() {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState<boolean>(false);
 
-  // Initialize with enriched sample data
+  // Initialize from live API with offline fallback
   useEffect(() => {
     async function initData() {
+      try {
+        const res = await fetch("/api/billing/value-statement");
+        const data = await res.json();
+        if (data?.success && data?.summaries?.length > 0) {
+          setSummaries(data.summaries);
+          setSelectedClientId(data.summaries[0].clientId);
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Falling back to local value summaries:", err);
+      }
+
       try {
         const enriched = await Promise.all(
           SAMPLE_VALUE_SUMMARIES.map(async (item) => {

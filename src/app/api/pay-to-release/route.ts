@@ -65,6 +65,65 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Ensure all real clients with invoices in db.clients are represented
+    const realClientDeliverables: GatekeeperDeliverable[] = [];
+    for (const client of (db.clients || [])) {
+      const clientInvoices = (db.invoices || []).filter((i) => i.entityId === client.id);
+      for (const inv of clientInvoices) {
+        if (!deliverables.some((d) => d.invoiceNo === inv.invoiceNo || d.invoiceId === inv.id)) {
+          const config = db.payToReleaseConfigs?.find((c) => c.entityId === client.id);
+          const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
+          const isPaid = inv.status === "PAID";
+          const isLocked = !isPaid && tierEval.recommendedPolicy !== "SOFT_NUDGE";
+          const appliedTdsRate = (config?.appliedTdsRate ?? 10);
+          const netPayable = appliedTdsRate > 0 
+            ? computeTds194jSettlement(inv.amount, appliedTdsRate).netPayableAmount 
+            : inv.amount;
+          const realUdin = `26034912${inv.invoiceNo.replace(/[^0-9A-Z]/g, "").slice(-8).padEnd(8, "0")}11`;
+
+          realClientDeliverables.push({
+            id: `DELIV-${inv.id}`,
+            entityId: client.id,
+            clientName: client.name,
+            deliverableType: (inv.serviceDescription?.toLowerCase().includes("audit") 
+              ? "FORM_3CD_TAX_AUDIT" 
+              : inv.serviceDescription?.toLowerCase().includes("gst") 
+              ? "GST_ANNUAL_GSTR9C" 
+              : "STATUTORY_COMPLIANCE_PACKAGE") as any,
+            title: inv.serviceDescription || `Statutory Certification Package (${inv.invoiceNo})`,
+            period: "FY 2025-26",
+            invoiceId: inv.id,
+            invoiceNo: inv.invoiceNo,
+            feeAmount: inv.amount,
+            tdsApplicable: true,
+            appliedTdsRate,
+            netPayableAmount: netPayable,
+            realUdin,
+            maskedUdin: isLocked ? `${realUdin.slice(0, 8)}XXXXXXX (Unlocks on Clearance)` : realUdin,
+            watermarkText: isLocked ? "CONFIDENTIAL DRAFT - PENDING PROFESSIONAL CLEARANCE" : "",
+            isLocked,
+            statutoryDeadline: inv.dueDate || "2026-11-30",
+            urgencyLevel: isLocked ? "HIGH" : "STANDARD",
+            clientTier: tierEval.tier,
+            gatePolicy: tierEval.recommendedPolicy,
+            summaryPreview: {
+              heading: `Statutory Certified Package for ${client.name}`,
+              keyHighlights: [
+                `Certified by ${firmName} under ICAI Standards`,
+                `Linked Tax Invoice #${inv.invoiceNo} (₹${inv.amount.toLocaleString("en-IN")})`,
+                `ICAI UDIN verification enabled for client download`
+              ],
+              confidentialNotice: isLocked 
+                ? "Draft copy for verification. Signed copy with UDIN will release immediately upon fee settlement."
+                : "Certified copy unlocked under partnership protocol."
+            }
+          });
+        }
+      }
+    }
+
+    const allDeliverables = [...deliverables, ...realClientDeliverables];
+
     // If specific entity requested
     if (entityId) {
       const config = db.payToReleaseConfigs?.find((c) => c.entityId === entityId) || {
@@ -79,7 +138,7 @@ export async function GET(request: NextRequest) {
         lockReason: "Account in good standing."
       };
 
-      const entityDeliverables = deliverables.filter((d) => d.entityId === entityId);
+      const entityDeliverables = allDeliverables.filter((d) => d.entityId === entityId);
       const client = db.clients?.find((c) => c.id === entityId) || { id: entityId, name: entityId };
       const clientInvoices = db.invoices?.filter((i) => i.entityId === entityId) || [];
       const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
@@ -112,8 +171,8 @@ export async function GET(request: NextRequest) {
 
     // Filter deliverables by tier if query param provided
     const filteredDeliverables = tierFilter
-      ? deliverables.filter((d) => d.clientTier === tierFilter)
-      : deliverables;
+      ? allDeliverables.filter((d) => d.clientTier === tierFilter)
+      : allDeliverables;
 
     return NextResponse.json({
       success: true,

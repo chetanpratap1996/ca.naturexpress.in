@@ -18,20 +18,23 @@ export async function GET(request: NextRequest) {
     const stageFilter = searchParams.get("stage") as MsmeEscalationStage | null;
     const entityId = searchParams.get("entityId");
 
-    // Evaluate live db invoices or fallback to samples
-    let evaluations: MsmeInvoiceEvaluation[] = [];
+    // Evaluate live db invoices and merge with portfolio suite
+    const dbEvaluations: MsmeInvoiceEvaluation[] = (db.invoices || []).map((inv) => {
+      const client = db.clients?.find((c) => c.id === inv.entityId);
+      return evaluateInvoiceUnderMsme(inv, client);
+    });
 
-    if (db.invoices && db.invoices.length > 0) {
-      const pendingInvoices = db.invoices.filter((i) => i.status !== "PAID");
-      evaluations = pendingInvoices.map((inv) => {
-        const client = db.clients?.find((c) => c.id === inv.entityId);
-        return evaluateInvoiceUnderMsme(inv, client);
-      });
+    const evaluationsMap = new Map<string, MsmeInvoiceEvaluation>();
+    for (const item of dbEvaluations) {
+      evaluationsMap.set(item.invoiceNo, item);
+    }
+    for (const sample of SAMPLE_MSME_OVERDUE_INVOICES) {
+      if (!evaluationsMap.has(sample.invoiceNo)) {
+        evaluationsMap.set(sample.invoiceNo, sample);
+      }
     }
 
-    if (evaluations.length === 0) {
-      evaluations = SAMPLE_MSME_OVERDUE_INVOICES;
-    }
+    let evaluations = Array.from(evaluationsMap.values());
 
     // Filter by entity if requested
     if (entityId) {

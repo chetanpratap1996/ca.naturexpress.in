@@ -35,6 +35,44 @@ export async function GET(request: NextRequest) {
     let incidents: ScopeCreepIncident[] = (db as any).scopeCreepIncidents;
     let microBills: DynamicMicroBill[] = (db as any).dynamicMicroBills;
 
+    // Ensure all real clients in db.clients have an active engagement agreement
+    const registeredClients = db.clients || [];
+    for (const client of registeredClients) {
+      if (!agreements.some((a) => a.entityId === client.id)) {
+        const turnover = client.turnoverCr || 5.0;
+        const fee = turnover > 20 ? 10000 : turnover > 5 ? 5000 : 3500;
+        const maxInvoices = Math.max(50, Math.round(turnover * 20));
+
+        agreements.push({
+          id: `AGR-${client.id}`,
+          entityId: client.id,
+          clientName: client.name,
+          billingCycle: client.type === "PVT_LTD" ? "MONTHLY" : "QUARTERLY",
+          baseRetainerFee: fee,
+          includedServices: [
+            "Monthly GST Filing & ITC 2B Matching",
+            "Quarterly TDS Compliances & Form 26Q",
+            "Advance Tax Computations",
+            "Annual Statutory Financial Statements"
+          ],
+          thresholds: {
+            maxMonthlyInvoices: maxInvoices,
+            maxAnnualTurnoverCr: turnover * 1.25,
+            maxBankAccounts: 2
+          },
+          actuals: {
+            actualMonthlyInvoices: maxInvoices,
+            actualTurnoverCr: turnover,
+            actualBankAccounts: 2,
+            overagePercentage: 0
+          },
+          status: "ACTIVE",
+          startDate: "2025-04-01",
+          renewalDate: "2027-03-31"
+        });
+      }
+    }
+
     // Filter by entity if requested
     if (entityId) {
       agreements = agreements.filter((a) => a.entityId === entityId);

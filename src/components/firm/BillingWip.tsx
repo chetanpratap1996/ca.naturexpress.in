@@ -21,6 +21,7 @@ import {
   Printer,
   ExternalLink,
   ShieldCheck,
+  Shield,
   AlertCircle,
   Sparkles,
   ArrowUpRight,
@@ -33,6 +34,7 @@ import { toast } from "@/components/shared/ToastNotification";
 import { ImprestLedgerDesk } from "@/components/firm/billing/ImprestLedgerDesk";
 import { BankStatementReconcileModal } from "@/components/firm/billing/BankStatementReconcileModal";
 import { ValueDeliveredDesk } from "@/components/firm/billing/ValueDeliveredDesk";
+import { TieredGatekeeperDesk } from "@/components/firm/billing/TieredGatekeeperDesk";
 import {
   CA_SAC_SERVICES,
   determinePlaceOfSupply,
@@ -109,7 +111,7 @@ interface BillingWipProps {
 export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], onRefresh }) => {
   const [invoiceList, setInvoiceList] = useState<InvoiceItem[]>(invoices);
   const [wipJobs, setWipJobs] = useState<WipJobItem[]>(DEFAULT_WIP_JOBS);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement" | "tiered_gatekeeper">("all");
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
   const [reconcileModalInvoice, setReconcileModalInvoice] = useState<InvoiceItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
@@ -531,6 +533,19 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
 
             <button
               type="button"
+              onClick={() => setActiveTab("tiered_gatekeeper")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                activeTab === "tiered_gatekeeper"
+                  ? "bg-btred-logo text-white shadow-sm"
+                  : "text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              🔒 Tiered Gatekeeper
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab("imprest_ledger")}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
                 activeTab === "imprest_ledger" ? "bg-teal-700 text-white shadow-sm" : "text-teal-800 bg-teal-50 hover:bg-teal-100"
@@ -558,8 +573,12 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           </div>
         </div>
 
-        {/* When activeTab is value_statement, render Tier-2 Value Realization & 1-Tap UPI Hub */}
-        {activeTab === "value_statement" ? (
+        {/* When activeTab is tiered_gatekeeper, render Phase 2 Relationship-Tiered Gatekeeper */}
+        {activeTab === "tiered_gatekeeper" ? (
+          <div className="p-4">
+            <TieredGatekeeperDesk />
+          </div>
+        ) : activeTab === "value_statement" ? (
           <div className="p-4">
             <ValueDeliveredDesk />
           </div>
@@ -753,6 +772,15 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                           >
                             <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
                             <span className="text-[11px]">Value</span>
+                          </button>
+
+                          <button
+                            onClick={() => setActiveTab("tiered_gatekeeper")}
+                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-bold hover:bg-slate-100 transition flex items-center gap-1"
+                            title="View Relationship-Tiered Pay-to-Release Gate"
+                          >
+                            <Shield className="w-3.5 h-3.5 text-slate-600" />
+                            <span className="text-[11px]">Gate</span>
                           </button>
 
                           {inv.status !== "PAID" && (

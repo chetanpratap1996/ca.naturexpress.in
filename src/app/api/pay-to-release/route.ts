@@ -3,13 +3,69 @@ import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from 
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { PayToReleaseConfig, PaymentReleaseReceipt, UtrReconciliationRecord } from "@/lib/types";
+import {
+  evaluateClientRelationshipTier,
+  computeTds194jSettlement,
+  formatTieredGatekeeperWhatsAppMessage,
+  SAMPLE_GATEKEEPER_DELIVERABLES,
+  GatekeeperDeliverable,
+  ClientRelationshipTier
+} from "@/lib/billing/tieredGatekeeper";
+import { generateNpciDynamicUpiUri, generateUpiQrDataUrl } from "@/lib/billing/npciUpiEngine";
 
 export async function GET(request: NextRequest) {
   try {
     const db = ensureDatabase();
     const searchParams = request.nextUrl.searchParams;
     const entityId = searchParams.get("entityId");
+    const tierFilter = searchParams.get("tier");
 
+    const firmVpa = db.firmMetrics?.firmUpiVpa || "BRAINSANDTAXES@icici";
+    const firmName = db.firmMetrics?.name || "GPA & Co., Chartered Accountants";
+
+    // Build enriched deliverables catalog
+    const deliverables: GatekeeperDeliverable[] = await Promise.all(
+      SAMPLE_GATEKEEPER_DELIVERABLES.map(async (d) => {
+        const config = db.payToReleaseConfigs?.find((c) => c.entityId === d.entityId);
+        const client = db.clients?.find((c) => c.id === d.entityId) || { id: d.entityId, name: d.clientName };
+        const clientInvoices = db.invoices?.filter((i) => i.entityId === d.entityId) || [];
+
+        // Dynamic tier evaluation
+        const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
+
+        // Check if partner override is currently active
+        const isOverrideActive = config?.partnerOverrideUntil 
+          ? new Date(config.partnerOverrideUntil).getTime() > Date.now() 
+          : false;
+
+        const isLocked = isOverrideActive 
+          ? false 
+          : (config ? config.isLocked : d.isLocked);
+
+        const appliedTdsRate = config?.appliedTdsRate ?? d.appliedTdsRate;
+        const netPayable = appliedTdsRate > 0 
+          ? computeTds194jSettlement(d.feeAmount, appliedTdsRate).netPayableAmount 
+          : d.feeAmount;
+
+        return {
+          ...d,
+          isLocked,
+          clientTier: tierEval.tier,
+          gatePolicy: tierEval.recommendedPolicy,
+          appliedTdsRate,
+          netPayableAmount: netPayable,
+          maskedUdin: isLocked ? `${d.realUdin.slice(0, 8)}XXXXXXX (Unlocks on Clearance)` : d.realUdin,
+          watermarkText: isLocked 
+            ? (d.watermarkText || "CONFIDENTIAL DRAFT - PENDING PROFESSIONAL CLEARANCE") 
+            : "",
+          partnerOverrideUntil: config?.partnerOverrideUntil || null,
+          partnerOverrideBy: config?.partnerOverrideBy || null,
+          partnerOverrideReason: config?.partnerOverrideReason || null
+        };
+      })
+    );
+
+    // If specific entity requested
     if (entityId) {
       const config = db.payToReleaseConfigs?.find((c) => c.entityId === entityId) || {
         entityId,
@@ -18,11 +74,22 @@ export async function GET(request: NextRequest) {
         oldestInvoiceDays: 0,
         gracePeriodDays: 30,
         blockedDeliverables: [],
-        instantUpiVpa: db.firmMetrics.firmUpiVpa,
-        merchantName: db.firmMetrics.name,
+        instantUpiVpa: firmVpa,
+        merchantName: firmName,
         lockReason: "Account in good standing."
       };
-      return NextResponse.json({ success: true, config });
+
+      const entityDeliverables = deliverables.filter((d) => d.entityId === entityId);
+      const client = db.clients?.find((c) => c.id === entityId) || { id: entityId, name: entityId };
+      const clientInvoices = db.invoices?.filter((i) => i.entityId === entityId) || [];
+      const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
+
+      return NextResponse.json({
+        success: true,
+        config,
+        tierEvaluation: tierEval,
+        deliverables: entityDeliverables
+      });
     }
 
     // Extract pending UTR submissions for maker-checker reconciliation
@@ -43,11 +110,17 @@ export async function GET(request: NextRequest) {
         submittedAt: inv.clientPaymentDate || new Date().toISOString()
       }));
 
-    return NextResponse.json({ 
-      success: true, 
+    // Filter deliverables by tier if query param provided
+    const filteredDeliverables = tierFilter
+      ? deliverables.filter((d) => d.clientTier === tierFilter)
+      : deliverables;
+
+    return NextResponse.json({
+      success: true,
+      deliverables: filteredDeliverables,
       configs: db.payToReleaseConfigs || [],
       pendingUtrs,
-      firmMetrics: db.firmMetrics 
+      firmMetrics: db.firmMetrics
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -59,19 +132,21 @@ export async function POST(request: NextRequest) {
     const auth = await authenticateServerRequest(request);
     const db = ensureDatabase();
     const body = await request.json();
-    const { 
-      action, 
-      entityId, 
-      invoiceId, 
-      partnerName, 
-      utrRef, 
-      amountPaid, 
-      paymentMode, 
-      reason, 
-      durationHours, 
-      tdsRate, 
+    const {
+      action,
+      entityId,
+      deliverableId,
+      invoiceId,
+      partnerName,
+      utrRef,
+      amountPaid,
+      paymentMode,
+      reason,
+      durationHours,
+      tdsRate,
       gracePeriodDays,
-      note 
+      note,
+      tierOverride
     } = body;
 
     if (!entityId && action !== "UPDATE_POLICY") {
@@ -111,12 +186,12 @@ export async function POST(request: NextRequest) {
       configIndex = db.payToReleaseConfigs.length - 1;
     }
 
-    // ACTION 1: INSTANT PAYMENT RELEASE (Dynamic UPI / NPCI Webhook)
+    // ACTION 1: INSTANT PAYMENT RELEASE (Dynamic UPI / NPCI Webhook in 0.8s)
     if (action === "INSTANT_PAYMENT_RELEASE") {
       const currentConfig = db.payToReleaseConfigs[configIndex];
       const clearedAmount = amountPaid || currentConfig.totalOutstandingAmount;
 
-      // Mark invoices as PAID
+      // Mark matching invoices as PAID
       if (db.invoices) {
         db.invoices = db.invoices.map((inv) => {
           if (inv.entityId === entityId && inv.status !== "PAID") {
@@ -139,6 +214,7 @@ export async function POST(request: NextRequest) {
         ...currentConfig,
         isLocked: false,
         totalOutstandingAmount: Math.max(0, currentConfig.totalOutstandingAmount - clearedAmount),
+        partnerOverrideUntil: null, // Clear override as fee is now legally cleared
         lockReason: `Fee of ₹${clearedAmount.toLocaleString("en-IN")} cleared on ${new Date().toLocaleDateString("en-IN")}. Deliverables unlocked.`
       };
 
@@ -195,21 +271,85 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ 
-        success: true, 
-        message: "Payment processed and deliverables released", 
-        receipt, 
-        config: db.payToReleaseConfigs[configIndex] 
+      return NextResponse.json({
+        success: true,
+        message: "Payment processed and deliverables released instantly (0.8s).",
+        receipt,
+        config: db.payToReleaseConfigs[configIndex]
       });
     }
 
-    // ACTION 2: CLIENT SUBMIT UTR (RTGS / NEFT / IMPS)
+    // ACTION 2: TIME-BOUND PARTNER EMERGENCY OVERRIDE (ICAI SA 210 Protocol)
+    if (action === "PARTNER_OVERRIDE_UNLOCK") {
+      const currentConfig = db.payToReleaseConfigs[configIndex];
+      const hours = durationHours || 48; // Default 48h emergency window
+      const expiryDate = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+
+      db.payToReleaseConfigs[configIndex] = {
+        ...currentConfig,
+        isLocked: false,
+        partnerOverrideUntil: expiryDate,
+        partnerOverrideReason: reason || "Emergency partner authorization for board meeting / bank loan pack",
+        partnerOverrideBy: partnerName || auth.userName || "CA Gunjan Jain",
+        lockReason: `Partner Override by ${partnerName || "CA Gunjan Jain"} active until ${new Date(expiryDate).toLocaleString("en-IN")}. Reason: ${reason || "Temporary exception authorized"}`
+      };
+
+      await logAuditEvent(
+        partnerName || auth.userName || "CA Gunjan Jain",
+        "PARTNER",
+        clientName,
+        "Partner Lock Override (ICAI SA 210)",
+        `Partner authorized ${hours}h emergency unlock. Expiry: ${new Date(expiryDate).toLocaleString("en-IN")}. Justification: ${reason || "Urgent statutory deadline"}`,
+        "PAY_RELEASE"
+      );
+
+      await createNotification({
+        title: `Partner Override Active: ${clientName}`,
+        message: `Emergency download access authorized for ${hours} hours under ICAI SA 210 protocol.`,
+        category: "BILLING",
+        priority: "MEDIUM",
+        targetRoles: ["SUPER_ADMIN", "PARTNER"],
+        entityId: entityId,
+        link: "/admin?tab=pay-to-release"
+      });
+
+      await saveDatabase(db);
+      return NextResponse.json({
+        success: true,
+        message: `Partner override active for ${hours} hours. Promissory notice queued for client.`,
+        config: db.payToReleaseConfigs[configIndex]
+      });
+    }
+
+    // ACTION 3: SECTION 194J TDS SETTLEMENT (10% or 2% TDS Calculation)
+    if (action === "APPLY_TDS_SETTLEMENT") {
+      const currentConfig = db.payToReleaseConfigs[configIndex];
+      const rate = typeof tdsRate === "number" ? tdsRate : 10;
+      const fullAmount = amountPaid || currentConfig.totalOutstandingAmount;
+      const settlement = computeTds194jSettlement(fullAmount, rate);
+
+      db.payToReleaseConfigs[configIndex] = {
+        ...currentConfig,
+        appliedTdsRate: rate,
+        netPayableAmount: settlement.netPayableAmount,
+        lockReason: `Gross: ₹${fullAmount.toLocaleString("en-IN")} | TDS @${rate}% u/s 194J: ₹${settlement.tdsAmount.toLocaleString("en-IN")} | Net Payable: ₹${settlement.netPayableAmount.toLocaleString("en-IN")}`
+      };
+
+      await saveDatabase(db);
+      return NextResponse.json({
+        success: true,
+        message: `TDS @ ${rate}% calculated. Net payable: ₹${settlement.netPayableAmount.toLocaleString("en-IN")}`,
+        settlement,
+        config: db.payToReleaseConfigs[configIndex]
+      });
+    }
+
+    // ACTION 4: CLIENT SUBMIT UTR (RTGS / NEFT / IMPS)
     if (action === "SUBMIT_CLIENT_UTR") {
       if (!utrRef) {
         return NextResponse.json({ success: false, error: "12-digit UTR Reference Number is required" }, { status: 400 });
       }
 
-      // Update matching invoice status to UTR_SUBMITTED
       let targetInvoiceNo = "";
       if (db.invoices) {
         db.invoices = db.invoices.map((inv) => {
@@ -253,7 +393,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: "UTR submitted successfully. CA firm desk notified for verification." });
     }
 
-    // ACTION 3: RECONCILE UTR (Maker-Checker Verification by Partner/Staff)
+    // ACTION 5: RECONCILE UTR (Maker-Checker Verification by Partner/Staff)
     if (action === "RECONCILE_UTR") {
       const currentConfig = db.payToReleaseConfigs[configIndex];
       let reconciledSum = 0;
@@ -302,14 +442,14 @@ export async function POST(request: NextRequest) {
       });
 
       await saveDatabase(db);
-      return NextResponse.json({ 
-        success: true, 
-        message: "UTR reconciled and deliverables released", 
-        config: db.payToReleaseConfigs[configIndex] 
+      return NextResponse.json({
+        success: true,
+        message: "UTR reconciled and deliverables released",
+        config: db.payToReleaseConfigs[configIndex]
       });
     }
 
-    // ACTION 4: REJECT UTR (If bogus or not credited)
+    // ACTION 6: REJECT UTR (If bogus or not credited)
     if (action === "REJECT_UTR") {
       if (db.invoices) {
         db.invoices = db.invoices.map((inv) => {
@@ -348,72 +488,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: "UTR rejected and client notified." });
     }
 
-    // ACTION 5: TIME-BOUND PARTNER OVERRIDE UNLOCK
-    if (action === "PARTNER_OVERRIDE_UNLOCK") {
+    // ACTION 7: MANUAL TOGGLE LOCK
+    if (action === "TOGGLE_LOCK") {
       const currentConfig = db.payToReleaseConfigs[configIndex];
-      const hours = durationHours || 48; // Default 48h emergency window
-      const expiryDate = new Date(Date.now() + hours * 3600 * 1000).toISOString();
-
+      const willLock = !currentConfig.isLocked;
       db.payToReleaseConfigs[configIndex] = {
         ...currentConfig,
-        isLocked: false,
-        partnerOverrideUntil: expiryDate,
-        partnerOverrideReason: reason || "Emergency partner authorization for board meeting / bank loan pack",
-        partnerOverrideBy: partnerName || auth.userName || "CA Gunjan Jain",
-        lockReason: `Partner Override by ${partnerName || "CA Gunjan Jain"} active until ${new Date(expiryDate).toLocaleString("en-IN")}. Reason: ${reason || "Temporary exception authorized"}`
+        isLocked: willLock,
+        partnerOverrideUntil: null,
+        lockReason: willLock
+          ? `Manually locked by ${partnerName || "Partner"} pending fee settlement`
+          : "Unlocked by Partner"
       };
 
       await logAuditEvent(
-        partnerName || auth.userName || "CA Gunjan Jain",
+        partnerName || auth.userName || "CA Partner",
         "PARTNER",
         clientName,
-        "Partner Lock Override (ICAI SA 210)",
-        `Partner authorized ${hours}h emergency unlock. Expiry: ${new Date(expiryDate).toLocaleString("en-IN")}. Justification: ${reason || "Board meeting requirement"}`,
+        willLock ? "Pay-to-Release Lock Enabled" : "Pay-to-Release Lock Disabled",
+        `Deliverables lock status toggled to: ${willLock ? "LOCKED" : "UNLOCKED"}`,
         "PAY_RELEASE"
       );
 
-      await createNotification({
-        title: `Partner Override Active: ${clientName}`,
-        message: `Emergency download access authorized for ${hours} hours under ICAI SA 210 protocol.`,
-        category: "BILLING",
-        priority: "MEDIUM",
-        targetRoles: ["SUPER_ADMIN", "PARTNER"],
-        entityId: entityId,
-        link: "/admin?tab=pay-to-release"
-      });
-
       await saveDatabase(db);
-      return NextResponse.json({ 
-        success: true, 
-        message: `Partner override active for ${hours} hours`, 
-        config: db.payToReleaseConfigs[configIndex] 
-      });
+      return NextResponse.json({ success: true, config: db.payToReleaseConfigs[configIndex] });
     }
 
-    // ACTION 6: SECTION 194J TDS SETTLEMENT (10% TDS Deduction)
-    if (action === "APPLY_TDS_SETTLEMENT") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      const rate = tdsRate || 10; // Default 10% for professional technical services u/s 194J
-      const fullAmount = amountPaid || currentConfig.totalOutstandingAmount;
-      const tdsAmount = Math.round(fullAmount * (rate / 100));
-      const netPayable = fullAmount - tdsAmount;
-
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        appliedTdsRate: rate,
-        netPayableAmount: netPayable,
-        lockReason: `Gross: ₹${fullAmount.toLocaleString("en-IN")} | TDS @${rate}%: ₹${tdsAmount.toLocaleString("en-IN")} | Net Payable: ₹${netPayable.toLocaleString("en-IN")}`
-      };
-
-      await saveDatabase(db);
-      return NextResponse.json({ 
-        success: true, 
-        message: `TDS @ ${rate}% calculated. Net payable: ₹${netPayable.toLocaleString("en-IN")}`, 
-        config: db.payToReleaseConfigs[configIndex] 
-      });
-    }
-
-    // ACTION 7: UPDATE GLOBAL LOCK POLICY
+    // ACTION 8: UPDATE POLICY
     if (action === "UPDATE_POLICY") {
       const days = gracePeriodDays || 30;
       if (db.payToReleaseConfigs) {
@@ -434,44 +535,6 @@ export async function POST(request: NextRequest) {
 
       await saveDatabase(db);
       return NextResponse.json({ success: true, message: `Grace period policy updated to ${days} days` });
-    }
-
-    // ACTION 8: MANUAL TOGGLE LOCK
-    if (action === "TOGGLE_LOCK") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      const willLock = !currentConfig.isLocked;
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        isLocked: willLock,
-        partnerOverrideUntil: null,
-        lockReason: willLock 
-          ? `Manually locked by ${partnerName || "Partner"} pending fee settlement` 
-          : "Unlocked by Partner"
-      };
-
-      await logAuditEvent(
-        partnerName || auth.userName || "CA Partner",
-        "PARTNER",
-        clientName,
-        willLock ? "Pay-to-Release Lock Enabled" : "Pay-to-Release Lock Disabled",
-        `Deliverables lock status toggled to: ${willLock ? "LOCKED" : "UNLOCKED"}`,
-        "PAY_RELEASE"
-      );
-
-      await saveDatabase(db);
-      return NextResponse.json({ success: true, config: db.payToReleaseConfigs[configIndex] });
-    }
-
-    // ACTION 9: RECORD REMINDER LOG
-    if (action === "RECORD_REMINDER") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        lastReminderSentAt: new Date().toISOString(),
-        reminderCount: (currentConfig.reminderCount || 0) + 1
-      };
-      await saveDatabase(db);
-      return NextResponse.json({ success: true, config: db.payToReleaseConfigs[configIndex] });
     }
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });

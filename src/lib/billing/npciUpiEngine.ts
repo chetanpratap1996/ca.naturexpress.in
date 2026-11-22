@@ -66,6 +66,49 @@ export function generateNpciUpiDeepLinks(params: NpciUpiParams): UpiDeepLinks {
 }
 
 /**
+ * Universal NPCI Dynamic UPI URI helper supporting both config object and positional arguments
+ */
+export function generateNpciDynamicUpiUri(
+  vpaOrParams: string | { vpa?: string; firmVpa?: string; payeeName?: string; merchantName?: string; amount: number; invoiceNo: string; note?: string; clientName?: string },
+  merchantName?: string,
+  amount?: number,
+  invoiceNo?: string,
+  clientName?: string
+): string {
+  if (typeof vpaOrParams === "object") {
+    const vpa = (vpaOrParams.firmVpa || vpaOrParams.vpa || "BRAINSANDTAXES@icici").trim();
+    const name = (vpaOrParams.merchantName || vpaOrParams.payeeName || "GPA & Co., Chartered Accountants").trim();
+    const amt = vpaOrParams.amount.toFixed(2);
+    const ref = (vpaOrParams.invoiceNo || "INV").trim();
+    const note = (vpaOrParams.note || `Fee ${vpaOrParams.invoiceNo}`).trim();
+    const query = new URLSearchParams({
+      pa: vpa,
+      pn: name,
+      am: amt,
+      cu: "INR",
+      tr: ref,
+      tn: note
+    }).toString();
+    return `upi://pay?${query}`;
+  } else {
+    const vpa = vpaOrParams.trim();
+    const name = (merchantName || "GPA & Co., Chartered Accountants").trim();
+    const amt = (amount || 0).toFixed(2);
+    const ref = (invoiceNo || "INV").trim();
+    const note = `Fee ${ref} ${clientName ? "- " + clientName.slice(0, 15) : ""}`.trim();
+    const query = new URLSearchParams({
+      pa: vpa,
+      pn: name,
+      am: amt,
+      cu: "INR",
+      tr: ref,
+      tn: note
+    }).toString();
+    return `upi://pay?${query}`;
+  }
+}
+
+/**
  * Generates an SVG or PNG QR Code data URL locally in 0ms (zero external network calls)
  */
 export async function generateUpiQrDataUrl(

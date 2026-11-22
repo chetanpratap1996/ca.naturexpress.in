@@ -221,6 +221,7 @@ export interface InvoiceItem {
   dueDate: string;
   status: "PENDING" | "UTR_SUBMITTED" | "PAID" | "OVERDUE";
   sacCode: string; // e.g., "998231"
+  serviceCategory?: string;
   clientUtrNumber?: string;
   clientPaymentMode?: "UPI" | "NEFT_RTGS" | "IMPS" | "CHEQUE";
   clientPaymentDate?: string;

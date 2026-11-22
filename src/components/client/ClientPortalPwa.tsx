@@ -37,6 +37,7 @@ import {
   ShieldCheck, 
   ShieldAlert,
   ExternalLink,
+  Eye,
   Lock,
   Unlock,
   AlertTriangle,
@@ -1532,6 +1533,17 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
               </div>
               <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
                 {currentPayConfig.lockReason}
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex justify-end">
+                <a
+                  href={`/api/documents/download?id=${encodeURIComponent(payLockModalDoc.id)}&draft=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                >
+                  <Eye className="w-3.5 h-3.5 text-amber-600" />
+                  View Watermarked Draft Preview &rarr;
+                </a>
               </div>
             </div>
 

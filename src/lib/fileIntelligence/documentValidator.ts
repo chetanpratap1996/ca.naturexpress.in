@@ -592,7 +592,7 @@ export function validateGstr2bJsonStructure(parsed: any, fileName: string): Docu
 export function validateTallyXmlOrTb(
   content: string,
   fileName: string
-): DocumentValidationResult<{ isTallyXml: boolean; isTabular: boolean }> {
+): DocumentValidationResult<{ isTallyXml: boolean; isTabular: boolean; isXbrl?: boolean }> {
   const diagnostics: DocumentValidationResult["diagnostics"] = {
     fileName,
     fileSizeBytes: content.length,
@@ -603,13 +603,20 @@ export function validateTallyXmlOrTb(
   };
 
   const upper = content.toUpperCase();
+  const isXbrl = upper.includes("<XBRL") || upper.includes("IN-GAAP") || upper.includes("IND-AS") || upper.includes("REVENUEFROMOPERATIONS");
   const isXml = content.trim().startsWith("<") || upper.includes("<ENVELOPE>") || upper.includes("<TALLYMESSAGE>");
   const isTabular = upper.includes("PARTICULARS") || upper.includes("DEBIT") || upper.includes("CREDIT") || upper.includes("CLOSING BALANCE");
+
+  if (isXbrl) {
+    diagnostics.detectedFormat = "MCA_AOC4_XBRL";
+    diagnostics.matchedKeywords.push("<xbrl> Root", "MCA Taxonomy (IN-GAAP / Ind-AS)");
+    return { isValid: true, documentType: "MCA_XBRL", confidenceScore: 99, data: { isTallyXml: false, isTabular: false, isXbrl: true }, diagnostics };
+  }
 
   if (isXml) {
     diagnostics.detectedFormat = "TALLY_XML";
     diagnostics.matchedKeywords.push("<ENVELOPE> Root", "<TALLYMESSAGE>");
-    return { isValid: true, documentType: "TALLY_TB", confidenceScore: 98, data: { isTallyXml: true, isTabular: false }, diagnostics };
+    return { isValid: true, documentType: "TALLY_TB", confidenceScore: 98, data: { isTallyXml: true, isTabular: false, isXbrl: false }, diagnostics };
   }
 
   if (isTabular) {

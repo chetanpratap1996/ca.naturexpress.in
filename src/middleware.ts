@@ -26,7 +26,9 @@ export async function middleware(request: NextRequest) {
     pathname === "/api/growth/cron" ||
     pathname === "/api/whatsapp/webhook" ||
     pathname === "/api/gst/lookup" ||
-    pathname.startsWith("/api/gst/hsn");
+    pathname.startsWith("/api/gst/hsn") ||
+    pathname === "/api/litigation/notice-parse" ||
+    pathname === "/api/litigation/predictive-risk";
   if (pathname.startsWith("/api/") && !isPublicApi) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated) {
@@ -69,6 +71,7 @@ export async function middleware(request: NextRequest) {
         (pathname === "/api/documents/download" && request.method === "GET") ||
         (pathname === "/api/invoices" && (request.method === "GET" || request.method === "PATCH" || request.method === "POST")) ||
         (pathname === "/api/pay-to-release" && (request.method === "GET" || request.method === "POST")) ||
+        (pathname === "/api/litigation/notice-parse" && request.method === "POST") ||
         (pathname === "/api/auth/pin" && request.method === "POST");
 
       if (!isAllowedClientRoute) {

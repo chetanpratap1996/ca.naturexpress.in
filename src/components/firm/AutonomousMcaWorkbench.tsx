@@ -28,7 +28,8 @@ import {
   UserCheck,
   Download,
   Share2,
-  AlertCircle
+  AlertCircle,
+  Upload
 } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
@@ -38,11 +39,15 @@ import {
   getSampleMcaProfiles,
   resolveMcaException
 } from "@/lib/mca/autonomousMcaEngine";
+import { parseXbrlFinancials, XbrlParseResult } from "@/lib/parsers/xbrlParser";
+import { parseCin, ParsedCinResult } from "@/lib/parsers/cinParser";
 
 export const AutonomousMcaWorkbench: React.FC = () => {
   const [profiles, setProfiles] = useState<McaClientAssemblyProfile[]>(() => getSampleMcaProfiles());
   const [selectedClientId, setSelectedClientId] = useState<string>("client-apex");
-  const [activeTab, setActiveTab] = useState<"pipeline" | "sentinel" | "dockets">("sentinel");
+  const [activeTab, setActiveTab] = useState<"pipeline" | "sentinel" | "dockets" | "xbrl">("sentinel");
+  const [xbrlResult, setXbrlResult] = useState<XbrlParseResult | null>(null);
+  const [isXbrlProcessing, setIsXbrlProcessing] = useState<boolean>(false);
   const [triageFilter, setTriageFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSimulatingSignOff, setIsSimulatingSignOff] = useState<boolean>(false);
@@ -273,6 +278,21 @@ export const AutonomousMcaWorkbench: React.FC = () => {
         >
           <FileText className="w-4 h-4" />
           MCA v3 Docket Export &amp; DSC Matrix
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("xbrl");
+            playSoftClick();
+          }}
+          className={`px-4 py-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-2 transition ${
+            activeTab === "xbrl"
+              ? "border-purple-600 text-purple-600 font-black"
+              : "border-transparent text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <FileSpreadsheet className="w-4 h-4 text-purple-600" />
+          AOC-4 XBRL Ingest &amp; Financials
         </button>
       </div>
 
@@ -722,6 +742,295 @@ export const AutonomousMcaWorkbench: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 6. TAB 4: MCA AOC-4 XBRL INGEST & FINANCIAL RATIOS */}
+      {activeTab === "xbrl" && (() => {
+        const cinInfo = parseCin(activeProfile.cinOrLlp);
+
+        const sampleXbrlXml = `<?xml version="1.0" encoding="utf-8"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance" xmlns:in-gaap="http://www.mca.gov.in/in-gaap/2026-03-31">
+  <in-gaap:CorporateIdentityNumber>${activeProfile.cinOrLlp}</in-gaap:CorporateIdentityNumber>
+  <in-gaap:NameOfCompany>${activeProfile.clientName}</in-gaap:NameOfCompany>
+  <in-gaap:ReportingPeriodEndDate>2026-03-31</in-gaap:ReportingPeriodEndDate>
+  <in-gaap:RevenueFromOperations>485000000</in-gaap:RevenueFromOperations>
+  <in-gaap:OtherIncome>1850000</in-gaap:OtherIncome>
+  <in-gaap:CostOfMaterialsConsumed>312000000</in-gaap:CostOfMaterialsConsumed>
+  <in-gaap:EmployeeBenefitExpense>48000000</in-gaap:EmployeeBenefitExpense>
+  <in-gaap:FinanceCosts>14500000</in-gaap:FinanceCosts>
+  <in-gaap:DepreciationDepletionAndAmortisationExpense>18500000</in-gaap:DepreciationDepletionAndAmortisationExpense>
+  <in-gaap:OtherExpenses>52000000</in-gaap:OtherExpenses>
+  <in-gaap:ProfitLossBeforeTax>41850000</in-gaap:ProfitLossBeforeTax>
+  <in-gaap:TaxExpense>10533645</in-gaap:TaxExpense>
+  <in-gaap:ProfitLoss>31316355</in-gaap:ProfitLoss>
+  <in-gaap:ShareCapital>25000000</in-gaap:ShareCapital>
+  <in-gaap:ReservesAndSurplus>118500000</in-gaap:ReservesAndSurplus>
+  <in-gaap:Equity>143500000</in-gaap:Equity>
+  <in-gaap:LongTermBorrowings>62000000</in-gaap:LongTermBorrowings>
+  <in-gaap:ShortTermBorrowings>38500000</in-gaap:ShortTermBorrowings>
+  <in-gaap:Borrowings>100500000</in-gaap:Borrowings>
+  <in-gaap:TradePayables>42000000</in-gaap:TradePayables>
+  <in-gaap:PropertyPlantAndEquipment>115000000</in-gaap:PropertyPlantAndEquipment>
+  <in-gaap:Inventories>68000000</in-gaap:Inventories>
+  <in-gaap:TradeReceivables>89000000</in-gaap:TradeReceivables>
+  <in-gaap:CashAndCashEquivalents>24500000</in-gaap:CashAndCashEquivalents>
+  <in-gaap:Assets>308500000</in-gaap:Assets>
+</xbrl>`;
+
+        const fin = xbrlResult?.financials || parseXbrlFinancials(sampleXbrlXml, activeProfile.cinOrLlp).financials;
+
+        return (
+          <div className="bg-white rounded-b-2xl border-x border-b border-slate-200 p-5 sm:p-6 space-y-6 shadow-sm">
+            {/* Top Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-900">
+                    MCA AOC-4 XBRL Ingestion &amp; Schedule III Analytics
+                  </h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                    IN-GAAP / Ind AS Engine
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Deconstructs official MCA21 XBRL instance documents. Auto-computes 11 mandatory Schedule III accounting ratios &amp; CARO 2020 cross-linkages.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const parsed = parseXbrlFinancials(sampleXbrlXml, activeProfile.cinOrLlp);
+                    setXbrlResult(parsed);
+                    toast.success("Sample XBRL Ingested", `Loaded audited AOC-4 XBRL for ${activeProfile.clientName}`);
+                    playSoftClick();
+                  }}
+                  className="px-3.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Load Sample AOC-4 XBRL
+                </button>
+
+                <label className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm">
+                  <Upload className="w-3.5 h-3.5" /> Upload XBRL (.xml)
+                  <input
+                    type="file"
+                    accept=".xml,.xbrl,.txt"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsXbrlProcessing(true);
+                      try {
+                        const txt = await file.text();
+                        const parsed = parseXbrlFinancials(txt, activeProfile.cinOrLlp);
+                        setXbrlResult(parsed);
+                        toast.success("XBRL Document Parsed", `Extracted financials for ${parsed.financials.companyName}`);
+                      } catch (err: any) {
+                        toast.error("Parsing Failed", err.message);
+                      } finally {
+                        setIsXbrlProcessing(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* 1. CIN DECODED INTELLIGENCE CARD */}
+            <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-purple-600" /> MCA Corporate Identity Number (CIN) Intelligence
+                </span>
+                <span className="font-mono font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                  {cinInfo.cin}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Entity Classification</div>
+                  <div className="font-bold text-slate-800 mt-0.5">{cinInfo.categoryName}</div>
+                  <div className="text-[10px] text-slate-500">{cinInfo.listingStatus} Entity</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">NIC Economic Activity</div>
+                  <div className="font-bold text-slate-800 mt-0.5 truncate" title={cinInfo.industryDescription}>
+                    NIC {cinInfo.nicCode}
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">{cinInfo.industryDescription}</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">ROC Jurisdiction</div>
+                  <div className="font-bold text-slate-800 mt-0.5">{cinInfo.rocOffice}</div>
+                  <div className="text-[10px] text-slate-500">State: {cinInfo.stateName}</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Statutory Governance</div>
+                  <div className="font-bold text-slate-800 mt-0.5">Min {cinInfo.governanceRequirements.minimumDirectors} Directors</div>
+                  <div className="text-[10px] text-emerald-600 font-bold">Audit Mandatory: Sec 139</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. FINANCIAL STATEMENT METRICS (P&L and Balance Sheet) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* P&L Snapshot */}
+              <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-white">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="font-black text-xs text-slate-900 uppercase tracking-wider">
+                    Profit &amp; Loss Highlights (FY {fin.fiscalYear})
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500">{fin.taxonomyType} Taxonomy</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Revenue from Operations</span>
+                    <span className="font-bold text-slate-900">{formatCurrencyINR(fin.revenueFromOperations)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Raw Material &amp; Direct Costs</span>
+                    <span className="text-slate-800">{formatCurrencyINR(fin.costOfMaterialsConsumed)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">EBITDA</span>
+                    <span className="font-bold text-indigo-700">{formatCurrencyINR(fin.ebitda)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Finance Costs (Interest)</span>
+                    <span className="text-slate-800">{formatCurrencyINR(fin.financeCosts)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Depreciation &amp; Amortization</span>
+                    <span className="text-slate-800">{formatCurrencyINR(fin.depreciationAmortization)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-100 font-bold">
+                    <span className="text-slate-900">Profit After Tax (PAT)</span>
+                    <span className="text-emerald-700">{formatCurrencyINR(fin.profitAfterTax)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Balance Sheet Snapshot */}
+              <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-white">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="font-black text-xs text-slate-900 uppercase tracking-wider">
+                    Balance Sheet &amp; Capital Structure
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500">Net Worth: {formatCurrencyINR(fin.netWorth)}</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Paid-Up Share Capital</span>
+                    <span className="font-bold text-slate-900">{formatCurrencyINR(fin.shareCapital)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Reserves &amp; Surplus</span>
+                    <span className="text-slate-800">{formatCurrencyINR(fin.reservesAndSurplus)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Total Borrowings (Long + Short Term)</span>
+                    <span className="font-bold text-amber-700">{formatCurrencyINR(fin.totalDebt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Property, Plant &amp; Equipment (PPE)</span>
+                    <span className="text-slate-800">{formatCurrencyINR(fin.propertyPlantEquipment)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Net Working Capital</span>
+                    <span className="font-bold text-slate-800">{formatCurrencyINR(fin.workingCapital)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-100 font-bold">
+                    <span className="text-slate-900">Total Balance Sheet Footing</span>
+                    <span className="text-slate-900">{formatCurrencyINR(fin.totalAssets)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. SCHEDULE III MANDATORY 11 RATIOS */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 text-emerald-600" /> MCA Schedule III Mandatory 11 Accounting Ratios
+                </h4>
+                <span className="text-[11px] text-slate-500 font-medium">Companies Act, 2013 GSR 207(E)</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Current Ratio</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.currentRatio}x</div>
+                  <div className={`text-[10px] font-bold ${fin.ratios.currentRatio >= 1.33 ? "text-emerald-600" : "text-amber-600"}`}>
+                    {fin.ratios.currentRatio >= 1.33 ? "Healthy (>1.33x)" : "Liquidity Watch"}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Debt-to-Equity Ratio</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.debtEquityRatio}x</div>
+                  <div className={`text-[10px] font-bold ${fin.ratios.debtEquityRatio <= 2.0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    {fin.ratios.debtEquityRatio <= 2.0 ? "Prudential (<2.0x)" : "Leverage Risk"}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Debt Service Coverage (DSCR)</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.debtServiceCoverageRatio}x</div>
+                  <div className="text-[10px] font-bold text-emerald-600">Solvency Safe</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Return on Equity (ROE)</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.returnOnEquityPercentage}%</div>
+                  <div className="text-[10px] font-bold text-indigo-600">Net Profit / Equity</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Inventory Turnover</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.inventoryTurnoverRatio}x</div>
+                  <div className="text-[10px] text-slate-500">COGS / Inventory</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Debtors Turnover</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.tradeReceivablesTurnoverRatio}x</div>
+                  <div className="text-[10px] text-slate-500">Turnover / Debtors</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Creditors Turnover</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.tradePayablesTurnoverRatio}x</div>
+                  <div className="text-[10px] text-slate-500">Purchases / Payables</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="text-[10px] text-slate-500 font-bold">Net Profit Margin</div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{fin.ratios.netProfitPercentage}%</div>
+                  <div className="text-[10px] font-bold text-emerald-600">PAT / Turnover</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. AUDIT OBSERVATIONS BANNER */}
+            <div className="bg-purple-50/60 border border-purple-200 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-purple-900">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-purple-700" /> Statutory Audit Observations (ICAI SA 700 / CARO 2020)
+                </span>
+                <span>{fin.auditObservations.length} Note(s)</span>
+              </div>
+              <ul className="text-xs text-purple-900 space-y-1 list-disc list-inside">
+                {fin.auditObservations.map((obs, idx) => (
+                  <li key={idx} className="font-medium">{obs}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

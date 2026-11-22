@@ -31,6 +31,7 @@ import {
 } from "@/lib/parsers/tallyTbParser";
 import { MappedTbLedger } from "@/lib/parsers/tallyTbParser";
 import { validateTallyXmlOrTb } from "@/lib/fileIntelligence/documentValidator";
+import { parseXbrlFinancials } from "@/lib/parsers/xbrlParser";
 
 export interface TallyUploadPreset {
   id: string;
@@ -271,6 +272,53 @@ Audit & Legal Fees (GPA & Co.)\tIndirect Expenses\t200000\t0
         }
 
         let res: TbParseResult;
+        const upperContent = content.toUpperCase();
+        const isXbrl = upperContent.includes("<XBRL") || upperContent.includes("IN-GAAP") || upperContent.includes("IND-AS") || upperContent.includes("REVENUEFROMOPERATIONS");
+
+        if (isXbrl) {
+          const xbrlResult = parseXbrlFinancials(content);
+          if (!xbrlResult.success || xbrlResult.schedule3Ledgers.length === 0) {
+            toast.error("XBRL Parsing Error", xbrlResult.errors.join("; ") || "Could not extract financial schedules from XBRL.");
+            setParsedPreview(null);
+            return;
+          }
+
+          let totalDebit = 0;
+          let totalCredit = 0;
+          xbrlResult.schedule3Ledgers.forEach(l => {
+            if (l.balanceType === "DR") totalDebit += l.closingBalance;
+            else totalCredit += l.closingBalance;
+          });
+
+          res = {
+            success: true,
+            totalLedgers: xbrlResult.schedule3Ledgers.length,
+            totalDebit,
+            totalCredit,
+            netDifference: Math.abs(totalDebit - totalCredit),
+            isBalanced: Math.abs(totalDebit - totalCredit) < 1,
+            ledgers: xbrlResult.schedule3Ledgers,
+            errors: xbrlResult.errors,
+            anomaliesSummary: {
+              negativeCash: 0,
+              suspenseAccounts: 0,
+              debtorCreditBalances: 0,
+              creditorDebitBalances: 0,
+              inadmissiblePenalties: 0
+            }
+          };
+
+          setDetectedClientMeta({
+            name: xbrlResult.financials.companyName,
+            pan: currentPan,
+            cin: xbrlResult.financials.cin
+          });
+
+          setParsedPreview(res);
+          toast.success("MCA AOC-4 XBRL Ingested", `Extracted ${res.totalLedgers} Schedule III heads for ${xbrlResult.financials.companyName} (${xbrlResult.financials.cin}).`);
+          return;
+        }
+
         if (file.name.endsWith(".xml") || content.trim().startsWith("<")) {
           res = parseTallyXmlContent(content);
 
@@ -313,6 +361,47 @@ Audit & Legal Fees (GPA & Co.)\tIndirect Expenses\t200000\t0
     if (!pastedContent.trim()) {
       toast.error("Empty Data", "Please paste tabular columns copied from Excel or Tally.");
       return;
+    }
+
+    const upperPasted = pastedContent.toUpperCase();
+    if (upperPasted.includes("<XBRL") || upperPasted.includes("IN-GAAP") || upperPasted.includes("REVENUEFROMOPERATIONS")) {
+      const xbrlResult = parseXbrlFinancials(pastedContent);
+      if (xbrlResult.success && xbrlResult.schedule3Ledgers.length > 0) {
+        let totalDebit = 0;
+        let totalCredit = 0;
+        xbrlResult.schedule3Ledgers.forEach(l => {
+          if (l.balanceType === "DR") totalDebit += l.closingBalance;
+          else totalCredit += l.closingBalance;
+        });
+
+        const res: TbParseResult = {
+          success: true,
+          totalLedgers: xbrlResult.schedule3Ledgers.length,
+          totalDebit,
+          totalCredit,
+          netDifference: Math.abs(totalDebit - totalCredit),
+          isBalanced: Math.abs(totalDebit - totalCredit) < 1,
+          ledgers: xbrlResult.schedule3Ledgers,
+          errors: xbrlResult.errors,
+          anomaliesSummary: {
+            negativeCash: 0,
+            suspenseAccounts: 0,
+            debtorCreditBalances: 0,
+            creditorDebitBalances: 0,
+            inadmissiblePenalties: 0
+          }
+        };
+
+        setDetectedClientMeta({
+          name: xbrlResult.financials.companyName,
+          pan: currentPan,
+          cin: xbrlResult.financials.cin
+        });
+
+        setParsedPreview(res);
+        toast.success("Pasted MCA XBRL Parsed", `Extracted ${res.totalLedgers} Schedule III ledgers from AOC-4 XBRL.`);
+        return;
+      }
     }
 
     const res = parseTabularTbContent(pastedContent);

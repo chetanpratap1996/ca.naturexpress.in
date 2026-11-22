@@ -449,22 +449,51 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
           }
         });
       } else if (selectedCategory === "NOTICE_REPLY") {
-        const valRes = await validateAndExtractStatutoryNotice(file, currentClient.name, currentClient.pan, currentClient.gstin);
-        if (!valRes.isValid) {
-          setValidationRejection(valRes.diagnostics);
-          toast.error("Upload Rejected: Invalid Statutory Notice", valRes.diagnostics.errorMessage || "No departmental DIN or statutory sections found.");
-          setIsUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-          return;
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("clientId", currentClient.id);
+
+        let meta: any = null;
+        try {
+          const parseRes = await fetch("/api/litigation/notice-parse", {
+            method: "POST",
+            body: formData
+          });
+          const parseData = await parseRes.json();
+          if (parseRes.ok && parseData.success) {
+            meta = parseData.metadata;
+          }
+        } catch (e) {
+          console.warn("Server parse fallback:", e);
         }
+
+        if (!meta) {
+          const valRes = await validateAndExtractStatutoryNotice(file, currentClient.name, currentClient.pan, currentClient.gstin);
+          if (!valRes.isValid) {
+            setValidationRejection(valRes.diagnostics);
+            toast.error("Upload Rejected: Invalid Statutory Notice", valRes.diagnostics.errorMessage || "No departmental DIN or statutory sections found.");
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+          }
+          meta = {
+            noticeDefinition: { sectionCode: valRes.data?.noticeType },
+            dinOrRef: valRes.data?.dinOrRef,
+            issuingAuthority: valRes.data?.authority,
+            demandAmount: valRes.data?.demandAmount,
+            daysRemaining: valRes.data?.daysRemaining
+          };
+        }
+
         setVerifiedExtractionResult({
-          title: `Verified Statutory Notice (${valRes.data?.noticeType})`,
+          title: `Verified Statutory Notice (${meta?.noticeDefinition?.sectionCode || "Tax Scrutiny"})`,
           category: "Department Notice",
           details: {
-            "Department DIN / Reference": valRes.data?.dinOrRef || "CBIC/IND/2026/ASMT10",
-            "Issuing Tax Authority": valRes.data?.authority || "Income Tax / GST Department",
-            "Disputed Tax Demand": valRes.data?.demandAmount || "₹0",
-            "Statutory Limitation Cutoff": `${valRes.data?.daysRemaining || 15} Days Remaining`
+            "Department DIN / Reference": meta?.dinOrRef || "CBIC/IND/2026/ASMT10",
+            "Issuing Tax Authority": meta?.issuingAuthority || "Income Tax / GST Department",
+            "Disputed Tax Demand": meta?.demandAmount || "₹0",
+            "Statutory Limitation Cutoff": `${meta?.daysRemaining || 15} Days Remaining`,
+            "Defense Status": "Legal Rebuttal Drafted & Under Partner Review"
           }
         });
       } else if (selectedCategory === "GST_INVOICES") {

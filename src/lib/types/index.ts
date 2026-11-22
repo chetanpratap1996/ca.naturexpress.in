@@ -180,6 +180,11 @@ export interface ComplianceTask {
   section50Interest?: number;
   clientApprovalStatus?: 'APPROVED' | 'PENDING' | 'NOT_REQUIRED';
   penaltyNote?: string;
+  docsReceivedAt?: string;
+  prepStartedAt?: string;
+  reviewSubmittedAt?: string;
+  activePrepDurationMinutes?: number;
+  portalSessionMinutes?: number;
 }
 
 export interface NoticeRecord {
@@ -597,4 +602,32 @@ export interface PartnerRealizationMetrics {
   agingAbove90DaysAmount: number;
   atRiskPenaltyClients: number;
 }
+
+// 7. Staff & Article Trainee Management Master (2035 Autonomous Practice)
+export type StaffRole = "MANAGING_PARTNER" | "PAID_CHARTERED_ACCOUNTANT" | "ARTICLE_TRAINEE" | "TAX_EXECUTIVE";
+export type CompetencyTier = 1 | 2 | 3 | 4; // Tier 1: Junior/Fresher, Tier 2: Intermediate, Tier 3: Senior Article, Tier 4: Manager/Partner
+export type StaffSpecialization = "GST" | "INCOME_TAX" | "TAX_AUDIT" | "MCA_ROC" | "TDS" | "BOOKKEEPING";
+
+export interface StaffMember {
+  id: string;                         // e.g. "STF-2026-001"
+  firmId: string;                     // e.g. "FRM-024310C"
+  fullName: string;
+  email: string;
+  phone: string;                      // 10-digit mobile for login and WhatsApp invites
+  icaiRegistrationNo?: string;        // CRO/NRO/WRO number or ICAI Membership number
+  role: StaffRole;
+  competencyTier: CompetencyTier;     // 1 to 4 ranking
+  specializations: StaffSpecialization[];
+  maxDailyTaskCapacity: number;       // Default: Tier 1: 8, Tier 2: 12, Tier 3: 16, Tier 4: 20
+  status: "ACTIVE" | "ON_LEAVE" | "EXAM_LEAVE" | "DEACTIVATED";
+  pinHash?: string;
+  pinSalt?: string;
+  tempPin?: string;                   // Initial default PIN (e.g. last 4 digits of phone)
+  joinedDate: string;
+  articleshipEndDate?: string;
+  activeOpenTasksCount?: number;
+  completedTasksThisMonth?: number;
+  averageVelocityMinutes?: number;
+}
+
 

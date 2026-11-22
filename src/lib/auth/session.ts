@@ -173,13 +173,13 @@ export function authenticateUser(
     (cleanPhone10 && cleanPhone10 === partnerPhone10) ||
     cleanUpper === "PARTNER"
   ) {
-    // Standard secure test password or production pass
-    if (cleanPass === "Partner@2026" || cleanPass === "Gunjan@3639") {
+    // Standard secure test password, PIN, or production pass
+    if (cleanPass === "Partner@2026" || cleanPass === "Gunjan@3639" || cleanPass === "0001" || cleanPass === "1234") {
       return { success: true, user: partnerUser };
     }
     return {
       success: false,
-      error: "Invalid credentials. Please verify your User ID and password.",
+      error: "Invalid credentials. Please verify your User ID and password/PIN.",
     };
   }
 
@@ -192,12 +192,12 @@ export function authenticateUser(
     cleanUpper === "ARTICLE" ||
     cleanUpper === (articleUser.articleshipRegNo || "").toUpperCase()
   ) {
-    if (cleanPass === "Article@2026" || cleanPass === "Kriti@5897") {
+    if (cleanPass === "Article@2026" || cleanPass === "Kriti@5897" || cleanPass === "0002" || cleanPass === "1234") {
       return { success: true, user: articleUser };
     }
     return {
       success: false,
-      error: "Invalid credentials. Please verify your User ID and password.",
+      error: "Invalid credentials. Please verify your User ID and password/PIN.",
     };
   }
 

@@ -29,7 +29,8 @@ import {
   LayoutDashboard,
   Keyboard,
   Cpu,
-  Zap
+  Zap,
+  UserPlus
 } from "lucide-react";
 
 export interface NavCategory {
@@ -171,6 +172,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     iconColor: "text-blue-500",
     badge: "Articles",
     badgeColor: "bg-blue-50 text-blue-700 border-blue-200"
+  },
+  {
+    id: "staff-master",
+    label: "Team & Article Trainee Master",
+    shortLabel: "Team & Trainees",
+    categoryId: "task-management",
+    description: "Competency ranking, domain specialization matrix, zero-cost PIN auth & autonomous work assignment",
+    icon: UserPlus,
+    iconColor: "text-emerald-500",
+    badge: "2035 Autopilot",
+    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
   },
   {
     id: "inward-outward",

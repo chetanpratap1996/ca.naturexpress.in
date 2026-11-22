@@ -19,7 +19,8 @@ import {
   StaffDataSecurityAudit,
   PartnerRealizationMetrics,
   NotificationItem,
-  PortalCredential
+  PortalCredential,
+  StaffMember
 } from "@/lib/types";
 import { 
   INITIAL_GROUPS, 
@@ -40,7 +41,8 @@ import {
   INITIAL_STAFF_SECURITY_LOGS,
   INITIAL_PARTNER_METRICS,
   INITIAL_NOTIFICATIONS,
-  INITIAL_PORTAL_CREDENTIALS
+  INITIAL_PORTAL_CREDENTIALS,
+  INITIAL_STAFF_MEMBERS
 } from "@/lib/data/mockData";
 import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS, SANDBOX_INVOICES, SANDBOX_DSC_TOKENS } from "@/lib/data/sandboxData";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
@@ -138,6 +140,7 @@ export interface DatabaseSchema {
   clientTrialBalances?: ClientTrialBalanceItem[];
   noticeDockets?: NoticeDocketItem[];
   clientItrComputations?: ClientItrComputationItem[];
+  staff?: StaffMember[];
   lastUpdated: string;
 }
 
@@ -203,6 +206,7 @@ export function ensureDatabase(): DatabaseSchema {
     partnerMetrics: INITIAL_PARTNER_METRICS as any,
     notifications: INITIAL_NOTIFICATIONS,
     imprestTransactions: DEFAULT_IMPREST_TRANSACTIONS,
+    staff: INITIAL_STAFF_MEMBERS,
     lastUpdated: new Date().toISOString(),
   });
 
@@ -242,6 +246,7 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.clientTrialBalances) { parsed.clientTrialBalances = []; modified = true; }
     if (!parsed.noticeDockets || parsed.noticeDockets.length === 0) { parsed.noticeDockets = getSampleNoticeDockets(); modified = true; }
     if (!parsed.clientItrComputations) { parsed.clientItrComputations = []; modified = true; }
+    if (!parsed.staff || parsed.staff.length === 0) { parsed.staff = INITIAL_STAFF_MEMBERS; modified = true; }
 
     // Auto-generate statutory compliance obligations for any client without tasks
     if (!parsed.tasks) parsed.tasks = [];

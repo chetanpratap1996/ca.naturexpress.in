@@ -10,7 +10,8 @@ import {
   ClientPasswordVault,
   PayToReleaseConfig,
   NotificationItem,
-  PortalCredential
+  PortalCredential,
+  StaffMember
 } from "../types";
 
 export const FIRM_METRICS = {
@@ -166,3 +167,119 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
   }
 ];
+
+export const INITIAL_STAFF_MEMBERS: StaffMember[] = [
+  {
+    id: "STF-PARTNER-01",
+    firmId: "FRM-024310C",
+    fullName: "CA Gunjan Jain",
+    email: "partner@brainsandtaxes.com",
+    phone: "+91 98000 00001",
+    icaiRegistrationNo: "024310C",
+    role: "MANAGING_PARTNER",
+    competencyTier: 4,
+    specializations: ["GST", "INCOME_TAX", "TAX_AUDIT", "MCA_ROC", "TDS", "BOOKKEEPING"],
+    maxDailyTaskCapacity: 20,
+    status: "ACTIVE",
+    tempPin: "0001",
+    joinedDate: "2018-04-01",
+    activeOpenTasksCount: 0,
+    completedTasksThisMonth: 14,
+    averageVelocityMinutes: 45
+  },
+  {
+    id: "STF-CA-01",
+    firmId: "FRM-024310C",
+    fullName: "Priya Mehta",
+    email: "priya.mehta@brainsandtaxes.com",
+    phone: "+91 98000 00004",
+    icaiRegistrationNo: "489211",
+    role: "PAID_CHARTERED_ACCOUNTANT",
+    competencyTier: 4,
+    specializations: ["INCOME_TAX", "TAX_AUDIT", "MCA_ROC"],
+    maxDailyTaskCapacity: 16,
+    status: "ACTIVE",
+    tempPin: "0004",
+    joinedDate: "2024-01-15",
+    activeOpenTasksCount: 0,
+    completedTasksThisMonth: 19,
+    averageVelocityMinutes: 60
+  },
+  {
+    id: "STF-ARTICLE-01",
+    firmId: "FRM-024310C",
+    fullName: "Kriti Jain",
+    email: "audit.trainee@brainsandtaxes.com",
+    phone: "+91 98000 00002",
+    icaiRegistrationNo: "CRO-0689123",
+    role: "ARTICLE_TRAINEE",
+    competencyTier: 3,
+    specializations: ["GST", "INCOME_TAX", "TAX_AUDIT"],
+    maxDailyTaskCapacity: 14,
+    status: "ACTIVE",
+    tempPin: "0002",
+    joinedDate: "2024-06-01",
+    articleshipEndDate: "2026-06-01",
+    activeOpenTasksCount: 0,
+    completedTasksThisMonth: 27,
+    averageVelocityMinutes: 52
+  },
+  {
+    id: "STF-ARTICLE-02",
+    firmId: "FRM-024310C",
+    fullName: "Aman Verma",
+    email: "aman.verma@brainsandtaxes.com",
+    phone: "+91 98000 00005",
+    icaiRegistrationNo: "CRO-0712490",
+    role: "ARTICLE_TRAINEE",
+    competencyTier: 2,
+    specializations: ["GST", "TDS", "BOOKKEEPING"],
+    maxDailyTaskCapacity: 10,
+    status: "ACTIVE",
+    tempPin: "0005",
+    joinedDate: "2025-02-10",
+    articleshipEndDate: "2027-02-10",
+    activeOpenTasksCount: 0,
+    completedTasksThisMonth: 18,
+    averageVelocityMinutes: 65
+  },
+  {
+    id: "STF-ARTICLE-03",
+    firmId: "FRM-024310C",
+    fullName: "Rahul Sharma",
+    email: "rahul.sharma@brainsandtaxes.com",
+    phone: "+91 98000 00006",
+    icaiRegistrationNo: "CRO-0744182",
+    role: "ARTICLE_TRAINEE",
+    competencyTier: 1,
+    specializations: ["BOOKKEEPING", "GST", "TDS"],
+    maxDailyTaskCapacity: 8,
+    status: "ACTIVE",
+    tempPin: "0006",
+    joinedDate: "2025-08-01",
+    articleshipEndDate: "2027-08-01",
+    activeOpenTasksCount: 0,
+    completedTasksThisMonth: 12,
+    averageVelocityMinutes: 80
+  },
+  {
+    id: "STF-ARTICLE-04",
+    firmId: "FRM-024310C",
+    fullName: "Pooja Mehta",
+    email: "pooja.mehta@brainsandtaxes.com",
+    phone: "+91 98000 00007",
+    icaiRegistrationNo: "CRO-0759914",
+    role: "ARTICLE_TRAINEE",
+    competencyTier: 1,
+    specializations: ["MCA_ROC", "INCOME_TAX"],
+    maxDailyTaskCapacity: 8,
+    status: "ACTIVE",
+    tempPin: "0007",
+    joinedDate: "2025-09-15",
+    articleshipEndDate: "2027-09-15",
+    activeOpenTasksCount: 0,
+    completedTasksThisMonth: 9,
+    averageVelocityMinutes: 75
+  }
+];
+

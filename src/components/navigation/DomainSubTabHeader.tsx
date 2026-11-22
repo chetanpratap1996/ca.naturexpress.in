@@ -21,7 +21,8 @@ import {
   Award,
   Fingerprint,
   Package,
-  Sparkles
+  Sparkles,
+  Users
 } from "lucide-react";
 
 export interface SubTabItem {
@@ -35,6 +36,7 @@ export interface SubTabItem {
 export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   tasks: [
     { id: "tasks-matrix", label: "Tasks & Deadlines Command Center", shortLabel: "Task Center", icon: ClipboardCheck },
+    { id: "staff-master", label: "Team & Article Trainee Master", shortLabel: "Team & Ranking", icon: Users },
     { id: "calendar", label: "Statutory Tax Deadlines", shortLabel: "Deadlines", icon: Calendar },
     { id: "autonomous-orchestrator", label: "8-Pillar Universal Orchestrator", shortLabel: "8-Pillar Mesh", icon: Sparkles },
     { id: "batch-dispatch", label: "Batch Return Dispatcher", shortLabel: "Batch Dispatch", icon: Sparkles },

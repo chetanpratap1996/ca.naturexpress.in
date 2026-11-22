@@ -329,9 +329,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-bold text-slate-800">
-                  {portalMode === "client" ? "4-Digit Security Access PIN" : "Staff Security Password"}
+                  {portalMode === "client" ? "4-Digit Security Access PIN" : "Staff Password or 4-Digit Access PIN"}
                 </label>
-                {portalMode === "client" && (
+                {portalMode === "staff" ? (
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    Default PIN: last 4 digits of phone
+                  </span>
+                ) : (
                   <span className="text-[10px] text-slate-500 font-medium">
                     Issued by GPA &amp; Co.
                   </span>
@@ -345,9 +349,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={portalMode === "client" ? "••••" : "••••••••••••"}
-                  maxLength={portalMode === "client" ? 10 : 50}
-                  inputMode={portalMode === "client" ? "numeric" : "text"}
+                  placeholder={portalMode === "client" ? "••••" : "•••• or PIN"}
+                  maxLength={50}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-800 focus:bg-white transition tracking-widest"
                   required
                 />

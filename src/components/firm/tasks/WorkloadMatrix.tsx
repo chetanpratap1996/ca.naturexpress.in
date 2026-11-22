@@ -51,13 +51,33 @@ export const WorkloadMatrix: React.FC<WorkloadMatrixProps> = ({
   const [reassignModalTask, setReassignModalTask] = useState<ComplianceTask | null>(null);
   const [targetArticle, setTargetArticle] = useState<string>("Aman Verma (Article)");
   const [isReassigning, setIsReassigning] = useState(false);
+  const [dynamicStaffList, setDynamicStaffList] = useState<{ name: string; role: string }[]>([]);
+
+  React.useEffect(() => {
+    fetch("/api/staff")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.staff)) {
+          const active = data.staff
+            .filter((s: any) => s.status === "ACTIVE")
+            .map((s: any) => ({
+              name: `${s.fullName} (${s.role === "MANAGING_PARTNER" ? "Partner" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : "Article"})`,
+              role: s.role === "MANAGING_PARTNER" ? "Managing Partner (FCA)" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "Senior Paid CA" : `Article Trainee (Tier ${s.competencyTier})`,
+            }));
+          if (active.length > 0) setDynamicStaffList(active);
+        }
+      })
+      .catch((err) => console.warn("Workload staff fetch error:", err));
+  }, []);
 
   // Compute workload summaries
   const staffSummaries = useMemo<StaffWorkloadSummary[]>(() => {
     const map = new Map<string, StaffWorkloadSummary>();
 
+    const seedList = dynamicStaffList.length > 0 ? dynamicStaffList : DEFAULT_STAFF_MEMBERS;
+
     // Seed default staff
-    DEFAULT_STAFF_MEMBERS.forEach((s) => {
+    seedList.forEach((s) => {
       map.set(s.name, {
         name: s.name,
         role: s.role,

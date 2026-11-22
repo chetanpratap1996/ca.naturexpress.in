@@ -66,6 +66,7 @@ import { TallyKeyboardOverlay } from "@/components/shared/TallyKeyboardOverlay";
 import { DomainRail, DomainId } from "@/components/navigation/DomainRail";
 import { DomainSubTabHeader, DOMAIN_SUBTABS } from "@/components/navigation/DomainSubTabHeader";
 import { TasksCommandCenter } from "@/components/firm/TasksCommandCenter";
+import { StaffManagementView } from "@/components/firm/StaffManagementView";
 import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
 import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
 import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
@@ -146,6 +147,7 @@ const TAB_TO_DOMAIN: Record<string, DomainId> = {
   calendar: "tasks",
   tasks: "tasks",
   "workload-matrix": "tasks",
+  "staff-master": "tasks",
   "autonomous-orchestrator": "tasks",
   "practice-cockpit": "tasks",
   dashboard: "tasks",
@@ -811,6 +813,13 @@ export default function Home() {
                   selectedClientId={selectedEntityId || clients[0]?.id}
                   onSelectClient={handleSelectClient}
                   initialTab="workload"
+                />
+              )}
+
+              {activePartnerTab === "staff-master" && (
+                <StaffManagementView
+                  tasks={tasks}
+                  onRefreshData={refreshData}
                 />
               )}
 

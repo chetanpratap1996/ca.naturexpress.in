@@ -52,6 +52,7 @@ import { QuarterlyBankReconciler } from "./schedule3/QuarterlyBankReconciler";
 import { TallyXmlUploadModal } from "./schedule3/TallyXmlUploadModal";
 import { TbReconciliationModal } from "./schedule3/TbReconciliationModal";
 import { Sa230AuditDossierModal } from "./schedule3/Sa230AuditDossierModal";
+import { StatutorySignoffDesk } from "./schedule3/StatutorySignoffDesk";
 
 interface Schedule3AuditEngineProps {
   clients?: ClientEntity[];
@@ -65,7 +66,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   // State
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "CL-APEX");
   const [division, setDivision] = useState<Schedule3Division>("DIVISION_I");
-  const [activeSubTab, setActiveSubTab] = useState<"mapping" | "financials" | "ratios-disclosures" | "lead-schedules" | "caro2020" | "bank-reconciliation">("mapping");
+  const [activeSubTab, setActiveSubTab] = useState<"mapping" | "financials" | "ratios-disclosures" | "lead-schedules" | "caro2020" | "bank-reconciliation" | "audit-realization">("mapping");
   
   // TB Data State - preloaded with realistic production mock data
   const [tbResult, setTbResult] = useState<TbParseResult>(() => getMockTrialBalanceResult());
@@ -648,6 +649,18 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
             <Building2 className="w-3.5 h-3.5" />
             <span>Bank Stock Rec (Cl ii(b))</span>
           </button>
+
+          <button
+            onClick={() => setActiveSubTab("audit-realization")}
+            className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 ${
+              activeSubTab === "audit-realization"
+                ? "bg-purple-700 text-white shadow-sm"
+                : "text-purple-700 hover:text-purple-950 hover:bg-purple-50"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Sign-Off &amp; Realization (Phase 3)</span>
+          </button>
         </div>
 
         {activeSubTab === "mapping" && (
@@ -912,6 +925,16 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
       {activeSubTab === "bank-reconciliation" && (
         <QuarterlyBankReconciler
           client={activeClient}
+        />
+      )}
+
+      {/* -------------------------------------------------------------------- */}
+      {/* 11. VIEW 7: STATUTORY SIGN-OFF, UDIN & REALIZATION DESK (PHASE 3)    */}
+      {/* -------------------------------------------------------------------- */}
+      {activeSubTab === "audit-realization" && (
+        <StatutorySignoffDesk
+          client={activeClient}
+          ledgers={ledgers}
         />
       )}
 

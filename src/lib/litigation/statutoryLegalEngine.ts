@@ -301,14 +301,33 @@ export const STATUTORY_NOTICE_DEFINITIONS: Record<string, StatutoryNoticeDefinit
     issuingAuthorityLabel: "GST Portal Automated System / Jurisdictional Officer",
     requiresDin: false,
     preliminaryLegalObjections: [
-      "TIMELY PART B COMPLIANCE: Response submitted strictly within 7 days under Rule 88D(2)."
+      "TIMELY PART B COMPLIANCE: Response submitted strictly within 7 days under Rule 88D(2).",
+      "NO RECOVERY FROM BUYER WITHOUT PURSUING SELLER (Calcutta HC in Suncraft Energy): Demand for ITC mismatch between GSTR-2B and GSTR-3B cannot be sustained against recipient without first initiating recovery from the selling dealer under Section 73/74.",
+      "GSTR-2B IS FACILITATIVE STATEMENT (Supreme Court in Bharti Airtel): Form GSTR-2B is a facilitative system statement and cannot curtail the statutory right to claim genuine ITC under Section 16(2) where tax invoice and receipt of goods are proven."
     ],
     meritsRebuttalGrounds: [
       "ITC reclaimed in GSTR-3B was previously reversed under Rule 37 / Rule 42 in an earlier period upon payment to vendor.",
       "Import of goods ITC from ICEGATE bill of entry was delayed in portal reflection but validly available under Section 16(2).",
       "Inadvertent clerical error in claiming ITC under wrong table in GSTR-3B, rectified in the succeeding return."
     ],
-    bindingPrecedents: [],
+    bindingPrecedents: [
+      {
+        caseTitle: "Suncraft Energy Pvt Ltd vs. Assistant Commissioner, State Tax",
+        citation: "MAT 1218 of 2023 (Calcutta High Court)",
+        court: "High Court of Calcutta",
+        ratioDecidendi: "Demand of ITC mismatch between GSTR-2A/2B and GSTR-3B cannot be sustained on the recipient without first exhausting statutory recovery measures against the supplier dealer.",
+        isArticle141Binding: false,
+        statutorySection: "Section 16(2)(c) / Rule 88D"
+      },
+      {
+        caseTitle: "Union of India vs. Bharti Airtel Ltd.",
+        citation: "(2021) 131 taxmann.com 73 (SC) / 2021 INSC 691",
+        court: "Supreme Court of India",
+        ratioDecidendi: "GSTR-2A/2B is a facilitative auto-generated statement and does not extinguish the taxpayer's statutory right to avail eligible ITC based on valid invoices and receipt of goods.",
+        isArticle141Binding: true,
+        statutorySection: "Section 16(2) / Section 39"
+      }
+    ],
     prayerTemplate: [
       "Explanation furnished under Part B of Form GST DRC-01C be accepted and closed without initiation of recovery under Section 73/74.",
       "Unrestricted filing status for subsequent tax periods be maintained."

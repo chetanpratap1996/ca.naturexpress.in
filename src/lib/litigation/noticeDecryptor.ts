@@ -37,18 +37,13 @@ export interface ParsedNoticeMetadata {
   allegationSummary: string;
 }
 
-/**
- * Attempts to extract text from a PDF buffer, trying automatic password candidates if encrypted
- */
-export async function decryptAndExtractNoticePdf(
-  pdfBuffer: Buffer,
-  clientCredentials?: {
-    pan?: string;
-    incorporationYear?: number;
-    dobOrDoi?: string; // e.g. "15-08-2020" or "15082020" or "2020"
-    customPassword?: string;
-  }
-): Promise<DecryptionResult> {
+export function generatePasswordCandidates(clientCredentials?: {
+  pan?: string;
+  incorporationYear?: number | string;
+  dobOrDoi?: string;
+  dob?: string;
+  customPassword?: string;
+}): string[] {
   const pan = (clientCredentials?.pan || "").trim();
   const candidates: string[] = [];
 
@@ -61,11 +56,12 @@ export async function decryptAndExtractNoticePdf(
   if (pan) {
     const panLower = pan.toLowerCase();
     const panUpper = pan.toUpperCase();
-    const rawDob = (clientCredentials?.dobOrDoi || "").replace(/[^0-9]/g, "");
+    const rawDob = (clientCredentials?.dobOrDoi || clientCredentials?.dob || "").replace(/[^0-9]/g, "");
 
     if (rawDob && rawDob.length === 8) {
       candidates.push(`${panLower}${rawDob}`);
       candidates.push(`${panUpper}${rawDob}`);
+      candidates.push(rawDob);
     }
 
     if (clientCredentials?.incorporationYear) {
@@ -81,6 +77,23 @@ export async function decryptAndExtractNoticePdf(
     candidates.push(panLower);
     candidates.push(panUpper);
   }
+
+  return candidates;
+}
+
+/**
+ * Attempts to extract text from a PDF buffer, trying automatic password candidates if encrypted
+ */
+export async function decryptAndExtractNoticePdf(
+  pdfBuffer: Buffer,
+  clientCredentials?: {
+    pan?: string;
+    incorporationYear?: number;
+    dobOrDoi?: string; // e.g. "15-08-2020" or "15082020" or "2020"
+    customPassword?: string;
+  }
+): Promise<DecryptionResult> {
+  const candidates = generatePasswordCandidates(clientCredentials);
 
   // 1. First attempt unencrypted
   try {
@@ -155,16 +168,16 @@ export function extractStatutoryNoticeMetadata(
 
   // 1. DIN or Notice Reference Number
   let dinOrRef = "NOT_SPECIFIED";
-  const itbaMatch = text.match(/ITBA\/[A-Za-z0-9/_.-]+/i);
+  const itbaMatch = text.match(/ITBA\/[A-Za-z0-9/_.-]+(?:\([0-9]+\))?/i);
   const gstMatch = text.match(/ZA[0-9]{2}[0-9]{2}[0-9A-Z]{10}/i) || text.match(/(DRC|ASMT)-[0-9A-Za-z/_-]+/i);
-  const cbicMatch = text.match(/CBIC\/[A-Za-z0-9/_.-]+/i);
+  const cbicMatch = text.match(/CBIC\/[A-Za-z0-9/_.-]+(?:\([0-9]+\))?/i);
 
   if (itbaMatch) dinOrRef = itbaMatch[0];
   else if (gstMatch) dinOrRef = gstMatch[0];
   else if (cbicMatch) dinOrRef = cbicMatch[0];
   else {
     // Look for generic Ref No
-    const refMatch = text.match(/(?:Reference No|Notice No|DIN|Ref No)[\s.:]+([A-Za-z0-9/_.-]{8,35})/i);
+    const refMatch = text.match(/(?:Reference No|Notice No|DIN|Ref No)[\s.:]+([A-Za-z0-9/_.-]+(?:\([0-9]+\))?)/i);
     if (refMatch) dinOrRef = refMatch[1].trim();
   }
 

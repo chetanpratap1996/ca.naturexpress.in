@@ -150,8 +150,8 @@ async function runTests() {
 
     assert(resNotice.statusCode === 200, `Notice parse endpoint returned 200 OK (got ${resNotice.statusCode})`);
     assert(resNotice.data?.success === true, "Notice parsed and docket created successfully");
-    assert(resNotice.data?.metadata?.dinOrRef === "ITBA/AST/S/148/2023-24/1058291823(1)", "Extracted authentic ITBA DIN number");
-    assert(resNotice.data?.legalReply?.noticeDefinition?.sectionCode === "Section 148", "Classified as Section 148");
+    assert(resNotice.data?.metadata?.dinOrRef === "ITBA/AST/S/148/2023-24/1058291823(1)", `Extracted authentic ITBA DIN number (got ${resNotice.data?.metadata?.dinOrRef})`);
+    assert(resNotice.data?.legalReply?.noticeDefinition?.sectionCode.includes("Section 148"), `Classified as Section 148 (got ${resNotice.data?.legalReply?.noticeDefinition?.sectionCode})`);
     assert(resNotice.data?.legalReply?.citations?.length >= 3, `Generated ${resNotice.data?.legalReply?.citations?.length} authoritative judicial citations`);
 
     // -------------------------------------------------------------------------

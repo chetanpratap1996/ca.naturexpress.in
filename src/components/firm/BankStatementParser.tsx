@@ -48,20 +48,8 @@ import { dissectNarration, STATUTORY_CHART_OF_ACCOUNTS } from "@/lib/bankOcr/nar
 import { generateNativeTallyPrimeXml } from "@/lib/bankOcr/tallyXmlGenerator";
 import { verifyBankStatementBrs, generateBankAuditWorkingPaperCsv } from "@/lib/bankOcr/brsValidator";
 
-export interface ParsedTransaction {
-  id: string;
-  date: string;
-  narration: string;
-  chqRefNo: string;
-  withdrawal: number;
-  deposit: number;
-  balance: number;
-  suggestedLedger: string;
-  confidence: number;
-  status: "MAPPED" | "SUSPENSE" | "CONFIRMED";
-  voucherType: "Payment" | "Receipt" | "Contra";
-  matchedRule?: string;
-}
+import { ParsedTransaction } from "@/lib/parsers/bankStatementParser";
+export type { ParsedTransaction };
 
 export interface BankAccountProfile {
   bankKey: string;
@@ -854,18 +842,54 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     });
 
     try {
-      // High-precision document validation & content extraction
-      const validation = await validateAndExtractBankStatement(file, activeProfile.openingBalance);
-      if (!validation.isValid || !validation.data) {
-        setIsProcessing(false);
-        setUploadValidationError(validation.diagnostics.errorMessage || `The uploaded document "${file.name}" is not a recognized bank statement.`);
-        setUploadMissingCriteria(validation.diagnostics.missingRequirements || []);
-        toast.error("Bank Statement Rejected", validation.diagnostics.errorMessage || "Document is not a valid bank statement.");
-        return;
+      const effectivePassword = passwordMode === "MANUAL" ? manualPassword : (resolvedEntityPasswords[0] || "");
+      let parsedData: any = null;
+
+      // 1. First attempt: Direct Server API Route (handles full binary PDF decompression & multi-password unlock)
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (effectivePassword) formData.append("password", effectivePassword);
+        if (currentEntity?.pan) formData.append("clientPan", currentEntity.pan);
+        if (activeProfile?.accountNumber) formData.append("accountNumber", activeProfile.accountNumber);
+        formData.append("fallbackOpeningBal", String(activeProfile.openingBalance));
+
+        const res = await fetch("/api/parsers/bank-statement", {
+          method: "POST",
+          body: formData
+        });
+
+        const json = await res.json();
+        if (json.requiresPassword) {
+          setIsProcessing(false);
+          setPasswordMode("MANUAL");
+          setUploadValidationError("Statement is password-protected. Please enter the password in the toolbar above and re-upload.");
+          toast.error("Password Required", "Please enter the PDF password in the Bank Profile toolbar.");
+          return;
+        }
+
+        if (json.success && json.transactions && json.transactions.length > 0) {
+          parsedData = json;
+        }
+      } catch (apiErr: any) {
+        console.warn("[BankStatementParser] API route fallback to client validator:", apiErr);
       }
 
-      const extractedTxns = validation.data.transactions.map((tx, idx) => {
-        const upperNarration = tx.narration.toUpperCase();
+      // 2. If API was bypassed or unavailable, use client document validator
+      if (!parsedData) {
+        const validation = await validateAndExtractBankStatement(file, activeProfile.openingBalance);
+        if (!validation.isValid || !validation.data) {
+          setIsProcessing(false);
+          setUploadValidationError(validation.diagnostics.errorMessage || `The uploaded document "${file.name}" is not a recognized bank statement.`);
+          setUploadMissingCriteria(validation.diagnostics.missingRequirements || []);
+          toast.error("Bank Statement Rejected", validation.diagnostics.errorMessage || "Document is not a valid bank statement.");
+          return;
+        }
+        parsedData = validation.data;
+      }
+
+      const extractedTxns = parsedData.transactions.map((tx: any, idx: number) => {
+        const upperNarration = (tx.narration || "").toUpperCase();
         const matchedRule = mappingRules.find(r => upperNarration.includes(r.keyword.toUpperCase()));
         return {
           id: tx.id || `TXN-UP-${idx + 1}`,
@@ -887,11 +911,12 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
       setIsUploadModalOpen(false);
       setIsProcessing(false);
 
+      const bankName = parsedData.bankName || activeProfile.bankName;
       toast.success(
         "Bank Statement Validated & Extracted",
-        `Extracted ${extractedTxns.length} transactions from ${validation.data.bankName} (${file.name}) with 100% mathematical integrity.`
+        `Extracted ${extractedTxns.length} transactions from ${bankName} (${file.name}) with 100% mathematical integrity.`
       );
-      setExportNotice(`Parsed ${file.name} (${Math.round(file.size / 1024)} KB) from ${validation.data.bankName}. ${extractedTxns.length} ledger vouchers ready for Tally Prime XML export.`);
+      setExportNotice(`Parsed ${file.name} (${Math.round(file.size / 1024)} KB) from ${bankName}. ${extractedTxns.length} ledger vouchers ready for Tally Prime XML export.`);
       setTimeout(() => setExportNotice(null), 7000);
 
     } catch (err: any) {
@@ -1003,6 +1028,56 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success("CSV Exported", "Bank Audit Working Paper CSV downloaded (ICAI SA 500 compliant).");
+  };
+
+  const [isReconcilingFees, setIsReconcilingFees] = useState(false);
+
+  // Auto-Match Bank Deposits against CA Firm Invoices (Save 2.36% PG commissions)
+  const handleReconcileFeeReceipts = async () => {
+    const depositTxns = transactions.filter(t => t.deposit > 0);
+    if (depositTxns.length === 0) {
+      toast.info("No Receipts Found", "There are no incoming credit/deposit transactions in the active statement.");
+      return;
+    }
+
+    setIsReconcilingFees(true);
+    try {
+      const csvHeader = "Date,Narration,ChqRefNo,Withdrawal,Deposit,Balance\n";
+      const csvRows = depositTxns.map(t => 
+        `"${t.date}","${t.narration.replace(/"/g, '""')}","${t.chqRefNo || ''}",0,${t.deposit},${t.balance}`
+      ).join("\n");
+
+      const res = await fetch("/api/billing/reconcile-bank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csvContent: csvHeader + csvRows,
+          autoApply: true,
+          actorName: "CA Gunjan Jain (Partner)"
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Billing reconciliation failed");
+      }
+
+      if (data.clearedCount > 0) {
+        toast.success(
+          "Client Fees Reconciled!",
+          `Cleared ${data.clearedCount} outstanding invoice(s) totalling ${formatCurrencyINR(data.realizedInr)}. Saved ${formatCurrencyINR(data.gatewayFeesSavedInr)} in payment gateway commissions!`
+        );
+      } else {
+        toast.info(
+          "Statement Scanned",
+          `Processed ${depositTxns.length} credit transactions. No matching unpaid CA firm fee invoices detected for these specific UTRs/amounts.`
+        );
+      }
+    } catch (err: any) {
+      toast.error("Reconciliation Error", err.message || "Failed to match invoices.");
+    } finally {
+      setIsReconcilingFees(false);
+    }
   };
 
   return (
@@ -1441,6 +1516,17 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                 <span>Approve All AI-Mapped ({mappedCount})</span>
               </button>
             )}
+
+            {/* Auto-Match Client Fees (0% PG Fee) */}
+            <button
+              onClick={handleReconcileFeeReceipts}
+              disabled={isReconcilingFees}
+              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+              title="Auto-match bank deposits against outstanding CA fee bills to save 2.36% gateway commissions"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              <span>{isReconcilingFees ? "Matching..." : "Match Client Fees (0% PG)"}</span>
+            </button>
 
             {/* Export CSV */}
             <button

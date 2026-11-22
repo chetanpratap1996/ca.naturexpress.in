@@ -71,18 +71,30 @@ export const BankStatementReconcileModal: React.FC<BankStatementReconcileModalPr
     }
   ];
 
-  const handleProcessCsv = async (csvContent: string) => {
+  const handleProcessCsv = async (fileOrCsv: File | string) => {
     setIsProcessing(true);
     try {
-      const res = await fetch("/api/billing/reconcile-bank", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          csvContent,
-          autoApply: true,
-          actorName: "CA Gunjan Jain (Partner)"
-        })
-      });
+      let res;
+      if (typeof fileOrCsv === "string") {
+        res = await fetch("/api/billing/reconcile-bank", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            csvContent: fileOrCsv,
+            autoApply: true,
+            actorName: "CA Gunjan Jain (Partner)"
+          })
+        });
+      } else {
+        const formData = new FormData();
+        formData.append("file", fileOrCsv);
+        formData.append("autoApply", "true");
+        formData.append("actorName", "CA Gunjan Jain (Partner)");
+        res = await fetch("/api/billing/reconcile-bank", {
+          method: "POST",
+          body: formData
+        });
+      }
 
       const data = await res.json();
       if (!data.success) {
@@ -112,14 +124,7 @@ export const BankStatementReconcileModal: React.FC<BankStatementReconcileModalPr
 
   const handleFileUpload = (file: File) => {
     setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      if (content) {
-        handleProcessCsv(content);
-      }
-    };
-    reader.readAsText(file);
+    handleProcessCsv(file);
   };
 
   return (
@@ -165,7 +170,7 @@ export const BankStatementReconcileModal: React.FC<BankStatementReconcileModalPr
                   : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <UploadCloud className="w-3.5 h-3.5" /> Upload File (CSV)
+              <UploadCloud className="w-3.5 h-3.5" /> Upload Statement (PDF / CSV)
             </button>
             <button
               onClick={() => setActiveTab("SAMPLE_PRESETS")}
@@ -213,7 +218,7 @@ export const BankStatementReconcileModal: React.FC<BankStatementReconcileModalPr
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.txt,.tsv"
+                  accept=".csv,.txt,.tsv,.pdf"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];

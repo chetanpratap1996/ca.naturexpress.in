@@ -4,7 +4,7 @@
  * to ensure seamless import into Tally Prime without schema or missing-ledger errors.
  */
 
-import { ParsedTransaction } from "@/components/firm/BankStatementParser";
+import { ParsedTransaction } from "../parsers/bankStatementParser";
 import { STATUTORY_CHART_OF_ACCOUNTS } from "./narrationEngine";
 
 export interface TallyXmlGenerationOptions {
@@ -50,6 +50,9 @@ export function inferTallyLedgerParent(ledgerName: string): string {
   }
   if (norm.includes("creditors") || norm.includes("payable") || norm.includes("vendor") || norm.includes("supplier")) {
     return "Sundry Creditors";
+  }
+  if (norm.includes("loan emi") || norm.includes("term loan") || norm.includes("cash credit") || norm.includes("nbfc")) {
+    return "Secured Loans";
   }
   if (norm.includes("advance tax") || norm.includes("loan") || norm.includes("drawing")) {
     return "Loans & Advances (Asset)";

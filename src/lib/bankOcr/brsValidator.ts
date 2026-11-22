@@ -4,8 +4,8 @@
  * Enforces ₹0.00 mathematical integrity across opening balance, transactions, and closing balance.
  */
 
-import { ParsedTransaction } from "@/components/firm/BankStatementParser";
-import { formatCurrencyINR } from "@/lib/utils";
+import { ParsedTransaction } from "../parsers/bankStatementParser";
+import { formatCurrencyINR } from "../utils";
 
 export interface BrsVerificationReport {
   isBalanced: boolean;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { reconcileFirmBankStatement } from "@/lib/billing/bankReceiptReconciler";
+import { parseBankStatementPdfBuffer } from "@/lib/parsers/bankStatementParser";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { DocumentItem } from "@/lib/types";
 import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
@@ -24,7 +25,20 @@ export async function POST(req: NextRequest) {
       if (!file) {
         return NextResponse.json({ success: false, error: "No bank statement file uploaded." }, { status: 400 });
       }
-      csvContent = await file.text();
+      if (file.name.toLowerCase().endsWith(".pdf") || file.type.includes("pdf")) {
+        const arrBuf = await file.arrayBuffer();
+        const pdfParsed = await parseBankStatementPdfBuffer(Buffer.from(arrBuf));
+        if (pdfParsed.success && pdfParsed.transactions.length > 0) {
+          csvContent = "Date,Narration,ChqRefNo,Withdrawal,Deposit,Balance\n" + 
+            pdfParsed.transactions.map(t => 
+              `"${t.date}","${t.narration.replace(/"/g, '""')}","${t.chqRefNo || ''}",${t.withdrawal},${t.deposit},${t.balance}`
+            ).join("\n");
+        } else {
+          csvContent = await file.text();
+        }
+      } else {
+        csvContent = await file.text();
+      }
       const autoApplyVal = formData.get("autoApply");
       if (autoApplyVal !== null) {
         autoApply = autoApplyVal === "true";

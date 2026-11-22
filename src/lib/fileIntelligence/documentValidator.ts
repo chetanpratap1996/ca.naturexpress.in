@@ -6,6 +6,8 @@
 // - Strict Rejection of Dummy, Unrelated, or Corrupt Files with Actionable Diagnostics
 // ============================================================================
 
+import { parseBankStatementCsv } from "@/lib/parsers/bankStatementParser";
+
 export interface DocumentValidationResult<T = any> {
   isValid: boolean;
   documentType: string;
@@ -204,136 +206,84 @@ export async function validateAndExtractBankStatement(
     };
   }
 
-  // Parse CSV or delimited text
-  const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
-  const transactions: ValidatedBankStatement["transactions"] = [];
-  let runningBal = fallbackOpeningBal;
-
-  let headerIndex = -1;
-  let dateCol = 0, descCol = 1, debitCol = 2, creditCol = 3, balCol = 4;
-
-  for (let i = 0; i < Math.min(lines.length, 25); i++) {
-    const lUpper = lines[i].toUpperCase();
-    if (dateTokens.some((d) => lUpper.includes(d)) && descTokens.some((ds) => lUpper.includes(ds))) {
-      headerIndex = i;
-      const cols = lines[i].includes(",") ? lines[i].split(",") : lines[i].split("\t");
-      cols.forEach((col, idx) => {
-        const c = col.toUpperCase().trim();
-        if (dateTokens.some((d) => c.includes(d))) dateCol = idx;
-        else if (descTokens.some((ds) => c.includes(ds))) descCol = idx;
-        else if (debitTokens.some((db) => c.includes(db))) debitCol = idx;
-        else if (creditTokens.some((cr) => c.includes(cr))) creditCol = idx;
-        else if (balanceTokens.some((bl) => c.includes(bl))) balCol = idx;
+  // Real PDF extraction via Server API Route (when in browser)
+  if (isPdf && typeof window !== "undefined") {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("fallbackOpeningBal", String(fallbackOpeningBal));
+      const res = await fetch("/api/parsers/bank-statement", {
+        method: "POST",
+        body: formData
       });
-      break;
+      const json = await res.json();
+      if (json.success && json.transactions && json.transactions.length > 0) {
+        return {
+          isValid: true,
+          documentType: "BANK_STATEMENT",
+          confidenceScore: 98,
+          data: {
+            bankName: json.bankName || detectedBank,
+            accountNumber: json.accountNumber,
+            statementPeriod: json.statementPeriod,
+            openingBalance: json.openingBalance ?? fallbackOpeningBal,
+            closingBalance: json.closingBalance ?? fallbackOpeningBal,
+            transactions: json.transactions.map((t: any) => ({
+              id: t.id,
+              date: t.date,
+              narration: t.narration,
+              chqRefNo: t.chqRefNo,
+              withdrawal: t.withdrawal,
+              deposit: t.deposit,
+              balance: t.balance,
+              suggestedLedger: t.suggestedLedger,
+              confidence: t.confidence
+            }))
+          },
+          diagnostics: {
+            ...diagnostics,
+            matchedKeywords: [...diagnostics.matchedKeywords, "Binary PDF Token Layer (Parsed via Node Engine)"]
+          }
+        };
+      } else if (json.requiresPassword) {
+        diagnostics.errorMessage = json.error || "The bank statement is encrypted with a password.";
+        return { isValid: false, documentType: "BANK_STATEMENT", confidenceScore: 0, diagnostics };
+      }
+    } catch (err: any) {
+      diagnostics.warnings.push(`PDF API parser fallback to stream extraction: ${err.message}`);
     }
   }
 
-  const startLine = headerIndex >= 0 ? headerIndex + 1 : 0;
-  for (let i = startLine; i < lines.length; i++) {
-    const line = lines[i];
-    const parts = line.includes(",") ? line.split(",") : line.split("\t");
-    if (parts.length >= 3) {
-      const rawDate = parts[dateCol]?.replace(/^["']|["']$/g, "").trim();
-      const rawDesc = parts[descCol]?.replace(/^["']|["']$/g, "").trim();
-      const debitStr = parts[debitCol]?.replace(/[^0-9.-]/g, "") || "0";
-      const creditStr = parts[creditCol]?.replace(/[^0-9.-]/g, "") || "0";
-      const debitNum = Math.abs(parseFloat(debitStr)) || 0;
-      const creditNum = Math.abs(parseFloat(creditStr)) || 0;
-
-      // Ensure this row has at least an amount or looks like a transaction
-      if (debitNum > 0 || creditNum > 0) {
-        if (debitNum > 0) runningBal -= debitNum;
-        if (creditNum > 0) runningBal += creditNum;
-
-        // Auto chart of accounts classification
-        let ledger = debitNum > 0 ? "Office & Administrative Expenses" : "Sales - Trade Collections";
-        const dUpper = (rawDesc || "").toUpperCase();
-        if (dUpper.includes("GST") || dUpper.includes("TAX") || dUpper.includes("CHALLAN")) {
-          ledger = "Statutory GST Liability Paid";
-        } else if (dUpper.includes("SALARY") || dUpper.includes("PAYROLL")) {
-          ledger = "Salaries & Wages Payable";
-        } else if (dUpper.includes("RENT")) {
-          ledger = "Rent - Commercial Office";
-        } else if (dUpper.includes("ELECTRIC") || dUpper.includes("POWER")) {
-          ledger = "Electricity & Power Charges";
-        } else if (dUpper.includes("INTEREST") || dUpper.includes("DIVIDEND")) {
-          ledger = "Bank Interest Income";
-        }
-
-        transactions.push({
-          id: `TXN-EXTRACT-${i}`,
-          date: rawDate || new Date().toISOString().split("T")[0],
-          narration: rawDesc || "Bank Financial Transaction",
-          chqRefNo: parts[5]?.trim() || `REF-${i * 31}`,
-          withdrawal: debitNum,
-          deposit: creditNum,
-          balance: runningBal,
-          suggestedLedger: ledger,
-          confidence: 90,
-        });
-      }
-    }
-  }
-
-  // If PDF without readable plaintext table rows, but has valid bank statement signatures
-  if (transactions.length === 0 && isPdf) {
-    diagnostics.warnings.push("PDF statement uses visual text positioning. Fallback extraction verified 12 ledger lines.");
-    // Generate realistic transactions matching the detected bank
-    transactions.push(
-      {
-        id: "TXN-PDF-01",
-        date: "2026-10-02",
-        narration: `RTGS/CHQ/99201 - Vendor Material Supply Settlement (${detectedBank})`,
-        chqRefNo: "UTR-8812904",
-        withdrawal: 185000,
-        deposit: 0,
-        balance: fallbackOpeningBal - 185000,
-        suggestedLedger: "Sundry Creditors for Goods",
-        confidence: 94,
+  // Parse CSV or delimited stream text using the Industrial Bank Statement Parser
+  const parsed = parseBankStatementCsv(rawText, { fallbackOpeningBalance: fallbackOpeningBal });
+  if (parsed.success && parsed.transactions.length > 0) {
+    return {
+      isValid: true,
+      documentType: "BANK_STATEMENT",
+      confidenceScore: 96,
+      data: {
+        bankName: parsed.bankName || detectedBank,
+        accountNumber: parsed.accountNumber,
+        openingBalance: parsed.openingBalance,
+        closingBalance: parsed.closingBalance,
+        transactions: parsed.transactions.map(t => ({
+          id: t.id,
+          date: t.date,
+          narration: t.narration,
+          chqRefNo: t.chqRefNo,
+          withdrawal: t.withdrawal,
+          deposit: t.deposit,
+          balance: t.balance,
+          suggestedLedger: t.suggestedLedger,
+          confidence: t.confidence
+        }))
       },
-      {
-        id: "TXN-PDF-02",
-        date: "2026-10-07",
-        narration: "NEFT INWARD - Client Retainer & Statutory Audit Advance",
-        chqRefNo: "NEFT-102941",
-        withdrawal: 0,
-        deposit: 240000,
-        balance: fallbackOpeningBal - 185000 + 240000,
-        suggestedLedger: "Professional Retainer Fees Received",
-        confidence: 96,
-      },
-      {
-        id: "TXN-PDF-03",
-        date: "2026-10-14",
-        narration: "GST PMT-06 E-Payment - Electronic Cash Ledger",
-        chqRefNo: "CPIN-26109921",
-        withdrawal: 62500,
-        deposit: 0,
-        balance: fallbackOpeningBal - 185000 + 240000 - 62500,
-        suggestedLedger: "Statutory GST Liability Paid",
-        confidence: 99,
-      }
-    );
+      diagnostics
+    };
   }
 
-  if (transactions.length === 0) {
-    diagnostics.errorMessage = `No valid transaction entries found in ${fileName}. Ensure the statement contains transaction dates and numerical values.`;
-    return { isValid: false, documentType: "BANK_STATEMENT", confidenceScore: 20, diagnostics };
-  }
-
-  return {
-    isValid: true,
-    documentType: "BANK_STATEMENT",
-    confidenceScore: 95,
-    data: {
-      bankName: detectedBank,
-      openingBalance: fallbackOpeningBal,
-      closingBalance: runningBal,
-      transactions,
-    },
-    diagnostics,
-  };
+  diagnostics.errorMessage = `Document Rejected: "${fileName}" does not contain any valid transaction entries. Ensure the statement contains transaction dates and numerical values.`;
+  return { isValid: false, documentType: "BANK_STATEMENT", confidenceScore: 20, diagnostics };
 }
 
 // ============================================================================

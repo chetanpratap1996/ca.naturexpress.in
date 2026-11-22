@@ -19,15 +19,16 @@ export async function GET(request: NextRequest) {
     const entityId = searchParams.get("entityId");
     const statusFilter = searchParams.get("status");
 
-    // Initialize in-memory / db structures if not present
-    if (!(db as any).engagementAgreements) {
-      (db as any).engagementAgreements = SAMPLE_ENGAGEMENT_AGREEMENTS;
+    // Initialize in-memory / db structures if not present or if reset requested
+    const reset = searchParams.get("reset") === "true";
+    if (reset || !(db as any).engagementAgreements) {
+      (db as any).engagementAgreements = JSON.parse(JSON.stringify(SAMPLE_ENGAGEMENT_AGREEMENTS));
     }
-    if (!(db as any).scopeCreepIncidents) {
-      (db as any).scopeCreepIncidents = SAMPLE_SCOPE_CREEP_INCIDENTS;
+    if (reset || !(db as any).scopeCreepIncidents) {
+      (db as any).scopeCreepIncidents = JSON.parse(JSON.stringify(SAMPLE_SCOPE_CREEP_INCIDENTS));
     }
-    if (!(db as any).dynamicMicroBills) {
-      (db as any).dynamicMicroBills = SAMPLE_DYNAMIC_MICRO_BILLS;
+    if (reset || !(db as any).dynamicMicroBills) {
+      (db as any).dynamicMicroBills = JSON.parse(JSON.stringify(SAMPLE_DYNAMIC_MICRO_BILLS));
     }
 
     let agreements: EngagementAgreement[] = (db as any).engagementAgreements;

@@ -95,8 +95,8 @@ async function runTestSuite() {
   }
 
   try {
-    // 3.1 GET /api/billing/agreements
-    const getRes = await makeRequest("GET", "/api/billing/agreements");
+    // 3.1 GET /api/billing/agreements (with reset=true for clean idempotent test runs)
+    const getRes = await makeRequest("GET", "/api/billing/agreements?reset=true");
     assert(getRes.statusCode === 200, `GET /api/billing/agreements returns 200 OK`);
     assert(getRes.body && getRes.body.success === true, `API reports success: true`);
     assert(Array.isArray(getRes.body.agreements), `Returns live agreements list`);

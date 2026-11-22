@@ -27,7 +27,8 @@ import {
   ArrowUpRight,
   Receipt,
   Zap,
-  UploadCloud
+  UploadCloud,
+  Scale
 } from "lucide-react";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
@@ -36,6 +37,7 @@ import { BankStatementReconcileModal } from "@/components/firm/billing/BankState
 import { ValueDeliveredDesk } from "@/components/firm/billing/ValueDeliveredDesk";
 import { TieredGatekeeperDesk } from "@/components/firm/billing/TieredGatekeeperDesk";
 import { ScopeCreepDesk } from "@/components/firm/billing/ScopeCreepDesk";
+import { MsmeRecoveryDesk } from "@/components/firm/billing/MsmeRecoveryDesk";
 import {
   CA_SAC_SERVICES,
   determinePlaceOfSupply,
@@ -112,7 +114,7 @@ interface BillingWipProps {
 export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], onRefresh }) => {
   const [invoiceList, setInvoiceList] = useState<InvoiceItem[]>(invoices);
   const [wipJobs, setWipJobs] = useState<WipJobItem[]>(DEFAULT_WIP_JOBS);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement" | "tiered_gatekeeper" | "scope_creep">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "utr_review" | "paid" | "wip_unbilled" | "imprest_ledger" | "value_statement" | "tiered_gatekeeper" | "scope_creep" | "msme_recovery">("all");
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceItem | null>(null);
   const [reconcileModalInvoice, setReconcileModalInvoice] = useState<InvoiceItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
@@ -560,6 +562,19 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
 
             <button
               type="button"
+              onClick={() => setActiveTab("msme_recovery")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                activeTab === "msme_recovery"
+                  ? "bg-btred-logo text-white shadow-sm"
+                  : "text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              ⚖️ MSME 43B(h) Recovery
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab("imprest_ledger")}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
                 activeTab === "imprest_ledger" ? "bg-teal-700 text-white shadow-sm" : "text-teal-800 bg-teal-50 hover:bg-teal-100"
@@ -587,8 +602,12 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           </div>
         </div>
 
-        {/* When activeTab is scope_creep, render Phase 3 Autonomous Scope Creep Engine */}
-        {activeTab === "scope_creep" ? (
+        {/* When activeTab is msme_recovery, render Phase 4 Statutory MSME Section 43B(h) Recovery Radar */}
+        {activeTab === "msme_recovery" ? (
+          <div className="p-4">
+            <MsmeRecoveryDesk />
+          </div>
+        ) : activeTab === "scope_creep" ? (
           <div className="p-4">
             <ScopeCreepDesk />
           </div>
@@ -808,6 +827,15 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
                           >
                             <Zap className="w-3.5 h-3.5 text-amber-600" />
                             <span className="text-[11px]">Scope</span>
+                          </button>
+
+                          <button
+                            onClick={() => setActiveTab("msme_recovery")}
+                            className="px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-xl text-btred-logo text-xs font-bold hover:bg-red-100 transition flex items-center gap-1"
+                            title="View MSME Section 43B(h) & Section 16 Recovery Status"
+                          >
+                            <Scale className="w-3.5 h-3.5 text-btred-logo" />
+                            <span className="text-[11px]">MSME</span>
                           </button>
 
                           {inv.status !== "PAID" && (

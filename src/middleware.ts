@@ -31,7 +31,8 @@ export async function middleware(request: NextRequest) {
     pathname === "/api/litigation/predictive-risk" ||
     pathname === "/api/billing/value-statement" ||
     pathname === "/api/pay-to-release" ||
-    pathname === "/api/billing/agreements";
+    pathname === "/api/billing/agreements" ||
+    pathname === "/api/billing/msme-recovery";
   if (pathname.startsWith("/api/") && !isPublicApi) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated) {

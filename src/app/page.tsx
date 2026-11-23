@@ -40,7 +40,6 @@ import { SidebarNav } from "@/components/navigation/SidebarNav";
 import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
 import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
-import { AutopilotPulseCockpit } from "@/components/firm/AutopilotPulseCockpit";
 import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemblyLine";
 import { AutonomousPracticeCockpit } from "@/components/firm/AutonomousPracticeCockpit";
 import { AutonomousTdsWorkbench } from "@/components/firm/AutonomousTdsWorkbench";
@@ -619,6 +618,7 @@ export default function Home() {
           onOpenClientMaster={() => setIsClientMasterOpen(true)}
           onOpenFirmHub={() => setIsFirmHubOpen(true)}
           onOpenClientBroadcaster={() => setIsClientBroadcasterOpen(true)}
+          onRefreshData={refreshData}
           onExitSandbox={() => {
             clearSession();
             setCurrentUser(null);
@@ -668,26 +668,6 @@ export default function Home() {
           {/* VIEW 2: PARTNER COCKPIT (FOR CA PARTNERS & MANAGERS) */}
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
-              {/* INSTITUTIONAL AUTOPILOT AI TELEMETRY COCKPIT */}
-              <AutopilotPulseCockpit 
-                onTriggerSweep={async () => {
-                  try {
-                    const res = await fetch("/api/firm-autopilot", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ triggerSource: "MANUAL_PULSE" }),
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      await refreshData();
-                      return data.summary;
-                    }
-                  } catch (err) {
-                    console.error("Autopilot sweep failed:", err);
-                  }
-                }}
-              />
-
               {/* Contextual Sub-Tab Header for Active Domain */}
               <DomainSubTabHeader
                 activeDomain={activeDomain}

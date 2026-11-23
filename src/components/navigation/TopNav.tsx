@@ -62,6 +62,7 @@ interface TopNavProps {
   onSelectClient?: (clientId: string, selectedGstin?: string) => void;
   selectedGstin?: string;
   onOpenDiagnosticOnboarding?: () => void;
+  onRefreshData?: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({ 
@@ -86,6 +87,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onSelectClient,
   selectedGstin,
   onOpenDiagnosticOnboarding,
+  onRefreshData,
 }) => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -252,7 +254,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             {/* Autonomous Practice Living Pulse Pill */}
             {!isClientMode && (
-              <AutopilotPulsePill />
+              <AutopilotPulsePill onRefreshData={onRefreshData} />
             )}
 
             {/* Quick Search Trigger */}

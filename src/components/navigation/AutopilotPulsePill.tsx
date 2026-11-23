@@ -2,20 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { usePracticeAutopilotHeartbeat } from "@/lib/hooks/usePracticeAutopilotHeartbeat";
-import { practiceSound } from "@/lib/audio/soundEffects";
 import { formatCurrencyINR } from "@/lib/utils";
 import {
-  Zap,
   RotateCw,
-  Play,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Volume2,
-  VolumeX,
   X,
-  ShieldCheck,
   ChevronDown,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 interface AutopilotPulsePillProps {
@@ -33,7 +26,6 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
   } = usePracticeAutopilotHeartbeat(true, onRefreshData);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(() => practiceSound.getMuted());
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Format seconds mm:ss
@@ -56,129 +48,132 @@ export function AutopilotPulsePill({ onRefreshData }: AutopilotPulsePillProps) {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isOpen]);
 
-  const handleToggleSound = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const muted = practiceSound.toggleMuted();
-    setIsMuted(muted);
-  };
-
   return (
     <div className="relative inline-block" ref={popoverRef}>
       {/* Living Pulse Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition shadow-xs ${
+        className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-2 transition shadow-xs ${
           isSweeping
-            ? "bg-red-50 text-red-700 border-red-300"
+            ? "bg-slate-100 text-slate-700 border-slate-300"
             : isAutonomousActive
-            ? "bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 border-emerald-300/80"
-            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+            ? "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+            : "bg-slate-100 hover:bg-slate-200 text-slate-500 border-slate-200"
         }`}
-        title="Practice Autopilot Engine Status"
+        title="Practice Autopilot Status"
       >
-        <span className="relative flex h-2 w-2">
-          {isAutonomousActive && (
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSweeping ? "bg-red-500" : "bg-emerald-500"}`} />
-          )}
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${isSweeping ? "bg-red-600" : isAutonomousActive ? "bg-emerald-600" : "bg-slate-400"}`} />
+        {isSweeping ? (
+          <RotateCw className="w-3 h-3 text-slate-600 animate-spin" />
+        ) : (
+          <span className="relative flex h-2 w-2">
+            {isAutonomousActive && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 bg-emerald-400" />
+            )}
+            <span
+              className={`relative inline-flex rounded-full h-2 w-2 ${
+                isAutonomousActive ? "bg-emerald-500" : "bg-slate-400"
+              }`}
+            />
+          </span>
+        )}
+
+        <span className="font-semibold text-slate-800">
+          {isSweeping ? "Syncing..." : "Autopilot"}
         </span>
 
-        <span className="hidden sm:inline font-bold">
-          {isSweeping ? "Sweeping Practice..." : isAutonomousActive ? "Autopilot" : "Autopilot Paused"}
-        </span>
-
-        <span className="font-mono text-[11px] text-slate-500 font-bold hidden md:inline">
-          {isAutonomousActive && !isSweeping ? formatTime(secondsToNextSweep) : ""}
-        </span>
+        {isAutonomousActive && !isSweeping && (
+          <span className="font-mono text-[11px] text-slate-400 font-medium hidden md:inline">
+            {formatTime(secondsToNextSweep)}
+          </span>
+        )}
 
         <ChevronDown className="w-3 h-3 text-slate-400" />
       </button>
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl p-4 shadow-xl z-50 text-slate-900 space-y-3.5 animate-in fade-in zoom-in-95">
+        <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl p-4 shadow-xl z-50 text-slate-900 space-y-3.5 animate-in fade-in zoom-in-95">
+          {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-red-600" />
-              <span className="font-black text-xs uppercase tracking-wide">
-                Practice Autopilot Kernel
+              <span className="font-semibold text-xs text-slate-900">
+                Practice Autopilot
+              </span>
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                  isAutonomousActive
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-slate-100 text-slate-600 border-slate-200"
+                }`}
+              >
+                {isAutonomousActive ? "Active" : "Paused"}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleToggleSound}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
-                title={isMuted ? "Unmute Sound Feedback" : "Mute Sound Feedback"}
-              >
-                {isMuted ? <VolumeX className="w-4 h-4 text-slate-400" /> : <Volume2 className="w-4 h-4 text-emerald-600" />}
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Toggle Autonomous Mode */}
           <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
             <div className="space-y-0.5">
-              <span className="text-xs font-bold block text-slate-900">Autonomous Background Sweeps</span>
-              <span className="text-[10px] text-slate-500 block">Runs every 3 mins in background</span>
+              <span className="text-xs font-semibold block text-slate-900">
+                Background Sync & Rebalance
+              </span>
+              <span className="text-[10px] text-slate-500 block">
+                Runs automatically every 3 mins
+              </span>
             </div>
             <button
+              type="button"
               onClick={() => toggleAutonomousMode()}
-              className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center ${
+              className={`w-10 h-5 rounded-full transition-colors p-0.5 flex items-center ${
                 isAutonomousActive ? "bg-emerald-600 justify-end" : "bg-slate-300 justify-start"
               }`}
             >
-              <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+              <div className="w-4 h-4 rounded-full bg-white shadow-xs" />
             </button>
           </div>
 
-          {/* Sweep Summary Metrics */}
+          {/* Status & Summary */}
           {lastSweepSummary ? (
-            <div className="space-y-2 text-xs">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                Last Sweep Summary ({lastSweepSummary.executionDurationMs}ms)
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2 text-xs text-slate-600">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Last run completed ({lastSweepSummary.executionDurationMs}ms)</span>
+                <span className="font-mono">Next: {formatTime(secondsToNextSweep)}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-slate-500 block">Tasks Created</span>
-                  <span className="font-bold text-slate-900">+{lastSweepSummary.tasksSpawned}</span>
-                </div>
-                <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <span className="text-slate-500 block">Docs Unlocked</span>
-                  <span className="font-bold text-emerald-700">+{lastSweepSummary.vaultDocsAutoUnlocked}</span>
-                </div>
-                <div className="p-2 bg-red-50 rounded-lg border border-red-200">
-                  <span className="text-slate-500 block">Penalty Exposure</span>
-                  <span className="font-bold text-red-700">{formatCurrencyINR(lastSweepSummary.totalLateFeeAudited)}</span>
-                </div>
-                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-slate-500 block">Invoices Drafted</span>
-                  <span className="font-bold text-slate-900">+{lastSweepSummary.autoInvoicesDrafted}</span>
-                </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700 font-medium pt-1 border-t border-slate-200/60">
+                <div>• {lastSweepSummary.tasksSpawned} returns synced</div>
+                <div>• {lastSweepSummary.vaultDocsAutoUnlocked} docs unlocked</div>
+                <div>• {lastSweepSummary.autoInvoicesDrafted} invoices drafted</div>
+                <div>• {formatCurrencyINR(lastSweepSummary.totalLateFeeAudited)} audited</div>
               </div>
             </div>
           ) : (
-            <div className="text-xs text-slate-500 text-center py-2">
-              Next scheduled background sweep in <strong>{formatTime(secondsToNextSweep)}</strong>.
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs text-slate-600">
+              <span className="flex items-center gap-1.5 text-slate-500">
+                <Clock className="w-3.5 h-3.5" /> Next scheduled sync
+              </span>
+              <span className="font-mono font-bold text-slate-800">
+                {formatTime(secondsToNextSweep)}
+              </span>
             </div>
           )}
 
-          {/* 1-Click Trigger */}
+          {/* 1-Click Sync Button */}
           <button
             onClick={async () => {
               await triggerImmediateSweep();
             }}
             disabled={isSweeping}
-            className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition"
+            className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition disabled:opacity-60"
           >
             <RotateCw className={`w-3.5 h-3.5 ${isSweeping ? "animate-spin" : ""}`} />
-            {isSweeping ? "Running Sweep..." : "Trigger Immediate Sweep"}
+            {isSweeping ? "Syncing..." : "Sync Now"}
           </button>
         </div>
       )}

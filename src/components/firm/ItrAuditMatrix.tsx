@@ -156,10 +156,10 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
               </span>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Income Tax &amp; Audit Matrix
+                  Income Tax &amp; Audit Operations Matrix
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  ITR filings and Form 3CD tax audit certifications
+                  Direct tax return radar, Form 3CD audit certifications, and Section 115BAC regime insights.
                 </p>
               </div>
             </div>
@@ -404,15 +404,19 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
                           onClick={() => handleOpenFiling(t)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 mx-auto ${
                             isFiled
-                              ? "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                              ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
                               : isAudit
                               ? "bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white shadow-sm shadow-purple-600/25 active:scale-95"
                               : "bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-700 hover:to-red-700 text-white shadow-sm shadow-red-500/25 active:scale-95"
                           }`}
                           title={isFiled ? "View ITR-V Acknowledgment & Sync details" : "Open In-Context Direct Tax Filing Drawer"}
                         >
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>{isFiled ? "View Ack" : isAudit ? "Audit Form →" : "File ITR →"}</span>
+                          {isFiled ? (
+                            <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5" />
+                          )}
+                          <span>{isFiled ? "View Ack" : isAudit ? "Audit 3CD →" : "File ITR →"}</span>
                         </button>
                       </td>
                     </tr>

@@ -53,11 +53,11 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   ],
   "tax-audit": [
     { id: "itr-matrix", label: "ITR Matrix", shortLabel: "ITR", icon: FileCheck },
-    { id: "pillar-two-tax", label: "Pillar 2 Tax", shortLabel: "Pillar 2", icon: Calculator },
-    { id: "pillar-three-audit", label: "Form 3CD Audit", shortLabel: "3CD", icon: ClipboardCheck },
-    { id: "pillar-five-tds", label: "TDS & TRACES", shortLabel: "TDS", icon: FileCheck },
-    { id: "schedule3-audit", label: "Schedule III", shortLabel: "Sched III", icon: Layers },
     { id: "ais-analyzer", label: "AIS / 26AS", shortLabel: "AIS", icon: FileSearch },
+    { id: "pillar-five-tds", label: "TDS & TRACES", shortLabel: "TDS", icon: FileSpreadsheet },
+    { id: "pillar-three-audit", label: "Form 3CD Audit", shortLabel: "3CD", icon: ClipboardCheck },
+    { id: "schedule3-audit", label: "Schedule III", shortLabel: "Sched III", icon: Layers },
+    { id: "pillar-two-tax", label: "Capital Gains & Schedules", shortLabel: "Schedules", icon: Calculator },
     { id: "engagement-letter", label: "Engagement Letters", shortLabel: "Letters", icon: FileCheck }
   ],
   "notices-udin": [

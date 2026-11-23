@@ -188,10 +188,10 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5 font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-800" /> ICAI SA 210 Standard Compliant
               </span>
-              <span className="text-xs text-slate-600 font-mono">FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; 1-Click Retainer Generator</span>
+              <span className="text-xs text-slate-600 font-mono">FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SA 210 Retainer Generator</span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <FileCheck className="w-6 h-6 text-btred-logo" /> Automated Engagement Letters &amp; Retainer Agreements
+              <FileCheck className="w-6 h-6 text-btred-logo" /> ICAI SA 210 Engagement Letters &amp; Retainer Agreements
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl">
               Eliminate professional liability risk and satisfy ICAI Peer Review mandates. Generates official SA-210 letters of engagement with statutory clauses for CARO 2020, UDIN obligations, and Section 43B(h) payment schedules.

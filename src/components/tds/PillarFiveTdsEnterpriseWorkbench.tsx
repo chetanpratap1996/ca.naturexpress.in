@@ -146,26 +146,26 @@ export function PillarFiveTdsEnterpriseWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner - Crisp White & Brand Red Accent */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600" />
-              <span>Pillar V: TDS, TRACES &amp; International Remittances</span>
+      {/* Clean Professional Header */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>e-TDS Return &amp; TRACES Compliance Workbench</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Quarterly TDS (24Q/26Q/27Q/27EQ), TRACES Default Curer &amp; Form 15CA/CB
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Quarterly TDS Returns &amp; TRACES Compliance Desk
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Institutional TDS automation: <strong>FVU text generator</strong>, <strong>CSI challan matcher</strong>, <strong>TRACES justification report analyzer</strong> (Sec 234E &amp; 201(1A)), <strong>Section 197 threshold guardian</strong>, <strong>Form 15CA/15CB DTAA optimizer</strong>, and <strong>Form 16 DSC bulk signer</strong>.
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <strong>FVU text generator</strong>, <strong>CSI challan matcher</strong>, <strong>TRACES justification report analyzer</strong> (Sec 234E &amp; 201(1A)), <strong>Section 197 lower deduction certificates</strong>, and <strong>Form 15CA/CB remittances</strong>.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <button
               onClick={handleDownloadFvu}
-              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-200 flex items-center space-x-2 transition"
+              className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs flex items-center space-x-2 transition"
             >
               <Download className="w-4 h-4" />
               <span>Compile &amp; Download FVU File</span>
@@ -229,66 +229,66 @@ export function PillarFiveTdsEnterpriseWorkbench() {
         </div>
       </div>
 
-      {/* 5 Institutional Tabs */}
+      {/* TDS Subtabs */}
       <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('QUARTERLY_RETURN')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'QUARTERLY_RETURN'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Calculator className="w-3.5 h-3.5" />
-          <span>1. Quarterly Return (24Q/26Q/27Q/27EQ) &amp; CSI</span>
+          <span>Quarterly Returns (24Q/26Q/27Q) &amp; CSI</span>
         </button>
 
         <button
           onClick={() => setActiveTab('TRACES_JUSTIFICATION')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'TRACES_JUSTIFICATION'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5" />
-          <span>2. TRACES Default Analyzer (234E &amp; 201(1A))</span>
+          <span>TRACES Default Analyzer</span>
         </button>
 
         <button
           onClick={() => setActiveTab('SEC_197_GUARDIAN')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'SEC_197_GUARDIAN'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Percent className="w-3.5 h-3.5" />
-          <span>3. Sec 197 Lower Rate Guardian</span>
+          <span>Section 197 Lower Rate</span>
         </button>
 
         <button
           onClick={() => setActiveTab('FORM_15CA_15CB')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'FORM_15CA_15CB'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
-          <span>4. Form 15CA &amp; 15CB Foreign Remittances</span>
+          <span>Form 15CA &amp; 15CB Foreign Remittances</span>
         </button>
 
         <button
           onClick={() => setActiveTab('FORM_16_SIGNER')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'FORM_16_SIGNER'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <KeyRound className="w-3.5 h-3.5" />
-          <span>5. Form 16 Bulk Merger &amp; DSC Signer</span>
+          <span>Form 16/16A Signer</span>
         </button>
       </div>
 

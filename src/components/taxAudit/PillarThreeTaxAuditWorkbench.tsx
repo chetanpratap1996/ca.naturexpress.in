@@ -49,24 +49,24 @@ export function PillarThreeTaxAuditWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Pillar Header - White & Brand Red */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-              <span>Pillar III: Form 3CD Institutional Tax Audit Suite</span>
+      {/* Clean Professional Header */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>ICAI Auditing Standards • Section 44AB</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Section 44AB Tax Audit Workpapers &amp; ICAI Standards
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Form 3CD Tax Audit Workpapers &amp; Reporting Desk
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Complete automated audit trails for Form 3CD: <strong>Clause 13(d) ICDS I to X adjustments</strong>, <strong>Clause 21(a) Section 40(a)(ia) &amp; 40A(3) disallowances</strong>, <strong>Clause 26 Section 43B dues</strong>, <strong>Clause 31 Section 269SS/T cash loans</strong>, and <strong>Clause 32/40 loss carry-forwards &amp; quantitative ratios</strong>.
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <strong>Clause 13(d) ICDS adjustments</strong>, <strong>Clause 21 Section 40(a)(ia) &amp; 40A(3) disallowances</strong>, <strong>Clause 26 Section 43B dues</strong>, <strong>Clause 31 Section 269SS/T cash loans</strong>, and <strong>Clause 32/40 loss ratios</strong>.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold shadow-sm">
+            <span className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold shadow-xs">
               Form 3CD JSON Export Ready
             </span>
           </div>
@@ -79,60 +79,60 @@ export function PillarThreeTaxAuditWorkbench() {
           onClick={() => setActiveTab('ICDS_CLAUSE13')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'ICDS_CLAUSE13'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>1. Clause 13(d) ICDS Adjustments</span>
+          <span>Clause 13(d) ICDS Adjustments</span>
         </button>
 
         <button
           onClick={() => setActiveTab('DISALLOWANCES_CLAUSE21')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'DISALLOWANCES_CLAUSE21'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
-          <span>2. Clause 21 Disallowances (40(a)(ia)/40A(3))</span>
+          <span>Clause 21 Disallowances (40(a)(ia)/40A(3))</span>
         </button>
 
         <button
           onClick={() => setActiveTab('STATUTORY_DUES_SEC43B')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'STATUTORY_DUES_SEC43B'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          <span>3. Clause 26 Sec 43B Dues (EPF/GST/Bonus)</span>
+          <span>Clause 26 Sec 43B Dues (EPF/GST/Bonus)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('CASH_LOANS_CLAUSE31')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'CASH_LOANS_CLAUSE31'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
-          <span>4. Clause 31 (269SS/T Cash Loans)</span>
+          <span>Clause 31 (269SS/T Cash Loans)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('LOSS_MATRIX_RATIOS')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'LOSS_MATRIX_RATIOS'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5" />
-          <span>5. Clause 32 Losses &amp; Clause 40 Ratios</span>
+          <span>Clause 32 Losses &amp; Clause 40 Ratios</span>
         </button>
       </div>
 

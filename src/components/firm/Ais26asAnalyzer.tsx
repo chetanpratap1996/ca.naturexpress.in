@@ -505,15 +505,15 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-rose-200">
-                Module 2.2 • Institutional Forensic Engine
+                CBDT Information Reconciliation • Form 26AS &amp; AIS
               </span>
-              <span className="text-xs text-slate-400 font-medium">Sec 285BA, Rule 114E &amp; Sec 143(1)(a)</span>
+              <span className="text-xs text-slate-400 font-medium font-mono">Sec 285BA, Rule 114E &amp; Sec 143(1)(a)</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              AIS / 26AS SFT Forensic Inspector
+              AIS &amp; Form 26AS SFT Reconciler
             </h1>
             <p className="text-xs sm:text-sm text-slate-500">
-              High-value SFT cash and transaction categorization, books cross-reconciliation, and CBDT Insight notice forecaster.
+              High-value SFT transaction categorization, books cross-reconciliation, and CBDT Insight notice risk forecasting.
             </p>
           </div>
 
@@ -647,9 +647,9 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
           }`}
         >
           <CreditCard className="w-4 h-4 text-amber-500" />
-          Rule 114E SFT Threat Radar
+          SFT High-Value Cash Radar
           <span className="px-2 py-0.5 bg-amber-500/20 text-amber-700 text-[10px] rounded-full font-bold">
-            Cash &amp; Spends
+            Rule 114E
           </span>
         </button>
 
@@ -665,9 +665,9 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
           }`}
         >
           <Scale className="w-4 h-4 text-slate-600" />
-          Sec 194Q vs 206C(1H) &amp; 80TTA
+          TDS 194Q / TCS 206C Turnover Check
           <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] rounded-full font-bold">
-            Turnover Check
+            Turnover
           </span>
         </button>
 
@@ -683,7 +683,7 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
           }`}
         >
           <ShieldAlert className="w-4 h-4 text-rose-500" />
-          CBDT RMS Scrutiny Forecaster
+          CBDT Insight Risk Forecaster
           <span className="px-2 py-0.5 bg-rose-500/20 text-rose-700 text-[10px] rounded-full font-bold">
             Sec 143(1) / 148
           </span>

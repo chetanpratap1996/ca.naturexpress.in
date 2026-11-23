@@ -361,7 +361,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 flex items-center gap-1">
                 <Layers className="w-3 h-3" />
-                Schedule III Engine (Phase 1 & 2)
+                Schedule III Financial Statements
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
                 Companies Act 2013 &bull; Sec 129

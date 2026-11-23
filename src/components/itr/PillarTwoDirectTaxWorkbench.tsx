@@ -52,24 +52,24 @@ export function PillarTwoDirectTaxWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Pillar Header - White & Brand Red */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-              <span>Pillar II: Advanced Direct Tax &amp; Capital Gains Suite</span>
+      {/* Clean Professional Header */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>Direct Tax Schedules &amp; Computations</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Finance Act 2024 Capital Gains, Depreciation &amp; Schedule FA
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Capital Gains, Depreciation &amp; Statutory Tax Schedules
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Institutional precision under latest tax laws: <strong>STCG @ 20% u/s 111A</strong>, <strong>LTCG @ 12.5% u/s 112A with ₹1.25L exemption</strong>, <strong>Section 32 Additional Depreciation (20%)</strong>, <strong>Form 10-IEA lifetime lockout guard</strong>, <strong>Schedule FA &amp; Form 67</strong>, and <strong>Section 115BBH Crypto ring-fenced ledger</strong>.
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <strong>STCG @ 20% u/s 111A</strong>, <strong>LTCG @ 12.5% u/s 112A with ₹1.25L exemption</strong>, <strong>Section 32 Additional Depreciation (20%)</strong>, <strong>Form 10-IEA regime evaluation</strong>, <strong>Schedule FA &amp; Form 67</strong>, and <strong>Section 115BBH Crypto ledger</strong>.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold shadow-sm">
+            <span className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold shadow-xs">
               Budget 2024 Regimes Active
             </span>
           </div>
@@ -82,60 +82,60 @@ export function PillarTwoDirectTaxWorkbench() {
           onClick={() => setActiveTab('CAPITAL_GAINS')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'CAPITAL_GAINS'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5" />
-          <span>1. Capital Gains (Budget 2024 Rates)</span>
+          <span>Capital Gains (Sec 111A/112A)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('DEPRECIATION_SEC32')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'DEPRECIATION_SEC32'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>2. Section 32 Depreciation Blocks ({depnBlocks.length})</span>
+          <span>Section 32 Depreciation Blocks ({depnBlocks.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('FORM_10IEA')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'FORM_10IEA'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Lock className="w-3.5 h-3.5" />
-          <span>3. Form 10-IEA Lifetime Guardian</span>
+          <span>Form 10-IEA Regime Opt-In</span>
         </button>
 
         <button
           onClick={() => setActiveTab('FOREIGN_ASSETS_FA')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'FOREIGN_ASSETS_FA'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Globe2 className="w-3.5 h-3.5" />
-          <span>4. Schedule FA &amp; Form 67 (US Stocks)</span>
+          <span>Schedule FA Foreign Assets</span>
         </button>
 
         <button
           onClick={() => setActiveTab('VDA_CRYPTO')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
             activeTab === 'VDA_CRYPTO'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Coins className="w-3.5 h-3.5" />
-          <span>5. Section 115BBH Crypto Ledger</span>
+          <span>Section 115BBH Crypto Ledger</span>
         </button>
       </div>
 

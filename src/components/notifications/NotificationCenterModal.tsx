@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Bell, 
   Check, 
@@ -16,23 +16,19 @@ import {
   X,
   CheckCheck,
   Send,
-  Zap,
   Search,
-  FileSpreadsheet,
-  Lock,
   KeyRound,
+  Lock,
   ArrowUpRight,
   MessageSquare,
-  ChevronDown
+  RefreshCw
 } from "lucide-react";
 import { NotificationItem, NotificationCategory, NotificationPreferences } from "@/lib/types";
 import { 
   getStoredPreferences, 
   savePreferences, 
   playNotificationChime, 
-  requestBrowserNotificationPermission,
-  showBrowserNotification,
-  dispatchClientNotification
+  requestBrowserNotificationPermission
 } from "@/lib/notifications";
 import { toast } from "@/components/shared/ToastNotification";
 
@@ -61,14 +57,15 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<FilterCategory>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSettings, setShowSettings] = useState(false);
-  const [showSimMenu, setShowSimMenu] = useState(false);
   const [preferences, setPreferences] = useState<NotificationPreferences>(getStoredPreferences());
   const [isLoading, setIsLoading] = useState(false);
-  const simMenuRef = useRef<HTMLDivElement>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (showToast = false) => {
     try {
-      setIsLoading(true);
+      if (showToast) setIsRefreshing(true);
+      else setIsLoading(true);
+
       const params = new URLSearchParams();
       if (currentUserRole) params.set("role", currentUserRole);
       if (clientEntityId) params.set("clientEntityId", clientEntityId);
@@ -78,12 +75,20 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
         const data = await res.json();
         if (data.success && data.notifications) {
           setNotifications(data.notifications);
+          if (showToast) {
+            playNotificationChime();
+            toast.success("Alerts Synchronized", "Refreshed compliance alerts from practice database.");
+          }
         }
       }
     } catch (e) {
       console.warn("Failed to fetch notifications:", e);
+      if (showToast) {
+        toast.error("Sync Failed", "Could not refresh notifications.");
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -91,7 +96,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     if (isOpen) {
       fetchNotifications();
       setShowSettings(false);
-      setShowSimMenu(false);
       setSearchQuery("");
     }
   }, [isOpen, currentUserRole, clientEntityId]);
@@ -106,19 +110,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     window.addEventListener("bt_notification_received", handleReceived);
     return () => window.removeEventListener("bt_notification_received", handleReceived);
   }, []);
-
-  // Close simulation menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (simMenuRef.current && !simMenuRef.current.contains(e.target as Node)) {
-        setShowSimMenu(false);
-      }
-    };
-    if (showSimMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showSimMenu]);
 
   // Counts for clean tab labels
   const counts = useMemo(() => {
@@ -252,115 +243,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
   };
 
-  // Live Automated Practice Event Simulations
-  const simulateInboundBankPdf = () => {
-    playNotificationChime();
-    const newNotif: NotificationItem = {
-      id: `notif-sim-wa-${Date.now()}`,
-      recipientRole: "PARTNER",
-      title: "Inbound Bank Statement Decrypted (HDFC)",
-      message: "Singhal Logistics uploaded encrypted statement via WhatsApp. Auto-decrypted using Entity DNA password (AABCU9821F); 14 vouchers mapped for Tally sync.",
-      category: "DOCUMENT",
-      priority: "NORMAL",
-      targetTab: "bank-parser",
-      actionUrl: "bank-parser",
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      metadata: {
-        clientName: "Singhal Logistics & Warehousing",
-        clientPhone: "+91 98110 44212",
-        entityId: "client-singhal",
-        statutoryAct: "Bank Parser & Tally",
-        actionLabel: "Post to Tally",
-        badgeText: "Auto-Decrypted"
-      }
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    toast.success("Bank Statement Decrypted", "14 bank vouchers generated for Singhal Logistics.");
-    setShowSimMenu(false);
-  };
-
-  const simulateNfacNotice = () => {
-    playNotificationChime();
-    const newNotif: NotificationItem = {
-      id: `notif-sim-notice-${Date.now()}`,
-      recipientRole: "PARTNER",
-      title: "Section 148 Reassessment Notice (NFAC)",
-      message: "OmniRetail Hypermarkets received reassessment notice from NFAC Delhi. Alleged cash deposit discrepancy of ₹42,50,000. Statutory reply deadline: 19 days.",
-      category: "NOTICE",
-      priority: "CRITICAL",
-      targetTab: "notices",
-      actionUrl: "notices",
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      metadata: {
-        clientName: "OmniRetail Hypermarkets Private Limited",
-        clientPhone: "+91 98110 44211",
-        entityId: "client-omni",
-        statutoryAct: "NFAC Section 148",
-        actionLabel: "Open Defense Dossier",
-        badgeText: "19 Days Left"
-      }
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    toast.warning("Scrutiny Notice Detected", "Section 148 notice added for OmniRetail Hypermarkets.");
-    setShowSimMenu(false);
-  };
-
-  const simulatePaymentReconciled = () => {
-    playNotificationChime();
-    const newNotif: NotificationItem = {
-      id: `notif-sim-pay-${Date.now()}`,
-      recipientRole: "PARTNER",
-      title: "Payment Reconciled: ₹59,000 (UPI)",
-      message: "Pratwi Solutions settled Invoice #GPA/2026-27/098 via UPI (UTR: AUTOUPI982341982). Pay-to-Release fee gate released signed reports.",
-      category: "BILLING",
-      priority: "HIGH",
-      targetTab: "billing-matrix",
-      actionUrl: "billing-matrix",
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      metadata: {
-        clientName: "Pratwi Solutions Private Limited",
-        clientPhone: "8077170715",
-        entityId: "client-pratwi",
-        statutoryAct: "Pay-to-Release",
-        actionLabel: "Unlock Deliverables",
-        badgeText: "UTR Matched"
-      }
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    toast.success("Payment Reconciled", "Signed deliverables released for Pratwi Solutions.");
-    setShowSimMenu(false);
-  };
-
-  const simulateUdinMandate = () => {
-    playNotificationChime();
-    const newNotif: NotificationItem = {
-      id: `notif-sim-udin-${Date.now()}`,
-      recipientRole: "PARTNER",
-      title: "UDIN 60-Day Mandate (8 Days Left)",
-      message: "Form 3CD for Apex AutoTech was signed 52 days ago. Only 8 days remaining to register UDIN on ICAI portal before compliance default.",
-      category: "UDIN",
-      priority: "HIGH",
-      targetTab: "udin-vault",
-      actionUrl: "udin-vault",
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      metadata: {
-        clientName: "Apex AutoTech Private Limited",
-        clientPhone: "+91 98200 11223",
-        entityId: "client-apex",
-        statutoryAct: "ICAI 60-Day Mandate",
-        actionLabel: "Generate UDIN",
-        badgeText: "Mandate Risk"
-      }
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    toast.warning("UDIN Mandate Alert", "8 days remaining to register UDIN on ICAI portal.");
-    setShowSimMenu(false);
-  };
-
   const getCategoryDetails = (category: NotificationCategory) => {
     switch (category) {
       case "COMPLIANCE":
@@ -452,7 +334,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
         role="dialog"
         aria-modal="true"
       >
-        {/* Header (Clean, untruncated, no clutter) */}
+        {/* Header */}
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-btred-logo text-white flex items-center justify-center relative shrink-0 shadow-md shadow-red-500/20">
@@ -476,6 +358,17 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Real-time Refresh / Sync Alerts Button (Accurate, Real) */}
+            <button
+              type="button"
+              onClick={() => fetchNotifications(true)}
+              disabled={isRefreshing}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
+              title="Refresh / Synchronize Alerts"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-btred-logo" : ""}`} />
+            </button>
+
             {/* Chime Sound Toggle */}
             <button
               type="button"
@@ -489,71 +382,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             >
               {preferences.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
-
-            {/* Event Simulator Dropdown */}
-            {currentUserRole !== "CLIENT" && (
-              <div className="relative" ref={simMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowSimMenu(!showSimMenu)}
-                  className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition shadow-2xs"
-                  title="Simulate Real-Time Practice Events"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-                  <span className="hidden sm:inline">Simulate Event</span>
-                  <ChevronDown className="w-3 h-3 text-amber-700" />
-                </button>
-
-                {showSimMenu && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-in slide-in-from-top-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={simulateInboundBankPdf}
-                      className="w-full text-left p-2 rounded-xl hover:bg-slate-50 transition flex items-start gap-2 text-slate-800"
-                    >
-                      <FileSpreadsheet className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold text-[11px]">Bank Statement (WhatsApp)</div>
-                        <div className="text-[10px] text-slate-500">Auto-decrypts &amp; maps Tally vouchers</div>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={simulateNfacNotice}
-                      className="w-full text-left p-2 rounded-xl hover:bg-slate-50 transition flex items-start gap-2 text-slate-800"
-                    >
-                      <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold text-[11px]">Section 148 Notice (NFAC)</div>
-                        <div className="text-[10px] text-slate-500">₹42.5L exposure &bull; 19 days remaining</div>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={simulatePaymentReconciled}
-                      className="w-full text-left p-2 rounded-xl hover:bg-slate-50 transition flex items-start gap-2 text-slate-800"
-                    >
-                      <DollarSign className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold text-[11px]">UPI Payment Reconciled</div>
-                        <div className="text-[10px] text-slate-500">₹59k &bull; Pay-to-Release unlocks reports</div>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={simulateUdinMandate}
-                      className="w-full text-left p-2 rounded-xl hover:bg-slate-50 transition flex items-start gap-2 text-slate-800"
-                    >
-                      <KeyRound className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold text-[11px]">60-Day UDIN Mandate</div>
-                        <div className="text-[10px] text-slate-500">8 days remaining for Form 3CD</div>
-                      </div>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Outbound Dispatch Desk Button */}
             {currentUserRole !== "CLIENT" && onOpenClientBroadcaster && (
@@ -675,7 +503,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           </div>
         )}
 
-        {/* Clean Filter Bar & Search (No overflowing slider, no duplicate radar bar) */}
+        {/* Clean Filter Bar & Search */}
         <div className="px-5 py-2.5 bg-slate-50/70 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs shrink-0">
           {/* Quick Search */}
           <div className="relative flex-1 max-w-xs">
@@ -897,7 +725,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           )}
         </div>
 
-        {/* Clean Footer (No robotic telemetry jargon) */}
+        {/* Clean Footer */}
         <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 shrink-0">
           <div className="text-[11px] font-semibold text-slate-600">
             GPA &amp; Co., Chartered Accountants

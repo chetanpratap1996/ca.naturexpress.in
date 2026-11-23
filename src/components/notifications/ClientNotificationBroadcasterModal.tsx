@@ -316,6 +316,17 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
     });
   }, [clients, clientSearch, selectedFilter]);
 
+  // Active Preview Client (Hook MUST run before any early return)
+  const previewClient = useMemo(() => {
+    if (previewClientId) {
+      const found = clients.find((c) => c.id === previewClientId);
+      if (found) return found;
+    }
+    const firstSelected = clients.find((c) => selectedClientIds.includes(c.id));
+    if (firstSelected) return firstSelected;
+    return eligibleClients[0] || clients[0];
+  }, [previewClientId, clients, selectedClientIds, eligibleClients]);
+
   // Auto-select eligible clients on filter change if empty
   React.useEffect(() => {
     if (!initialClientIds || initialClientIds.length === 0) {
@@ -351,16 +362,6 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
       .replace(/{{contactName}}/g, client.primaryContact.name)
       .replace(/{{din}}/g, initialMetadata?.din || `CBIC/IND/2026/${Math.floor(1000000 + Math.random() * 9000000)}`);
   };
-
-  const previewClient = useMemo(() => {
-    if (previewClientId) {
-      const found = clients.find((c) => c.id === previewClientId);
-      if (found) return found;
-    }
-    const firstSelected = clients.find((c) => selectedClientIds.includes(c.id));
-    if (firstSelected) return firstSelected;
-    return eligibleClients[0] || clients[0];
-  }, [previewClientId, clients, selectedClientIds, eligibleClients]);
 
   const handleOpenSingleClientWhatsApp = (e: React.MouseEvent, client: ClientEntity) => {
     e.stopPropagation();

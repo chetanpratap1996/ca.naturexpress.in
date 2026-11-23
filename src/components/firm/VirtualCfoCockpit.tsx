@@ -69,6 +69,29 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ clients: p
   const [revenueStressPct, setRevenueStressPct] = useState<number>(0);
   const [dsoReductionDays, setDsoReductionDays] = useState<number>(10);
   const [activeTab, setActiveTab] = useState<"runway" | "working-capital" | "aging" | "margins">("runway");
+  const [vcfoClientSearch, setVcfoClientSearch] = useState("");
+  const [isVcfoSearchOpen, setIsVcfoSearchOpen] = useState(false);
+  const vcfoSearchRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (vcfoSearchRef.current && !vcfoSearchRef.current.contains(e.target as Node)) {
+        setIsVcfoSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filteredVcfoClients = useMemo(() => {
+    if (!vcfoClientSearch.trim()) return effectiveClients;
+    const q = vcfoClientSearch.toLowerCase();
+    return effectiveClients.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.pan.toLowerCase().includes(q) ||
+      (c.tradeName && c.tradeName.toLowerCase().includes(q))
+    );
+  }, [effectiveClients, vcfoClientSearch]);
 
   // Enterprise Data Calibration & Source Modals
   const [isDataCalibrateModalOpen, setIsDataCalibrateModalOpen] = useState(false);
@@ -312,57 +335,99 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ clients: p
         </div>
       </div>
 
-      {/* 2. HIGH-VISIBILITY CLICKABLE COMPANY SWITCHER RIBBON */}
-      <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-3 shadow-xs">
-        <div className="flex items-center justify-between pb-2 px-1 text-xs text-slate-600 font-bold border-b border-slate-200 mb-2">
-          <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-slate-500">
-            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-            Active Client Entities ({effectiveClients.length}) &bull; Select Assessee Entity:
-          </span>
-          <span className="text-[11px] text-slate-500 font-medium">
-            Currently Viewing: <strong className="text-slate-900">{currentClient?.name || effectiveClients[0]?.name}</strong>
-          </span>
-        </div>
-
-        {/* Scrollable Entity Cards Ribbon */}
-        <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-thin pb-1">
-          {effectiveClients.map((c) => {
-            const isSelected = (currentClient?.id === c.id);
-            const override = customOverrides[c.id];
-            const displayTurnover = override?.customTurnoverCr || c.turnoverCr || 5.0;
-
-            return (
-              <button
-                key={c.id}
-                onClick={() => {
-                  setSelectedEntityId(c.id);
-                  toast.info("Switched Advisory Cockpit", `Loaded financial model for ${c.name}`);
+      {/* 2. ENTERPRISE ASSESSEE SELECTOR & QUICK ACCESS BAR */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Search Box with Autocomplete */}
+          <div ref={vcfoSearchRef} className="relative flex-1 max-w-md">
+            <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl px-3.5 py-2 transition">
+              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={vcfoClientSearch}
+                onChange={(e) => {
+                  setVcfoClientSearch(e.target.value);
+                  setIsVcfoSearchOpen(true);
                 }}
-                className={`p-3 rounded-2xl border text-left transition-all shrink-0 min-w-[200px] max-w-[260px] ${
-                  isSelected
-                    ? "bg-white border-btred-logo shadow-md ring-2 ring-red-100"
-                    : "bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                    isSelected ? "bg-red-50 text-btred-logo border border-red-200" : "bg-slate-100 text-slate-600"
-                  }`}>
-                    {c.type}
-                  </span>
-                  <span className="text-[10px] font-mono font-bold text-slate-700">
-                    ₹{displayTurnover} Cr
-                  </span>
+                onFocus={() => setIsVcfoSearchOpen(true)}
+                placeholder={`Search ${effectiveClients.length} assessees (Name / PAN)...`}
+                className="bg-transparent text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none w-full"
+              />
+              {vcfoClientSearch && (
+                <button
+                  onClick={() => {
+                    setVcfoClientSearch("");
+                    setIsVcfoSearchOpen(false);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Autocomplete Dropdown */}
+            {isVcfoSearchOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-64 overflow-y-auto p-1.5 space-y-1">
+                <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
+                  Select Advisory Client ({filteredVcfoClients.length} of {effectiveClients.length})
                 </div>
-                <div className="text-xs font-black text-slate-900 truncate">
-                  {c.name}
-                </div>
-                <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                  PAN: {c.pan} &bull; {c.groupName || "Direct"}
-                </div>
-              </button>
-            );
-          })}
+                {filteredVcfoClients.length === 0 ? (
+                  <div className="text-xs text-slate-500 text-center py-4">No clients match &ldquo;{vcfoClientSearch}&rdquo;</div>
+                ) : (
+                  filteredVcfoClients.map((c) => {
+                    const isSelected = currentClient?.id === c.id;
+                    const override = customOverrides[c.id];
+                    const displayTurnover = override?.customTurnoverCr || c.turnoverCr || 5.0;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setSelectedEntityId(c.id);
+                          setIsVcfoSearchOpen(false);
+                          setVcfoClientSearch("");
+                          toast.info("Switched Advisory Cockpit", `Loaded financial model for ${c.name}`);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition ${
+                          isSelected ? "bg-red-50 text-btred-logo font-black" : "hover:bg-slate-50 text-slate-800 font-semibold"
+                        }`}
+                      >
+                        <div className="truncate">
+                          <div className="truncate font-bold">{c.name}</div>
+                          <div className="text-[10px] text-slate-500 font-mono">PAN: {c.pan} &bull; {c.type}</div>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 shrink-0 font-mono">
+                          ₹{displayTurnover} Cr
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Active Client Summary Badge & Quick Switchers */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 hidden sm:inline">Active:</span>
+            {effectiveClients.slice(0, 4).map((c) => {
+              const isSelected = currentClient?.id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedEntityId(c.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200"
+                  }`}
+                >
+                  <Building2 className={`w-3 h-3 ${isSelected ? "text-red-400" : "text-slate-500"}`} />
+                  <span className="truncate max-w-[140px]">{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -564,30 +629,24 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ clients: p
             </div>
           </div>
 
-          {/* Dynamic Sensible Advisory Takeaway */}
+          {/* Dynamic Advisory Summary */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-xs font-black uppercase tracking-wider text-slate-900 block">
-                CA Partner Advisory Takeaway ({currentClient?.name})
+                Advisory Strategy &bull; {currentClient?.name}
               </span>
               <p className="text-xs text-slate-700 mt-1 leading-relaxed">
                 {isCashSurplus ? (
                   <>
-                    Under this scenario, the business continues to generate a monthly operating cash surplus of{" "}
-                    <strong>{formatCurrencyINR(netMonthlyCashflow)}</strong>. Even under a 100% freeze in new collections, liquid reserves provide a{" "}
-                    <strong>{grossCoverMonths}-month zero-revenue defense cover</strong>. Recommended Strategy: Direct excess surplus to early supplier payment discounts (yielding 18%+ annualized return) or capacity capex.
+                    Operating cash surplus is stable at <strong>{formatCurrencyINR(netMonthlyCashflow)}/mo</strong> with liquid defense cover of <strong>{grossCoverMonths} months</strong>. Recommended Strategy: Maximize early-payment supplier discounts (yielding ~18% p.a.) and plan capital allocations.
                   </>
                 ) : calculatedRunwayMonths < 6 ? (
                   <>
-                    <strong className="text-rose-600">CRITICAL RUNWAY ALERT:</strong> Under this stress test, net cash deficit widens to{" "}
-                    <strong>{formatCurrencyINR(Math.abs(netMonthlyCashflow))}/month</strong>, exhausting liquid reserves in{" "}
-                    <strong className="text-rose-600">{calculatedRunwayMonths} months</strong>. Recommended Strategy: Immediate freeze on non-essential headcount expansion, aggressive debtor recovery on 60+ day receivables, and short-term CC/OD limit activation.
+                    <strong className="text-rose-600">Runway Alert:</strong> Monthly deficit is <strong>{formatCurrencyINR(Math.abs(netMonthlyCashflow))}</strong>, with estimated reserves lasting <strong>{calculatedRunwayMonths} months</strong>. Recommended Strategy: Accelerate collections on 60+ day receivables and review non-critical operational burn.
                   </>
                 ) : (
                   <>
-                    Under this stress test, net cashflow contracts to a deficit of{" "}
-                    <strong>{formatCurrencyINR(Math.abs(netMonthlyCashflow))}/month</strong> with an estimated runway buffer of{" "}
-                    <strong>{calculatedRunwayMonths} months</strong>. Recommended Strategy: Enforce strict working capital controls and review vendor payment cycles.
+                    Cash deficit is <strong>{formatCurrencyINR(Math.abs(netMonthlyCashflow))}/mo</strong> with a runway buffer of <strong>{calculatedRunwayMonths} months</strong>. Recommended Strategy: Enforce working capital controls and review credit terms.
                   </>
                 )}
               </p>
@@ -596,7 +655,7 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ clients: p
               onClick={handleSaveAdvisoryMemo}
               className="px-4 py-2.5 bg-btred-logo text-white text-xs font-bold rounded-xl shrink-0 hover:bg-red-700 transition shadow-sm"
             >
-              Save Scenario as Advisory Memo {savedMemosCount > 0 ? `(${savedMemosCount})` : ""}
+              Save Scenario Memo {savedMemosCount > 0 ? `(${savedMemosCount})` : ""}
             </button>
           </div>
         </div>

@@ -33,7 +33,8 @@ import {
   PhoneCall,
   CheckCheck,
   Zap,
-  RotateCcw
+  RotateCcw,
+  X
 } from "lucide-react";
 import { 
   buildStatutoryWhatsAppMessage, 
@@ -72,6 +73,39 @@ export function WhatsAppAiWorkbench({
   const [isBatchChasing, setIsBatchChasing] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [customChatInput, setCustomChatInput] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
+
+  // Searchable Client State
+  const [waSearchTerm, setWaSearchTerm] = useState("");
+  const [isWaSearchOpen, setIsWaSearchOpen] = useState(false);
+  const waSearchRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (waSearchRef.current && !waSearchRef.current.contains(e.target as Node)) {
+        setIsWaSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  const filteredWaClients = useMemo(() => {
+    if (!waSearchTerm.trim()) return clients;
+    const q = waSearchTerm.toLowerCase();
+    return clients.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.pan.toLowerCase().includes(q) ||
+      (c.primaryContact?.phone && c.primaryContact.phone.includes(q))
+    );
+  }, [clients, waSearchTerm]);
+
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(activeMessage.body);
+    setIsCopied(true);
+    toast.success("Message Copied", "Statutory reminder copied to clipboard.");
+    setTimeout(() => setIsCopied(false), 2500);
+  };
 
   // New Decryption Pattern Modal State
   const [isAddVaultOpen, setIsAddVaultOpen] = useState(false);
@@ -394,35 +428,82 @@ export function WhatsAppAiWorkbench({
         </div>
       )}
 
-      {/* Entity Selector Ribbon */}
+      {/* Searchable Client Selector Ribbon */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-3xl shadow-xs text-slate-900">
-        <div className="flex items-center gap-2.5">
-          <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Client Entity:</span>
-          <select
-            value={selectedEntityId || selectedClient?.id || ""}
-            onChange={(e) => {
-              setSelectedEntityId(e.target.value);
-              setActiveStatementIndex(0);
-            }}
-            className="bg-slate-50 border border-slate-200 text-slate-900 text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-indigo-400 font-bold cursor-pointer"
-          >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.type}) — PAN: {c.pan}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2.5 flex-1 max-w-md">
+          {/* Autocomplete Search */}
+          <div ref={waSearchRef} className="relative w-full">
+            <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl px-3 py-2 transition">
+              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={waSearchTerm}
+                onChange={(e) => {
+                  setWaSearchTerm(e.target.value);
+                  setIsWaSearchOpen(true);
+                }}
+                onFocus={() => setIsWaSearchOpen(true)}
+                placeholder={`Search ${clients.length} assessees (Name / PAN)...`}
+                className="bg-transparent text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none w-full"
+              />
+              {waSearchTerm && (
+                <button
+                  onClick={() => {
+                    setWaSearchTerm("");
+                    setIsWaSearchOpen(false);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown Results */}
+            {isWaSearchOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-1.5 space-y-1">
+                <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
+                  Select Entity ({filteredWaClients.length} of {clients.length})
+                </div>
+                {filteredWaClients.length === 0 ? (
+                  <div className="text-xs text-slate-500 text-center py-3">No assessees match &ldquo;{waSearchTerm}&rdquo;</div>
+                ) : (
+                  filteredWaClients.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setSelectedEntityId(c.id);
+                        setActiveStatementIndex(0);
+                        setIsWaSearchOpen(false);
+                        setWaSearchTerm("");
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition ${
+                        c.id === selectedClient?.id ? "bg-emerald-50 text-emerald-800 font-black" : "hover:bg-slate-50 text-slate-800 font-semibold"
+                      }`}
+                    >
+                      <div className="truncate">
+                        <div className="truncate font-bold">{c.name}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">PAN: {c.pan} &bull; {c.primaryContact?.phone || "No Phone"}</div>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                        {c.type}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="text-xs text-slate-600 flex flex-wrap items-center gap-4">
-          <span>Contact: <strong className="text-slate-900">{selectedClient?.primaryContact?.name || "Promoter"}</strong></span>
+          <span>Active: <strong className="text-slate-900">{selectedClient?.name}</strong></span>
           <span className="flex items-center gap-1">
             <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
             WhatsApp: <strong className="text-emerald-700 font-mono">+{sanitizeIndianPhoneNumber(selectedClient?.primaryContact?.phone || "9820044101")}</strong>
           </span>
           <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full font-bold text-[10px]">
-            {resolvedPasswords.length} Entity DNA Passwords Ready
+            {resolvedPasswords.length} Decryption Rules Ready
           </span>
         </div>
       </div>
@@ -435,7 +516,7 @@ export function WhatsAppAiWorkbench({
             mobileView === "chat" ? "bg-white text-slate-900 shadow-sm font-black" : "text-slate-600"
           }`}
         >
-          WhatsApp Live Desk
+          Statutory Console
         </button>
         <button
           onClick={() => setMobileView("statement")}
@@ -443,25 +524,27 @@ export function WhatsAppAiWorkbench({
             mobileView === "statement" ? "bg-white text-slate-900 shadow-sm font-black" : "text-slate-600"
           }`}
         >
-          Extracted Vault Ledgers ({activeStatement?.transactions?.length || 0})
+          Extracted Statements ({activeStatement?.transactions?.length || 0})
         </button>
       </div>
 
       {/* Main 2-Column Cockpit Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Column: Live WhatsApp Escalation Bot & Template Console (5 cols) */}
+        {/* Left Column: Statutory Notification Console & Audit Trail (5 cols) */}
         <div className={`lg:col-span-5 space-y-4 ${mobileView === "chat" ? "block" : "hidden lg:block"}`}>
           
-          {/* Statutory Template Selector Card */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                Statutory Template Selector
-              </span>
-              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                activeMessage.tier === "PARTNER_ESCALATION" ? "bg-rose-100 text-btred-logo" :
+          {/* Statutory Notification & Chaser Console */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-emerald-700" />
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Statutory Notification Preview
+                </span>
+              </div>
+              <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                activeMessage.tier === "PARTNER_ESCALATION" ? "bg-rose-100 text-rose-800" :
                 activeMessage.tier === "PENALTY_WARNING" ? "bg-amber-100 text-amber-800" :
                 "bg-emerald-100 text-emerald-800"
               }`}>
@@ -469,99 +552,97 @@ export function WhatsAppAiWorkbench({
               </span>
             </div>
 
-            <select
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value as StatutoryTemplateId)}
-              className="w-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 p-2.5 rounded-xl outline-none cursor-pointer"
-            >
-              <optgroup label="3-Tier Document Chasing Escalations">
-                <option value="DOC_CHASE_TIER1">Tier 1: Gentle Statutory Advisory (T-7 days)</option>
-                <option value="DOC_CHASE_TIER2">Tier 2: Penalty &amp; Late Fee Countdown (T-3 to T-1)</option>
-                <option value="DOC_CHASE_TIER3">Tier 3: Partner Legal Notice (ICAI SA 580)</option>
-              </optgroup>
-              <optgroup label="Statutory Approvals &amp; Compliance Notices">
-                <option value="GST_3B_CASH_CONFIRM">GSTR-3B Net Cash Liability Approval</option>
-                <option value="ADVANCE_TAX_QTR">Advance Tax Quarterly Installment (Sec 211)</option>
-                <option value="VENDOR_ITC_HOLD">Defaulting Vendor ITC Hold (Sec 16(2)(aa))</option>
-                <option value="MSME_43BH_WARN">MSME 45-Day Payment Limit Alert (Sec 43B(h))</option>
-                <option value="PAY_TO_RELEASE">Pay-to-Release Filing Delivery &amp; UPI</option>
-              </optgroup>
-            </select>
+            {/* Template Selector */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1.5">Compliance Template</label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value as StatutoryTemplateId)}
+                className="w-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 p-2.5 rounded-xl outline-none cursor-pointer focus:border-emerald-500"
+              >
+                <optgroup label="Document Chasing Escalations">
+                  <option value="DOC_CHASE_TIER1">Tier 1: Statutory Advisory (T-7 days)</option>
+                  <option value="DOC_CHASE_TIER2">Tier 2: Late Fee Countdown (T-3 to T-1)</option>
+                  <option value="DOC_CHASE_TIER3">Tier 3: Partner Legal Notice (ICAI SA 580)</option>
+                </optgroup>
+                <optgroup label="Approvals & Statutory Notices">
+                  <option value="GST_3B_CASH_CONFIRM">GSTR-3B Net Cash Liability Approval</option>
+                  <option value="ADVANCE_TAX_QTR">Advance Tax Quarterly Installment (Sec 211)</option>
+                  <option value="VENDOR_ITC_HOLD">Defaulting Vendor ITC Hold (Sec 16(2)(aa))</option>
+                  <option value="MSME_43BH_WARN">MSME 45-Day Payment Limit Alert (Sec 43B(h))</option>
+                  <option value="PAY_TO_RELEASE">Pay-to-Release Filing Delivery & UPI</option>
+                </optgroup>
+              </select>
+            </div>
 
-            {/* Dual Dispatch Action Toolbar */}
+            {/* Recipient Strip */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs">
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recipient</div>
+                <div className="font-bold text-slate-900 truncate">
+                  {selectedClient?.primaryContact?.name || "Authorized Signatory"}
+                </div>
+                <div className="text-[11px] text-emerald-700 font-mono flex items-center gap-1 mt-0.5">
+                  <PhoneCall className="w-3 h-3 text-emerald-600" />
+                  +{sanitizeIndianPhoneNumber(selectedClient?.primaryContact?.phone || "9820044101")}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator?.clipboard?.writeText) {
+                    navigator.clipboard.writeText(activeMessage.body);
+                    setSuccessToast("Notification text copied to clipboard!");
+                    toast.success("Copied", "Statutory message body copied.");
+                    setTimeout(() => setSuccessToast(null), 3000);
+                  }
+                }}
+                className="px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition"
+                title="Copy text"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy</span>
+              </button>
+            </div>
+
+            {/* Formatted Message Preview Box */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                <span>Message Body Preview</span>
+                <span className="text-[10px] font-mono text-slate-400">{activeMessage.body.length} chars</span>
+              </div>
+              <div className="bg-slate-50 border-l-4 border-l-emerald-600 border border-slate-200 rounded-2xl p-3.5 text-xs text-slate-800 leading-relaxed max-h-56 overflow-y-auto whitespace-pre-line font-mono selection:bg-emerald-100">
+                {activeMessage.body}
+              </div>
+            </div>
+
+            {/* Dispatch Action Toolbar */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 type="button"
                 onClick={handleDispatchWaMe}
                 className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>1-Tap wa.me</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open in WhatsApp</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDispatchCloudApi}
-                className="w-full px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full px-3 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <Zap className="w-3.5 h-3.5 text-white" />
-                <span>Cloud API Push</span>
+                <Send className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Dispatch Cloud API</span>
               </button>
             </div>
-          </div>
 
-          {/* Interactive WhatsApp Chat Device Simulator */}
-          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col h-[560px]">
-            {/* WhatsApp Chat Header */}
-            <div className="p-3.5 bg-emerald-800 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 font-black text-xs">
-                  {selectedClient?.name ? selectedClient.name.slice(0, 2).toUpperCase() : "CA"}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white leading-tight truncate max-w-[200px]">
-                    {selectedClient?.primaryContact?.name || "Client Promoter"}
-                  </h4>
-                  <p className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> +{sanitizeIndianPhoneNumber(selectedClient?.primaryContact?.phone || "9820044101")}
-                  </p>
-                </div>
-              </div>
-              <span className="text-[10px] text-slate-400 font-mono">B&amp;T Autopilot</span>
-            </div>
-
-            {/* Chat Messages Body */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0b141a]">
-              {chatMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${msg.sender === "CLIENT" ? "items-start" : "items-end"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
-                      msg.sender === "CLIENT"
-                        ? "bg-[#202c33] text-slate-100 rounded-tl-none border border-slate-700/40"
-                        : "bg-[#005c4b] text-white rounded-tr-none shadow-md"
-                    }`}
-                  >
-                    <p className="whitespace-pre-line">{msg.text}</p>
-                    <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
-                      <span>{msg.time}</span>
-                      {msg.sender === "BOT" && (
-                        <CheckCheck className="w-3.5 h-3.5 text-teal-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Custom Chat Input Box */}
-            <div className="p-3 bg-slate-50 border-t border-slate-200">
+            {/* Quick Custom Message / Note Bar */}
+            <div className="pt-2 border-t border-slate-100">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Type WhatsApp message to client promoter..."
+                  placeholder="Send quick custom note to client..."
                   value={customChatInput}
                   onChange={(e) => setCustomChatInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -569,52 +650,96 @@ export function WhatsAppAiWorkbench({
                       handleSendCustomMessage();
                     }
                   }}
-                  className="flex-1 bg-white border border-slate-200 text-xs px-3 py-2 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-400 font-semibold"
+                  className="flex-1 bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
                 />
                 <button
                   type="button"
                   onClick={handleSendCustomMessage}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl transition shadow-xs"
+                  disabled={!customChatInput.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-3 h-3" />
+                  <span>Send</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Client Entity DNA Password Decryptor Card */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-3">
+          {/* Statutory Communication Audit Trail (ICAI SA 580 Compliant) */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Communication Audit Trail
+                </h4>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                {chatMessages.length} Events Logged
+              </span>
+            </div>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {chatMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`p-3 rounded-2xl border text-xs space-y-1 ${
+                    msg.sender === "CLIENT"
+                      ? "bg-slate-50 border-slate-200 text-slate-800"
+                      : "bg-emerald-50/50 border-emerald-100 text-slate-900"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 text-[10px]">
+                    <span className="font-bold uppercase tracking-wider text-slate-500">
+                      {msg.sender === "CLIENT" ? "Inbound (Client)" : "Outbound (CA Desk)"}
+                    </span>
+                    <span className="text-slate-400 font-mono">{msg.time}</span>
+                  </div>
+                  <p className="whitespace-pre-line leading-relaxed text-[11px] font-medium text-slate-700">
+                    {msg.text}
+                  </p>
+                  <div className="flex items-center justify-end gap-1 text-[10px] font-bold text-emerald-700">
+                    <CheckCheck className="w-3 h-3" />
+                    <span>{msg.status || "LOGGED"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Client Statement Decryption Rules */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4 text-emerald-600" />
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Entity DNA Password Vault
+                  Statement Decryption Patterns
                 </h4>
               </div>
               <button
                 onClick={() => setIsAddVaultOpen(true)}
-                className="text-[11px] font-bold text-indigo-600 hover:underline"
+                className="text-[11px] font-bold text-emerald-700 hover:underline"
               >
-                + Add Custom Rule
+                + Add Rule
               </button>
             </div>
 
-            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 text-xs space-y-1.5">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-emerald-900">Auto-Resolved Passwords:</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-200 text-emerald-900 rounded">
-                  {resolvedPasswords.length} Active
+                <span className="font-bold text-slate-700">Active Decryption Passwords:</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
+                  {resolvedPasswords.length} Patterns Ready
                 </span>
               </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="flex flex-wrap gap-1.5">
                 {resolvedPasswords.map((pwd, i) => (
-                  <span key={i} className="font-mono text-[10px] font-bold px-2 py-0.5 bg-white border border-emerald-300 text-emerald-800 rounded-lg">
+                  <span key={i} className="font-mono text-[11px] font-bold px-2 py-0.5 bg-white border border-slate-300 text-slate-800 rounded-lg shadow-2xs">
                     {pwd}
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] text-emerald-700 pt-1 leading-normal">
-                Whenever client uploads an encrypted PDF statement on WhatsApp, our engine automatically applies these patterns to decrypt it in under 2 seconds.
+              <p className="text-[10px] text-slate-500 pt-1 leading-normal">
+                Auto-matches incoming password-protected bank PDF statements by PAN, Date of Incorporation, and Registration IDs.
               </p>
             </div>
           </div>

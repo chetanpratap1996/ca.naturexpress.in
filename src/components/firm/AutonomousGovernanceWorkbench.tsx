@@ -126,13 +126,13 @@ export function AutonomousGovernanceWorkbench() {
   return (
     <div className="space-y-6">
       {/* Top Banner Header */}
-      <div className="rounded-2xl border-2 border-red-500 bg-white p-6 text-slate-900 shadow-sm relative overflow-hidden">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">
                 <ShieldCheck className="h-3.5 w-3.5 text-red-600" />
-                Phase 3: Weeks 41–44
+                Institutional Quality Control
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
                 ICAI SQC-1 Certified
@@ -145,7 +145,7 @@ export function AutonomousGovernanceWorkbench() {
               ICAI SQC-1 Peer Review &amp; Governance Shield
             </h1>
             <p className="mt-1 text-sm text-slate-600 max-w-3xl">
-              3-tier Maker-Checker digital audit trail (Article $\to$ AI Manager $\to$ Partner sign-off), 60-day UDIN countdown guardian, and physical USB DSC token custody locker.
+              3-tier Maker-Checker digital audit trail (Article Trainee &rarr; Manager Review &rarr; Partner Sign-off), 60-day UDIN countdown guardian, and physical USB DSC token custody locker.
             </p>
           </div>
 
@@ -161,7 +161,7 @@ export function AutonomousGovernanceWorkbench() {
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-200 pt-5">
           <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 shadow-2xs">
             <div className="text-xs font-medium text-slate-700 flex items-center justify-between">
-              Swarm Pipeline State
+              Audit Review State
               <Layers className="h-3.5 w-3.5 text-red-600" />
             </div>
             <div className="mt-1 text-base font-bold text-slate-900">
@@ -217,7 +217,7 @@ export function AutonomousGovernanceWorkbench() {
           }`}
         >
           <UserCheck className="h-4 w-4" />
-          3-Tier Maker-Checker Multi-Agent Trail
+          3-Tier Maker-Checker Audit Trail
           <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 font-bold">SQC-1</span>
         </button>
 
@@ -249,19 +249,19 @@ export function AutonomousGovernanceWorkbench() {
           }`}
         >
           <KeyRound className="h-4 w-4" />
-          Physical USB DSC Custody Locker
+          Physical DSC Custody Locker
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800 font-bold">Locker</span>
         </button>
       </div>
 
-      {/* TAB 1: 3-TIER MAKER-CHECKER MULTI-AGENT SWARM */}
+      {/* TAB 1: 3-TIER MAKER-CHECKER AUDIT TRAIL */}
       {activeTab === "maker-checker" && (
         <div className="space-y-6">
           {/* Visual 3-Tier Pipeline Card */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="font-bold text-slate-900 text-sm md:text-base mb-4 flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-purple-600" />
-              Active Engagement Swarm Lifecycle: {session?.clientName || "Apex Heavy Engineering Ltd"}
+              Active Quality Control Dossier: {session?.clientName || "Apex Heavy Engineering Ltd"}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

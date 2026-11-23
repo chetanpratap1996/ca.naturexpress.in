@@ -39,7 +39,9 @@ import {
   ExternalLink,
   ChevronRight,
   ClipboardCheck,
-  ShieldAlert
+  ShieldAlert,
+  Search,
+  X
 } from "lucide-react";
 import { toast } from "@/components/shared/ToastNotification";
 
@@ -63,6 +65,30 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
   onOpenDiagnosticModal
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "gstins" | "mca" | "banking" | "dsc" | "baselines">(initialTab || "overview");
+  const [clientSearch, setClientSearch] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return clients;
+    const q = clientSearch.toLowerCase();
+    return clients.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.pan.toLowerCase().includes(q) ||
+      (c.tradeName && c.tradeName.toLowerCase().includes(q)) ||
+      (c.cin && c.cin.toLowerCase().includes(q))
+    );
+  }, [clients, clientSearch]);
 
   React.useEffect(() => {
     if (initialTab) {
@@ -119,14 +145,14 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
         <Building2 className="w-12 h-12 text-slate-300 mx-auto" />
         <h3 className="text-lg font-black text-slate-800">No Client Entities Onboarded</h3>
         <p className="text-sm text-slate-500 max-w-md mx-auto">
-          Start by onboarding an assessee via 1-Tap Corporate Diagnostic to establish the Universal Entity DNA spine.
+          Start by onboarding an assessee to establish statutory profile and filing calendars.
         </p>
         {onOpenDiagnosticModal && (
           <button
             onClick={onOpenDiagnosticModal}
             className="px-5 py-2.5 rounded-xl bg-btred-logo text-white font-bold text-xs inline-flex items-center gap-2 shadow-sm"
           >
-            <Sparkles className="w-4 h-4" /> ⚡ 1-Tap Onboard Client
+            <Sparkles className="w-4 h-4" /> ⚡ Onboard Client
           </button>
         )}
       </div>
@@ -134,17 +160,16 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn">
       {/* Top Header Card */}
       <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-black rounded-full flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" /> Client Statutory Profile
+            <span className="px-3 py-1 bg-red-50 border border-red-200 text-btred-logo text-xs font-bold rounded-full flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" /> Client Master Profile
             </span>
-            <span className="text-xs text-slate-500 font-medium">Single source of truth for GSTINs, corporate constitution, and thresholds</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Health Score: {healthScore}/100
+              Compliance Health: {healthScore}%
             </span>
           </div>
 
@@ -167,26 +192,73 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
               </>
             )}
             <span>•</span>
-            <span className="font-bold text-purple-700">{panInfo.legalConstitution}</span>
+            <span className="font-bold text-slate-700">{panInfo.legalConstitution}</span>
           </div>
         </div>
 
         {/* Actions & Client Switcher */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Client Selector */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
-            <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
-            <select
-              value={currentClient.id}
-              onChange={(e) => onSelectClient && onSelectClient(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.tradeName || c.name} ({c.type})
-                </option>
-              ))}
-            </select>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Searchable Client Selector */}
+          <div ref={searchRef} className="relative min-w-[240px] sm:min-w-[280px]">
+            <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl px-3 py-2 transition">
+              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={clientSearch}
+                onChange={(e) => {
+                  setClientSearch(e.target.value);
+                  setIsDropdownOpen(true);
+                }}
+                onFocus={() => setIsDropdownOpen(true)}
+                placeholder={`Search ${clients.length} assessees...`}
+                className="bg-transparent text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none w-full"
+              />
+              {clientSearch && (
+                <button
+                  onClick={() => {
+                    setClientSearch("");
+                    setIsDropdownOpen(false);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown Results */}
+            {isDropdownOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-1.5 space-y-1">
+                <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
+                  Select Entity ({filteredClients.length} of {clients.length})
+                </div>
+                {filteredClients.length === 0 ? (
+                  <div className="text-xs text-slate-500 text-center py-3">No assessees match &ldquo;{clientSearch}&rdquo;</div>
+                ) : (
+                  filteredClients.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        if (onSelectClient) onSelectClient(c.id);
+                        setIsDropdownOpen(false);
+                        setClientSearch("");
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition ${
+                        c.id === currentClient.id ? "bg-red-50 text-btred-logo font-black" : "hover:bg-slate-50 text-slate-800 font-semibold"
+                      }`}
+                    >
+                      <div className="truncate">
+                        <div className="truncate font-bold">{c.name}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">PAN: {c.pan} &bull; {c.type}</div>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                        ₹{c.turnoverCr || 5} Cr
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {onOpenDiagnosticModal && (
@@ -201,77 +273,77 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
       </div>
 
       {/* Sub-Tabs Navigation */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "overview"
               ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           <Scale className="w-3.5 h-3.5" />
-          <span>Statutory Constitution &amp; Thresholds</span>
+          <span>Constitution &amp; Limits</span>
         </button>
 
         <button
           onClick={() => setActiveTab("gstins")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "gstins"
               ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Multi-State GSTINs ({currentClient.gstinRecords?.length || 1})</span>
+          <span>GSTINs ({currentClient.gstinRecords?.length || 1})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("mca")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "mca"
               ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>MCA Directors &amp; DINs ({currentClient.directors?.length || 0})</span>
+          <span>Directors &amp; DINs ({currentClient.directors?.length || 0})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("banking")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "banking"
               ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           <CreditCard className="w-3.5 h-3.5" />
-          <span>Bank Accounts &amp; Passwords ({currentClient.bankAccounts?.length || 0})</span>
+          <span>Bank &amp; Logins ({currentClient.bankAccounts?.length || 0})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("dsc")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "dsc"
               ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           <KeyRound className="w-3.5 h-3.5" />
-          <span>Physical DSC Token Locker ({currentClient.dscVault?.length || 0})</span>
+          <span>DSC Tokens ({currentClient.dscVault?.length || 0})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("baselines")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "baselines"
               ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          <span>3-Year Compliance Baselines</span>
+          <span>3-Yr Financials</span>
         </button>
       </div>
 
@@ -282,11 +354,11 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
               <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-btred-logo">
-                  Decoded Legal Profile (PAN 4th Char: &lsquo;{panInfo.fourthChar}&rsquo;)
+                <span className="text-[11px] font-bold uppercase tracking-wider text-btred-logo">
+                  Statutory Constitution
                 </span>
                 <h3 className="text-xl font-black text-slate-900">{dnaProfile.label}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Governing Body: <strong>{dnaProfile.governingBody}</strong></p>
+                <p className="text-xs text-slate-500 mt-0.5">Governing Authority: <strong>{dnaProfile.governingBody}</strong></p>
               </div>
 
               <div className="flex items-center gap-3">
@@ -351,9 +423,8 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <ClipboardCheck className="w-4 h-4 text-purple-700" /> Statutory Filing Obligations Driven by Entity DNA
+                <ClipboardCheck className="w-4 h-4 text-btred-logo" /> Statutory Filing Obligations &amp; Timelines
               </h4>
-              <span className="text-xs text-slate-500">Auto-generated into Task Management</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

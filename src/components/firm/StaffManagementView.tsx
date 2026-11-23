@@ -211,8 +211,8 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       const data = await res.json();
       if (data.success) {
         toast.success(
-          "2035 Autopilot Dispatch Completed",
-          `Evaluated ${data.tasksEvaluated} tasks. Reassigned ${data.tasksReassigned} tasks to balance firm workload.`
+          "Workload Re-allocated",
+          `Evaluated ${data.tasksEvaluated} tasks. Reassigned ${data.tasksReassigned} tasks based on competency tiers.`
         );
         await fetchStaff();
         if (onRefreshData) await onRefreshData();
@@ -338,18 +338,24 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Autopilot Allocation Active</span>
+            </div>
+
             <button
               onClick={handleTriggerAutonomousSweep}
               disabled={isAutoAssigning}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm disabled:opacity-50"
+              title="Manual override to re-balance work across available capacity"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg text-xs font-bold transition shadow-xs disabled:opacity-50"
             >
               {isAutoAssigning ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               )}
-              {isAutoAssigning ? "Assigning..." : "Auto-Assign Work"}
+              {isAutoAssigning ? "Re-balancing..." : "Re-balance Workload"}
             </button>
 
             <button

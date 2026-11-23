@@ -238,7 +238,7 @@ export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Top Banner KPI Metric Strip (CADashboard Killer) */}
+      {/* Top Banner KPI Metric Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
           <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Engagements</span>

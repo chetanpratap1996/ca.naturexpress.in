@@ -21,11 +21,11 @@ export interface AutonomousDispatchResult {
  * Determine required competency tier based on task category and statutory priority
  */
 export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
-  const title = task.title.toLowerCase();
-  const category = task.category;
+  const title = (task.title || "").toLowerCase();
+  const category = task.category || "";
 
   // Tier 4: Scrutiny, Appeals, High Court, Partner Review
-  if (title.includes("scrutiny") || title.includes("148") || title.includes("appeal") || task.priority === "CRITICAL" && category === "TAX_AUDIT") {
+  if (title.includes("scrutiny") || title.includes("148") || title.includes("appeal") || (task.priority === "CRITICAL" && category === "TAX_AUDIT")) {
     return 4;
   }
 
@@ -43,8 +43,8 @@ export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
 
   // Tier 2: Intermediate Article (GSTR-3B, TDS 26Q Quarterly, ITR-1 to 4)
   if (
-    category === "GST" && title.includes("3b") ||
-    category === "TDS" && title.includes("26q") ||
+    (category === "GST" && title.includes("3b")) ||
+    (category === "TDS" && title.includes("26q")) ||
     title.includes("itr-") ||
     title.includes("form 8")
   ) {
@@ -76,22 +76,27 @@ export function mapCategoryToSpecialization(category: string): StaffSpecializati
 }
 
 /**
- * Core 2035 Autonomous Work Allocation Engine
- * Linear scoring algorithm O(T * S) balancing Competency, Skills, Capacity Headroom, and Client Continuity
+ * In-Memory Auto-Assigner for Tasks
+ * Reusable directly inside Autopilot sweeps and background crons without extra DB writes
  */
-export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): Promise<AutonomousDispatchResult> {
-  const db = ensureDatabase();
-  const tasks = db.tasks || [];
-  const staffList = (db.staff || []).filter((s) => s.status === "ACTIVE");
-
-  if (staffList.length === 0) {
-    throw new Error("No active staff members available in firm registry to allocate work.");
+export function autoAssignTasksInMemory(
+  tasks: ComplianceTask[],
+  staffList: StaffMember[]
+): {
+  tasksEvaluated: number;
+  tasksReassigned: number;
+  breakdownByStaff: Record<string, { total: number; critical: number; tier: number }>;
+  auditLog: AutonomousDispatchResult["auditLog"];
+} {
+  const activeStaff = staffList.filter((s) => s.status === "ACTIVE");
+  if (activeStaff.length === 0) {
+    return { tasksEvaluated: 0, tasksReassigned: 0, breakdownByStaff: {}, auditLog: [] };
   }
 
   // Active workload map to prevent overloading
   const assignedCounts = new Map<string, number>();
   const criticalCounts = new Map<string, number>();
-  staffList.forEach((s) => {
+  activeStaff.forEach((s) => {
     assignedCounts.set(s.id, 0);
     criticalCounts.set(s.id, 0);
   });
@@ -108,12 +113,8 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
   let tasksReassigned = 0;
   let tasksEvaluated = 0;
 
-  // Filter tasks ready for execution:
-  // 1. Exclude already filed tasks
-  // 2. Exclude tasks awaiting client documents (held in autonomous document chaser)
-  const candidateTasks = tasks.filter(
-    (t) => t.status !== "FILED_AND_COMPLETED"
-  );
+  // Filter tasks ready for execution (exclude already filed tasks)
+  const candidateTasks = tasks.filter((t) => t.status !== "FILED_AND_COMPLETED");
 
   // Sort candidate tasks by Statutory Urgency (Critical first, then Due Date)
   candidateTasks.sort((a, b) => {
@@ -127,12 +128,11 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
     const requiredTier = getRequiredTierForTask(task);
     const requiredSkill = mapCategoryToSpecialization(task.category);
 
-    // Score all available active staff
     let bestStaff: StaffMember | null = null;
     let highestScore = -Infinity;
     let matchReason = "";
 
-    for (const staff of staffList) {
+    for (const staff of activeStaff) {
       const currentLoad = assignedCounts.get(staff.id) || 0;
       const capacity = staff.maxDailyTaskCapacity || 10;
 
@@ -144,7 +144,7 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
       let score = 0;
 
       // 1. Domain Skill Match (Weight: 40 points)
-      const hasSkill = staff.specializations.includes(requiredSkill);
+      const hasSkill = staff.specializations && staff.specializations.includes(requiredSkill);
       if (hasSkill) {
         score += 40;
       } else {
@@ -156,7 +156,7 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
       if (tierDiff === 0) {
         score += 30; // Perfect match
       } else if (tierDiff > 0) {
-        score += Math.max(10, 30 - tierDiff * 10); // Over-qualified (e.g. Tier 4 doing Tier 2)
+        score += Math.max(10, 30 - tierDiff * 10); // Over-qualified
       } else {
         score += Math.max(0, 30 - Math.abs(tierDiff) * 20); // Under-qualified penalty
       }
@@ -174,7 +174,7 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
       if (score > highestScore) {
         highestScore = score;
         bestStaff = staff;
-        matchReason = `Matched Tier ${staff.competencyTier} (${hasSkill ? requiredSkill : "General"}), ${Math.round(headroomRatio * 100)}% capacity free`;
+        matchReason = `Tier ${staff.competencyTier} (${hasSkill ? requiredSkill : "General"}), ${Math.round(headroomRatio * 100)}% capacity free`;
       }
     }
 
@@ -182,8 +182,8 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
       const newAssignedFormatted = `${bestStaff.fullName} (${bestStaff.role === "MANAGING_PARTNER" ? "Partner" : bestStaff.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : "Article"})`;
       const prevAssigned = task.assignedTo || "Unassigned";
 
-      // Reassign if different or previously unassigned
-      if (!prevAssigned.includes(bestStaff.fullName.split(" ")[0])) {
+      // If unassigned or needs re-allocation
+      if (!prevAssigned || prevAssigned === "Unassigned" || !prevAssigned.includes(bestStaff.fullName.split(" ")[0])) {
         auditLog.push({
           taskId: task.id,
           taskTitle: task.title,
@@ -193,10 +193,10 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
           reason: matchReason,
         });
         task.assignedTo = newAssignedFormatted;
+        task.assignedStaffId = bestStaff.id;
         tasksReassigned++;
       }
 
-      // Update in-memory load
       assignedCounts.set(bestStaff.id, (assignedCounts.get(bestStaff.id) || 0) + 1);
       if (task.priority === "CRITICAL") {
         criticalCounts.set(bestStaff.id, (criticalCounts.get(bestStaff.id) || 0) + 1);
@@ -204,34 +204,54 @@ export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): P
     }
   }
 
-  // Update tasks in database
-  await saveDatabase(db);
-
-  // Compute breakdown by staff
+  // Compute breakdown by staff and update staff active task counts
   const breakdownByStaff: AutonomousDispatchResult["breakdownByStaff"] = {};
-  staffList.forEach((s) => {
+  activeStaff.forEach((s) => {
+    const total = assignedCounts.get(s.id) || 0;
     breakdownByStaff[s.fullName] = {
-      total: assignedCounts.get(s.id) || 0,
+      total,
       critical: criticalCounts.get(s.id) || 0,
       tier: s.competencyTier,
     };
+    s.activeOpenTasksCount = total;
   });
 
+  return { tasksEvaluated, tasksReassigned, breakdownByStaff, auditLog };
+}
+
+/**
+ * Autonomous Work Allocation Engine
+ * Linear scoring algorithm O(T * S) balancing Competency, Skills, Capacity Headroom, and Client Continuity
+ */
+export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): Promise<AutonomousDispatchResult> {
+  const db = ensureDatabase();
+  const tasks = db.tasks || [];
+  const staffList = (db.staff || []).filter((s) => s.status === "ACTIVE");
+
+  if (staffList.length === 0) {
+    throw new Error("No active staff members available in firm registry to allocate work.");
+  }
+
+  const result = autoAssignTasksInMemory(tasks, staffList);
+
+  // Update tasks and staff in database
+  await saveDatabase(db);
+
   await logAuditEvent(
-    "2035 Autonomous Work Dispatcher",
-    "SYSTEM",
-    "Practice Tasks Matrix",
-    "AUTOPILOT_DISPATCH",
-    `Autopilot work dispatch completed. Reassigned ${tasksReassigned} tasks across ${staffList.length} active staff.`,
-    "SYSTEM"
+    "Managing Partner",
+    "PARTNER",
+    "Firm Operations",
+    "Autonomous Task Allocation Executed",
+    `Evaluated ${result.tasksEvaluated} tasks, auto-assigned ${result.tasksReassigned} tasks across ${staffList.length} staff members.`,
+    "COMPLIANCE"
   );
 
   return {
     success: true,
-    tasksEvaluated,
-    tasksReassigned,
-    breakdownByStaff,
-    auditLog,
+    tasksEvaluated: result.tasksEvaluated,
+    tasksReassigned: result.tasksReassigned,
+    breakdownByStaff: result.breakdownByStaff,
+    auditLog: result.auditLog,
     timestamp: new Date().toISOString(),
   };
 }

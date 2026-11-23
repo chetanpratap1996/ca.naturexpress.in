@@ -159,6 +159,7 @@ export interface ComplianceTask {
   dueDate: string;
   status: WorkflowStatus;
   assignedTo: string;
+  assignedStaffId?: string;
   reviewedBy: string;
   priority: "HIGH" | "CRITICAL" | "MEDIUM" | "LOW";
   penaltyRisk: number; // Potential penalty in INR if delayed

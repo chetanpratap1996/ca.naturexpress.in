@@ -18,11 +18,13 @@ import { determinePlaceOfSupply, calculateTaxAndTds, calculateMsmeCompoundIntere
 import { ComplianceTask, DocumentItem, InvoiceItem, PayToReleaseConfig, BlockedDeliverableType, NotificationItem } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { DualRegimeOptimizer } from "@/lib/itr/dualRegimeOptimizer";
+import { autoAssignTasksInMemory } from "@/lib/tasks/autonomousDispatcher";
 
 export interface AutopilotExecutionSummary {
   timestamp: string;
   triggeredBy: string;
   tasksSpawned: number;
+  tasksAutoAssigned?: number;
   totalLateFeeAudited: number;
   openTasksUpdated: number;
   vaultDocsAutoUnlocked: number;
@@ -67,6 +69,7 @@ export async function executePracticeAutopilotSweep(
   logMessages.push(`[${new Date().toISOString()}] Initiating Autonomous CA Practice Sweep...`);
 
   let tasksSpawned = 0;
+  let tasksAutoAssigned = 0;
   let totalLateFeeAudited = 0;
   let openTasksUpdated = 0;
   let vaultDocsAutoUnlocked = 0;
@@ -170,6 +173,18 @@ export async function executePracticeAutopilotSweep(
       }
     }
     logMessages.push(`Cycle 1 (Task Spawner): Evaluated ${db.clients.length} entities. Spawned ${tasksSpawned} new statutory returns.`);
+  }
+
+  // -------------------------------------------------------------
+  // CYCLE 1.5: AUTONOMOUS WORK ALLOCATION (Competency-Based Dispatch)
+  // Automatically allocates unassigned tasks to Article Trainees / Managers
+  // -------------------------------------------------------------
+  if (db.tasks && db.tasks.length > 0 && db.staff && db.staff.length > 0) {
+    const dispatchResult = autoAssignTasksInMemory(db.tasks, db.staff);
+    tasksAutoAssigned = dispatchResult.tasksReassigned;
+    if (dispatchResult.tasksReassigned > 0) {
+      logMessages.push(`Cycle 1.5 (Work Allocation): Autonomously allocated ${dispatchResult.tasksReassigned} statutory tasks to staff based on Tier & Specialization.`);
+    }
   }
 
   // -------------------------------------------------------------
@@ -637,6 +652,7 @@ export async function executePracticeAutopilotSweep(
     timestamp: new Date().toISOString(),
     triggeredBy,
     tasksSpawned,
+    tasksAutoAssigned,
     totalLateFeeAudited,
     openTasksUpdated,
     vaultDocsAutoUnlocked,

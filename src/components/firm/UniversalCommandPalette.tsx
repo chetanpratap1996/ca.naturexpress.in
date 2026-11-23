@@ -73,15 +73,15 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
 
   // Master List of Commands
   const allCommands: CommandItem[] = [
-    // Autonomous Actions
+    // Practice Actions
     {
       id: "cmd-autopilot",
-      title: "Trigger Autonomous Practice Sweep",
-      subtitle: "Execute all 9 autonomous cycles (GST, AIS, Form 3CD, CARO, ITR, Billing)",
+      title: "Run Practice Autopilot Sweep",
+      subtitle: "Execute automated verification (GST 2B, AIS, Form 3CD, CARO, ITR, Billing)",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "⌘P",
-      badge: "9 Cycles",
+      badge: "Sweep",
       action: () => {
         onTriggerAutopilot();
         onClose();
@@ -89,12 +89,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-practice-cockpit",
-      title: "Partner 60-Second Autonomous Cockpit (2035)",
-      subtitle: "Unified Practice Pulse: 94% Zero-Touch, 1-Click Batch Approvals & Exception Triage Desk",
+      title: "Partner Practice Cockpit",
+      subtitle: "Practice pulse, statutory filings summary & 1-click approvals",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "P P",
-      badge: "Flagship",
+      badge: "Cockpit",
       action: () => {
         onNavigateTab("practice-cockpit");
         onClose();
@@ -102,12 +102,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-gst-assembly",
-      title: "Autonomous GST Monthly Assembly Line (Week 29–34)",
-      subtitle: "Zero-Touch Clean Profiles & Exception-Only Partner Triage Desk",
+      title: "GST Monthly Return Assembly",
+      subtitle: "Automated GSTR-3B reconciliation & exceptions review desk",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "G A",
-      badge: "2035 Auto",
+      badge: "GST",
       action: () => {
         onNavigateTab("gst-assembly");
         onClose();
@@ -115,12 +115,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-tds-assembly",
-      title: "Autonomous TDS / TCS Pipeline & TRACES Engine (Week 35–40)",
-      subtitle: "Zero-Touch Form 24Q/26Q, Sec 206AB scan, and 1-click TRACES correction desk",
+      title: "TDS / TCS & TRACES Pipeline",
+      subtitle: "Form 24Q/26Q generation, Sec 206AB scan, and TRACES correction desk",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "T A",
-      badge: "2035 Auto",
+      badge: "TDS",
       action: () => {
         onNavigateTab("tds-assembly");
         onClose();
@@ -128,12 +128,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-mca-assembly",
-      title: "Autonomous Corporate MCA / ROC Assembly Line (Week 41–44)",
-      subtitle: "Zero-Touch Form AOC-4 & MGT-7, DPT-3 loan audit, and Sec 164(2) DIN shield",
+      title: "Corporate MCA / ROC Desk",
+      subtitle: "Form AOC-4 & MGT-7, DPT-3 loan audit, and Sec 164(2) DIN verification",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "M A",
-      badge: "2035 Auto",
+      badge: "MCA",
       action: () => {
         onNavigateTab("mca-assembly");
         onClose();
@@ -141,12 +141,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-governance-assembly",
-      title: "ICAI SQC-1 Peer Review & Governance Shield (Week 41–44)",
-      subtitle: "3-tier Maker-Checker digital audit trail, UDIN 60-day guardian, and physical USB DSC locker",
+      title: "ICAI SQC-1 Peer Review & Governance",
+      subtitle: "3-tier Maker-Checker digital audit trail, UDIN 60-day guardian, and USB DSC vault",
       category: "AUTOPILOT",
       icon: ShieldCheck,
       shortcut: "S Q",
-      badge: "2035 Auto",
+      badge: "SQC-1",
       action: () => {
         onNavigateTab("governance-assembly");
         onClose();
@@ -154,12 +154,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-notice-assembly",
-      title: "Autonomous Faceless Notice Defense Assembly Line (Week 45–48)",
-      subtitle: "Circular 19/2019 DIN verification, limitation period tracker, legal brief & stay petition",
+      title: "Faceless Notice Defense Desk",
+      subtitle: "Circular 19/2019 DIN verification, limitation period tracker & reply drafter",
       category: "AUTOPILOT",
       icon: ShieldAlert,
       shortcut: "N A",
-      badge: "2035 Auto",
+      badge: "Notices",
       action: () => {
         onNavigateTab("notice-assembly");
         onClose();
@@ -167,12 +167,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-vcfo-assembly",
-      title: "Autonomous Virtual CFO & Practice Intelligence Engine (Week 45–48)",
-      subtitle: "1-Click Banker's Docket (CMA Pack), 13-week cash flow, covenants & SA 210 scope creep alerts",
+      title: "Virtual CFO & Advisory Engine",
+      subtitle: "1-Click Banker's Docket (CMA Pack), 13-week cash flow & SA 210 scope alerts",
       category: "AUTOPILOT",
       icon: TrendingUp,
       shortcut: "V A",
-      badge: "2035 Auto",
+      badge: "vCFO",
       action: () => {
         onNavigateTab("vcfo-assembly");
         onClose();
@@ -180,12 +180,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-cicd-assembly",
-      title: "Enterprise Hardening & CI/CD Golden Suite (Week 49–52)",
-      subtitle: "50-case golden regression suite, zero-divergence math gate (<= ₹1), and JUnit XML export",
+      title: "Practice Benchmark & Verification Suite",
+      subtitle: "Statutory validation tests, zero-divergence tax math & audit trail verification",
       category: "AUTOPILOT",
       icon: Terminal,
       shortcut: "C I",
-      badge: "2035 Auto",
+      badge: "Tests",
       action: () => {
         onNavigateTab("cicd-assembly");
         onClose();
@@ -193,12 +193,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-legacy-migration",
-      title: "Universal Legacy Migrator (Winman / CompuTax / Tally)",
-      subtitle: "1-Click Drag-&-Drop migration from Winman CA-ERP, CompuTax & TallyPrime with ₹0 divergence",
+      title: "Legacy Software Migrator (Winman / CompuTax / Tally)",
+      subtitle: "Import data from Winman CA-ERP, CompuTax & TallyPrime with verification",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "L M",
-      badge: "Master Switch",
+      badge: "Migrate",
       action: () => {
         onNavigateTab("legacy-migration");
         onClose();
@@ -206,12 +206,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-autonomous-orchestrator",
-      title: "Autonomous 8-Pillar Practice Orchestrator",
-      subtitle: "2035 Zero-Touch Nervous System: Single Input, Everywhere Ripple across all 8 Pillars, Real Statutory Validators & Tally Sync",
+      title: "Practice Module Orchestrator",
+      subtitle: "Unified cross-module coordination across GST, Direct Tax, MCA & Audit",
       category: "AUTOPILOT",
       icon: Cpu,
       shortcut: "A U T O",
-      badge: "Zero-Touch Mesh",
+      badge: "Modules",
       action: () => {
         onNavigateTab("autonomous-orchestrator");
         onClose();
@@ -219,12 +219,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-one-gst",
-      title: "Pillar I: GST 2.0 Command Center",
-      subtitle: "IMS Auto-Disposition, Rule 37A Reversals, GSTR-9/9C DRC-03, E-Way Bill & DRC-01B/C Replier",
+      title: "GST Command Center",
+      subtitle: "IMS disposition, Rule 37A reversals, GSTR-9/9C DRC-03 & DRC-01B/C replies",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "P 1",
-      badge: "Pillar I",
+      badge: "GST",
       action: () => {
         onNavigateTab("pillar-one-gst");
         onClose();
@@ -232,12 +232,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-two-tax",
-      title: "Pillar II: Direct Tax & Capital Gains Suite",
-      subtitle: "Budget 2024 STCG/LTCG Forensic Engine, Sec 32 Depreciation, Form 10-IEA Lockout & Crypto 115BBH",
+      title: "Direct Tax & Capital Gains Suite",
+      subtitle: "Budget 2024 STCG/LTCG computation, Sec 32 depreciation & 115BAC comparison",
       category: "AUTOPILOT",
       icon: Calculator,
       shortcut: "P 2",
-      badge: "Pillar II",
+      badge: "Income Tax",
       action: () => {
         onNavigateTab("pillar-two-tax");
         onClose();
@@ -245,12 +245,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-three-audit",
-      title: "Pillar III: Form 3CD Institutional Audit Suite",
-      subtitle: "ICDS I-X Adjustments, Clause 21 Disallowances (40a/40A3), Sec 43B Dues, 269SS/T & Clause 40 Ratios",
+      title: "Form 3CD Tax Audit Suite",
+      subtitle: "ICDS I-X adjustments, Clause 21 disallowances (40a/40A3), Sec 43B dues & Clause 40 ratios",
       category: "AUTOPILOT",
       icon: ClipboardCheck,
       shortcut: "P 3",
-      badge: "Pillar III",
+      badge: "Tax Audit",
       action: () => {
         onNavigateTab("pillar-three-audit");
         onClose();
@@ -258,12 +258,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-four-bank",
-      title: "Pillar IV: Statutory Bank Audit & LFAR Master Suite",
-      subtitle: "RBI IRAC 90-Day NPAs, Drawing Power, LFAR Pack, PMLA Concurrent, Ghosh & Jilani 42 EWS & Revenue Leakage",
+      title: "Statutory Bank Audit & LFAR Suite",
+      subtitle: "RBI IRAC 90-day NPAs, drawing power calculation & LFAR master pack",
       category: "AUTOPILOT",
       icon: Building2,
       shortcut: "P 4",
-      badge: "Pillar IV",
+      badge: "Bank Audit",
       action: () => {
         onNavigateTab("bank-audit");
         onClose();
@@ -271,12 +271,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-five-tds",
-      title: "Pillar V: TDS, TRACES & Remittance Suite",
-      subtitle: "Forms 24Q/26Q/27Q/27EQ FVU & CSI Matcher, TRACES 234E/201(1A) Default Analyzer, Sec 197 & Form 15CA/CB",
+      title: "TDS, TRACES & Remittance Suite",
+      subtitle: "Forms 24Q/26Q/27Q/27EQ FVU matcher, TRACES defaults & Form 15CA/CB",
       category: "AUTOPILOT",
       icon: Sparkles,
       shortcut: "P 5",
-      badge: "Pillar V",
+      badge: "TDS",
       action: () => {
         onNavigateTab("pillar-five-tds");
         onClose();
@@ -284,12 +284,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-six-mca",
-      title: "Pillar VI: Company Law, MCA V3 & Secretarial Suite",
-      subtitle: "Form DPT-3 Return of Deposits, Form MSME-1 Dues, 30th Sep Director KYC, SS-1/SS-2 Minute Book & Form BEN-2 SBO",
+      title: "Company Law, MCA V3 & Secretarial Suite",
+      subtitle: "Form DPT-3 return of deposits, Form MSME-1 dues & DIR-3 KYC director filings",
       category: "AUTOPILOT",
       icon: Building2,
       shortcut: "P 6",
-      badge: "Pillar VI",
+      badge: "MCA",
       action: () => {
         onNavigateTab("pillar-six-mca");
         onClose();
@@ -297,12 +297,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-seven-governance",
-      title: "Pillar VII: ICAI SQC-1 Peer Review, UDIN & Article Management",
-      subtitle: "18-Digit UDIN Bulk Generator with 60-Day Clock, SQC-1 PAF/CAF Workpapers, Reg 48/59 Article Diary & Physical DSC Vault",
+      title: "ICAI SQC-1 Peer Review & Governance",
+      subtitle: "UDIN generator with 60-day clock, SQC-1 workpapers, article diary & DSC vault",
       category: "AUTOPILOT",
       icon: ShieldCheck,
       shortcut: "P 7",
-      badge: "Pillar VII",
+      badge: "Governance",
       action: () => {
         onNavigateTab("pillar-seven-governance");
         onClose();
@@ -310,12 +310,12 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
     },
     {
       id: "cmd-pillar-eight-desktop",
-      title: "Pillar VIII: Tally-Speed Mastery, MDI Desktop & Sync Bridge",
-      subtitle: "Tally-Speed Voucher Grid (Enter/Alt+C/Ctrl+A), Multi-Client MDI Switcher, TallyPrime XML Sync, Rule 33 Pure Agent Billing & 8 AM WhatsApp Digest",
+      title: "Tally Integration & Bridge",
+      subtitle: "TallyPrime XML voucher sync, pure agent billing & daily WhatsApp digest",
       category: "AUTOPILOT",
       icon: Terminal,
       shortcut: "P 8",
-      badge: "Pillar VIII",
+      badge: "Tally",
       action: () => {
         onNavigateTab("pillar-eight-desktop");
         onClose();

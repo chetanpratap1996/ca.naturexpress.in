@@ -273,6 +273,33 @@ export default function Home() {
   const [selectedGstin, setSelectedGstin] = useState<string>("");
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("bt_sidebar_collapsed") === "true";
+    }
+    return false;
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("bt_sidebar_collapsed", next ? "true" : "false");
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebarCollapse();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Universal Client Switcher Handler
   const handleSelectClient = (clientId: string, gstin?: string) => {
@@ -625,7 +652,8 @@ export default function Home() {
             setIsLoginModalOpen(false);
           }}
           isSandbox={isDemoSandbox}
-          onToggleSidebar={() => setIsMobileDrawerOpen((prev) => !prev)}
+          onToggleSidebar={toggleSidebarCollapse}
+          isSidebarCollapsed={isSidebarCollapsed}
           onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
           activeClientEntityId={selectedEntityId || currentUser?.clientEntityId || clients[0]?.id || "client-bt-01"}
           activeClientName={clients.find(c => c.id === (selectedEntityId || currentUser?.clientEntityId || clients[0]?.id))?.name || "Brains & Taxes Private Limited"}
@@ -647,6 +675,7 @@ export default function Home() {
               onSelectDomain={handleSelectDomain}
               onSelectTab={(tabId) => handleTabChange(tabId)}
               onOpenDirectory={() => setIsAppLauncherOpen(true)}
+              isCollapsed={isSidebarCollapsed}
               urgentTaskCount={tasks.filter(t => t.status !== "FILED_AND_COMPLETED").length}
               activeNoticeCount={notices.length}
             />

@@ -31,7 +31,9 @@ import {
   Send,
   LayoutDashboard,
   Maximize2,
-  Minimize2
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import { UniversalCommandPalette } from "@/components/firm/UniversalCommandPalette";
 import { InstallAppModal } from "@/components/shared/InstallAppModal";
@@ -55,6 +57,7 @@ interface TopNavProps {
   onExitSandbox?: () => void;
   isSandbox?: boolean;
   onToggleSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
   onOpenAppLauncher?: () => void;
   activeClientEntityId?: string;
   activeClientName?: string;
@@ -80,6 +83,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onExitSandbox,
   isSandbox = true,
   onToggleSidebar,
+  isSidebarCollapsed = false,
   onOpenAppLauncher,
   activeClientEntityId,
   activeClientName,
@@ -191,20 +195,19 @@ export const TopNav: React.FC<TopNavProps> = ({
           
           {/* LEFT: Platform Brand & Navigation Launchers */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
-            {/* Mobile / Desktop Sidebar Drawer Toggle Button */}
+            {/* Sidebar Collapse / Expand Toggle Button */}
             {onToggleSidebar && !isClientMode && (
               <button
-                onClick={() => {
-                  onToggleSidebar();
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("bt-toggle-sidebar"));
-                  }
-                }}
-                className="p-1.5 sm:p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition flex items-center justify-center shrink-0"
-                title="Toggle Sidebar Navigation (⌘B)"
-                aria-label="Toggle Sidebar Navigation"
+                onClick={onToggleSidebar}
+                className="p-1.5 sm:p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition flex items-center justify-center shrink-0 cursor-pointer"
+                title={isSidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar (⌘B)"}
+                aria-label={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
               >
-                <Menu className="w-4 h-4 text-slate-700" />
+                {isSidebarCollapsed ? (
+                  <PanelLeftOpen className="w-4 h-4 text-slate-700" />
+                ) : (
+                  <PanelLeftClose className="w-4 h-4 text-slate-700" />
+                )}
               </button>
             )}
 

@@ -38,7 +38,6 @@ import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
 import { PracticeGrowthCockpit } from "@/components/growth/PracticeGrowthCockpit";
 import { SidebarNav } from "@/components/navigation/SidebarNav";
 import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
-import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemblyLine";
 import { AutonomousPracticeCockpit } from "@/components/firm/AutonomousPracticeCockpit";
@@ -644,7 +643,10 @@ export default function Home() {
           {currentView === "partner" && (
             <DomainRail
               activeDomain={activeDomain}
+              activeTab={activePartnerTab}
               onSelectDomain={handleSelectDomain}
+              onSelectTab={(tabId) => handleTabChange(tabId)}
+              onOpenDirectory={() => setIsAppLauncherOpen(true)}
               urgentTaskCount={tasks.filter(t => t.status !== "FILED_AND_COMPLETED").length}
               activeNoticeCount={notices.length}
             />
@@ -669,13 +671,15 @@ export default function Home() {
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Contextual Sub-Tab Header for Active Domain */}
-              <DomainSubTabHeader
-                activeDomain={activeDomain}
-                activeSubTab={activePartnerTab}
-                onSelectDomain={handleSelectDomain}
-                onSelectSubTab={(tabId) => handleTabChange(tabId)}
-                taskCount={tasks.length}
-              />
+              {activePartnerTab !== "dashboard" && (
+                <DomainSubTabHeader
+                  activeDomain={activeDomain}
+                  activeSubTab={activePartnerTab}
+                  onSelectDomain={handleSelectDomain}
+                  onSelectSubTab={(tabId) => handleTabChange(tabId)}
+                  taskCount={tasks.length}
+                />
+              )}
 
               {/* 1. EXECUTIVE DASHBOARD (PRIMARY FIRST PAGE WITH 4 MASTER KPI CARDS) */}
               {activePartnerTab === "dashboard" && (
@@ -691,18 +695,6 @@ export default function Home() {
                   onOpenFirmHub={() => setIsFirmHubOpen(true)}
                   onStatusChange={handleTaskStatusChange}
                   isSandbox={isDemoSandbox}
-                />
-              )}
-
-              {/* 2. TOP ACTIVE TOOL HEADER (SHOWN ONLY ON NON-DASHBOARD WORKSPACES) */}
-              {activePartnerTab !== "dashboard" && (
-                <ActiveToolHeader
-                  activeTab={activePartnerTab}
-                  onNavigateTab={(tab) => handleTabChange(tab)}
-                  onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
-                  clients={clients}
-                  selectedClientId={selectedEntityId || clients[0]?.id}
-                  onSelectClient={handleSelectClient}
                 />
               )}
 

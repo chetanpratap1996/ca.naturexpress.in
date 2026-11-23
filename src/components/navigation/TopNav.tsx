@@ -29,7 +29,9 @@ import {
   Grid,
   Menu,
   Send,
-  LayoutDashboard
+  LayoutDashboard,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { UniversalCommandPalette } from "@/components/firm/UniversalCommandPalette";
 import { InstallAppModal } from "@/components/shared/InstallAppModal";
@@ -93,6 +95,25 @@ export const TopNav: React.FC<TopNavProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
 
   const isClientView = Boolean(isClientModeProp) || currentView === "client-pwa" || (currentView as any) === "client";
 
@@ -187,12 +208,20 @@ export const TopNav: React.FC<TopNavProps> = ({
               </button>
             )}
 
-            <Link href="/" className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onNavigateTab?.("dashboard")}
+              className="flex items-center gap-2 shrink-0 hover:opacity-90 transition text-left cursor-pointer"
+              title="Master Executive Dashboard"
+            >
               <BtLogo size="sm" showTagline={false} />
-            </Link>
+            </button>
 
             {/* Tenant Firm Pill (Hidden on screens < lg to preserve space) */}
-            <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl text-xs shrink-0">
+            <button
+              onClick={() => onNavigateTab?.("dashboard")}
+              className="hidden lg:flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl text-xs shrink-0 transition text-left cursor-pointer"
+              title="Master Executive Dashboard"
+            >
               <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
               <div className="leading-tight">
                 <span className="font-bold text-slate-900 block text-[11px] truncate max-w-[150px] xl:max-w-[200px]">
@@ -202,7 +231,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   FRN {DEFAULT_FIRM_BRANDING.frn}
                 </span>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* CENTER: Role Switcher (Partner / Staff) */}
@@ -271,6 +300,20 @@ export const TopNav: React.FC<TopNavProps> = ({
                 </kbd>
               </button>
             )}
+
+            {/* Fullscreen Focus Toggle */}
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center shrink-0"
+              title={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen Focus Mode (F11)"}
+              aria-label="Toggle Fullscreen"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-3.5 h-3.5 text-slate-600" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5 text-slate-600" />
+              )}
+            </button>
 
             {/* Notification Center Bell */}
             <button

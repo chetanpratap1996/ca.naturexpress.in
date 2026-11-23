@@ -22,7 +22,8 @@ import {
   Fingerprint,
   Package,
   Sparkles,
-  Users
+  Users,
+  LayoutDashboard
 } from "lucide-react";
 
 export interface SubTabItem {
@@ -107,6 +108,18 @@ export const DomainSubTabHeader: React.FC<DomainSubTabHeaderProps> = ({
     <div className="w-full space-y-3">
       {/* Mobile Domain Selector (visible only < lg) */}
       <div className="lg:hidden flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+        <button
+          onClick={() => onSelectSubTab("dashboard")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition ${
+            activeSubTab === "dashboard"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          <span>Dashboard</span>
+        </button>
+
         {DOMAINS.map((dom) => {
           const isSelected = activeDomain === dom.id;
           const Icon = dom.icon;

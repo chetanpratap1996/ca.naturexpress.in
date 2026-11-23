@@ -20,7 +20,6 @@ import { ClientMasterModal } from "@/components/firm/ClientMasterModal";
 import { FirmHubActionModal } from "@/components/firm/FirmHubActionModal";
 import { SidebarNav } from "@/components/navigation/SidebarNav";
 import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
-import { ActiveToolHeader } from "@/components/navigation/ActiveToolHeader";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { PracticeGrowthCockpit } from "@/components/growth/PracticeGrowthCockpit";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
@@ -294,15 +293,7 @@ export default function AdminPage() {
                   />
                 )}
 
-                {/* 2. TOP ACTIVE TOOL HEADER (SHOWN ONLY ON NON-DASHBOARD WORKSPACES) */}
-                {activePartnerTab !== "dashboard" && (
-                  <ActiveToolHeader
-                    activeTab={activePartnerTab}
-                    onNavigateTab={(tab) => handleTabChange(tab)}
-                    onOpenAppLauncher={() => setIsAppLauncherOpen(true)}
-                    clients={clients}
-                  />
-                )}
+
 
                 {/* Active Content */}
                 {activePartnerTab === "growth-engine" && (

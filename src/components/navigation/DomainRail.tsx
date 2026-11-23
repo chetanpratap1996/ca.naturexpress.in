@@ -9,7 +9,9 @@ import {
   CreditCard,
   Users,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  LayoutDashboard,
+  Grid
 } from "lucide-react";
 
 export type DomainId = 
@@ -91,35 +93,80 @@ export const DOMAINS: DomainItem[] = [
 
 interface DomainRailProps {
   activeDomain: DomainId;
+  activeTab?: string;
   onSelectDomain: (domainId: DomainId) => void;
+  onSelectTab?: (tabId: string) => void;
+  onOpenDirectory?: () => void;
   urgentTaskCount?: number;
   activeNoticeCount?: number;
 }
 
 export const DomainRail: React.FC<DomainRailProps> = ({
   activeDomain,
+  activeTab,
   onSelectDomain,
+  onSelectTab,
+  onOpenDirectory,
   urgentTaskCount = 0,
   activeNoticeCount = 0
 }) => {
   return (
     <aside 
       aria-label="Practice Domains"
-      className="hidden lg:flex flex-col w-56 xl:w-64 bg-white border-r border-slate-200 shrink-0 select-none py-3 px-2.5 space-y-1.5"
+      className="hidden lg:flex flex-col w-56 xl:w-64 bg-white border-r border-slate-200 shrink-0 select-none py-3 px-2.5 space-y-1.5 min-h-[calc(100vh-4rem)]"
     >
-      <div className="px-2.5 py-1.5 mb-1 flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-          Practice Domains
-        </span>
-        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-          6 Hubs
-        </span>
-      </div>
-
       <nav className="space-y-1 flex-1">
+        {/* Executive Dashboard Master Link */}
+        <button
+          onClick={() => onSelectTab ? onSelectTab("dashboard") : onSelectDomain("tasks")}
+          className={`w-full group text-left px-3 py-2.5 rounded-xl transition-all flex items-center justify-between relative ${
+            activeTab === "dashboard"
+              ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 font-bold"
+              : "text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium"
+          }`}
+          title="Executive Dashboard: Firm-wide KPIs, Deadlines & Billing Pulse"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div 
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                activeTab === "dashboard" 
+                  ? "bg-white/10 text-white" 
+                  : "bg-slate-100 text-slate-600 group-hover:bg-white group-hover:text-slate-900"
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs truncate block leading-snug">
+                Dashboard
+              </span>
+              <span className={`text-[10px] truncate block ${activeTab === "dashboard" ? "text-slate-300" : "text-slate-400"}`}>
+                Executive Pulse
+              </span>
+            </div>
+          </div>
+
+          <ChevronRight 
+            className={`w-3.5 h-3.5 transition-transform ${
+              activeTab === "dashboard" ? "text-white opacity-100 translate-x-0.5" : "text-slate-400 opacity-0 group-hover:opacity-100"
+            }`} 
+          />
+        </button>
+
+        <div className="my-1.5 h-px bg-slate-100" />
+
+        <div className="px-2.5 py-1 mb-1 flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+            Practice Domains
+          </span>
+          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+            6 Hubs
+          </span>
+        </div>
+
         {DOMAINS.map((domain) => {
           const Icon = domain.icon;
-          const isActive = activeDomain === domain.id;
+          const isActive = activeTab !== "dashboard" && activeDomain === domain.id;
 
           // Compute dynamic badges
           let badge = domain.badgeCount;
@@ -180,9 +227,25 @@ export const DomainRail: React.FC<DomainRailProps> = ({
         })}
       </nav>
 
-      {/* Bottom Practice Quick Status */}
-      <div className="pt-2 border-t border-slate-100 px-2 space-y-1">
-        <div className="flex items-center justify-between text-[11px] text-slate-600">
+      {/* Bottom Practice Actions & Live Status */}
+      <div className="pt-2 border-t border-slate-100 px-1 space-y-2 mt-auto">
+        {onOpenDirectory && (
+          <button
+            onClick={onOpenDirectory}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition font-medium text-xs group shadow-2xs"
+            title="All Practice Modules & Tools Directory (⌘M)"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Grid className="w-3.5 h-3.5 text-btred-logo shrink-0" />
+              <span className="truncate text-xs font-semibold">Directory</span>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400 bg-white border border-slate-200 px-1 py-0.5 rounded">
+              ⌘M
+            </span>
+          </button>
+        )}
+
+        <div className="flex items-center justify-between text-[11px] text-slate-600 px-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
             <span className="font-semibold text-slate-800">GSTN / ITD Live</span>

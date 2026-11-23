@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastContainer } from "@/components/shared/ToastNotification";
-import ChunkErrorRecovery from "@/components/shared/ChunkErrorRecovery";
 
 export const metadata: Metadata = {
   title: "Brains & Taxes - Client & Practice Portal",
@@ -36,39 +35,78 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Early FOUC & Stale Chunk Safeguard (runs before any bundles execute)
-              window.addEventListener('error', function(e) {
-                var target = e.target || e.srcElement;
-                if (target && target.tagName === 'LINK' && target.rel === 'stylesheet') {
-                  if (target.href && target.href.indexOf('/_next/static/') !== -1) {
-                    console.warn('[FOUC Safeguard] Stale stylesheet detected. Purging cache and refreshing...');
+              // Global ChunkLoadError & Stale Asset Recovery Safeguard
+              // Runs synchronously in <head> BEFORE any webpack chunks or React bundles execute
+              (function() {
+                var RELOAD_KEY = 'bt_chunk_recovery_count';
+                var WINDOW_MS = 30000;
+                var MAX_RELOADS = 2;
+
+                function recoverFromChunkError(reason) {
+                  try {
                     if ('caches' in window) {
                       caches.keys().then(function(keys) {
                         return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-                      });
+                      }).catch(function() {});
                     }
-                    var count = parseInt(sessionStorage.getItem('bt_fouc_reload') || '0', 10);
-                    if (count < 2) {
-                      sessionStorage.setItem('bt_fouc_reload', (count + 1).toString());
-                      var url = new URL(window.location.href);
-                      url.searchParams.set('_v', Date.now().toString());
-                      window.location.replace(url.toString());
+                    var raw = sessionStorage.getItem(RELOAD_KEY);
+                    var data = raw ? JSON.parse(raw) : { count: 0, since: Date.now() };
+                    if (Date.now() - data.since > WINDOW_MS) {
+                      data.count = 0;
+                      data.since = Date.now();
                     }
+                    if (data.count >= MAX_RELOADS) {
+                      console.warn('[ChunkRecovery] Max reloads reached (' + MAX_RELOADS + '). Reason: ' + reason);
+                      return;
+                    }
+                    data.count += 1;
+                    sessionStorage.setItem(RELOAD_KEY, JSON.stringify(data));
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('_v', Date.now().toString());
+                    console.warn('[ChunkRecovery] Recovering from ' + reason + '. Reloading (' + data.count + '/' + MAX_RELOADS + ')...');
+                    window.location.replace(url.toString());
+                  } catch (e) {
+                    window.location.reload();
                   }
                 }
-              }, true);
+
+                // 1. Capture-phase resource error listener (<script> & <link> load failures)
+                window.addEventListener('error', function(e) {
+                  var target = e.target || e.srcElement;
+                  if (target && target.tagName === 'LINK' && target.rel === 'stylesheet') {
+                    if (target.href && target.href.indexOf('/_next/static/') !== -1) {
+                      recoverFromChunkError('STYLESHEET_LOAD_FAILURE: ' + target.href);
+                    }
+                  } else if (target && target.tagName === 'SCRIPT') {
+                    if (target.src && target.src.indexOf('/_next/static/') !== -1) {
+                      recoverFromChunkError('SCRIPT_CHUNK_FAILURE: ' + target.src);
+                    }
+                  } else if (e.message) {
+                    var msg = e.message;
+                    if (msg.indexOf('Loading chunk') !== -1 ||
+                        msg.indexOf('ChunkLoadError') !== -1 ||
+                        msg.indexOf('_next/static/chunks') !== -1) {
+                      recoverFromChunkError('CHUNK_RUNTIME_ERROR: ' + msg);
+                    }
+                  }
+                }, true);
+
+                // 2. Unhandled promise rejections (dynamic import() failures)
+                window.addEventListener('unhandledrejection', function(e) {
+                  var reason = e.reason;
+                  var msg = (reason && (reason.message || reason.toString())) || '';
+                  if (msg.indexOf('Loading chunk') !== -1 ||
+                      msg.indexOf('ChunkLoadError') !== -1 ||
+                      msg.indexOf('Failed to fetch dynamically imported module') !== -1) {
+                    recoverFromChunkError('PROMISE_REJECTION: ' + msg);
+                  }
+                });
+              })();
             `,
           }}
         />
       </head>
       <body className="antialiased min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 selection:bg-btred-logo selection:text-white flex flex-col">
-        {/*
-          ChunkErrorRecovery: client component that attaches a window-level
-          'error' listener to intercept ChunkLoadErrors BEFORE they bubble to
-          ErrorBoundary. This covers errors thrown outside React's render tree
-          (e.g. dynamic import() calls in event handlers or useEffect).
-        */}
-        <ChunkErrorRecovery />
         <ToastContainer />
         {children}
       </body>

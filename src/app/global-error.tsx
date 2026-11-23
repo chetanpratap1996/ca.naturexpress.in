@@ -22,6 +22,28 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isChunkError =
+    error?.name === "ChunkLoadError" ||
+    error?.message?.includes("Loading chunk") ||
+    error?.message?.includes("ChunkLoadError") ||
+    error?.message?.includes("_next/static/chunks");
+
+  const handleRetry = () => {
+    if (isChunkError) {
+      try {
+        if ("caches" in window) {
+          caches.keys().then((keys) =>
+            Promise.all(keys.map((k) => caches.delete(k)))
+          );
+        }
+      } catch {}
+      const url = new URL(window.location.href);
+      url.searchParams.set("_v", Date.now().toString());
+      window.location.replace(url.toString());
+    } else {
+      reset();
+    }
+  };
   return (
     <html lang="en">
       <head>
@@ -91,14 +113,14 @@ export default function GlobalError({
             caused by a stale cache or network issue — not a data problem.
             Your compliance data is safe. Click below to reload.
           </p>
-          <button className="btn" onClick={() => reset()}>
+          <button className="btn" onClick={handleRetry}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
               <path d="M21 3v5h-5"/>
               <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
               <path d="M8 16H3v5"/>
             </svg>
-            Retry Portal
+            {isChunkError ? "Reload Fresh Portal" : "Retry Portal"}
           </button>
           <button
             className="btn btn-secondary"

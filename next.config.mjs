@@ -10,9 +10,8 @@ const nextConfig = {
   webpack: (config, { dev, isServer }) => {
     if (!isServer) {
       config.output.crossOriginLoading = "anonymous";
-      if (!dev) {
-        config.output.chunkLoadTimeout = 120000;
-      }
+      // Allow 5 minutes for chunk loading in both dev and production to prevent timeouts during compilation
+      config.output.chunkLoadTimeout = 300000;
     }
     return config;
   },

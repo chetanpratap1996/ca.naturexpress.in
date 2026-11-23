@@ -250,7 +250,7 @@ export default function Home() {
   // Default to authenticated Managing Partner (CA Gunjan Jain, GPA & Co.)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
-  const [activePartnerTab, setActivePartnerTab] = useState<string>("tasks-matrix");
+  const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
   const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
 
   useEffect(() => {

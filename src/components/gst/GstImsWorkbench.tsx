@@ -120,26 +120,26 @@ export function GstImsWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner - White & Brand Red */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-              <span>Mandatory GST 2.0 Engine (2024 / 2025 Mandate)</span>
+      {/* Top Banner - Clean Professional Container */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>Invoice Management System • 14th Cutoff Radar</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              GST IMS (Invoice Management System) &amp; Rule 37A Sentinel
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              GST IMS &amp; Rule 37A Action Desk
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Take decisive recipient actions (<strong>Accept</strong>, <strong>Reject</strong>, <strong>Keep Pending</strong>) before the 14th cutoff to dictate GSTR-2B generation. Track Rule 37A supplier GSTR-3B defaults to eliminate ₹50(1) interest liabilities.
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Recipient statutory actions (<strong>Accept</strong>, <strong>Reject</strong>, <strong>Keep Pending</strong>) before the 14th cutoff to dictate GSTR-2B generation. Track Rule 37A supplier GSTR-3B defaults to eliminate Section 50(1) interest liabilities.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
             <button
               onClick={handleBatchAcceptClean}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 transition"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Batch Accept Exact Matches</span>
@@ -147,7 +147,7 @@ export function GstImsWorkbench() {
 
             <button
               onClick={handleBatchRejectMismatches}
-              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
+              className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 transition"
             >
               <XCircle className="w-4 h-4" />
               <span>Batch Reject Mismatches</span>

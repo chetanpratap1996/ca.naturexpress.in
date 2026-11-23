@@ -149,10 +149,10 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
               </span>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  GST Filing Matrix
+                  GST Filing Operations Matrix
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  GSTR-1 &amp; GSTR-3B return filing and monitoring
+                  Monthly &amp; quarterly return radar, challan liability computation, and filing acknowledgements.
                 </p>
               </div>
             </div>
@@ -384,12 +384,22 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                       {/* Column 5: Tax Deficit & 2B Match Status */}
                       <td className="px-4 py-3.5 text-right font-mono">
                         <span className="font-bold text-slate-900 block">
-                          ₹{((t.taxPayableAmount || 124500) - 89200).toLocaleString("en-IN")}
+                          ₹{t.title.includes("GSTR-1") ? (t.taxPayableAmount || 35300).toLocaleString("en-IN") : ((t.taxPayableAmount || 124500) - 89200).toLocaleString("en-IN")}
                         </span>
                         <div className="flex items-center justify-end gap-1 mt-0.5">
-                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="GSTR-2B vs Books Auto-Matched">
-                            ✓ 2B Match: 98.4%
-                          </span>
+                          {isFiled ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              ✓ Reconciled &amp; Paid
+                            </span>
+                          ) : t.title.includes("GSTR-1") ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                              Outward B2B Ready
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="GSTR-2B vs Books Auto-Matched">
+                              ✓ 2B Match: 98.4%
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -399,12 +409,16 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                           onClick={() => handleOpenFiling(t)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 mx-auto ${
                             isFiled
-                              ? "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                              ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
                               : "bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-700 hover:to-red-700 text-white shadow-sm shadow-red-500/25 active:scale-95"
                           }`}
-                          title={isFiled ? "View Filing ARN & Sync details" : "Open In-Context Filing Drawer"}
+                          title={isFiled ? "View Filing ARN & Acknowledgement" : "Open In-Context Filing Drawer"}
                         >
-                          <Lock className="w-3.5 h-3.5" />
+                          {isFiled ? (
+                            <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5" />
+                          )}
                           <span>{isFiled ? "View ARN" : "File Now →"}</span>
                         </button>
                       </td>

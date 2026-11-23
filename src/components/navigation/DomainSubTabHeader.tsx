@@ -23,6 +23,7 @@ import {
   Package,
   Sparkles,
   Users,
+  Building2,
   LayoutDashboard
 } from "lucide-react";
 
@@ -45,10 +46,10 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   ],
   gst: [
     { id: "gst-filing", label: "Filing Desk", shortLabel: "Filing", icon: FileCheck },
-    { id: "pillar-one-gst", label: "Pillar 1 GST", shortLabel: "Pillar 1", icon: Layers },
-    { id: "gst-ims", label: "IMS Desk", shortLabel: "IMS", icon: ClipboardCheck },
     { id: "gstr2b", label: "2B Matcher", shortLabel: "2B", icon: FileSpreadsheet },
-    { id: "entity-dna", label: "Entity DNA", shortLabel: "DNA", icon: Layers }
+    { id: "gst-ims", label: "IMS Desk", shortLabel: "IMS", icon: ClipboardCheck },
+    { id: "pillar-one-gst", label: "Annual & Audit", shortLabel: "Annual", icon: Layers },
+    { id: "entity-dna", label: "GSTIN Master", shortLabel: "GSTINs", icon: Building2 }
   ],
   "tax-audit": [
     { id: "itr-matrix", label: "ITR Matrix", shortLabel: "ITR", icon: FileCheck },

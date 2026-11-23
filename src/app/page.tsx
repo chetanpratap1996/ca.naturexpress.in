@@ -837,6 +837,7 @@ export default function Home() {
                   clients={clients}
                   groups={groups}
                   selectedClientId={selectedEntityId || clients[0]?.id || ""}
+                  initialTab={activePartnerTab === "entity-dna" ? "gstins" : "overview"}
                   onSelectClient={handleSelectClient}
                   onUpdateClient={updateClient}
                   onOpenDiagnosticModal={() => setIsDiagnosticModalOpen(true)}

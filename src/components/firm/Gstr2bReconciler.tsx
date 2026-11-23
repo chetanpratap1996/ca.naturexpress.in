@@ -619,15 +619,15 @@ export const Gstr2bReconciler: React.FC = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-blue-200">
-                Module 2.1 • Institutional Engine
+                Statutory ITC Reconciliation
               </span>
-              <span className="text-xs text-slate-400 font-medium">CGST Sec 16(2)(aa) &amp; Rule 37A</span>
+              <span className="text-xs text-slate-400 font-medium font-mono">CGST Sec 16(2)(aa) &amp; Rule 37A</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               GSTR-2B vs Books Reconciliation Desk
             </h1>
             <p className="text-xs sm:text-sm text-slate-500">
-              Deterministic 7-pass invoice matcher, Section 17(5) blocked credit classifier, and 1-click defaulting vendor notice generator.
+              Multi-pass invoice matching, Section 17(5) blocked credit classification, and 1-click vendor notice generation.
             </p>
           </div>
 
@@ -751,7 +751,7 @@ export const Gstr2bReconciler: React.FC = () => {
           }`}
         >
           <Layers className="w-4 h-4" />
-          7-Pass Reconciliation Matrix
+          Reconciliation Matrix
           <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] rounded-full">
             {recoReport.records.length}
           </span>
@@ -769,7 +769,7 @@ export const Gstr2bReconciler: React.FC = () => {
           }`}
         >
           <ShieldAlert className="w-4 h-4 text-amber-500" />
-          Section 17(5) &amp; Vendor Risk
+          Blocked ITC &amp; Vendor Risk
           <span className="px-2 py-0.5 bg-amber-500/20 text-amber-700 text-[10px] rounded-full font-bold">
             {vendorProfiles.length} Vendors
           </span>
@@ -787,7 +787,7 @@ export const Gstr2bReconciler: React.FC = () => {
           }`}
         >
           <Calculator className="w-4 h-4 text-slate-600" />
-          Rule 42 &amp; 43 Pro-Rata Reversal
+          Rule 42 &amp; 43 Reversals
           <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] rounded-full font-bold">
             Workpaper
           </span>
@@ -805,7 +805,7 @@ export const Gstr2bReconciler: React.FC = () => {
           }`}
         >
           <MessageSquare className="w-4 h-4 text-emerald-600" />
-          Defaulting Vendor Chaser Desk
+          Vendor Notices
           <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-700 text-[10px] rounded-full font-bold">
             Sec 16(2)(aa)
           </span>

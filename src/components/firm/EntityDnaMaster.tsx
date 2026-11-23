@@ -47,6 +47,7 @@ interface EntityDnaMasterProps {
   clients: ClientEntity[];
   groups?: ClientGroup[];
   selectedClientId?: string;
+  initialTab?: "overview" | "gstins" | "mca" | "banking" | "dsc" | "baselines";
   onSelectClient?: (clientId: string) => void;
   onUpdateClient?: (clientId: string, data: Partial<ClientEntity>) => Promise<void> | void;
   onOpenDiagnosticModal?: () => void;
@@ -56,11 +57,18 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
   clients = [],
   groups = [],
   selectedClientId,
+  initialTab,
   onSelectClient,
   onUpdateClient,
   onOpenDiagnosticModal
 }) => {
-  const [activeTab, setActiveTab] = useState<"overview" | "gstins" | "mca" | "banking" | "dsc" | "baselines">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "gstins" | "mca" | "banking" | "dsc" | "baselines">(initialTab || "overview");
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Selected Client
   const currentClient = useMemo(() => {
@@ -132,9 +140,9 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-black rounded-full flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" /> Universal Entity DNA Spine
+              <Layers className="w-3.5 h-3.5" /> Client Statutory Profile
             </span>
-            <span className="text-xs text-slate-500 font-medium">Single Source of Truth across 5 Work Suites</span>
+            <span className="text-xs text-slate-500 font-medium">Single source of truth for GSTINs, corporate constitution, and thresholds</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               Health Score: {healthScore}/100
             </span>
@@ -186,7 +194,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
               onClick={onOpenDiagnosticModal}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-btred-logo text-white text-xs font-black shadow-xs hover:from-red-700 hover:to-red-800 transition"
             >
-              <Sparkles className="w-3.5 h-3.5" /> + 1-Tap Onboard
+              <Sparkles className="w-3.5 h-3.5" /> + Onboard Client
             </button>
           )}
         </div>

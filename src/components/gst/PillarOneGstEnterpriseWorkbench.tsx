@@ -16,7 +16,6 @@ import {
   FileCheck2,
   DollarSign
 } from 'lucide-react';
-import { GstImsWorkbench } from '@/components/gst/GstImsWorkbench';
 import { 
   Gstr9Table8aReconciliation, 
   Gstr9cTurnoverReconciliation, 
@@ -46,7 +45,7 @@ import {
 import { toast } from '@/components/shared/ToastNotification';
 
 export function PillarOneGstEnterpriseWorkbench() {
-  const [activeTab, setActiveTab] = useState<'IMS_AND_37A' | 'GSTR9_9C' | 'EINVOICE_EWB' | 'MULTI_GSTIN_ISD' | 'DRC01B_01C'>('IMS_AND_37A');
+  const [activeTab, setActiveTab] = useState<'GSTR9_9C' | 'EINVOICE_EWB' | 'MULTI_GSTIN_ISD' | 'DRC01B_01C'>('GSTR9_9C');
 
   // GSTR-9/9C State
   const [reco8a] = useState<Gstr9Table8aReconciliation>(SAMPLE_GSTR9_RECO);
@@ -92,25 +91,25 @@ export function PillarOneGstEnterpriseWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Pillar Header */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden text-slate-900">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-              <span>Pillar I: Institutional GST 2.0 Command Center</span>
+      {/* Clean Professional Header */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-slate-900">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>GST Compliance &amp; Audit Workpapers</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              GST 2.0 Real-World GSTN, IMS &amp; Litigation Sentinel
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              GST Annual Audit &amp; Compliance Workbench
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Complete end-to-end statutory orchestration: <strong>IMS (Invoice Management System)</strong>, <strong>Rule 37A 180-day reversal</strong>, <strong>GSTR-9/9C Table 8A matrix</strong>, <strong>E-Invoicing &amp; EWB distance alert</strong>, <strong>Multi-GSTIN ISD distribution</strong>, and <strong>Rule 88C/88D auto-reply</strong>.
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <strong>GSTR-9/9C Table 8A matrix</strong>, <strong>DRC-03 voluntary payment</strong>, <strong>E-Invoicing &amp; EWB distance monitoring</strong>, <strong>Multi-GSTIN ISD distribution</strong>, and <strong>Rule 88C/88D notices</strong>.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold">
-              100% Statutory Compliant
+              Statutory Workpapers Active
             </span>
           </div>
         </div>
@@ -118,18 +117,6 @@ export function PillarOneGstEnterpriseWorkbench() {
 
       {/* Navigation Tabs */}
       <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('IMS_AND_37A')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
-            activeTab === 'IMS_AND_37A'
-              ? 'bg-red-600 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>1. IMS & Rule 37A Engine</span>
-        </button>
-
         <button
           onClick={() => setActiveTab('GSTR9_9C')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
@@ -139,7 +126,7 @@ export function PillarOneGstEnterpriseWorkbench() {
           }`}
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
-          <span>2. GSTR-9/9C & DRC-03 Matrix</span>
+          <span>GSTR-9 &amp; 9C Audit</span>
         </button>
 
         <button
@@ -151,7 +138,7 @@ export function PillarOneGstEnterpriseWorkbench() {
           }`}
         >
           <Truck className="w-3.5 h-3.5" />
-          <span>3. E-Invoice & E-Way Bill Sentinel</span>
+          <span>E-Way &amp; E-Invoice</span>
         </button>
 
         <button
@@ -163,7 +150,7 @@ export function PillarOneGstEnterpriseWorkbench() {
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>4. Multi-GSTIN & ISD Hub</span>
+          <span>Multi-GSTIN &amp; ISD</span>
         </button>
 
         <button
@@ -175,16 +162,11 @@ export function PillarOneGstEnterpriseWorkbench() {
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
-          <span>5. Rule 88C/88D Auto-Reply ({drcNotices.length})</span>
+          <span>Rule 88C/88D Notices ({drcNotices.length})</span>
         </button>
       </div>
 
-      {/* TAB 1: IMS & Rule 37A */}
-      {activeTab === 'IMS_AND_37A' && (
-        <GstImsWorkbench />
-      )}
-
-      {/* TAB 2: GSTR-9 / 9C Annual Matrix */}
+      {/* TAB 1: GSTR-9 / 9C Annual Matrix */}
       {activeTab === 'GSTR9_9C' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

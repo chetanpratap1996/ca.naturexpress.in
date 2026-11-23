@@ -78,11 +78,11 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   ],
   "client-master": [
     { id: "client-master", label: "Client Master", shortLabel: "Clients", icon: Layers },
-    { id: "whatsapp-ai", label: "WhatsApp Desk", shortLabel: "WhatsApp", icon: MessageSquare },
-    { id: "pillar-seven-governance", label: "SQC-1 Dossier", shortLabel: "SQC-1", icon: Award },
-    { id: "vcfo", label: "vCFO Cockpit", shortLabel: "vCFO", icon: TrendingUp },
-    { id: "growth-engine", label: "Growth Engine", shortLabel: "Growth", icon: TrendingUp },
     { id: "dsc", label: "DSC & Keys Vault", shortLabel: "Vault", icon: KeyRound },
+    { id: "whatsapp-ai", label: "WhatsApp Desk", shortLabel: "WhatsApp", icon: MessageSquare },
+    { id: "vcfo", label: "vCFO Advisory", shortLabel: "vCFO", icon: TrendingUp },
+    { id: "pillar-seven-governance", label: "SQC-1 Governance", shortLabel: "SQC-1", icon: Award },
+    { id: "growth-engine", label: "Growth Engine", shortLabel: "Growth", icon: TrendingUp },
     { id: "content-studio", label: "Content Studio", shortLabel: "Studio", icon: Video }
   ]
 };

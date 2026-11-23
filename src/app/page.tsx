@@ -825,7 +825,7 @@ export default function Home() {
               )}
 
               {activePartnerTab === "vcfo" && (
-                <VirtualCfoCockpit />
+                <VirtualCfoCockpit clients={clients.length > 0 ? clients : INITIAL_CLIENTS} />
               )}
 
               {activePartnerTab === "bank-parser" && (

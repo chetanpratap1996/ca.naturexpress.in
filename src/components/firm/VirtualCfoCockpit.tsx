@@ -40,8 +40,10 @@ import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
+import { INITIAL_CLIENTS } from "@/lib/data/mockData";
 
 interface VirtualCfoCockpitProps {
+  clients?: ClientEntity[];
   onBack?: () => void;
 }
 
@@ -54,8 +56,14 @@ interface ProductLineItem {
   badgeColor: string;
 }
 
-export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) => {
-  const { clients } = useTaxoData();
+export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ clients: propsClients, onBack }) => {
+  const { clients: hookClients } = useTaxoData();
+  const effectiveClients = useMemo(() => {
+    if (propsClients && propsClients.length > 0) return propsClients;
+    if (hookClients && hookClients.length > 0) return hookClients;
+    return INITIAL_CLIENTS;
+  }, [propsClients, hookClients]);
+
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [burnRateMultiplier, setBurnRateMultiplier] = useState<number>(1);
   const [revenueStressPct, setRevenueStressPct] = useState<number>(0);
@@ -68,7 +76,7 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
   const [isDebtorNoticeModalOpen, setIsDebtorNoticeModalOpen] = useState(false);
   const [savedMemosCount, setSavedMemosCount] = useState<number>(0);
 
-  // Custom Calibration Overrides for 1000% Real CA Accuracy
+  // Custom Calibration Overrides for CA Accuracy
   const [customOverrides, setCustomOverrides] = useState<Record<string, {
     customTurnoverCr?: number;
     customReservesInr?: number;
@@ -80,13 +88,13 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
   }>>({});
 
   // Active Client Resolution
-  const currentClient: ClientEntity | null = useMemo(() => {
-    if (!clients || clients.length === 0) return null;
+  const currentClient: ClientEntity = useMemo(() => {
     if (selectedEntityId) {
-      return clients.find(c => c.id === selectedEntityId) || clients[0];
+      const found = effectiveClients.find(c => c.id === selectedEntityId);
+      if (found) return found;
     }
-    return clients[0];
-  }, [clients, selectedEntityId]);
+    return effectiveClients[0] || INITIAL_CLIENTS[0];
+  }, [effectiveClients, selectedEntityId]);
 
   // Current entity calibration profile
   const entityCalibration = useMemo(() => {
@@ -269,9 +277,9 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="px-3 py-1 bg-red-50 border border-red-200 text-btred-logo text-xs font-bold rounded-full flex items-center gap-1.5 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5" /> High-Margin Advisory Engine
+              <TrendingUp className="w-3.5 h-3.5" /> Corporate Advisory Suite
             </span>
-            <span className="text-xs text-slate-500 font-semibold">Billed at ₹75,000 – ₹2,50,000/mo</span>
+            <span className="text-xs text-slate-500 font-semibold">Strategic Financial Planning &amp; Board Reporting</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             Virtual CFO Executive Cockpit
@@ -309,16 +317,16 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ onBack }) 
         <div className="flex items-center justify-between pb-2 px-1 text-xs text-slate-600 font-bold border-b border-slate-200 mb-2">
           <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-slate-500">
             <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-            Active Client Entities ({clients.length}) &bull; Click to Switch Practice DNA:
+            Active Client Entities ({effectiveClients.length}) &bull; Select Assessee Entity:
           </span>
           <span className="text-[11px] text-slate-500 font-medium">
-            Currently Viewing: <strong className="text-slate-900">{currentClient?.name}</strong>
+            Currently Viewing: <strong className="text-slate-900">{currentClient?.name || effectiveClients[0]?.name}</strong>
           </span>
         </div>
 
         {/* Scrollable Entity Cards Ribbon */}
         <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-thin pb-1">
-          {clients.map((c) => {
+          {effectiveClients.map((c) => {
             const isSelected = (currentClient?.id === c.id);
             const override = customOverrides[c.id];
             const displayTurnover = override?.customTurnoverCr || c.turnoverCr || 5.0;

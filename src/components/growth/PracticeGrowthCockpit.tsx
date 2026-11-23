@@ -1613,7 +1613,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 block">
-                  1000% Compliant Statutory Outreach Memo
+                  Statutory Outreach &amp; Diagnostic Memo
                 </span>
                 <h3 className="text-lg font-black text-slate-900">
                   Compliance Diagnostic &bull; {selectedLeadForDocket.legalName}
@@ -1814,7 +1814,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <h3 className="text-base font-black text-slate-900">1000% Accuracy Audit Proof</h3>
+                <h3 className="text-base font-black text-slate-900">Registry Source &amp; Audit Trail</h3>
               </div>
               <button
                 onClick={() => setSelectedLeadForAudit(null)}
@@ -2243,7 +2243,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="font-bold text-slate-900 text-sm">{scanResult.lead.legalName}</span>
                   <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                    1000% Matched
+                    Verified Match
                   </span>
                 </div>
 
@@ -2351,7 +2351,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-800">1. MCA21 V3 Public Registry Gazette</span>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">Active &bull; 1000% Online</span>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">Active &bull; Operational</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-800">2. CBIC GSTN Mod-36 Taxpayer Engine</span>

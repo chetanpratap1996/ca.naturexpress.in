@@ -222,17 +222,17 @@ export const CaCreatorContentStudio: React.FC = () => {
       <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
-                <Instagram className="w-3.5 h-3.5 text-pink-500" /> CA Content Creator Studio
+                <FileText className="w-3.5 h-3.5" /> Tax Advisory &amp; Client Bulletin Studio
               </span>
-              <span className="text-xs text-slate-500 font-mono">ICAI Social Media Guidelines Compliant</span>
+              <span className="text-xs text-slate-500 font-mono">ICAI Code of Ethics Rule 7 Compliant</span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <Video className="w-6 h-6 text-btred-logo" /> Tax Advisory Updates &amp; Post Planner
+              <Video className="w-6 h-6 text-btred-logo" /> Client Circulars &amp; Statutory Advisories
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Educational client bulletins for LinkedIn, YouTube &amp; newsletters. Structured scripts for budget changes, Section 115BAC, MSME 45-day rules, and corporate tax advisories.
+              Educational client bulletins for LinkedIn, email newsletters &amp; circulars. Structured advisories for budget updates, Section 115BAC, MSME Section 43B(h), and corporate compliance.
             </p>
           </div>
 

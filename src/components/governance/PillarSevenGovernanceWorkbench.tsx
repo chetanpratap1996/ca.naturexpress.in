@@ -115,20 +115,19 @@ export default function PillarSevenGovernanceWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner - Crisp White & Brand Red Accent */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+      {/* Header Banner - Clean Institutional Card */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-semibold mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-red-600" />
-              Pillar VII: Institutional Governance &amp; Regulatory Shield
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-btred-logo text-xs font-semibold mb-2">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              ICAI SQC-1 Audit Quality &amp; Governance Dossier
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              ICAI SQC-1 Peer Review, Bulk UDIN &amp; Article Management
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+              ICAI SQC-1 Quality Control &amp; Audit Workpaper Dossier
             </h1>
-            <p className="text-sm text-slate-600 mt-1 max-w-3xl">
-              18-digit UDIN generator with 60-day statutory countdown &amp; QR watermarking, SQC-1 Permanent &amp; Current Audit Workpapers, 
-              Regulation 48 Stipend &amp; Reg 59 1/6th Leave Form 108 Diary, and 2-Factor Physical DSC Vault.
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+              Permanent &amp; current audit workpapers, independence declarations, statutory attestations, and compliance controls for ICAI Peer Review.
             </p>
           </div>
 
@@ -141,53 +140,53 @@ export default function PillarSevenGovernanceWorkbench() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-slate-200">
+        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-slate-200">
           <button
             onClick={() => setActiveTab('UDIN_GENERATOR')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'UDIN_GENERATOR'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
             <QrCode className="w-4 h-4" />
-            Bulk UDIN &amp; Watermarker ({udinStats.pendingCount} Pending)
+            Audit Attestations &amp; UDINs ({udinStats.pendingCount} Pending)
           </button>
 
           <button
             onClick={() => setActiveTab('SQC1_PEER_REVIEW')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'SQC1_PEER_REVIEW'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
             <FileCheck2 className="w-4 h-4" />
-            ICAI SQC-1 Peer Review Workpapers ({sqc1Health.completionPercentage}%)
+            SQC-1 Audit Workpapers ({sqc1Health.completionPercentage}%)
           </button>
 
           <button
             onClick={() => setActiveTab('ARTICLE_TRAINEE_DIARY')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'ARTICLE_TRAINEE_DIARY'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
             <Users className="w-4 h-4" />
-            Article Biometric, Stipend &amp; Form 108
+            Article Training &amp; Form 108
           </button>
 
           <button
             onClick={() => setActiveTab('DSC_SAFE_VAULT')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'DSC_SAFE_VAULT'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
             <KeyRound className="w-4 h-4" />
-            Physical DSC Token Vault ({dscVaultStats.checkedOut} Checked Out)
+            Physical DSC Custody ({dscVaultStats.checkedOut} Out)
           </button>
         </div>
       </div>

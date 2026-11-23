@@ -206,7 +206,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           onClick={() => setActiveTab("overview")}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
             activeTab === "overview"
-              ? "bg-purple-700 text-white shadow-xs"
+              ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -218,7 +218,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           onClick={() => setActiveTab("gstins")}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
             activeTab === "gstins"
-              ? "bg-purple-700 text-white shadow-xs"
+              ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -230,7 +230,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           onClick={() => setActiveTab("mca")}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
             activeTab === "mca"
-              ? "bg-purple-700 text-white shadow-xs"
+              ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -242,7 +242,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           onClick={() => setActiveTab("banking")}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
             activeTab === "banking"
-              ? "bg-purple-700 text-white shadow-xs"
+              ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -254,7 +254,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           onClick={() => setActiveTab("dsc")}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
             activeTab === "dsc"
-              ? "bg-purple-700 text-white shadow-xs"
+              ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
@@ -266,7 +266,7 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
           onClick={() => setActiveTab("baselines")}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition shrink-0 ${
             activeTab === "baselines"
-              ? "bg-purple-700 text-white shadow-xs"
+              ? "bg-btred-logo text-white shadow-xs"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >

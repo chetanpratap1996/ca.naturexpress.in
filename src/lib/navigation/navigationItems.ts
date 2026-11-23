@@ -175,13 +175,13 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   },
   {
     id: "staff-master",
-    label: "Team & Article Trainee Master",
-    shortLabel: "Team & Trainees",
+    label: "Employees",
+    shortLabel: "Employees",
     categoryId: "task-management",
-    description: "Competency ranking, domain specialization matrix, zero-cost PIN auth & autonomous work assignment",
-    icon: UserPlus,
+    description: "Staff management, competency ranking, and workload capacity",
+    icon: Users,
     iconColor: "text-emerald-500",
-    badge: "2035 Autopilot",
+    badge: "Team",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
   },
   {

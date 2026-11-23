@@ -306,23 +306,20 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Autonomous Controls */}
+      {/* Top Banner & Controls */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="p-1.5 bg-red-100 text-btred-logo rounded-lg">
                 <Users className="w-5 h-5" />
               </span>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                Team & Article Trainee Command Center
+                Employees
               </h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                2035 Autonomous Ready
-              </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Dynamic competency tier ranking, specialization matrix & zero-cost mobile PIN identity management.
+              Manage staff, competency ranking, and workload capacity.
             </p>
           </div>
 
@@ -330,67 +327,61 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
             <button
               onClick={handleTriggerAutonomousSweep}
               disabled={isAutoAssigning}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm disabled:opacity-50"
             >
               {isAutoAssigning ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
               ) : (
-                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               )}
-              {isAutoAssigning ? "Running Dispatch..." : "Run Autonomous Work Assignment"}
+              {isAutoAssigning ? "Assigning..." : "Auto-Assign Work"}
             </button>
 
             <button
               onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
             >
               <UserPlus className="w-4 h-4" />
-              Add Real Employee
+              Add Employee
             </button>
           </div>
         </div>
 
-        {/* Executive Real-Time KPIs */}
+        {/* Real-Time KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-100">
           <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Total Staff Registered
+              Total Employees
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="mt-1">
               <span className="text-2xl font-black text-slate-900">{kpis.totalStaff}</span>
-              <span className="text-[11px] font-medium text-emerald-600">₹0.00 SaaS Cost</span>
             </div>
           </div>
 
           <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Active Article Trainees
+              Articles
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="mt-1">
               <span className="text-2xl font-black text-blue-600">{kpis.activeArticles}</span>
-              <span className="text-[11px] font-medium text-slate-500">ICAI Registered</span>
             </div>
           </div>
 
           <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Active Workload Assigned
+              Assigned Tasks
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="mt-1">
               <span className="text-2xl font-black text-slate-900">{kpis.totalAssignedTasks}</span>
-              <span className="text-[11px] font-medium text-slate-500">Open Tasks</span>
             </div>
           </div>
 
           <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Firm Capacity Load
+              Capacity Load
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="mt-1">
               <span className="text-2xl font-black text-purple-700">{kpis.avgUtilization}%</span>
-              <span className="text-[11px] font-medium text-purple-600 font-bold">
-                {kpis.avgUtilization > 85 ? "Heavy" : "Balanced"}
-              </span>
             </div>
           </div>
         </div>
@@ -605,7 +596,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                   <UserPlus className="w-4 h-4" />
                 </span>
                 <h3 className="font-bold text-slate-900 text-sm">
-                  {editingStaff ? "Edit Employee & Competency Rank" : "Add Real Practice Employee"}
+                  {editingStaff ? "Edit Employee" : "Add Employee"}
                 </h3>
               </div>
               <button
@@ -799,7 +790,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                   type="submit"
                   className="px-4 py-2 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
                 >
-                  {editingStaff ? "Update Employee" : "Save & Register Employee"}
+                  {editingStaff ? "Update Employee" : "Add Employee"}
                 </button>
               </div>
             </form>

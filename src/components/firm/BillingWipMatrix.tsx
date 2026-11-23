@@ -174,10 +174,10 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
               </span>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Practice Realization &amp; Billing Cockpit
+                  Billing &amp; WIP
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  Automated statutory invoicing &bull; Pay-to-Release fee gate &bull; Section 43B(h) MSME compliance
+                  Statutory invoicing, collections, and MSME 43B(h) compliance
                 </p>
               </div>
             </div>

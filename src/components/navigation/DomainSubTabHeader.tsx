@@ -35,53 +35,53 @@ export interface SubTabItem {
 
 export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   tasks: [
-    { id: "tasks-matrix", label: "Tasks & Deadlines Command Center", shortLabel: "Task Center", icon: ClipboardCheck },
-    { id: "staff-master", label: "Team & Article Trainee Master", shortLabel: "Team & Ranking", icon: Users },
-    { id: "calendar", label: "Statutory Tax Deadlines", shortLabel: "Deadlines", icon: Calendar },
-    { id: "autonomous-orchestrator", label: "8-Pillar Universal Orchestrator", shortLabel: "8-Pillar Mesh", icon: Sparkles },
-    { id: "batch-dispatch", label: "Batch Return Dispatcher", shortLabel: "Batch Dispatch", icon: Sparkles },
-    { id: "inward-outward", label: "Dispatches & Letters Register", shortLabel: "Inward/Outward", icon: Package }
+    { id: "tasks-matrix", label: "Task Center", shortLabel: "Tasks", icon: ClipboardCheck },
+    { id: "staff-master", label: "Employees", shortLabel: "Employees", icon: Users },
+    { id: "calendar", label: "Deadlines", shortLabel: "Deadlines", icon: Calendar },
+    { id: "autonomous-orchestrator", label: "Orchestrator", shortLabel: "Orchestrator", icon: Sparkles },
+    { id: "batch-dispatch", label: "Batch Dispatch", shortLabel: "Batch", icon: Sparkles },
+    { id: "inward-outward", label: "Registers", shortLabel: "Registers", icon: Package }
   ],
   gst: [
-    { id: "gst-filing", label: "GST Operations & In-Flow Filing Desk", shortLabel: "Filing Desk", icon: FileCheck },
-    { id: "pillar-one-gst", label: "Pillar 1 GST Enterprise Workbench", shortLabel: "Pillar 1 GST", icon: Layers },
-    { id: "gst-ims", label: "GST Invoice Management System (IMS)", shortLabel: "IMS Desk", icon: ClipboardCheck },
-    { id: "gstr2b", label: "GSTR-2B Auto-Reconciler", shortLabel: "2B Matcher", icon: FileSpreadsheet },
-    { id: "entity-dna", label: "GSTIN & Entity DNA Matrix", shortLabel: "Entity DNA", icon: Layers }
+    { id: "gst-filing", label: "Filing Desk", shortLabel: "Filing", icon: FileCheck },
+    { id: "pillar-one-gst", label: "Pillar 1 GST", shortLabel: "Pillar 1", icon: Layers },
+    { id: "gst-ims", label: "IMS Desk", shortLabel: "IMS", icon: ClipboardCheck },
+    { id: "gstr2b", label: "2B Matcher", shortLabel: "2B", icon: FileSpreadsheet },
+    { id: "entity-dna", label: "Entity DNA", shortLabel: "DNA", icon: Layers }
   ],
   "tax-audit": [
-    { id: "itr-matrix", label: "ITR & Audit Operations Matrix", shortLabel: "ITR Operations", icon: FileCheck },
-    { id: "pillar-two-tax", label: "Pillar 2 Direct Tax & 115BAC Workbench", shortLabel: "Pillar 2 Tax", icon: Calculator },
-    { id: "pillar-three-audit", label: "Pillar 3 Form 3CD & Cl. 31 Audit", shortLabel: "Pillar 3 Audit", icon: ClipboardCheck },
-    { id: "pillar-five-tds", label: "Pillar 5 TDS / TRACES & 15CA/CB", shortLabel: "Pillar 5 TDS", icon: FileCheck },
-    { id: "schedule3-audit", label: "Schedule III Audit & Financials", shortLabel: "Schedule III", icon: Layers },
-    { id: "ais-analyzer", label: "AIS / 26AS SFT Inspector", shortLabel: "AIS / 26AS", icon: FileSearch },
-    { id: "engagement-letter", label: "Engagement Letters (SA 210)", shortLabel: "SA 210 Letter", icon: FileCheck }
+    { id: "itr-matrix", label: "ITR Matrix", shortLabel: "ITR", icon: FileCheck },
+    { id: "pillar-two-tax", label: "Pillar 2 Tax", shortLabel: "Pillar 2", icon: Calculator },
+    { id: "pillar-three-audit", label: "Form 3CD Audit", shortLabel: "3CD", icon: ClipboardCheck },
+    { id: "pillar-five-tds", label: "TDS & TRACES", shortLabel: "TDS", icon: FileCheck },
+    { id: "schedule3-audit", label: "Schedule III", shortLabel: "Sched III", icon: Layers },
+    { id: "ais-analyzer", label: "AIS / 26AS", shortLabel: "AIS", icon: FileSearch },
+    { id: "engagement-letter", label: "Engagement Letters", shortLabel: "Letters", icon: FileCheck }
   ],
   "notices-udin": [
-    { id: "notices", label: "Active Scrutiny Notices & Case Docket", shortLabel: "Notice Docket", icon: ShieldAlert },
-    { id: "pillar-six-mca", label: "Pillar 6 MCA V3, DPT-3 & Secretarial Desk", shortLabel: "Pillar 6 MCA", icon: Scale },
-    { id: "notice-drafter", label: "Statutory Notice Reply Drafter", shortLabel: "Reply Drafter", icon: Scale },
-    { id: "assessee-approval", label: "Assessee Legal Sign-off Desk", shortLabel: "Assessee Sign", icon: FileCheck },
-    { id: "udin-vault", label: "UDIN 60-Day Compliance Vault", shortLabel: "UDIN Vault", icon: KeyRound },
-    { id: "peer-review", label: "Audit Quality & Peer Review", shortLabel: "Peer Review", icon: Award }
+    { id: "notices", label: "Notice Docket", shortLabel: "Notices", icon: ShieldAlert },
+    { id: "pillar-six-mca", label: "Pillar 6 MCA", shortLabel: "MCA", icon: Scale },
+    { id: "notice-drafter", label: "Reply Drafter", shortLabel: "Replies", icon: Scale },
+    { id: "assessee-approval", label: "Assessee Sign", shortLabel: "Sign-off", icon: FileCheck },
+    { id: "udin-vault", label: "UDIN Vault", shortLabel: "UDIN", icon: KeyRound },
+    { id: "peer-review", label: "Peer Review", shortLabel: "Peer Review", icon: Award }
   ],
   "billing-wip": [
-    { id: "billing-matrix", label: "Practice Billing & Realization Matrix", shortLabel: "Billing Matrix", icon: DollarSign },
-    { id: "pillar-eight-desktop", label: "Pillar 8 Tally Desktop Bridge (Port 9000)", shortLabel: "Tally Bridge", icon: Sparkles },
-    { id: "bank-parser", label: "Bank Statement OCR to Tally", shortLabel: "Bank Parser", icon: FileSpreadsheet },
-    { id: "bank-audit", label: "Bank Audit & Working Capital", shortLabel: "Bank Audit", icon: Layers },
-    { id: "pay-to-release", label: "Fee Release Gate (Pay-to-Release)", shortLabel: "Fee Gate", icon: Lock },
-    { id: "anti-poaching", label: "Firm Realization & Insights", shortLabel: "Realization", icon: Fingerprint }
+    { id: "billing-matrix", label: "Billing Matrix", shortLabel: "Billing", icon: DollarSign },
+    { id: "pillar-eight-desktop", label: "Tally Bridge", shortLabel: "Tally", icon: Sparkles },
+    { id: "bank-parser", label: "Bank Parser", shortLabel: "Parser", icon: FileSpreadsheet },
+    { id: "bank-audit", label: "Bank Audit", shortLabel: "Audit", icon: Layers },
+    { id: "pay-to-release", label: "Pay-to-Release", shortLabel: "Pay Gate", icon: Lock },
+    { id: "anti-poaching", label: "Insights", shortLabel: "Insights", icon: Fingerprint }
   ],
   "client-master": [
-    { id: "client-master", label: "Entity DNA & Client Master", shortLabel: "Client Master", icon: Layers },
-    { id: "whatsapp-ai", label: "1-Tap WhatsApp Communication Desk", shortLabel: "WhatsApp Desk", icon: MessageSquare },
-    { id: "pillar-seven-governance", label: "Pillar 7 SQC-1 Peer Review Dossier", shortLabel: "Pillar 7 Dossier", icon: Award },
-    { id: "vcfo", label: "vCFO Advisory Cockpit", shortLabel: "vCFO Cockpit", icon: TrendingUp },
-    { id: "growth-engine", label: "Diagnostic Onboarding & Practice Growth", shortLabel: "Growth Engine", icon: TrendingUp },
-    { id: "dsc", label: "Portal Credentials & DSC Tokens", shortLabel: "Keys & DSC Vault", icon: KeyRound },
-    { id: "content-studio", label: "CA Creator Content Studio", shortLabel: "Creator Studio", icon: Video }
+    { id: "client-master", label: "Client Master", shortLabel: "Clients", icon: Layers },
+    { id: "whatsapp-ai", label: "WhatsApp Desk", shortLabel: "WhatsApp", icon: MessageSquare },
+    { id: "pillar-seven-governance", label: "SQC-1 Dossier", shortLabel: "SQC-1", icon: Award },
+    { id: "vcfo", label: "vCFO Cockpit", shortLabel: "vCFO", icon: TrendingUp },
+    { id: "growth-engine", label: "Growth Engine", shortLabel: "Growth", icon: TrendingUp },
+    { id: "dsc", label: "DSC & Keys Vault", shortLabel: "Vault", icon: KeyRound },
+    { id: "content-studio", label: "Content Studio", shortLabel: "Studio", icon: Video }
   ]
 };
 
@@ -149,13 +149,6 @@ export const DomainSubTabHeader: React.FC<DomainSubTabHeaderProps> = ({
               </button>
             );
           })}
-        </div>
-
-        <div className="hidden xl:flex items-center gap-2 text-[11px] text-slate-600 border-l border-slate-200 pl-3 pr-2 shrink-0">
-          <span className="font-semibold text-slate-800">{currentDomainInfo.label}</span>
-          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
-            {subTabs.length} Tools
-          </span>
         </div>
       </div>
     </div>

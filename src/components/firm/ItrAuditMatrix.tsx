@@ -156,10 +156,10 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
               </span>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Income Tax &amp; Audit Operations Matrix
+                  Income Tax &amp; Audit Matrix
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  ITR-1 through ITR-6 &bull; Form 3CD Tax Audit (Sec 44AB) &bull; Schedule III &bull; Zero-hop credentials
+                  ITR filings and Form 3CD tax audit certifications
                 </p>
               </div>
             </div>

@@ -149,10 +149,10 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
               </span>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  GST Filing Operations Matrix
+                  GST Filing Matrix
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  Direct statutory filing desk &bull; Zero-hop credentials &bull; Real-time GSTR-1 &amp; 3B monitoring
+                  GSTR-1 &amp; GSTR-3B return filing and monitoring
                 </p>
               </div>
             </div>

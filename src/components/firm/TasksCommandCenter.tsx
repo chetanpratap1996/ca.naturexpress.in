@@ -283,8 +283,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-600" />
-            <h3 className="font-black text-xs text-slate-900">Article Trainee Workload Allocation</h3>
-            <span className="text-[10px] text-slate-400 font-medium hidden md:inline">• Competency Ranked & Leveled</span>
+            <h3 className="font-black text-xs text-slate-900">Workload Allocation</h3>
           </div>
 
           <div className="flex items-center gap-2">
@@ -294,9 +293,8 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[11px] font-bold shadow-xs transition disabled:opacity-50"
             >
               <Sparkles className={`w-3.5 h-3.5 text-emerald-400 ${isAutoAssigning ? "animate-spin" : ""}`} />
-              {isAutoAssigning ? "Balancing..." : "Autopilot Workload Rebalance"}
+              {isAutoAssigning ? "Balancing..." : "Rebalance Workload"}
             </button>
-            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">Click any task row below to reassign</span>
           </div>
         </div>
 

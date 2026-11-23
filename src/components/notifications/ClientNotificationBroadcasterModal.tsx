@@ -34,6 +34,19 @@ import {
   CheckCheck
 } from "lucide-react";
 
+export function formatDisplayPhone(rawPhone?: string): string {
+  if (!rawPhone) return "";
+  const digits = rawPhone.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  }
+  if (digits.length === 12 && digits.startsWith("91")) {
+    const local = digits.slice(2);
+    return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
+  }
+  return rawPhone;
+}
+
 export interface StatutoryTemplate {
   id: string;
   name: string;
@@ -258,6 +271,7 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
   const [clientSearch, setClientSearch] = useState<string>("");
   const [selectedFilter, setSelectedFilter] = useState<"ALL" | "GST" | "COMPANY" | "AUDIT" | "OVERDUE" | "EXPIRING_DSC">("ALL");
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>(initialClientIds || []);
+  const [previewClientId, setPreviewClientId] = useState<string>("");
   
   // Channels to Dispatch
   const [channelPortal, setChannelPortal] = useState<boolean>(true);
@@ -336,6 +350,24 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
       .replace(/{{amount}}/g, customAmount)
       .replace(/{{contactName}}/g, client.primaryContact.name)
       .replace(/{{din}}/g, initialMetadata?.din || `CBIC/IND/2026/${Math.floor(1000000 + Math.random() * 9000000)}`);
+  };
+
+  const previewClient = useMemo(() => {
+    if (previewClientId) {
+      const found = clients.find((c) => c.id === previewClientId);
+      if (found) return found;
+    }
+    const firstSelected = clients.find((c) => selectedClientIds.includes(c.id));
+    if (firstSelected) return firstSelected;
+    return eligibleClients[0] || clients[0];
+  }, [previewClientId, clients, selectedClientIds, eligibleClients]);
+
+  const handleOpenSingleClientWhatsApp = (e: React.MouseEvent, client: ClientEntity) => {
+    e.stopPropagation();
+    const msg = renderMessageForClient(client);
+    const cleanPhone = sanitizeIndianPhoneNumber(client.primaryContact.phone);
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+    toast.info("WhatsApp Chat Launched", `Opening WhatsApp chat with ${client.primaryContact.name} (${client.name}).`);
   };
 
   // 100% Free Multi-Channel Batch Dispatcher
@@ -447,17 +479,15 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
     );
   };
 
-  // Open batch WhatsApp sender for all selected
+  // Open WhatsApp sender for the active preview client
   const handleOpenWhatsAppQueue = () => {
-    const targetClients = clients.filter((c) => selectedClientIds.includes(c.id));
-    if (targetClients.length === 0) return;
+    const target = previewClient || clients.find((c) => selectedClientIds.includes(c.id));
+    if (!target) return;
 
-    // Open first one and show toast
-    const first = targetClients[0];
-    const msg = renderMessageForClient(first);
-    const cleanPhone = sanitizeIndianPhoneNumber(first.primaryContact.phone);
+    const msg = renderMessageForClient(target);
+    const cleanPhone = sanitizeIndianPhoneNumber(target.primaryContact.phone);
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
-    toast.info("WhatsApp Chat Launched", `Opened WhatsApp Web for ${first.name}.`);
+    toast.info("WhatsApp Chat Launched", `Opened WhatsApp for ${target.primaryContact.name} (${target.name}).`);
   };
 
   return (
@@ -659,16 +689,27 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
               <div className="border border-slate-200 rounded-2xl max-h-44 overflow-y-auto divide-y divide-slate-100 text-xs">
                 {eligibleClients.map((client) => {
                   const isChecked = selectedClientIds.includes(client.id);
+                  const isPreviewing = previewClient?.id === client.id;
                   return (
-                    <label
+                    <div
                       key={client.id}
-                      className={`p-2.5 flex items-center justify-between cursor-pointer transition ${isChecked ? "bg-red-50/30" : "hover:bg-slate-50"}`}
+                      onClick={() => setPreviewClientId(client.id)}
+                      className={`p-2.5 flex items-center justify-between cursor-pointer transition ${
+                        isPreviewing 
+                          ? "bg-red-50/50 ring-1 ring-btred-logo/40" 
+                          : isChecked 
+                            ? "bg-slate-50/70" 
+                            : "hover:bg-slate-50"
+                      }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleToggleClient(client.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleToggleClient(client.id);
+                          }}
                           className="rounded text-btred-logo focus:ring-red-500"
                         />
                         <div className="min-w-0">
@@ -679,11 +720,23 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0 text-[10px] text-slate-500">
-                        <span className="font-bold text-slate-700 block">{client.primaryContact.name}</span>
-                        <span>+91 {client.primaryContact.phone}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right text-[10px] text-slate-500">
+                          <span className="font-bold text-slate-700 block">{client.primaryContact.name}</span>
+                          <span>{formatDisplayPhone(client.primaryContact.phone)}</span>
+                        </div>
+                        {client.primaryContact.phone && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenSingleClientWhatsApp(e, client)}
+                            className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
+                            title={`Open direct WhatsApp chat with ${client.primaryContact.name}`}
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
@@ -699,9 +752,8 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
               <button
                 type="button"
                 onClick={() => {
-                  const sampleClient = eligibleClients[0] || clients[0];
-                  if (sampleClient) {
-                    navigator.clipboard.writeText(renderMessageForClient(sampleClient));
+                  if (previewClient) {
+                    navigator.clipboard.writeText(renderMessageForClient(previewClient));
                     toast.success("Copied to Clipboard", "Personalized statutory message copied.");
                   }
                 }}
@@ -718,16 +770,18 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   Client WhatsApp &amp; In-App Notification
                 </span>
-                <span className="text-slate-500 font-sans">Preview for: {eligibleClients[0]?.name || "Client"}</span>
+                <span className="text-slate-500 font-sans truncate max-w-[160px]">
+                  {previewClient?.name || "Client"}
+                </span>
               </div>
 
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] leading-relaxed text-emerald-950 whitespace-pre-wrap font-sans">
-                {eligibleClients[0] ? renderMessageForClient(eligibleClients[0]) : activeTemplate.body}
+                {previewClient ? renderMessageForClient(previewClient) : activeTemplate.body}
               </div>
 
               <div className="text-[10px] text-slate-500 flex items-center justify-between pt-1">
-                <span>Channel: Client Portal &bull; WhatsApp &bull; Push</span>
-                <span className="text-emerald-700 font-bold">Verified Statutory Template</span>
+                <span>To: {previewClient?.primaryContact.name} ({formatDisplayPhone(previewClient?.primaryContact.phone)})</span>
+                <span className="text-emerald-700 font-bold">Statutory Template</span>
               </div>
             </div>
 
@@ -776,11 +830,11 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
             <button
               type="button"
               onClick={handleOpenWhatsAppQueue}
-              disabled={selectedClientIds.length === 0}
+              disabled={!previewClient || !previewClient.primaryContact.phone}
               className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Launch Web WhatsApp Chat</span>
+              <span>Launch WhatsApp ({previewClient?.primaryContact.name || "Client"})</span>
             </button>
 
             <button

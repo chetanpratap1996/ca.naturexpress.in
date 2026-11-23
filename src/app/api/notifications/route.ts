@@ -8,93 +8,170 @@ const STANDARD_PARTNER_NOTIFICATIONS: NotificationItem[] = [
   {
     id: "notif-gstr3b-apex",
     recipientRole: "PARTNER",
-    title: "Statutory Deadline (72h): GSTR-3B Monthly Filing",
-    message: "Apex AutoTech Private Limited monthly GSTR-3B return is due on 20-Oct-2026. Action required to avoid Section 47 late fees.",
+    title: "Statutory Deadline (<72h): GSTR-3B Monthly Filing",
+    message: "Apex AutoTech Private Limited monthly GSTR-3B return is due on 20-Oct-2026. Action required to avoid Section 47 late fees and 18% interest.",
     category: "COMPLIANCE",
     priority: "CRITICAL",
     targetTab: "gst-filing",
     actionUrl: "gst-filing",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-    metadata: { clientName: "Apex AutoTech Private Limited", entityId: "client-apex" }
+    metadata: { 
+      clientName: "Apex AutoTech Private Limited", 
+      clientPhone: "+919820011223",
+      entityId: "client-apex",
+      statutoryAct: "Section 39 / Rule 88B",
+      actionLabel: "Review & File (GSTR-3B)",
+      demandOrAmount: "₹1,55,800 Net Tax",
+      badgeText: "Due in 48h"
+    }
   },
   {
     id: "notif-notice-omni",
     recipientRole: "PARTNER",
     title: "Statutory Scrutiny Notice: Section 148 Reassessment",
-    message: "OmniRetail Hypermarkets Private Limited received reassessment notice from NFAC (Demand: ₹42,50,000). Statutory deadline: 03-Nov-2026.",
+    message: "OmniRetail Hypermarkets Private Limited received reassessment notice from NFAC (Demand: ₹42,50,000). Statutory reply limitation ends in 19 days.",
     category: "NOTICE",
     priority: "CRITICAL",
     targetTab: "notices",
     actionUrl: "notices",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    metadata: { clientName: "OmniRetail Hypermarkets Private Limited", entityId: "client-omni" }
+    metadata: { 
+      clientName: "OmniRetail Hypermarkets Private Limited", 
+      clientPhone: "+919811022334",
+      entityId: "client-omni",
+      statutoryAct: "NFAC Section 148 Reassessment",
+      actionLabel: "Open Defense Dossier",
+      demandOrAmount: "₹42,50,000 Exposure",
+      badgeText: "19 Days Left"
+    }
   },
   {
     id: "notif-pay-pratwi",
     recipientRole: "PARTNER",
     title: "Fee Payment Reconciled: ₹59,000 (UPI)",
-    message: "Pratwi Solutions Private Limited settled Invoice #GPA/2026-27/098 via UPI (UTR: AUTOUPI982341982). Signed deliverables unlocked.",
+    message: "Pratwi Solutions Private Limited settled Invoice #GPA/2026-27/098 via UPI (UTR: AUTOUPI982341982). Pay-to-Release fee gate automatically unlocked deliverables.",
     category: "BILLING",
     priority: "HIGH",
     targetTab: "billing-matrix",
     actionUrl: "billing-matrix",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-    metadata: { clientName: "Pratwi Solutions Private Limited", entityId: "client-pratwi" }
+    metadata: { 
+      clientName: "Pratwi Solutions Private Limited", 
+      clientPhone: "+919920033445",
+      entityId: "client-pratwi",
+      statutoryAct: "MSME 43B(h) / Pay-to-Release",
+      actionLabel: "Unlock Deliverables",
+      demandOrAmount: "₹59,000 Settled",
+      badgeText: "UTR Matched"
+    }
+  },
+  {
+    id: "notif-stmt-singhal",
+    recipientRole: "PARTNER",
+    title: "Inbound Document Vaulted: HDFC Bank Statement",
+    message: "Singhal Logistics uploaded encrypted statement via WhatsApp. Automatically decrypted using Entity DNA; 8 vouchers mapped and ready for Tally sync.",
+    category: "DOCUMENT",
+    priority: "NORMAL",
+    targetTab: "bank-parser",
+    actionUrl: "bank-parser",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    metadata: { 
+      clientName: "Singhal Logistics & Warehousing", 
+      clientPhone: "+919730044556",
+      entityId: "client-singhal",
+      statutoryAct: "WhatsApp AI / Tally XML Bridge",
+      actionLabel: "Review & Post to Tally",
+      demandOrAmount: "8 Vouchers Ready",
+      badgeText: "Auto-Decrypted"
+    }
   },
   {
     id: "notif-audit-apex",
     recipientRole: "PARTNER",
     title: "Tax Audit u/s 44AB: Form 3CD Workpapers Ready",
-    message: "Form 3CD final certification for Apex AutoTech Private Limited is prepared. Awaiting Partner digital sign-off with UDIN.",
+    message: "Form 3CD final certification for Apex AutoTech Private Limited is prepared. Awaiting Partner digital sign-off and 60-day UDIN registration.",
     category: "COMPLIANCE",
     priority: "HIGH",
     targetTab: "itr-matrix",
     actionUrl: "itr-matrix",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
-    metadata: { clientName: "Apex AutoTech Private Limited", entityId: "client-apex" }
+    metadata: { 
+      clientName: "Apex AutoTech Private Limited", 
+      clientPhone: "+919820011223",
+      entityId: "client-apex",
+      statutoryAct: "Section 44AB / Form 3CD",
+      actionLabel: "Audit Form 3CD",
+      demandOrAmount: "₹34,200 Tax Saved",
+      badgeText: "Awaiting Sign-off"
+    }
   },
   {
-    id: "notif-stmt-singhal",
+    id: "notif-udin-apex",
     recipientRole: "PARTNER",
-    title: "Inbound Document Vaulted: HDFC Bank Statement",
-    message: "Singhal Logistics & Warehousing uploaded bank statement for October 2026 via WhatsApp. Decrypted via Entity DNA; 8 vouchers ready.",
-    category: "DOCUMENT",
-    priority: "NORMAL",
-    targetTab: "bank-parser",
-    actionUrl: "bank-parser",
+    title: "UDIN 60-Day Mandate: Form 3CD Certification",
+    message: "Form 3CD for Apex AutoTech was signed 52 days ago. Only 8 days remaining to register UDIN on ICAI portal before statutory non-compliance.",
+    category: "UDIN",
+    priority: "HIGH",
+    targetTab: "udin-vault",
+    actionUrl: "udin-vault",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    metadata: { clientName: "Singhal Logistics & Warehousing", entityId: "client-singhal" }
+    metadata: { 
+      clientName: "Apex AutoTech Private Limited", 
+      clientPhone: "+919820011223",
+      entityId: "client-apex",
+      statutoryAct: "ICAI SQC-1 / UDIN 60-Day Mandate",
+      actionLabel: "Generate UDIN",
+      demandOrAmount: "8 Days Remaining",
+      badgeText: "Mandate Risk"
+    }
   },
   {
     id: "notif-dsc-apex",
     recipientRole: "PARTNER",
     title: "DSC Token Expiry Alert: Director Rajesh Sharma",
-    message: "Class 3 DSC token for Director Rajesh Sharma (Apex AutoTech) expires in 18 days. Renewal required to prevent MCA filing lockouts.",
-    category: "NOTICE",
+    message: "Class 3 USB DSC token for Director Rajesh Sharma (Apex AutoTech) expires in 18 days. Physical token custody safe requires renewal to prevent MCA lockout.",
+    category: "SECURITY",
     priority: "HIGH",
     targetTab: "dsc",
     actionUrl: "dsc",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    metadata: { clientName: "Apex AutoTech Private Limited", entityId: "client-apex" }
+    metadata: { 
+      clientName: "Apex AutoTech Private Limited", 
+      clientPhone: "+919820011223",
+      entityId: "client-apex",
+      statutoryAct: "MCA V3 / Class 3 Hardware Token",
+      actionLabel: "Open DSC Vault",
+      demandOrAmount: "Locker Rack #4",
+      badgeText: "Expires in 18d"
+    }
   },
   {
     id: "notif-notice-asmt10",
     recipientRole: "PARTNER",
     title: "GST Scrutiny Notice: Form ASMT-10 (DRC-01A)",
-    message: "Apex AutoTech Private Limited has an active DRC-01A ITC mismatch notice (Demand: ₹18,50,000). Legal reply drafting in progress.",
+    message: "Apex AutoTech Private Limited has an active DRC-01A ITC mismatch notice (Demand: ₹18,50,000). Statutory legal defense reply drafting in progress.",
     category: "NOTICE",
     priority: "HIGH",
     targetTab: "notices",
     actionUrl: "notices",
     isRead: true,
     createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    metadata: { clientName: "Apex AutoTech Private Limited", entityId: "client-apex" }
+    metadata: { 
+      clientName: "Apex AutoTech Private Limited", 
+      clientPhone: "+919820011223",
+      entityId: "client-apex",
+      statutoryAct: "CGST Section 61 / Rule 99",
+      actionLabel: "Review Reply Draft",
+      demandOrAmount: "₹18,50,000 Exposure",
+      badgeText: "Under Review"
+    }
   }
 ];
 

@@ -294,7 +294,7 @@ export async function saveDatabase(data: DatabaseSchema): Promise<void> {
  */
 export async function logAuditEvent(
   actorName: string,
-  actorRole: "PARTNER" | "ARTICLE" | "CLIENT" | "SYSTEM",
+  actorRole: "PARTNER" | "TEAM" | "ARTICLE" | "CLIENT" | "SYSTEM",
   entityName: string,
   action: string,
   details: string,

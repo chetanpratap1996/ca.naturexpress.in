@@ -99,6 +99,7 @@ interface DomainRailProps {
   isCollapsed?: boolean;
   urgentTaskCount?: number;
   activeNoticeCount?: number;
+  allowedDomains?: string[]; // Filter domains visible to this user
 }
 
 export const DomainRail: React.FC<DomainRailProps> = ({
@@ -109,8 +110,12 @@ export const DomainRail: React.FC<DomainRailProps> = ({
   onOpenDirectory,
   isCollapsed = false,
   urgentTaskCount = 0,
-  activeNoticeCount = 0
+  activeNoticeCount = 0,
+  allowedDomains
 }) => {
+  const visibleDomains = allowedDomains && allowedDomains.length > 0
+    ? DOMAINS.filter((d) => allowedDomains.includes(d.id))
+    : DOMAINS;
   return (
     <aside 
       aria-label="Practice Navigation"
@@ -170,8 +175,8 @@ export const DomainRail: React.FC<DomainRailProps> = ({
           </div>
         )}
 
-        {/* The 6 Domains (Single-line, clean, no redundant taglines) */}
-        {DOMAINS.map((domain) => {
+        {/* The Domains (Filtered by CA assignment or all for Partner) */}
+        {visibleDomains.map((domain) => {
           const Icon = domain.icon;
           const isActive = activeTab !== "dashboard" && activeDomain === domain.id;
 

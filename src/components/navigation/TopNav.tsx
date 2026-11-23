@@ -25,35 +25,25 @@ import {
   ChevronDown, 
   RefreshCw, 
   X,
-  Bell,
-  Grid,
-  Menu,
-  Send,
-  LayoutDashboard,
-  Maximize2,
-  Minimize2,
-  PanelLeftClose,
-  PanelLeftOpen
+  Bell
 } from "lucide-react";
-import { UniversalCommandPalette } from "@/components/firm/UniversalCommandPalette";
+import { CommandPaletteModal } from "@/components/shared/CommandPaletteModal";
 import { InstallAppModal } from "@/components/shared/InstallAppModal";
 import { NotificationCenterModal } from "@/components/notifications/NotificationCenterModal";
 import { usePwaInstall } from "@/components/shared/usePwaInstall";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
-import { UniversalClientSwitcher } from "@/components/navigation/UniversalClientSwitcher";
-import { AutopilotPulsePill } from "@/components/navigation/AutopilotPulsePill";
-import { ClientEntity, ClientGroup } from "@/lib/types";
 
 interface TopNavProps {
-  currentView: "partner" | "article" | "client-pwa";
-  onViewChange: (view: "partner" | "article" | "client-pwa") => void;
+  currentView: "partner" | "team" | "article" | "client-pwa";
+  onViewChange: (view: any) => void;
   onNavigateTab?: (tab: string) => void;
   currentUser: AuthUser | null;
   onLogout: () => void;
-  onSwitchUser?: (role: "partner" | "article" | "client") => void;
+  onSwitchUser?: (role: "partner" | "team" | "article" | "client") => void;
   onOpenClientMaster?: () => void;
   onOpenFirmHub?: () => void;
   onOpenClientBroadcaster?: () => void;
+  onRefreshData?: () => void;
   onExitSandbox?: () => void;
   isSandbox?: boolean;
   onToggleSidebar?: () => void;
@@ -62,12 +52,11 @@ interface TopNavProps {
   activeClientEntityId?: string;
   activeClientName?: string;
   isClientMode?: boolean;
-  clients?: ClientEntity[];
-  groups?: ClientGroup[];
-  onSelectClient?: (clientId: string, selectedGstin?: string) => void;
+  clients?: any[];
+  groups?: any[];
+  onSelectClient?: (clientId: string) => void;
   selectedGstin?: string;
   onOpenDiagnosticOnboarding?: () => void;
-  onRefreshData?: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({ 
@@ -79,84 +68,35 @@ export const TopNav: React.FC<TopNavProps> = ({
   onSwitchUser,
   onOpenClientMaster,
   onOpenFirmHub,
-  onOpenClientBroadcaster,
   onExitSandbox,
   isSandbox = true,
-  onToggleSidebar,
-  isSidebarCollapsed = false,
-  onOpenAppLauncher,
-  activeClientEntityId,
-  activeClientName,
-  isClientMode: isClientModeProp,
-  clients = [],
-  groups = [],
-  onSelectClient,
-  selectedGstin,
-  onOpenDiagnosticOnboarding,
-  onRefreshData,
 }) => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
-    }
-  };
-
-  const isClientView = Boolean(isClientModeProp) || currentView === "client-pwa" || (currentView as any) === "client";
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (isClientView) {
-      params.set("role", "CLIENT");
-      if (activeClientEntityId) params.set("clientEntityId", activeClientEntityId);
-    }
-    const queryStr = params.toString() ? `?${params.toString()}` : "";
-    const fetchUnread = () => {
-      fetch(`/api/notifications${queryStr}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.unreadCount !== undefined) {
-            setUnreadCount(data.unreadCount);
-          }
-        })
-        .catch(() => {});
-    };
-
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 20000);
+    fetch("/api/notifications")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.unreadCount !== undefined) {
+          setUnreadCount(data.unreadCount);
+        }
+      })
+      .catch(() => {});
 
     const handler = () => {
       setUnreadCount((c) => c + 1);
-      fetchUnread();
     };
     window.addEventListener("bt_notification_received", handler);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("bt_notification_received", handler);
-    };
-  }, [isClientView, activeClientEntityId]);
+    return () => window.removeEventListener("bt_notification_received", handler);
+  }, []);
 
-  // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K / Alt+G for Tally mode)
+  // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') || (e.altKey && e.key.toLowerCase() === 'g')) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCommandOpen((prev) => !prev);
       }
@@ -167,21 +107,19 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const {
     isInstalled,
-    isIOS,
-    isAndroid,
     showInstallModal,
     setShowInstallModal,
     triggerInstall,
   } = usePwaInstall();
 
-  const isClientMode = Boolean(isClientModeProp) || currentView === "client-pwa" || currentUser?.role === "CLIENT";
+  const isClientMode = currentView === "client-pwa" || currentUser?.role === "CLIENT";
 
   const getInitials = (name?: string) => {
     if (!name) return "BT";
     return name.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   };
 
-  const handleRoleSwitch = (role: "partner" | "article" | "client") => {
+  const handleRoleSwitch = (role: "partner" | "team" | "article" | "client") => {
     if (onSwitchUser) {
       onSwitchUser(role);
     }
@@ -193,129 +131,123 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* Single Unified High-Density Responsive Header matching main container width & padding */}
         <div className="w-full max-w-[1720px] mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
           
-          {/* LEFT: Platform Brand & Navigation Launchers */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
-            {/* Sidebar Collapse / Expand Toggle Button */}
-            {onToggleSidebar && !isClientMode && (
-              <button
-                onClick={onToggleSidebar}
-                className="p-1.5 sm:p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition flex items-center justify-center shrink-0 cursor-pointer"
-                title={isSidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar (⌘B)"}
-                aria-label={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen className="w-4 h-4 text-slate-700" />
-                ) : (
-                  <PanelLeftClose className="w-4 h-4 text-slate-700" />
-                )}
-              </button>
-            )}
-
-            <button
-              onClick={() => onNavigateTab?.("dashboard")}
-              className="flex items-center gap-2 shrink-0 hover:opacity-90 transition text-left cursor-pointer"
-              title="Master Executive Dashboard"
-            >
+          {/* LEFT: Platform Brand & Firm Identity Badge */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
               <BtLogo size="sm" showTagline={false} />
-            </button>
+            </Link>
 
-            {/* Tenant Firm Pill (Hidden on screens < lg to preserve space) */}
-            <button
-              onClick={() => onNavigateTab?.("dashboard")}
-              className="hidden lg:flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl text-xs shrink-0 transition text-left cursor-pointer"
-              title="Master Executive Dashboard"
-            >
+            {/* Tenant Firm Pill (Hidden on screens < xl to preserve toolbar space) */}
+            <div className="hidden xl:flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-xl text-xs">
               <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
               <div className="leading-tight">
-                <span className="font-bold text-slate-900 block text-[11px] truncate max-w-[150px] xl:max-w-[200px]">
+                <span className="font-extrabold text-slate-900 block text-[11px] truncate max-w-[180px] 2xl:max-w-[240px]">
                   {DEFAULT_FIRM_BRANDING.firmName}
                 </span>
                 <span className="text-[10px] text-slate-500 font-mono">
-                  FRN {DEFAULT_FIRM_BRANDING.frn}
+                  FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SQC-1
                 </span>
               </div>
-            </button>
+            </div>
           </div>
 
-          {/* CENTER: Role Switcher (Partner / Staff) */}
-          <div className="flex items-center gap-2 shrink-0">
-            {isClientMode ? (
-              <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 rounded-xl shadow-xs shrink-0">
-                <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="font-bold text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px]">
-                  {currentUser?.designation?.includes("(")
-                    ? currentUser.designation.split("(")[1].replace(")", "")
-                    : currentUser?.name || "Client Portal"}
-                </span>
-                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200 hidden sm:inline">
-                  Client
-                </span>
-              </div>
-            ) : (
-              <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
-                <button
-                  onClick={() => handleRoleSwitch("partner")}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
-                    currentView === "partner"
-                      ? "bg-white text-slate-900 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                  title="CA Partner Cockpit"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
-                  <span>Partner</span>
-                </button>
+          {/* CENTER: Practice Identity Badge */}
+          {isClientMode ? (
+            <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+              <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="font-black text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px] md:max-w-[260px]">
+                {currentUser?.designation?.includes("(")
+                  ? currentUser.designation.split("(")[1].replace(")", "")
+                  : currentUser?.name || "Client Portal"}
+              </span>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200 hidden sm:inline">
+                Verified Portal
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-xs font-black text-slate-800 tracking-tight">
+                {currentUser?.role === "PARTNER" ? "Practice Management" : "Team Execution"}
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono hidden md:inline border-l border-slate-200 pl-2">
+                FRN: {DEFAULT_FIRM_BRANDING.frn}
+              </span>
+            </div>
+          )}
 
-                <button
-                  onClick={() => handleRoleSwitch("article")}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
-                    currentView === "article"
-                      ? "bg-white text-slate-900 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                  title="Staff Trainee Desk"
-                >
-                  <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>Staff</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT: Quick Tools & Profile Cluster (With Zero Horizontal Overflow) */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Autonomous Practice Living Pulse Pill */}
-            {!isClientMode && (
-              <AutopilotPulsePill onRefreshData={onRefreshData} />
+          {/* RIGHT: Quick Tools & Profile Cluster */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Client Master & WhatsApp Broadcast Fast Button */}
+            {onOpenClientMaster && !isClientMode && (
+              <button
+                onClick={onOpenClientMaster}
+                className="hidden xl:flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap"
+                title="Client Master & 1-Tap WhatsApp Broadcast"
+              >
+                <Users className="w-3.5 h-3.5 text-slate-600" />
+                <span className="hidden 2xl:inline">Clients &amp; WhatsApp Desk</span>
+                <span className="2xl:hidden">Clients</span>
+              </button>
             )}
 
-            {/* Quick Search Trigger */}
+            {/* Firm Hub Instant Launcher */}
+            {onOpenFirmHub && !isClientMode && (
+              <button
+                onClick={onOpenFirmHub}
+                className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-btred-logo hover:text-red-700 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap"
+                title="Open CA Firm Action Hub"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
+                <span className="hidden sm:inline">Firm Hub</span>
+              </button>
+            )}
+
+            {/* Quick Search Spotlight (Desktop) - Only for Staff/Partners */}
             {!isClientMode && (
               <button
                 onClick={() => setIsCommandOpen(true)}
-                className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs font-medium transition"
-                title="Search (⌘K)"
+                className="hidden lg:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap"
               >
-                <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                <span className="hidden sm:inline text-slate-500">Search</span>
-                <kbd className="hidden md:inline bg-white border border-slate-200 text-[10px] px-1 py-0.5 rounded font-mono font-bold text-slate-400">
+                <Search className="w-3.5 h-3.5 text-btred-logo" />
+                <span className="hidden xl:inline">Search...</span>
+                <kbd className="bg-white border border-slate-200 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold text-slate-500">
                   ⌘K
                 </kbd>
               </button>
             )}
 
-            {/* Fullscreen Focus Toggle */}
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center shrink-0"
-              title={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen Focus Mode (F11)"}
-              aria-label="Toggle Fullscreen"
+            {/* Mobile Search Icon Button - Only for Staff/Partners */}
+            {!isClientMode && (
+              <button
+                onClick={() => setIsCommandOpen(true)}
+                className="lg:hidden p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-slate-200"
+                title="Search"
+              >
+                <Search className="w-4 h-4 text-slate-600" />
+              </button>
+            )}
+
+            {/* Direct WhatsApp Desk Link */}
+            <a
+              href={`https://wa.me/${DEFAULT_FIRM_BRANDING.whatsappNumber}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden xl:flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 px-2.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap"
+              title="Official Firm WhatsApp Desk"
             >
-              {isFullscreen ? (
-                <Minimize2 className="w-3.5 h-3.5 text-slate-600" />
-              ) : (
-                <Maximize2 className="w-3.5 h-3.5 text-slate-600" />
-              )}
+              <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden 2xl:inline">WhatsApp</span>
+            </a>
+
+            {/* 1-Tap PWA Install */}
+            <button
+              onClick={triggerInstall}
+              className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap"
+              title="Install Mobile App"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-btred-logo" />
+              <span className="hidden 2xl:inline">{isInstalled ? "App Installed" : "Download App"}</span>
             </button>
 
             {/* Notification Center Bell */}
@@ -324,32 +256,33 @@ export const TopNav: React.FC<TopNavProps> = ({
                 setIsNotificationOpen(true);
                 setUnreadCount(0);
               }}
-              className="relative p-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center shrink-0"
-              title="Statutory Alerts"
+              className="relative p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 shrink-0"
+              title="Statutory Alerts & Notifications"
             >
-              <Bell className="w-3.5 h-3.5 text-slate-600" />
+              <Bell className="w-3.5 h-3.5 text-slate-700" />
+              <span className="hidden xl:inline text-xs font-bold">Alerts</span>
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-btred-logo text-white font-mono text-[9px] font-black flex items-center justify-center animate-pulse">
+                <span className="absolute -top-1 -right-1 sm:static w-4 h-4 rounded-full bg-btred-logo text-white font-mono text-[9px] font-black flex items-center justify-center animate-pulse">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* User Profile Avatar & Dropdown - Guaranteed 100% Unclipped */}
-            <div className="relative shrink-0 mr-1 sm:mr-2">
+            {/* User Profile Avatar & Dropdown */}
+            <div className="relative shrink-0">
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-1.5 p-1 pr-2 rounded-xl hover:bg-slate-100 border border-slate-200 transition focus:outline-none bg-white shrink-0"
+                className="flex items-center gap-1.5 p-1 rounded-xl sm:rounded-2xl hover:bg-slate-100 border border-slate-200 transition focus:outline-none bg-white"
                 aria-label="User Profile"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-btred-logo text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-tr from-red-600 to-btred-logo text-white flex items-center justify-center font-black text-[11px] sm:text-xs shadow-sm shrink-0">
                   {getInitials(currentUser?.name)}
                 </div>
-                <div className="text-left leading-tight hidden lg:block max-w-[110px] xl:max-w-[140px]">
-                  <p className="font-bold text-slate-900 text-xs truncate">{currentUser?.name || "CA Gunjan Jain"}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{currentUser?.designation || "Managing Partner"}</p>
+                <div className="text-left text-xs leading-none hidden xl:block max-w-[130px] 2xl:max-w-[180px]">
+                  <p className="font-extrabold text-slate-900 truncate">{currentUser?.name || "User"}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 truncate">{currentUser?.designation}</p>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:block shrink-0" />
               </button>
 
               {/* Profile Dropdown Menu */}
@@ -388,6 +321,45 @@ export const TopNav: React.FC<TopNavProps> = ({
                     </div>
                   </div>
 
+                  {isSandbox && onSwitchUser && (
+                    <div className="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                          Active Persona
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400">Sandbox Switcher</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            handleRoleSwitch("partner");
+                          }}
+                          className={`px-2 py-1.5 rounded-xl text-xs font-black transition border text-center ${
+                            currentUser?.role === "PARTNER"
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          CA Partner
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            handleRoleSwitch("team");
+                          }}
+                          className={`px-2 py-1.5 rounded-xl text-xs font-black transition border text-center ${
+                            currentUser?.role === "TEAM" || currentUser?.role === "ARTICLE"
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          Team Member
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {onOpenFirmHub && !isClientMode && (
                     <button
                       onClick={() => {
@@ -411,19 +383,6 @@ export const TopNav: React.FC<TopNavProps> = ({
                     >
                       <Users className="w-4 h-4 text-slate-600" />
                       <span>Manage Client Master &amp; Groups</span>
-                    </button>
-                  )}
-
-                  {onOpenClientBroadcaster && !isClientMode && (
-                    <button
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onOpenClientBroadcaster();
-                      }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 flex items-center gap-2 text-emerald-800 font-bold transition text-xs border border-transparent hover:border-emerald-200"
-                    >
-                      <Send className="w-4 h-4 text-emerald-600" />
-                      <span>Broadcast Intimation to Clients (₹0)</span>
                     </button>
                   )}
 
@@ -459,36 +418,20 @@ export const TopNav: React.FC<TopNavProps> = ({
         </div>
       </header>
 
-      {/* Global Linear / Superhuman Grade Command Palette (Ctrl+K) */}
-      <UniversalCommandPalette
+      {/* Global Command Palette Trigger */}
+      <CommandPaletteModal
         isOpen={isCommandOpen}
         onClose={() => setIsCommandOpen(false)}
-        onNavigateTab={(tab) => {
+        onNavigate={(tab) => {
           if (onNavigateTab) onNavigateTab(tab);
           setIsCommandOpen(false);
         }}
-        onTriggerAutopilot={async () => {
-          try {
-            await fetch("/api/firm-autopilot", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ triggerSource: "COMMAND_PALETTE" }),
-            });
-            window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
-          } catch (e) {
-            console.error("Autopilot trigger failed:", e);
-          }
-        }}
-        clients={clients.map(c => ({ id: c.id, name: c.name, pan: c.pan }))}
       />
 
       {/* PWA Install Guidance Modal */}
       <InstallAppModal
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
-        isIOS={isIOS}
-        isAndroid={isAndroid}
-        isInstalled={isInstalled}
       />
 
       {/* Realtime Notification Center Modal */}
@@ -496,10 +439,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         onNavigateTab={onNavigateTab}
-        onOpenClientBroadcaster={isClientView ? undefined : onOpenClientBroadcaster}
-        currentUserRole={isClientView ? "CLIENT" : (currentUser?.role || "PARTNER")}
-        clientEntityId={activeClientEntityId}
-        clientName={activeClientName}
+        currentUserRole={currentUser?.role}
       />
     </>
   );

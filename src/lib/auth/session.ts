@@ -5,7 +5,7 @@
 
 import { ClientEntity } from "@/lib/types";
 
-export type UserRole = "PARTNER" | "ARTICLE" | "CLIENT";
+export type UserRole = "PARTNER" | "TEAM" | "ARTICLE" | "CLIENT";
 
 export interface AuthUser {
   id: string;
@@ -23,6 +23,7 @@ export interface AuthUser {
   clientEntityId?: string;
   token: string;
   expiresAt: string;
+  allowedTools?: string[]; // Practice domain IDs enabled for this team member by CA
 }
 
 export function normalizePhone10(rawPhone: string): string {
@@ -56,20 +57,37 @@ export const DEMO_USERS: Record<string, AuthUser> = {
     membershipNo: "024310C",
     token: "tok_partner_secure_session_2026",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    allowedTools: ["tasks", "gst", "tax-audit", "notices-udin", "billing-wip", "client-master"],
+  },
+  team: {
+    id: "USR-ARTICLE-01",
+    name: "Kriti Jain",
+    email: "audit.trainee@brainsandtaxes.com",
+    phone: "+91 98000 00002",
+    role: "TEAM",
+    designation: "Team Associate (Year 2)",
+    firmId: "FRM-024310C",
+    firmName: "GPA & Co., Chartered Accountants",
+    firmFrn: "024310C",
+    articleshipRegNo: "CRO022998",
+    token: "tok_team_secure_session_2026",
+    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    allowedTools: ["tasks", "gst"], // Default CA preset for Kriti
   },
   article: {
     id: "USR-ARTICLE-01",
     name: "Kriti Jain",
     email: "audit.trainee@brainsandtaxes.com",
     phone: "+91 98000 00002",
-    role: "ARTICLE",
-    designation: "Assigned Article Assistant",
+    role: "TEAM",
+    designation: "Team Associate (Year 2)",
     firmId: "FRM-024310C",
     firmName: "GPA & Co., Chartered Accountants",
     firmFrn: "024310C",
     articleshipRegNo: "CRO022998",
     token: "tok_article_secure_session_2026",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    allowedTools: ["tasks", "gst"],
   },
   client: {
     id: "USR-CLIENT-01",
@@ -87,6 +105,32 @@ export const DEMO_USERS: Record<string, AuthUser> = {
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
   },
 };
+
+const TEAM_PERMISSIONS_STORAGE_KEY = "bt_team_tool_permissions_v1";
+
+export function getTeamMemberTools(userId: string): string[] {
+  if (typeof window === "undefined") return ["tasks", "gst"];
+  try {
+    const raw = localStorage.getItem(TEAM_PERMISSIONS_STORAGE_KEY);
+    if (!raw) return ["tasks", "gst"];
+    const map = JSON.parse(raw);
+    return map[userId] || ["tasks", "gst"];
+  } catch {
+    return ["tasks", "gst"];
+  }
+}
+
+export function setTeamMemberTools(userId: string, tools: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(TEAM_PERMISSIONS_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[userId] = tools;
+    localStorage.setItem(TEAM_PERMISSIONS_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // fallback
+  }
+}
 
 const STORAGE_KEY = "bt_enterprise_session_v4";
 

@@ -1024,19 +1024,19 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
       <div className="bg-white border border-slate-200 p-5 rounded-3xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase font-black px-2.5 py-0.5 rounded-full bg-red-50 text-btred-logo border border-red-200">
-              Active Article Trainee
+            <span className="text-xs uppercase font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Active Team Member
             </span>
             <span className="text-xs text-slate-700 font-bold">
-              Kriti Jain &bull; Assigned Article Assistant &bull; Reg: CRO022998
+              Kriti Jain &bull; Team Associate &bull; Reg: CRO022998
             </span>
             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-medium">
-              ICAI New Scheme 2023 &bull; Year 2
+              Year 2 &bull; ICAI Active
             </span>
           </div>
 
           <h3 className="text-xl font-black text-slate-900 mt-1 tracking-tight flex items-center gap-2">
-            Article Execution Workbench &amp; Automation Hub
+            Team Execution Desk &amp; Compliance Hub
           </h3>
 
           <div className="text-xs text-slate-500 font-medium mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">

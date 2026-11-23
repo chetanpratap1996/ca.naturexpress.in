@@ -300,7 +300,7 @@ export interface AuditTrailLog {
   id: string;
   timestamp: string;
   actorName: string;
-  actorRole: "PARTNER" | "ARTICLE" | "CLIENT" | "SYSTEM";
+  actorRole: "PARTNER" | "TEAM" | "ARTICLE" | "CLIENT" | "SYSTEM";
   entityName: string;
   action: string;
   details: string;

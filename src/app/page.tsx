@@ -68,6 +68,7 @@ import { StaffManagementView } from "@/components/firm/StaffManagementView";
 import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
 import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
 import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
+import { PracticeDirectory } from "@/components/firm/PracticeDirectory";
 import { AmbientClientContextBar } from "@/components/navigation/AmbientClientContextBar";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -82,7 +83,8 @@ import {
   clearSession, 
   setActiveSession, 
   DEMO_USERS,
-  generateDeterministicPassword 
+  generateDeterministicPassword,
+  getTeamMemberTools
 } from "@/lib/auth/session";
 import { 
   SANDBOX_FIRM_METRICS,
@@ -253,6 +255,30 @@ export default function Home() {
   const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
   const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
 
+  const isTeamMember = currentUser?.role === "TEAM" || currentUser?.role === "ARTICLE";
+  const [teamAllowedTools, setTeamAllowedTools] = useState<string[]>(() => {
+    if (currentUser?.id) {
+      return getTeamMemberTools(currentUser.id);
+    }
+    return ["tasks", "gst"];
+  });
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      setTeamAllowedTools(getTeamMemberTools(currentUser.id));
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    const handlePermChange = (e: any) => {
+      if (currentUser?.id && e.detail?.memberId === currentUser.id) {
+        setTeamAllowedTools(e.detail.tools);
+      }
+    };
+    window.addEventListener("bt_permissions_changed", handlePermChange);
+    return () => window.removeEventListener("bt_permissions_changed", handlePermChange);
+  }, [currentUser?.id]);
+
   useEffect(() => {
     if (TAB_TO_DOMAIN[activePartnerTab]) {
       setActiveDomain(TAB_TO_DOMAIN[activePartnerTab]);
@@ -384,9 +410,17 @@ export default function Home() {
         return;
       }
 
-      // CASE 2: Staff login explicitly requested (?portal=staff OR ?role=partner OR ?role=article)
-      if (portalParam === "staff" || roleParam === "partner" || roleParam === "article") {
-        setLoginInitialRole(roleParam === "article" ? "article" : "partner");
+      // CASE 2: Team / Staff persona explicitly requested (?role=team OR ?role=article OR ?view=team)
+      if (roleParam === "team" || roleParam === "article" || viewParam === "team") {
+        setCurrentUser(DEMO_USERS.team || DEMO_USERS.article);
+        setCurrentView("partner");
+        setIsDemoSandbox(true);
+        setActivePartnerTab("dashboard");
+        return;
+      }
+
+      if (portalParam === "staff" || roleParam === "partner") {
+        setLoginInitialRole("partner");
         setIsLoginModalOpen(true);
         return;
       }
@@ -395,8 +429,7 @@ export default function Home() {
       if (existing) {
         setCurrentUser(existing);
         setIsDemoSandbox(false);
-        if (existing.role === "ARTICLE") setCurrentView("article");
-        else if (existing.role === "CLIENT") setCurrentView("client-pwa");
+        if (existing.role === "CLIENT") setCurrentView("client-pwa");
         else setCurrentView("partner");
         return;
       }
@@ -425,6 +458,13 @@ export default function Home() {
     if (currentView === "client-pwa") {
       setActiveClientTab(tab as any);
     } else {
+      const targetDomain = TAB_TO_DOMAIN[tab];
+      if (isTeamMember && targetDomain && !teamAllowedTools.includes(targetDomain)) {
+        toast.warning("Restricted Access", "This practice tool is not enabled for your team profile by the CA.");
+        setActivePartnerTab("dashboard");
+        return;
+      }
+
       setActivePartnerTab(tab);
       if (typeof window !== "undefined") {
         try {
@@ -437,6 +477,11 @@ export default function Home() {
   };
 
   const handleSelectDomain = (domainId: DomainId) => {
+    if (isTeamMember && !teamAllowedTools.includes(domainId)) {
+      toast.warning("Restricted Access", "This practice domain is not enabled for your team profile by the CA.");
+      handleTabChange("dashboard");
+      return;
+    }
     setActiveDomain(domainId);
     const defaultTab = DOMAIN_DEFAULT_TAB[domainId];
     if (defaultTab) {
@@ -494,10 +539,9 @@ export default function Home() {
     setIsDemoSandbox(false);
     toast.success(
       "Signed In Successfully",
-      `Welcome, ${user.name} (${user.role === "PARTNER" ? "Managing Partner" : user.role === "ARTICLE" ? "Article Trainee" : "Client Portal"})`
+      `Welcome, ${user.name} (${user.role === "PARTNER" ? "Managing Partner" : user.role === "TEAM" || user.role === "ARTICLE" ? "Team Member" : "Client Portal"})`
     );
-    if (user.role === "ARTICLE") setCurrentView("article");
-    else if (user.role === "CLIENT") setCurrentView("client-pwa");
+    if (user.role === "CLIENT") setCurrentView("client-pwa");
     else setCurrentView("partner");
   };
 
@@ -509,7 +553,7 @@ export default function Home() {
     toast.info("Signed Out", "Your session has been securely closed.");
   };
 
-  const handleSwitchUserRole = (role: "partner" | "article" | "client") => {
+  const handleSwitchUserRole = (role: "partner" | "team" | "article" | "client") => {
     let targetUser: AuthUser | null = null;
     if (role === "client") {
       const activeClient = clients.length > 0 ? clients[0] : null;
@@ -532,27 +576,26 @@ export default function Home() {
       } else {
         targetUser = DEMO_USERS.client;
       }
+    } else if (role === "team" || role === "article") {
+      targetUser = DEMO_USERS.team || DEMO_USERS.article;
     } else {
-      targetUser = DEMO_USERS[role];
+      targetUser = DEMO_USERS.partner;
     }
 
     if (targetUser) {
       setActiveSession(targetUser);
       toast.info(
         "Switched Profile",
-        `Active view: ${targetUser.name} (${role === "partner" ? "Partner Cockpit" : role === "article" ? "Article Assistant" : "Client Portal"})`
+        `Active view: ${targetUser.name} (${targetUser.role === "PARTNER" ? "CA Partner" : "Team Member"})`
       );
     }
     setCurrentUser(targetUser);
-    if (role === "partner") {
-      setIsDemoSandbox(true);
-      setCurrentView("partner");
-    } else if (role === "article") {
-      setIsDemoSandbox(true);
-      setCurrentView("article");
-    } else {
-      setIsDemoSandbox(true);
+    setIsDemoSandbox(true);
+    if (role === "client") {
       setCurrentView("client-pwa");
+    } else {
+      setCurrentView("partner");
+      setActivePartnerTab("dashboard");
     }
   };
 
@@ -674,10 +717,11 @@ export default function Home() {
               activeTab={activePartnerTab}
               onSelectDomain={handleSelectDomain}
               onSelectTab={(tabId) => handleTabChange(tabId)}
-              onOpenDirectory={() => setIsAppLauncherOpen(true)}
+              onOpenDirectory={() => handleTabChange("directory")}
               isCollapsed={isSidebarCollapsed}
               urgentTaskCount={tasks.filter(t => t.status !== "FILED_AND_COMPLETED").length}
               activeNoticeCount={notices.length}
+              allowedDomains={isTeamMember ? teamAllowedTools : undefined}
             />
           )}
 
@@ -696,11 +740,11 @@ export default function Home() {
             />
           )}
 
-          {/* VIEW 2: PARTNER COCKPIT (FOR CA PARTNERS & MANAGERS) */}
+          {/* VIEW 2: PRACTICE COCKPIT (UNIFIED CA & TEAM INTERFACE) */}
           {currentView === "partner" && (
             <div className="space-y-4 sm:space-y-6">
-              {/* Contextual Sub-Tab Header for Active Domain */}
-              {activePartnerTab !== "dashboard" && (
+              {/* Contextual Sub-Tab Header for Active Domain (Hidden on Dashboard and Directory) */}
+              {activePartnerTab !== "dashboard" && activePartnerTab !== "directory" && (
                 <DomainSubTabHeader
                   activeDomain={activeDomain}
                   activeSubTab={activePartnerTab}
@@ -710,20 +754,32 @@ export default function Home() {
                 />
               )}
 
-              {/* 1. EXECUTIVE DASHBOARD (PRIMARY FIRST PAGE WITH 4 MASTER KPI CARDS) */}
+              {/* 1. DASHBOARD: CONTEXT-AWARE (EXECUTIVE DASHBOARD FOR CA, TEAM WORKBENCH FOR TEAM) */}
               {activePartnerTab === "dashboard" && (
-                <ExecutiveDashboard
-                  tasks={tasks}
-                  invoices={invoices}
-                  notices={notices}
+                isTeamMember ? (
+                  <ArticleWorkbench isSandbox={isDemoSandbox} />
+                ) : (
+                  <ExecutiveDashboard
+                    tasks={tasks}
+                    invoices={invoices}
+                    notices={notices}
+                    clients={clients}
+                    groups={groups}
+                    dscTokens={dscTokens}
+                    onNavigateTab={(tab) => handleTabChange(tab)}
+                    onOpenClientMaster={() => setIsClientMasterOpen(true)}
+                    onOpenFirmHub={() => setIsFirmHubOpen(true)}
+                    onStatusChange={handleTaskStatusChange}
+                    isSandbox={isDemoSandbox}
+                  />
+                )
+              )}
+
+              {/* PRACTICE DIRECTORY (TEAM 6-TOOL CONTROLS & CLIENT ROSTER) */}
+              {activePartnerTab === "directory" && (
+                <PracticeDirectory
                   clients={clients}
-                  groups={groups}
-                  dscTokens={dscTokens}
-                  onNavigateTab={(tab) => handleTabChange(tab)}
                   onOpenClientMaster={() => setIsClientMasterOpen(true)}
-                  onOpenFirmHub={() => setIsFirmHubOpen(true)}
-                  onStatusChange={handleTaskStatusChange}
-                  isSandbox={isDemoSandbox}
                 />
               )}
 

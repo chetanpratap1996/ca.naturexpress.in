@@ -167,7 +167,7 @@ export default function AdminPage() {
     toast.info("Signed Out", "Admin session ended securely.");
   };
 
-  const handleSwitchUserRole = (role: "partner" | "article" | "client") => {
+  const handleSwitchUserRole = (role: "partner" | "team" | "article" | "client") => {
     let targetUser: AuthUser | null = null;
     if (role === "client") {
       const activeClient = clients.length > 0 ? clients[0] : null;
@@ -190,19 +190,21 @@ export default function AdminPage() {
       } else {
         targetUser = DEMO_USERS.client;
       }
+    } else if (role === "team" || role === "article") {
+      targetUser = DEMO_USERS.team || DEMO_USERS.article;
     } else {
-      targetUser = DEMO_USERS[role];
+      targetUser = DEMO_USERS.partner;
     }
     if (targetUser) {
       setActiveSession(targetUser);
       toast.info(
         "Switched Profile",
-        `Active view: ${targetUser.name} (${role === "partner" ? "Partner Cockpit" : role === "article" ? "Article Assistant" : "Client Portal"})`
+        `Active view: ${targetUser.name} (${targetUser.role === "PARTNER" ? "CA Partner" : "Team Member"})`
       );
     }
     setCurrentUser(targetUser);
     if (role === "partner") setCurrentView("partner");
-    else if (role === "article") setCurrentView("article");
+    else if (role === "article" || role === "team") setCurrentView("partner");
     else setCurrentView("client-pwa");
   };
 

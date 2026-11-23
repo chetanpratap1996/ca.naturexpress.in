@@ -116,26 +116,26 @@ export function BankAuditWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden text-slate-900">
+      {/* Top Banner - Clean Professional Panel */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-slate-900">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-              <span>Pillar IV: Statutory Bank Audit, Concurrent &amp; Stock Audit Suite</span>
+              <span>Statutory Bank Audit &amp; IRAC Desk</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              RBI IRAC Norms, LFAR Master Pack &amp; Revenue Leakage Sentinel
+              RBI IRAC Norms, LFAR &amp; Bank Audit Desk
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Automates Statutory Bank Branch Audits, Concurrent Audits, and Stock Audits. Covers <strong>90-day IRAC NPAs</strong>, <strong>Drawing Power calculations</strong>, <strong>RBI 2020 LFAR checklists</strong>, <strong>Ghosh &amp; Jilani fraud EWS</strong>, and <strong>MCLR/EBLR revenue leakages</strong>.
+              Statutory Bank Branch Audits, Concurrent Audits, and Stock Audits under RBI guidelines: <strong>90-day IRAC NPAs</strong>, <strong>Drawing Power calculations</strong>, <strong>RBI 2020 LFAR checklists</strong>, <strong>Ghosh &amp; Jilani fraud indicators</strong>, and <strong>MCLR/EBLR revenue leakages</strong>.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <button
               onClick={handlePrintMoc}
-              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
+              className="px-4 py-2.5 rounded-xl bg-btred-logo hover:bg-red-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
             >
               <Printer className="w-4 h-4" />
               <span>Print Official MOC &amp; LFAR Pack</span>
@@ -201,78 +201,78 @@ export function BankAuditWorkbench() {
         </div>
       </div>
 
-      {/* 6 Institutional Tabs */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      {/* Bank Audit Sub-Tabs */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('IRAC_MOC')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'IRAC_MOC'
-              ? 'bg-red-600 text-white shadow-xs'
+              ? 'bg-btred-logo text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5" />
-          <span>1. IRAC &amp; MOC Generator ({advances.length})</span>
+          <span>IRAC &amp; MOC Generator ({advances.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('DRAWING_POWER')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'DRAWING_POWER'
-              ? 'bg-red-600 text-white shadow-xs'
+              ? 'bg-btred-logo text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Calculator className="w-3.5 h-3.5" />
-          <span>2. Drawing Power &amp; Stock Sentinel</span>
+          <span>Drawing Power &amp; Stock Audit</span>
         </button>
 
         <button
           onClick={() => setActiveTab('LFAR_MASTER')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'LFAR_MASTER'
-              ? 'bg-red-600 text-white shadow-xs'
+              ? 'bg-btred-logo text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <FileCheck2 className="w-3.5 h-3.5" />
-          <span>3. LFAR Master Pack (RBI 2020)</span>
+          <span>LFAR Master Pack (RBI 2020)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('CONCURRENT_AUDIT')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'CONCURRENT_AUDIT'
-              ? 'bg-red-600 text-white shadow-xs'
+              ? 'bg-btred-logo text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
-          <span>4. Concurrent Audit Tracker</span>
+          <span>Concurrent Audit Tracker</span>
         </button>
 
         <button
           onClick={() => setActiveTab('GHOSH_JILANI_EWS')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'GHOSH_JILANI_EWS'
-              ? 'bg-red-600 text-white shadow-xs'
+              ? 'bg-btred-logo text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <AlertOctagon className="w-3.5 h-3.5" />
-          <span>5. Ghosh / Jilani &amp; 42 EWS</span>
+          <span>Ghosh &amp; Jilani Checklists</span>
         </button>
 
         <button
           onClick={() => setActiveTab('REVENUE_LEAKAGE')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'REVENUE_LEAKAGE'
-              ? 'bg-red-600 text-white shadow-xs'
+              ? 'bg-btred-logo text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Percent className="w-3.5 h-3.5" />
-          <span>6. Revenue Leakage Inspector</span>
+          <span>Revenue Leakage Audit</span>
         </button>
       </div>
 
@@ -452,7 +452,7 @@ export function BankAuditWorkbench() {
         </div>
       )}
 
-      {/* TAB 2: Drawing Power & Stock Sentinel */}
+      {/* TAB 2: Drawing Power & Stock Audit */}
       {activeTab === 'DRAWING_POWER' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">

@@ -85,15 +85,15 @@ export function EnterpriseSecurityAndRealization({
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 font-bold rounded-full flex items-center gap-1.5">
-                <Fingerprint className="w-3.5 h-3.5 text-btred-logo" /> Data Leak Protection Active
+                <Fingerprint className="w-3.5 h-3.5 text-btred-logo" /> Firm Realization &amp; Data Governance
               </span>
-              <span className="text-xs text-slate-600">ICAI Code of Ethics Part I Clause 1</span>
+              <span className="text-xs text-slate-600 font-mono">ICAI Code of Ethics Part I Clause 1</span>
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-btred-logo" /> Multi-Partner Realization &amp; Anti-Poaching Guard
+              <ShieldCheck className="w-6 h-6 text-btred-logo" /> Multi-Partner Realization &amp; Client Data Protection
             </h2>
             <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-              Protect firm equity and client confidentiality. Monitor partner-wise fee realization and WIP conversion while preventing article trainees from mass-exporting client databases or promoter contact books.
+              Monitor partner-wise fee realization and WIP conversion while maintaining strict client confidentiality and data access controls under the ICAI Code of Ethics and DPDP Act 2023.
             </p>
           </div>
 
@@ -125,7 +125,7 @@ export function EnterpriseSecurityAndRealization({
               : "bg-slate-100 text-slate-600 hover:text-slate-900"
           }`}
         >
-          <Lock className="w-4 h-4" /> Anti-Poaching &amp; Staff Security Logs ({logs.length})
+          <Lock className="w-4 h-4" /> Client Data Export Logs ({logs.length})
         </button>
         <button
           onClick={() => setActiveTab("dpdp")}
@@ -135,7 +135,7 @@ export function EnterpriseSecurityAndRealization({
               : "bg-slate-100 text-slate-600 hover:text-slate-900"
           }`}
         >
-          <ShieldCheck className="w-4 h-4" /> DPDP Act 2023 &amp; Security Shield
+          <ShieldCheck className="w-4 h-4" /> DPDP Act 2023 Compliance
         </button>
       </div>
 
@@ -157,7 +157,7 @@ export function EnterpriseSecurityAndRealization({
 
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-slate-900">
               <span className="text-xs font-semibold text-slate-600 uppercase">Equity Partners Monitored</span>
-              <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{partnerMetrics.length} Partners</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{activeMetrics.length} Partners</div>
               <div className="text-xs text-slate-600 mt-1">&gt; 85% realization benchmark</div>
             </div>
           </div>
@@ -184,7 +184,7 @@ export function EnterpriseSecurityAndRealization({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-sans">
-                  {partnerMetrics.length === 0 ? (
+                  {activeMetrics.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-8 text-center text-slate-600">
                         No partner billing or WIP metrics recorded yet. Metrics accrue automatically as client tasks and invoices are reconciled.

@@ -170,20 +170,20 @@ export default function PillarEightTallyDesktopWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner - Crisp White & Brand Red */}
-      <div className="bg-white border-2 border-red-500 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+      {/* Header Banner - Clean Professional Panel */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold mb-2">
               <Keyboard className="w-3.5 h-3.5 text-red-600" />
-              Pillar VIII: Tally-Speed Mastery &amp; Institutional Firm Desktop
+              TallyPrime Desktop &amp; Accounting Integration
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              Universal Keyboard Grid, MDI Desktop &amp; Tally Sync Bridge
+              Tally Voucher Grid &amp; XML Sync Bridge
             </h1>
             <p className="text-sm text-slate-600 mt-1 max-w-3xl">
-              Tally-speed accounting grid (Enter, Alt+C, Ctrl+A), Multi-Window MDI multi-client switcher, 
-              1-click bidirectional TallyPrime XML sync bridge, Rule 33 Pure Agent billing, and 8:00 AM WhatsApp executive digest.
+              High-speed accounting grid (Enter, Alt+C, Ctrl+A), Multi-Client MDI window switcher, 
+              1-click bidirectional TallyPrime XML sync bridge, Rule 33 Pure Agent disbursement calculations, and daily partner executive digest.
             </p>
           </div>
 
@@ -199,62 +199,62 @@ export default function PillarEightTallyDesktopWorkbench() {
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-slate-200">
           <button
             onClick={() => setActiveView('TALLY_KEYBOARD_GRID')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeView === 'TALLY_KEYBOARD_GRID'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
-            <Keyboard className="w-4 h-4" />
-            Tally-Speed Voucher Grid (Enter / Alt+C)
+            <Keyboard className="w-3.5 h-3.5" />
+            Tally Voucher Entry Grid
           </button>
 
           <button
             onClick={() => setActiveView('MDI_DESKTOP')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeView === 'MDI_DESKTOP'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            Multi-Window MDI Desktop ({tabs.length} Clients)
+            <Layers className="w-3.5 h-3.5" />
+            Multi-Client MDI Desktop ({tabs.length})
           </button>
 
           <button
             onClick={() => setActiveView('TALLY_SYNC_BRIDGE')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeView === 'TALLY_SYNC_BRIDGE'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
-            <ArrowLeftRight className="w-4 h-4" />
+            <ArrowLeftRight className="w-3.5 h-3.5" />
             TallyPrime XML Bridge ({mocs.length} MOCs)
           </button>
 
           <button
             onClick={() => setActiveView('BILLING_RECOVERY')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeView === 'BILLING_RECOVERY'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
-            <Receipt className="w-4 h-4" />
-            Billing &amp; Pay-to-Release ({billingStats.lockedDocumentsCount} Locked)
+            <Receipt className="w-3.5 h-3.5" />
+            Rule 33 Pure Agent Invoicing
           </button>
 
           <button
             onClick={() => setActiveView('MORNING_DIGEST')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeView === 'MORNING_DIGEST'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-btred-logo text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
-            <MessageSquare className="w-4 h-4" />
-            8:00 AM WhatsApp Digest
+            <MessageSquare className="w-3.5 h-3.5" />
+            Partner Morning Digest
           </button>
         </div>
       </div>
@@ -650,7 +650,7 @@ export default function PillarEightTallyDesktopWorkbench() {
         </div>
       )}
 
-      {/* VIEW 4: FIRM BILLING & PAY-TO-RELEASE SENTINEL */}
+      {/* VIEW 4: RULE 33 PURE AGENT INVOICING & FEE BREAKDOWN */}
       {activeView === 'BILLING_RECOVERY' && (
         <div className="space-y-6">
           {/* Quick Metrics */}
@@ -720,7 +720,7 @@ export default function PillarEightTallyDesktopWorkbench() {
                     {item.fileLockActive && (
                       <div className="mt-2 p-2 rounded bg-red-50 border border-red-200 flex items-center gap-1.5 text-xs text-red-700 font-semibold">
                         <Lock className="w-3.5 h-3.5" />
-                        <span>Pay-to-Release Sentinel Active: {item.lockedDocumentRefs.length} reports locked</span>
+                        <span>Deliverable Gate Active: {item.lockedDocumentRefs.length} reports locked</span>
                       </div>
                     )}
                   </div>
@@ -775,7 +775,7 @@ export default function PillarEightTallyDesktopWorkbench() {
                 <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 space-y-2">
                   <div className="flex items-center gap-2 text-red-700 font-bold text-xs">
                     <Lock className="w-4 h-4" />
-                    <span>Pay-to-Release Lock Sentinel Triggered</span>
+                    <span>Pay-to-Release Lock Active</span>
                   </div>
                   <p className="text-xs text-slate-700">
                     The following client downloads are encrypted with a watermark and blocked until invoice settlement:
@@ -862,7 +862,7 @@ export default function PillarEightTallyDesktopWorkbench() {
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                  <span className="font-bold text-slate-900">Physical DSC Locker Sentinel</span>
+                  <span className="font-bold text-slate-900">Physical DSC Locker Tracking</span>
                   <p className="text-slate-600">
                     Flags USB tokens checked out &gt; 120 minutes or expiring within 30 days.
                   </p>

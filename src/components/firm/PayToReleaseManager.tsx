@@ -419,20 +419,20 @@ export function PayToReleaseManager({
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-1 text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full flex items-center gap-1.5 shadow-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" /> Autonomous Fee Realization
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" /> Deliverable Gatekeeper
               </span>
               <span className="text-xs text-emerald-900 font-bold bg-teal-100/70 border border-teal-200 px-2.5 py-0.5 rounded-full">
-                0% Gateway Fee &bull; Direct Bank Credit
+                MSMED Act Sec 15 &amp; 16 Protection
               </span>
               <span className="text-xs text-slate-700 font-bold bg-amber-100/70 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                MSMED Act Sec 15 &amp; 16 Protection
+                ICAI SA 210 Compliance
               </span>
             </div>
             <h2 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-emerald-600" /> Autonomous Fee Realization &amp; Retainer Dashboard
+              <ShieldCheck className="w-6 h-6 text-emerald-600" /> Fee Realization &amp; Deliverable Gatekeeper (Pay-to-Release)
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed font-medium">
-              Eliminate payment gateway commissions and uncollected CA retainers. Auto-clear invoices by uploading firm bank statements (ICICI/HDFC/SBI CSV) or collecting directly via NPCI Dynamic UPI QR codes with zero 2% intermediary deductions.
+              Control statutory deliverable release (Form 3CD, audited financial statements, ITR acknowledgments) against overdue fee invoices. Reconcile bank payments or collect directly via NPCI Dynamic UPI QR codes.
             </p>
           </div>
 

@@ -70,11 +70,11 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   ],
   "billing-wip": [
     { id: "billing-matrix", label: "Billing Matrix", shortLabel: "Billing", icon: DollarSign },
-    { id: "pillar-eight-desktop", label: "Tally Bridge", shortLabel: "Tally", icon: Sparkles },
-    { id: "bank-parser", label: "Bank Parser", shortLabel: "Parser", icon: FileSpreadsheet },
-    { id: "bank-audit", label: "Bank Audit", shortLabel: "Audit", icon: Layers },
     { id: "pay-to-release", label: "Pay-to-Release", shortLabel: "Pay Gate", icon: Lock },
-    { id: "anti-poaching", label: "Insights", shortLabel: "Insights", icon: Fingerprint }
+    { id: "bank-parser", label: "Bank Parser", shortLabel: "Parser", icon: FileSpreadsheet },
+    { id: "pillar-eight-desktop", label: "Tally Bridge", shortLabel: "Tally", icon: Sparkles },
+    { id: "bank-audit", label: "Bank Audit", shortLabel: "Audit", icon: Layers },
+    { id: "anti-poaching", label: "Partner Insights", shortLabel: "Insights", icon: TrendingUp }
   ],
   "client-master": [
     { id: "client-master", label: "Client Master", shortLabel: "Clients", icon: Layers },

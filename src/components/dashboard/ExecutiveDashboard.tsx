@@ -14,7 +14,6 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
-import { PracticeAutopilotConsole } from "@/components/firm/PracticeAutopilotConsole";
 import {
   SANDBOX_TASKS,
   SANDBOX_INVOICES,
@@ -140,80 +139,48 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       {/* ========================================================================= */}
-      {/* 1. EXECUTIVE HERO BANNER: BESPOKE CLEAN ENTERPRISE CARD                   */}
+      {/* 1. COMPACT EXECUTIVE HEADER                                               */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-xs border border-slate-200/90 relative overflow-hidden">
-        {/* Subtle top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-btred-logo to-red-500" />
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Portals Connected (GSTN • ITD • MCA)
-              </span>
-
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200">
-                FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SQC-1 Certified
-              </span>
-            </div>
-
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
-              {DEFAULT_FIRM_BRANDING.firmName}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+              Executive Dashboard
             </h1>
-
-            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl">
-              Compliance status, upcoming statutory deadlines, and fee collections for FY 2024-25 (AY 2025-26).
-            </p>
-
-            {/* Quick Stats Mini Ribbon */}
-            <div className="pt-2 flex items-center gap-4 sm:gap-6 flex-wrap text-xs text-slate-600">
-              <div className="flex items-center gap-1.5 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span><strong>{effectiveClients.length}</strong> Active Entities</span>
-              </div>
-              <div className="flex items-center gap-1.5 font-medium">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                <span><strong>{effectiveDscTokens.length - checkedOutDscCount}</strong> DSC Keys in Safe</span>
-              </div>
-              <div className="flex items-center gap-1.5 font-medium">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span><strong>{criticalTasks.length}</strong> Priority Obligations</span>
-              </div>
-            </div>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Portals Synced
+            </span>
           </div>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            FY 2024-25 &bull; {effectiveClients.length} Active Clients &bull; {criticalTasks.length} Urgent Deadlines &bull; ₹{(totalDemandRisk / 100000).toFixed(1)}L Notice Exposure
+          </p>
+        </div>
 
-          {/* Right Action Cluster */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-            {onOpenFirmHub && (
-              <button
-                onClick={onOpenFirmHub}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-btred-logo hover:from-red-500 hover:to-red-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-red-500/20 transition transform active:scale-95"
-                title="CA Practice Command Hub (Calculators & Quick Actions)"
-              >
-                <Scale className="w-4 h-4 text-amber-200" />
-                <span>CA Command Hub</span>
-              </button>
-            )}
+        {/* Right Action Cluster */}
+        <div className="flex items-center gap-2 shrink-0">
+          {onOpenFirmHub && (
+            <button
+              onClick={onOpenFirmHub}
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition"
+              title="Practice Command Tools & Calculators"
+            >
+              <Scale className="w-3.5 h-3.5 text-slate-300" />
+              <span>Tools Hub</span>
+            </button>
+          )}
 
-            {onOpenClientMaster && (
-              <button
-                onClick={onOpenClientMaster}
-                className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-2xl text-xs font-bold transition transform active:scale-95 shadow-2xs"
-              >
-                <Users className="w-4 h-4 text-slate-600" />
-                <span>Client Directory ({effectiveClients.length})</span>
-              </button>
-            )}
-          </div>
+          {onOpenClientMaster && (
+            <button
+              onClick={onOpenClientMaster}
+              className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-2xs transition"
+            >
+              <Users className="w-3.5 h-3.5 text-slate-500" />
+              <span>Clients ({effectiveClients.length})</span>
+            </button>
+          )}
         </div>
       </div>
-
-      {/* ========================================================================= */}
-      {/* 1.5 AUTONOMOUS PRACTICE ENGINE CONSOLE                                     */}
-      {/* ========================================================================= */}
-      <PracticeAutopilotConsole />
 
       {/* ========================================================================= */}
       {/* 2. THE 4 MASTER KPI CARDS: ISOLATED STRICTLY ON THE DASHBOARD             */}
@@ -369,100 +336,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. KEY WORKSPACES: QUICK SHORTCUTS                                        */}
-      {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
-            Key Practice Workspaces
-          </h2>
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            Direct access to core tax, audit, and client engines
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-2.5">
-          <button
-            onClick={() => onNavigateTab("growth-engine")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <Compass className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Lead Scraper</span>
-            <span className="text-[10px] text-slate-500 font-medium">Pan-India Leads</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab("calendar")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-red-300 hover:bg-red-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-red-50 text-btred-logo border border-red-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Tax Deadlines</span>
-            <span className="text-[10px] text-slate-500 font-medium">{effectiveTasks.length} filings</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab("bank-parser")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <FileSpreadsheet className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Bank to Tally</span>
-            <span className="text-[10px] text-slate-500 font-medium">OCR to XML</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab("itr-calc")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <Calculator className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">ITR Engine</span>
-            <span className="text-[10px] text-slate-500 font-medium">Sec 115BAC</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab("schedule3-audit")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <Layers className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Schedule III</span>
-            <span className="text-[10px] text-slate-500 font-medium">CARO Workpapers</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab("notice-drafter")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-red-300 hover:bg-red-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-red-50 text-btred-logo border border-red-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <Scale className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Notice Drafter</span>
-            <span className="text-[10px] text-slate-500 font-medium">Case Law Citations</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab("udin-vault")}
-            className="flex flex-col items-center justify-center text-center p-3 rounded-2xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/40 transition group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center group-hover:scale-110 transition mb-1.5">
-              <KeyRound className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">UDIN Vault</span>
-            <span className="text-[10px] text-slate-500 font-medium">60-Day Tracking</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 4. TWO-COLUMN WORKFLOWS: UPCOMING DEADLINES & SCRUTINY NOTICES            */}
+      {/* 3. TWO-COLUMN WORKFLOWS: UPCOMING DEADLINES & SCRUTINY NOTICES            */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Column: Priority Deadlines */}

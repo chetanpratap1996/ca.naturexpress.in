@@ -442,8 +442,8 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
     setIsDispatching(false);
     setIsFinished(true);
     toast.success(
-      "Client Notification Broadcast Completed",
-      `Dispatched statutory reminders to ${total} clients across chosen free enterprise channels.`
+      "Client Intimation Broadcast Completed",
+      `Dispatched statutory reminders to ${total} clients across selected channels.`
     );
   };
 
@@ -472,13 +472,13 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900 text-base">Client Notification &amp; Statutory Dispatch Desk</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  100% Free Multi-Channel
+                <h3 className="font-bold text-slate-900 text-base">Statutory Client Intimation Desk</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                  Multi-Channel Dispatch
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                1-Click statutory broadcasts to related clients via WhatsApp, Client Portal PWA &amp; Push Notifications.
+                Broadcast statutory filing reminders and legal advisories directly to client promoters.
               </p>
             </div>
           </div>
@@ -553,10 +553,10 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
               </div>
             </div>
 
-            {/* Step 3: Zero-Cost Dispatch Channels */}
+            {/* Step 3: Multi-Channel Dispatch Options */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
-                2. Free Delivery Channels
+                2. Multi-Channel Delivery Channels
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${channelPortal ? "border-emerald-500 bg-emerald-50/50 text-emerald-900 font-bold" : "border-slate-200 text-slate-500"}`}>
@@ -726,8 +726,8 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
               </div>
 
               <div className="text-[10px] text-slate-500 flex items-center justify-between pt-1">
-                <span>Free Delivery Engine: Native Intent &amp; DB Sync</span>
-                <span className="text-emerald-700 font-bold">Cost: ₹0.00</span>
+                <span>Channel: Client Portal &bull; WhatsApp &bull; Push</span>
+                <span className="text-emerald-700 font-bold">Verified Statutory Template</span>
               </div>
             </div>
 
@@ -797,7 +797,7 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
               ) : (
                 <>
                   <Send className="w-3.5 h-3.5" />
-                  <span>Broadcast to {selectedClientIds.length} Clients (₹0 Free)</span>
+                  <span>Broadcast to {selectedClientIds.length} Clients</span>
                 </>
               )}
             </button>

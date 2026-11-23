@@ -689,13 +689,5 @@ export async function executePracticeAutopilotSweep(
     "COMPLIANCE"
   );
 
-  // Notify Managing Partner
-  await createNotification({
-    title: "Autonomous 9-Cycle Practice Sweep Completed",
-    message: `Autopilot processed ${db.clients.length} entities: ${tasksSpawned} statutory tasks created, ${vaultDocsAutoUnlocked} statements decrypted, ${deliverableGatesActive} client gates active, ₹${totalClientTaxSavingsIdentifiedInr.toLocaleString("en-IN")} client tax savings identified across dual-regime computations. Health: ${systemHealthScore}%.`,
-    category: "COMPLIANCE",
-    priority: "NORMAL",
-  });
-
   return { db, summary };
 }

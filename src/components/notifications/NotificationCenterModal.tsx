@@ -170,14 +170,41 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     }
   };
 
+  const getTargetTabLabel = (targetTab?: string) => {
+    if (!targetTab) return null;
+    switch (targetTab) {
+      case "gst-filing":
+        return "Filing Desk";
+      case "tasks-matrix":
+        return "Task Center";
+      case "notices":
+        return "Notice Docket";
+      case "billing-matrix":
+      case "billing":
+        return "Billing Matrix";
+      case "dsc":
+        return "Keys Vault";
+      case "bank-parser":
+        return "Bank Parser";
+      case "itr-matrix":
+        return "ITR Matrix";
+      case "progress":
+        return "Compliance Progress";
+      case "director-risk":
+        return "Director Profile";
+      default:
+        return targetTab.replace(/[-_]/g, " ");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
         
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-red-50 text-btred-logo flex items-center justify-center relative">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-2xl bg-red-50 text-btred-logo flex items-center justify-center relative shrink-0">
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-btred-logo text-white font-mono text-[9px] font-black flex items-center justify-center">
@@ -185,32 +212,46 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 </span>
               )}
             </div>
-            <div>
-              <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <div className="min-w-0">
+              <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2 truncate">
                 <span>{currentUserRole === "CLIENT" ? "CA Firm Intimations & Updates" : "Compliance Notifications"}</span>
                 {unreadCount > 0 && (
-                  <span className="text-[10px] bg-red-50 text-btred-logo border border-red-200 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] bg-red-50 text-btred-logo border border-red-200 px-2 py-0.5 rounded-full font-bold shrink-0">
                     {unreadCount} New
                   </span>
                 )}
               </h2>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[11px] text-slate-500 font-medium truncate">
                 {currentUserRole === "CLIENT" 
                   ? "Official notices & compliance intimations sent to you by GPA & Co."
-                  : "Real-time alerts • 100% Free Web Push"}
+                  : "Live statutory alerts & practice updates"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {currentUserRole !== "CLIENT" && onOpenClientBroadcaster && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenClientBroadcaster();
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-btred-logo text-xs font-bold flex items-center gap-1.5 transition"
+                title="Send Statutory Notice / Broadcast to Clients"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Dispatch</span>
+              </button>
+            )}
             <button
               onClick={() => setShowSettings(!showSettings)}
               className={`p-2 rounded-xl transition border ${
                 showSettings
-                  ? "bg-red-600 text-white border-red-600 shadow-sm"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-sm"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
               }`}
-              title="Notification Settings"
+              title="Alert Preferences"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -224,39 +265,13 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           </div>
         </div>
 
-        {/* Enterprise Client Broadcast Quick Launcher */}
-        {currentUserRole !== "CLIENT" && onOpenClientBroadcaster && (
-          <div className="p-3 bg-gradient-to-r from-red-50 via-amber-50/50 to-red-50/30 border-b border-red-100 flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-2 text-xs text-slate-800">
-              <div className="w-7 h-7 rounded-lg bg-btred-logo text-white flex items-center justify-center shrink-0">
-                <Send className="w-3.5 h-3.5" />
-              </div>
-              <div>
-                <span className="font-extrabold text-slate-900 block leading-tight">Send Client Notification / Broadcast</span>
-                <span className="text-[10px] text-slate-500">Free WhatsApp, Client Portal &amp; Push intimations to clients</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onOpenClientBroadcaster();
-              }}
-              className="px-3 py-1.5 rounded-xl bg-btred-logo hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs shrink-0"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Launch</span>
-            </button>
-          </div>
-        )}
-
-        {/* Settings Sub-Panel */}
+        {/* Settings Sub-Panel (Expands on Gear Click) */}
         {showSettings && (
           <div className="p-4 bg-slate-50 border-b border-slate-200 text-xs space-y-3 animate-in slide-in-from-top-2">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 font-bold text-slate-900">
               <span className="flex items-center gap-1.5">
                 <Settings className="w-3.5 h-3.5 text-slate-600" />
-                <span>Intimation &amp; Alert Preferences</span>
+                <span>Alert &amp; Intimation Preferences</span>
               </span>
             </div>
 
@@ -282,7 +297,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
               </label>
 
               <label className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-                <span className="text-[11px] font-bold text-slate-700">Tax Deadlines</span>
+                <span className="text-[11px] font-bold text-slate-700">Statutory Deadlines</span>
                 <input
                   type="checkbox"
                   checked={preferences.notifyDeadlines}
@@ -307,17 +322,17 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
         {/* Filter Bar & Fast Actions */}
         <div className="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto text-xs">
           <div className="flex items-center gap-1 shrink-0">
-            {(["ALL", "COMPLIANCE", "BILLING", "DOCUMENT", "NOTICE"] as const).map((cat) => (
+            {(["ALL", "COMPLIANCE", "NOTICE", "BILLING", "DOCUMENT"] as const).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategoryFilter(cat)}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition whitespace-nowrap ${
                   activeCategoryFilter === cat
-                    ? "bg-red-600 text-white shadow-sm"
+                    ? "bg-slate-900 text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
                 }`}
               >
-                {cat === "ALL" ? "All" : cat === "COMPLIANCE" ? "Deadlines" : cat === "BILLING" ? "Payments" : cat === "DOCUMENT" ? "Docs" : "Notices"}
+                {cat === "ALL" ? "All" : cat === "COMPLIANCE" ? "Deadlines" : cat === "NOTICE" ? "Notices" : cat === "BILLING" ? "Payments" : "Docs"}
               </button>
             ))}
           </div>
@@ -339,51 +354,54 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             <div className="py-12 text-center text-slate-500 space-y-2">
               <Check className="w-8 h-8 mx-auto text-emerald-500" />
               <p className="text-xs font-bold text-slate-700">You&apos;re completely up to date!</p>
-              <p className="text-[11px] text-slate-600">No new alerts in this category.</p>
+              <p className="text-[11px] text-slate-600">No new statutory notifications in this category.</p>
             </div>
           ) : (
-            filteredNotifications.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleNotificationClick(item)}
-                className={`p-3 rounded-2xl transition cursor-pointer flex items-start gap-3 text-xs group relative ${
-                  item.isRead ? "bg-white hover:bg-slate-50 text-slate-700" : "bg-red-50/40 hover:bg-red-50/70 border border-red-100 text-slate-900 font-medium"
-                }`}
-              >
-                <div className="p-2 rounded-xl bg-white border border-slate-200 shrink-0 shadow-xs mt-0.5">
-                  {getCategoryIcon(item.category)}
-                </div>
-
-                <div className="flex-1 min-w-0 pr-6">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold truncate text-slate-900">{item.title}</span>
-                    <span className="text-[9px] font-mono text-slate-600 shrink-0">
-                      {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2 leading-relaxed">
-                    {item.message}
-                  </p>
-                  {item.targetTab && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-btred-logo mt-1.5 hover:underline">
-                      <span>View in {item.targetTab}</span>
-                      <ExternalLink className="w-2.5 h-2.5" />
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item.id);
-                  }}
-                  className="absolute top-3 right-3 text-slate-600 hover:text-slate-800 p-1 transition"
-                  title="Remove"
+            filteredNotifications.map((item) => {
+              const tabLabel = getTargetTabLabel(item.targetTab);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => handleNotificationClick(item)}
+                  className={`p-3 rounded-2xl transition cursor-pointer flex items-start gap-3 text-xs group relative ${
+                    item.isRead ? "bg-white hover:bg-slate-50 text-slate-700" : "bg-red-50/40 hover:bg-red-50/70 border border-red-100 text-slate-900 font-medium"
+                  }`}
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))
+                  <div className="p-2 rounded-xl bg-white border border-slate-200 shrink-0 shadow-xs mt-0.5">
+                    {getCategoryIcon(item.category)}
+                  </div>
+
+                  <div className="flex-1 min-w-0 pr-6">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold truncate text-slate-900">{item.title}</span>
+                      <span className="text-[9px] font-mono text-slate-500 shrink-0">
+                        {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2 leading-relaxed">
+                      {item.message}
+                    </p>
+                    {tabLabel && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-btred-logo mt-1.5 hover:underline">
+                        <span>Open in {tabLabel}</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
+                    className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 p-1 transition"
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -392,7 +410,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-semibold text-slate-700">
-              Verified ICAI Compliance Channel &bull; Realtime Feed
+              Live Statutory Alert Stream
             </span>
           </div>
           <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">

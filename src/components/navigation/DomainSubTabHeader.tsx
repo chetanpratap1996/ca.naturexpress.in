@@ -37,11 +37,11 @@ export interface SubTabItem {
 export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   tasks: [
     { id: "tasks-matrix", label: "Task Center", shortLabel: "Tasks", icon: ClipboardCheck },
-    { id: "staff-master", label: "Employees", shortLabel: "Employees", icon: Users },
     { id: "calendar", label: "Deadlines", shortLabel: "Deadlines", icon: Calendar },
-    { id: "autonomous-orchestrator", label: "Orchestrator", shortLabel: "Orchestrator", icon: Sparkles },
     { id: "batch-dispatch", label: "Batch Dispatch", shortLabel: "Batch", icon: Sparkles },
-    { id: "inward-outward", label: "Registers", shortLabel: "Registers", icon: Package }
+    { id: "inward-outward", label: "Registers", shortLabel: "Registers", icon: Package },
+    { id: "autonomous-orchestrator", label: "Automation & Rules", shortLabel: "Automation", icon: Sparkles },
+    { id: "staff-master", label: "Employees", shortLabel: "Employees", icon: Users }
   ],
   gst: [
     { id: "gst-filing", label: "Filing Desk", shortLabel: "Filing", icon: FileCheck },

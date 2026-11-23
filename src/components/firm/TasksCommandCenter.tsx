@@ -203,10 +203,10 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
               </span>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Daily Statutory Task Command Center
+                  Daily Statutory Task Center
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  72-hour statutory deadline radar &bull; Article trainee workload allocation &bull; 1-click WhatsApp document chaser
+                  Statutory filing pipeline, article trainee allocation, and client document tracking.
                 </p>
               </div>
             </div>
@@ -262,17 +262,14 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
           </div>
 
           <div 
-            onClick={() => {
-              if (onNavigateTab) onNavigateTab("batch-dispatch");
-            }}
-            className="bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200 p-3 rounded-2xl cursor-pointer transition"
+            className="bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 p-3 rounded-2xl cursor-pointer transition"
           >
-            <span className="text-[10px] uppercase font-bold text-indigo-700 block">Batch Return Dispatch</span>
+            <span className="text-[10px] uppercase font-bold text-emerald-700 block">Filed &amp; Completed</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-black text-indigo-800">
+              <span className="text-xl sm:text-2xl font-black text-emerald-800">
                 {tasks.filter(t => t.status === "FILED_AND_COMPLETED").length}
               </span>
-              <span className="text-[10px] text-indigo-600 font-bold font-mono">Ready to Send →</span>
+              <span className="text-[10px] text-emerald-600 font-bold font-mono">This Cycle</span>
             </div>
           </div>
         </div>
@@ -467,22 +464,32 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
                       {/* Col 6: Fast Action */}
                       <td className="px-4 py-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          {hasMissingDocs && !isFiled && (
+                          {isFiled ? (
+                            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl">
+                              Done
+                            </span>
+                          ) : hasMissingDocs ? (
                             <button
                               onClick={() => handleChaseWhatsApp(t)}
-                              className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
-                              title="Chase Missing Documents on WhatsApp"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition cursor-pointer"
+                              title="Send WhatsApp document reminder to client"
                             >
                               <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>WhatsApp</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                onUpdateTask(t.id, { status: "FILED_AND_COMPLETED" });
+                                toast.success("Task Filed", `${t.title} marked completed.`);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 transition cursor-pointer"
+                              title="Mark Return / Task as Filed & Completed"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 hover:text-white" />
+                              <span>Mark Filed</span>
                             </button>
                           )}
-
-                          <button
-                            onClick={() => setReassignModalTask(t)}
-                            className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-                          >
-                            Reassign
-                          </button>
                         </div>
                       </td>
                     </tr>

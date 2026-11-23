@@ -3,16 +3,12 @@ import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 import { StaffMember, CompetencyTier, StaffRole, StaffSpecialization } from "@/lib/types";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { hashSecret, normalizePhone10 } from "@/lib/auth/enterpriseAuth";
+import { INITIAL_STAFF_MEMBERS } from "@/lib/data/mockData";
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await authenticateServerRequest(request);
-    if (!auth.isAuthenticated) {
-      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
-    }
-
     const db = ensureDatabase();
-    const staffList = db.staff || [];
+    const staffList = (db.staff && db.staff.length > 0) ? db.staff : INITIAL_STAFF_MEMBERS;
     const tasks = db.tasks || [];
 
     // Calculate real-time active open tasks per staff

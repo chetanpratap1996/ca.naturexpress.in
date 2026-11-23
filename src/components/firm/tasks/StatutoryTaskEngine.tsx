@@ -49,11 +49,11 @@ interface StatutoryTaskEngineProps {
 }
 
 const KANBAN_STAGES: { key: WorkflowStatus; label: string; badgeColor: string; description: string }[] = [
-  { key: "DOCUMENTS_AWAITED", label: "1. Client Docs Awaited", badgeColor: "bg-amber-50 text-amber-900 border-amber-300", description: "Pending bank statements, invoices & vouchers" },
-  { key: "IN_PREPARATION", label: "2. Article Prep", badgeColor: "bg-blue-50 text-blue-900 border-blue-200", description: "Article drafting returns & workpapers" },
-  { key: "MANAGER_REVIEW", label: "3. Senior Review", badgeColor: "bg-purple-50 text-purple-900 border-purple-200", description: "Audit & cross-match verification" },
-  { key: "PARTNER_SIGN_OFF", label: "4. Partner Sign-off", badgeColor: "bg-red-50 text-btred-logo border-red-200", description: "DSC signing & UDIN generation" },
-  { key: "FILED_AND_COMPLETED", label: "5. Filed & Vaulted", badgeColor: "bg-emerald-50 text-emerald-900 border-emerald-300", description: "Filing acknowledgement recorded" }
+  { key: "DOCUMENTS_AWAITED", label: "Documents Awaited", badgeColor: "bg-amber-50 text-amber-900 border-amber-300", description: "Pending bank statements, invoices & vouchers" },
+  { key: "IN_PREPARATION", label: "In Preparation", badgeColor: "bg-blue-50 text-blue-900 border-blue-200", description: "Article drafting returns & workpapers" },
+  { key: "MANAGER_REVIEW", label: "Manager Review", badgeColor: "bg-purple-50 text-purple-900 border-purple-200", description: "Audit & cross-match verification" },
+  { key: "PARTNER_SIGN_OFF", label: "Partner Sign-off", badgeColor: "bg-red-50 text-btred-logo border-red-200", description: "DSC signing & UDIN generation" },
+  { key: "FILED_AND_COMPLETED", label: "Filed & Completed", badgeColor: "bg-emerald-50 text-emerald-900 border-emerald-300", description: "Filing acknowledgement recorded" }
 ];
 
 export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
@@ -288,50 +288,50 @@ export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             <button
               onClick={() => setActiveTab("kanban")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 cursor-pointer ${
                 activeTab === "kanban"
-                  ? "bg-gradient-to-r from-red-600 to-btred-logo text-white shadow-xs"
+                  ? "bg-slate-900 text-white shadow-xs"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>1. Maker-Checker Kanban</span>
+              <span>Workflow Kanban</span>
             </button>
 
             <button
               onClick={() => setActiveTab("due-dates")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 cursor-pointer ${
                 activeTab === "due-dates"
-                  ? "bg-gradient-to-r from-red-600 to-btred-logo text-white shadow-xs"
+                  ? "bg-slate-900 text-white shadow-xs"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>2. Statutory Due Date Master (75+)</span>
+              <span>Statutory Due Dates</span>
             </button>
 
             <button
               onClick={() => setActiveTab("workload")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 cursor-pointer ${
                 activeTab === "workload"
-                  ? "bg-gradient-to-r from-red-600 to-btred-logo text-white shadow-xs"
+                  ? "bg-slate-900 text-white shadow-xs"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>3. Article Workload Heatmap</span>
+              <span>Workload Heatmap</span>
             </button>
 
             <button
               onClick={() => setActiveTab("penalties")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition shrink-0 cursor-pointer ${
                 activeTab === "penalties"
-                  ? "bg-gradient-to-r from-red-600 to-btred-logo text-white shadow-xs"
+                  ? "bg-slate-900 text-white shadow-xs"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               <Scale className="w-3.5 h-3.5" />
-              <span>4. Late Fee &amp; Penalty Meter</span>
+              <span>Penalty Calculator</span>
             </button>
           </div>
 

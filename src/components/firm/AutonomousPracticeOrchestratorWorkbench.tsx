@@ -107,20 +107,19 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Header - Crisp White & Brand Red Accent */}
-      <div className="bg-white border-2 border-red-500 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+      {/* Hero Header - Clean & Professional */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold mb-2">
-              <Cpu className="w-3.5 h-3.5 text-red-600" />
-              Autonomous Practice Layer: 2035 Zero-Touch Nervous System
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold mb-2">
+              <Cpu className="w-3.5 h-3.5 text-btred-logo" />
+              Practice Automation &amp; Statutory Rules
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              Universal Entity DNA Mesh &amp; Cross-Suite Auto-Pilot
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+              Compliance Rules &amp; Cross-Suite Automation
             </h1>
-            <p className="text-sm text-slate-600 mt-1 max-w-3xl">
-              &quot;Input Once, Sync Everywhere&quot;: Real-world Indian statutory validation (PAN, GSTIN, CIN, TAN), 
-              instant cross-suite ripple cascade across all 8 Pillars, automated Tally MOC generation, and 96% Zero-Touch partner autonomy.
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+              Rule-based statutory triggers, multi-portal credential validation (PAN, GSTIN, CIN), and compliance intimation digests across practice domains.
             </p>
           </div>
 
@@ -128,40 +127,40 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
             <button
               onClick={handleTriggerAutonomousRun}
               disabled={isRunning}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-200 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${isRunning ? 'animate-spin' : ''}`} />
-              {isRunning ? 'Synchronizing 8 Pillars...' : 'Run 100% Autonomous 8-Pillar Sync'}
+              <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
+              {isRunning ? 'Verifying Rules...' : 'Run Rule Verification'}
             </button>
           </div>
         </div>
 
-        {/* Global Key Metrics - Light Cards with Red & Emerald Indicators */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-200 text-xs">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
-            <span className="text-slate-500 font-semibold uppercase text-[10px]">Zero-Touch Automation</span>
-            <p className="text-2xl font-bold text-emerald-700 mt-0.5">{runReport.overallAutomationScorePct}%</p>
-            <span className="text-[11px] text-slate-600">Zero human data entry</span>
+        {/* Global Key Metrics - Light Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-100 text-xs">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-2xs">
+            <span className="text-slate-500 font-semibold uppercase text-[10px]">Rule Coverage</span>
+            <p className="text-xl sm:text-2xl font-bold text-emerald-700 mt-0.5">{runReport.overallAutomationScorePct}%</p>
+            <span className="text-[11px] text-slate-500">Automated statutory checks</span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
-            <span className="text-slate-500 font-semibold uppercase text-[10px]">Pillars Orchestrated</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">8 / 8 Pillars</p>
-            <span className="text-[11px] text-red-600 font-medium">GST, ITR, 3CD, Bank, TDS, MCA, UDIN, Tally</span>
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-2xs">
+            <span className="text-slate-500 font-semibold uppercase text-[10px]">Practice Domains</span>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">8 Categories</p>
+            <span className="text-[11px] text-slate-600 font-medium">GST, ITR, 3CD, Bank, TDS, MCA, UDIN, Tally</span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-2xs">
             <span className="text-slate-500 font-semibold uppercase text-[10px]">Statutory Penalties Prevented</span>
-            <p className="text-2xl font-bold text-red-600 mt-0.5">
+            <p className="text-xl sm:text-2xl font-bold text-red-600 mt-0.5">
               ₹{runReport.totalPenaltiesPreventedInr.toLocaleString('en-IN')}
             </p>
-            <span className="text-[11px] text-slate-600">Sec 271D, 271J, 234E &amp; 50</span>
+            <span className="text-[11px] text-slate-500">Sec 271D, 271J, 234E &amp; 50</span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-2xs">
             <span className="text-slate-500 font-semibold uppercase text-[10px]">Tally MOCs Generated</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">{runReport.tallyVouchersGeneratedCount} Vouchers</p>
-            <span className="text-[11px] text-slate-600">Posted via Tally XML Bridge</span>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">{runReport.tallyVouchersGeneratedCount} Vouchers</p>
+            <span className="text-[11px] text-slate-500">Posted via Tally XML Bridge</span>
           </div>
         </div>
       </div>
@@ -171,10 +170,10 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-red-600" />
-              Real-World Entity DNA Master &amp; Statutory Validator
+              <Building2 className="w-4 h-4 text-btred-logo" />
+              Client Statutory Profile &amp; Credential Validator
             </h3>
-            <p className="text-xs text-slate-500">Select an institutional client or enter real-world statutory credentials</p>
+            <p className="text-xs text-slate-500">Select an institutional client or verify statutory credentials (PAN, GSTIN, CIN)</p>
           </div>
 
           {/* Client Switcher Buttons */}

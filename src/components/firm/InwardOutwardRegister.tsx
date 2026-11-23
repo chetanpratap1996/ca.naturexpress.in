@@ -136,13 +136,13 @@ export const InwardOutwardRegister: React.FC = () => {
           </div>
           <div>
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              Physical Inward &amp; Outward Document Movement Register
+              Physical Document Movement Register
               <span className="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">
                 ICAI Audit Logged
               </span>
             </h3>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Prevents lost original land title deeds, chequebooks, and audited balance sheets handed over by clients.
+              Custody tracking for original deeds, minute books, and dispatched dockets.
             </p>
           </div>
         </div>
@@ -152,7 +152,7 @@ export const InwardOutwardRegister: React.FC = () => {
           className="bg-btred-logo hover:bg-btred-700 text-white text-xs font-black px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 shadow-md"
         >
           <Plus className="w-4 h-4" />
-          Log Inward Document
+          Inward Document
         </button>
       </div>
 

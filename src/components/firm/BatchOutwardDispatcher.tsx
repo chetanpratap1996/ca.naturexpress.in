@@ -350,33 +350,33 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 bg-red-50 text-btred-logo px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-200">
+            <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200">
               <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
-              High-Volume Dispatch Engine
+              Outward Dispatch Engine
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-              Batch Inward / Outward Document Dispatcher
+              Batch Filing Document Dispatcher
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed font-normal">
-              Drop real filing receipts (GSTR-3B, GSTR-1, ITR-V, Form 3CD, Challans). System auto-parses PAN, GSTIN, and Period, maps to the client master, stores files in practice vault, and shoots out branded WhatsApp delivery links.
+              Drop filing receipts (GSTR-3B, GSTR-1, ITR-V, Form 3CD, Challans). System auto-matches PAN/GSTIN and prepares client WhatsApp &amp; email delivery.
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-btred-logo hover:bg-red-700 text-white shadow-sm text-xs font-black px-4 py-2.5 rounded-xl transition shadow-lg shadow-red-500/25 flex items-center gap-2 active:scale-95"
+              className="bg-slate-900 hover:bg-slate-800 text-white shadow-xs text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer"
             >
-              <UploadCloud className="w-4 h-4" />
-              <span>Browse Real PDF Files</span>
+              <UploadCloud className="w-4 h-4 text-slate-300" />
+              <span>Browse PDF Documents</span>
             </button>
             <button
               onClick={handleLoadSampleBatch}
               title="Load test mock documents for rapid demonstration"
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5"
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              <span>Load Demo Batch</span>
+              <span>Load Sample Batch</span>
             </button>
           </div>
         </div>
@@ -403,7 +403,7 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               </div>
               <div className="space-y-1">
                 <h4 className="text-sm font-black text-slate-900">
-                  Drag &amp; Drop Real Filing PDFs Here (or Click to Browse)
+                  Drag &amp; Drop Filing Acknowledgements &amp; Challans
                 </h4>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
                   Automatically extracts PAN/GSTIN from filenames like <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px] font-mono">GSTR3B_09AANCP9915B1Z4_OCT2026_ACK.pdf</code> and organizes them into client repositories.

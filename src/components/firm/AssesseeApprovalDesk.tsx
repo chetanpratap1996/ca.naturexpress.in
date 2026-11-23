@@ -179,15 +179,15 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-800" /> Professional Protection Shield
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-800" /> ICAI SA 580 Compliance
               </span>
-              <span className="text-xs text-slate-500 font-mono">ICAI SA 580 Written Representation Trail</span>
+              <span className="text-xs text-slate-500 font-mono">Client Written Representation Trail</span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <FileCheck className="w-6 h-6 text-teal-700" /> Assessee Verification &amp; Legal Sign-off Trail
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Eliminate client disputes and malpractice allegations. Captures timestamped client consent, digital canvas signatures, IP addresses, and explicit statutory authorization before an ITR, GSTR-3B, or 3CD audit report is submitted to government portals.
+              Captures timestamped client consent, digital canvas verification, IP addresses, and explicit statutory authorization before tax returns (ITR, GSTR-3B) or Form 3CD audit reports are submitted to government portals.
             </p>
           </div>
 

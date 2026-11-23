@@ -462,7 +462,7 @@ In terms of Section 144B(6)(vii) / (viii) of the Income-tax Act, 1961 read with 
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
-                <Scale className="w-3.5 h-3.5 text-btred-logo" /> High-Margin Litigation Desk
+                <Scale className="w-3.5 h-3.5 text-btred-logo" /> Statutory Litigation Defense
               </span>
               <span className="text-xs text-slate-500 font-mono">Supreme Court &amp; High Court Grounded</span>
             </div>
@@ -470,7 +470,7 @@ In terms of Section 144B(6)(vii) / (viii) of the Income-tax Act, 1961 read with 
               <ShieldAlert className="w-6 h-6 text-btred-logo" /> Statutory Tax Scrutiny Legal Reply Drafter
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Turn ₹5,000–₹50,000 notice representation into a 2-minute workflow. Automatically drafts citation-backed legal responses for GST ASMT-10, DRC-01C, Income Tax 143(1)(a), 139(9) defective returns, and Section 148 reassessment notices.
+              Automates citation-backed written legal submissions for GST ASMT-10, DRC-01C, Income Tax Section 143(1)(a), Section 148 reassessment, and 139(9) defective return notices with Supreme Court &amp; High Court precedents.
             </p>
           </div>
 
@@ -567,7 +567,7 @@ In terms of Section 144B(6)(vii) / (viii) of the Income-tax Act, 1961 read with 
               }`}
             >
               <Zap className="w-4 h-4 text-amber-500" />
-              <span>Predictive Pre-Notice Radar (Pillar 3)</span>
+              <span>Pre-Notice Risk Scanner</span>
               <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-full">
                 Live Scanner
               </span>
@@ -674,7 +674,7 @@ In terms of Section 144B(6)(vii) / (viii) of the Income-tax Act, 1961 read with 
         </div>
       </div>
 
-      {/* MODE 1: PREDICTIVE PRE-NOTICE RISK RADAR (PILLAR 3) */}
+      {/* MODE 1: PRE-NOTICE RISK SCANNER */}
       {activeView === "PREDICTIVE_RADAR" ? (
         <div className="space-y-6 animate-fadeIn">
           {/* Executive Metrics Strip */}

@@ -104,18 +104,18 @@ export function PillarSixMcaEnterpriseWorkbench() {
   return (
     <div className="space-y-6">
       {/* Top Banner - Crisp White & Brand Red Accent */}
-      <div className="bg-white border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-semibold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-red-600" />
-              <span>Pillar VI: Company Law, MCA V3 &amp; Secretarial Governance</span>
+              <span>Company Law &amp; MCA V3 Secretarial Desk</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Corporate Governance, Form DPT-3, MSME-1 &amp; SBO Sentinel
+              Corporate Governance, Form DPT-3, MSME-1 &amp; SBO
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Automates MCA V3 compliance under the Companies Act 2013: <strong>Form DPT-3 deposits &amp; director loans</strong>, <strong>Form MSME-1 overdue supplier dues</strong>, <strong>30th Sep Director KYC guardian</strong>, <strong>SS-1/SS-2 Minute Book generator</strong>, and <strong>Form BEN-2 SBO multi-tier detector</strong>.
+              MCA V3 compliance under the Companies Act 2013: <strong>Form DPT-3 deposits &amp; director loans</strong>, <strong>Form MSME-1 overdue supplier dues</strong>, <strong>Director KYC (DIR-3)</strong>, <strong>SS-1/SS-2 Minute Books</strong>, and <strong>Form BEN-2 SBO declarations</strong>.
             </p>
           </div>
 
@@ -194,66 +194,66 @@ export function PillarSixMcaEnterpriseWorkbench() {
         </div>
       </div>
 
-      {/* 5 Institutional Tabs */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      {/* MCA Compliance Sub-Tabs */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('DPT_3_DEPOSITS')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'DPT_3_DEPOSITS'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-btred-logo text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>1. Form DPT-3 Deposits &amp; Exempted Loans</span>
+          <span>Form DPT-3 Deposits &amp; Loans</span>
         </button>
 
         <button
           onClick={() => setActiveTab('MSME_1_RETURN')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'MSME_1_RETURN'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-btred-logo text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>2. Form MSME-1 Dues (&gt; 45 Days)</span>
+          <span>Form MSME-1 Dues (&gt; 45 Days)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('DIR3_KYC_GUARDIAN')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'DIR3_KYC_GUARDIAN'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-btred-logo text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <KeyRound className="w-3.5 h-3.5" />
-          <span>3. Director KYC (DIR-3) Guardian</span>
+          <span>Director KYC (DIR-3)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('MINUTE_BOOK_AGM')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'MINUTE_BOOK_AGM'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-btred-logo text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>4. Minute Book &amp; Resolutions (SS-1/SS-2)</span>
+          <span>Minute Books &amp; Resolutions</span>
         </button>
 
         <button
           onClick={() => setActiveTab('BEN2_SBO_DETECTOR')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 whitespace-nowrap ${
             activeTab === 'BEN2_SBO_DETECTOR'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-btred-logo text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Network className="w-3.5 h-3.5" />
-          <span>5. Form BEN-2 SBO Multi-Tier Detector</span>
+          <span>Form BEN-2 SBO Register</span>
         </button>
       </div>
 

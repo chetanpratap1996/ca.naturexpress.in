@@ -272,10 +272,10 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
       )}
 
       {/* Govt Portal Direct Sync Strip */}
-      <div className="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs text-slate-900">
-        <div className="flex items-center gap-4">
+      <div className="bg-white border border-slate-200 p-3.5 sm:p-4 rounded-3xl shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs text-slate-900">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
           <span className="text-slate-600 font-bold uppercase text-[11px] flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-teal-700" /> Govt Portal Daemon:
+            <Globe className="w-3.5 h-3.5 text-slate-700" /> Portal Sync Status:
           </span>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
@@ -296,7 +296,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
           className="bg-btred-logo hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isScanningPortals ? "animate-spin" : ""}`} />
-          {isScanningPortals ? "Polling Dept Portals..." : "Run Headless Scraper Now"}
+          {isScanningPortals ? "Syncing Dept Portals..." : "Sync Department Portals"}
         </button>
       </div>
 
@@ -336,7 +336,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
           <div>
             <h3 className="text-base font-black text-slate-900">Zero Pending Scrutiny Notices or Demands</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              Your practice client records are clean. The background daemon continuously monitors ITD, GSTN, and MCA portals for statutory notices with verified DIN numbers.
+              Your practice client records are clean. The engine continuously monitors ITD, GSTN, and MCA portals for statutory notices with verified DIN numbers.
             </p>
           </div>
           <button
@@ -532,25 +532,25 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                   </div>
                 </div>
 
-                {/* In-Context Portal Access & Credential Bar */}
-                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-2xl border border-indigo-800/50 shadow-md">
+                {/* In-Context Portal Access & Credential Bar (Clean Light Panel) */}
+                <div className="bg-slate-50 border border-slate-200 text-slate-900 p-3.5 sm:p-4 rounded-2xl shadow-xs">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-btred-logo shrink-0">
                         <KeyRound className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-black tracking-wide text-indigo-200">
+                          <span className="text-xs font-black tracking-wide text-slate-900">
                             {selectedNotice.authority === "INCOME_TAX" ? "Income Tax e-Filing Portal (ITBA / NFAC)" :
                              selectedNotice.authority === "GST_DEPT" || selectedNotice.authority === "DGGI" ? "GST Common Portal (GSTN)" :
                              "MCA21 V3 Portal"}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
                             Vault Linked
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-300 font-medium">
+                        <p className="text-[11px] text-slate-500 font-medium">
                           Portal credentials for filing replies &amp; response submissions
                         </p>
                       </div>
@@ -566,7 +566,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black transition shrink-0 shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shrink-0 shadow-xs"
                     >
                       <span>Open Portal</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -574,30 +574,30 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                   </div>
 
                   {/* Credentials Quick Pills */}
-                  <div className="mt-3 pt-3 border-t border-indigo-800/40 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {/* Username / PAN */}
-                    <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-1.5 flex items-center justify-between">
+                    <div className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 flex items-center justify-between shadow-xs">
                       <div className="truncate mr-2">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block">User ID / PAN</span>
-                        <span className="font-mono font-bold text-white text-xs truncate">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold block">User ID / PAN</span>
+                        <span className="font-mono font-bold text-slate-900 text-xs truncate">
                           {activeCredential?.username || selectedNotice.pan || "PAN Not Tagged"}
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleCopy(activeCredential?.username || selectedNotice.pan || "", "User ID")}
-                        className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition"
+                        className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition"
                         title="Copy Username"
                       >
-                        {copiedField === "User ID" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedField === "User ID" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
 
                     {/* Password */}
-                    <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-1.5 flex items-center justify-between">
+                    <div className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 flex items-center justify-between shadow-xs">
                       <div className="truncate mr-2">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block">Password</span>
-                        <span className="font-mono font-bold text-white text-xs">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold block">Password</span>
+                        <span className="font-mono font-bold text-slate-900 text-xs">
                           {activeCredential ? (showPassword ? activeCredential.password : "••••••••••••") : "FirmVault@2025"}
                         </span>
                       </div>
@@ -606,7 +606,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition"
+                            className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition"
                             title={showPassword ? "Hide password" : "Show password"}
                           >
                             {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -615,10 +615,10 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
                         <button
                           type="button"
                           onClick={() => handleCopy(activeCredential?.password || "FirmVault@2025", "Password")}
-                          className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition"
+                          className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition"
                           title="Copy Password"
                         >
-                          {copiedField === "Password" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedField === "Password" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                       </div>
                     </div>
@@ -626,31 +626,31 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
 
                   {/* Domain Sub-Tools Shortcuts */}
                   {onNavigateTab && (
-                    <div className="mt-2.5 pt-2.5 border-t border-indigo-800/30 flex items-center gap-2 flex-wrap text-[11px]">
-                      <span className="text-slate-400 font-medium">Domain Shortcuts:</span>
+                    <div className="mt-2.5 pt-2.5 border-t border-slate-200 flex items-center gap-2 flex-wrap text-[11px]">
+                      <span className="text-slate-500 font-medium">Domain Shortcuts:</span>
                       <button
                         type="button"
                         onClick={() => onNavigateTab("notice-drafter")}
-                        className="text-indigo-200 hover:text-white bg-indigo-900/60 hover:bg-indigo-800/70 border border-indigo-700/50 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                        className="text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 shadow-xs"
                       >
-                        <span>AI Reply Drafter</span>
-                        <ChevronRight className="w-3 h-3" />
+                        <span>Reply Drafter</span>
+                        <ChevronRight className="w-3 h-3 text-slate-400" />
                       </button>
                       <button
                         type="button"
                         onClick={() => onNavigateTab("assessee-approval")}
-                        className="text-indigo-200 hover:text-white bg-indigo-900/60 hover:bg-indigo-800/70 border border-indigo-700/50 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                        className="text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 shadow-xs"
                       >
-                        <span>Assessee Sign-Off Desk</span>
-                        <ChevronRight className="w-3 h-3" />
+                        <span>Assessee Sign</span>
+                        <ChevronRight className="w-3 h-3 text-slate-400" />
                       </button>
                       <button
                         type="button"
                         onClick={() => onNavigateTab("udin-vault")}
-                        className="text-indigo-200 hover:text-white bg-indigo-900/60 hover:bg-indigo-800/70 border border-indigo-700/50 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                        className="text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 shadow-xs"
                       >
                         <span>UDIN Vault</span>
-                        <ChevronRight className="w-3 h-3" />
+                        <ChevronRight className="w-3 h-3 text-slate-400" />
                       </button>
                     </div>
                   )}

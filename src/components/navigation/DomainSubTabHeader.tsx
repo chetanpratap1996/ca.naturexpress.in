@@ -62,10 +62,10 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   ],
   "notices-udin": [
     { id: "notices", label: "Notice Docket", shortLabel: "Notices", icon: ShieldAlert },
-    { id: "pillar-six-mca", label: "Pillar 6 MCA", shortLabel: "MCA", icon: Scale },
     { id: "notice-drafter", label: "Reply Drafter", shortLabel: "Replies", icon: Scale },
-    { id: "assessee-approval", label: "Assessee Sign", shortLabel: "Sign-off", icon: FileCheck },
     { id: "udin-vault", label: "UDIN Vault", shortLabel: "UDIN", icon: KeyRound },
+    { id: "assessee-approval", label: "Assessee Sign", shortLabel: "Sign-off", icon: FileCheck },
+    { id: "pillar-six-mca", label: "MCA & Secretarial", shortLabel: "MCA", icon: Building2 },
     { id: "peer-review", label: "Peer Review", shortLabel: "Peer Review", icon: Award }
   ],
   "billing-wip": [

@@ -272,6 +272,8 @@ export const TopNav: React.FC<TopNavProps> = ({
             <div className="relative shrink-0">
               <button
                 type="button"
+                id="profile-dropdown-btn"
+                data-testid="profile-dropdown-btn"
                 onClick={() => setIsProfileMenuOpen((prev) => !prev)}
                 className="flex items-center gap-1.5 p-1 rounded-xl sm:rounded-2xl hover:bg-slate-100 border border-slate-200 transition focus:outline-none bg-white cursor-pointer"
                 aria-label="User Profile"
@@ -322,7 +324,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                     </div>
                   </div>
 
-                  {isSandbox && onSwitchUser && (
+                  {onSwitchUser && (
                     <div className="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">

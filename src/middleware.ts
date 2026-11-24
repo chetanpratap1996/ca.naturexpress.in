@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Administrative partner access required.", code: "FORBIDDEN" }, { status: 403 });
     }
 
-    // Firm staff routes (Partner + Article Trainees)
+    // Firm staff routes (Partner + Article Trainees + Team Members)
     const firmStaffOnly = [
       "/api/clients",
       "/api/dsc",
@@ -60,7 +60,12 @@ export async function middleware(request: NextRequest) {
       "/api/billing/receipt",
       "/api/whatsapp/parser",
     ];
-    if (firmStaffOnly.some((path) => pathname === path || pathname.startsWith(`${path}/`)) && auth.role !== "PARTNER" && auth.role !== "ARTICLE") {
+    if (
+      firmStaffOnly.some((path) => pathname === path || pathname.startsWith(`${path}/`)) &&
+      auth.role !== "PARTNER" &&
+      auth.role !== "ARTICLE" &&
+      auth.role !== "TEAM"
+    ) {
       return NextResponse.json({ success: false, error: "Firm staff access required.", code: "FORBIDDEN" }, { status: 403 });
     }
 

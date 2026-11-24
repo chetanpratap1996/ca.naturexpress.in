@@ -1,9 +1,11 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   generateBuildId: async () => {
-    return "taxobrain-build-v1";
+    return `taxobrain-${Date.now()}`;
   },
 
   // ─── Webpack Customization ────────────────────────────────────────────────
@@ -19,12 +21,12 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // 1. Immutable cache for content-hashed Next.js static assets with CORS allow
+        // 1. Static assets cache header
         source: "/_next/static/(.*)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            value: isDev ? "no-cache, no-store, must-revalidate" : "public, max-age=31536000, immutable",
           },
           {
             key: "Access-Control-Allow-Origin",

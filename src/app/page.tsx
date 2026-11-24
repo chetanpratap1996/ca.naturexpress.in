@@ -256,12 +256,7 @@ export default function Home() {
   const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
 
   const isTeamMember = currentUser?.role === "TEAM" || currentUser?.role === "ARTICLE";
-  const [teamAllowedTools, setTeamAllowedTools] = useState<string[]>(() => {
-    if (currentUser?.id) {
-      return getTeamMemberTools(currentUser.id);
-    }
-    return ["tasks", "gst"];
-  });
+  const [teamAllowedTools, setTeamAllowedTools] = useState<string[]>(["tasks", "gst"]);
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -299,12 +294,18 @@ export default function Home() {
   const [selectedGstin, setSelectedGstin] = useState<string>("");
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("bt_sidebar_collapsed") === "true";
-    }
-    return false;
-  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("bt_sidebar_collapsed");
+        if (saved === "true") {
+          setIsSidebarCollapsed(true);
+        }
+      }
+    } catch {}
+  }, []);
 
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed((prev) => {
@@ -711,7 +712,7 @@ export default function Home() {
         {/* Master Flex Layout with Left Sidebar */}
         <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">
           {/* Left Domain Rail (Alt+1 to Alt+6) */}
-          {currentView === "partner" && (
+          {currentView !== "client-pwa" && (
             <DomainRail
               activeDomain={activeDomain}
               activeTab={activePartnerTab}
@@ -741,7 +742,7 @@ export default function Home() {
           )}
 
           {/* VIEW 2: PRACTICE COCKPIT (UNIFIED CA & TEAM INTERFACE) */}
-          {currentView === "partner" && (
+          {currentView !== "client-pwa" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Contextual Sub-Tab Header for Active Domain (Hidden on Dashboard and Directory) */}
               {activePartnerTab !== "dashboard" && activePartnerTab !== "directory" && (

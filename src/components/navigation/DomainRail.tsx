@@ -178,7 +178,7 @@ export const DomainRail: React.FC<DomainRailProps> = ({
         {/* The Domains (Filtered by CA assignment or all for Partner) */}
         {visibleDomains.map((domain) => {
           const Icon = domain.icon;
-          const isActive = activeTab !== "dashboard" && activeDomain === domain.id;
+          const isActive = activeTab !== "dashboard" && activeTab !== "directory" && activeDomain === domain.id;
 
           // Compute dynamic badges
           let badge = domain.badgeCount;
@@ -252,10 +252,14 @@ export const DomainRail: React.FC<DomainRailProps> = ({
             <button
               type="button"
               onClick={onOpenDirectory}
-              className={`w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition font-medium text-xs group shadow-2xs flex items-center cursor-pointer ${
+              className={`w-full rounded-xl border transition font-medium text-xs group shadow-2xs flex items-center cursor-pointer ${
                 isCollapsed 
                   ? "justify-center p-2.5" 
                   : "justify-between px-3 py-2"
+              } ${
+                activeTab === "directory"
+                  ? "bg-slate-900 text-white border-slate-900 font-bold"
+                  : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900"
               }`}
               title="All Modules & Tools Directory (⌘M)"
             >

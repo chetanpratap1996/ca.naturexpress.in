@@ -68,6 +68,7 @@ import { StaffManagementView } from "@/components/firm/StaffManagementView";
 import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
 import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
 import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
+import { useClientContext } from "@/lib/context/ClientContext";
 import { AmbientClientContextBar } from "@/components/navigation/AmbientClientContextBar";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -327,14 +328,30 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const {
+    selectedClient,
+    selectedGstin: contextGstin,
+    selectClient,
+  } = useClientContext();
+
+  // Sync page selectedEntityId with ClientContext
+  useEffect(() => {
+    if (selectedClient && selectedClient.id !== selectedEntityId) {
+      setSelectedEntityId(selectedClient.id);
+      if (contextGstin) {
+        setSelectedGstin(contextGstin);
+      }
+    }
+  }, [selectedClient, contextGstin, selectedEntityId]);
+
   // Universal Client Switcher Handler
   const handleSelectClient = (clientId: string, gstin?: string) => {
     setSelectedEntityId(clientId);
-    if (gstin) {
-      setSelectedGstin(gstin);
-    } else {
-      const match = clients.find((c) => c.id === clientId);
-      setSelectedGstin(match?.gstin || (match?.gstinRecords && match.gstinRecords[0]?.gstin) || "");
+    const match = clients.find((c) => c.id === clientId);
+    const activeG = gstin || match?.gstin || (match?.gstinRecords && match.gstinRecords[0]?.gstin) || "";
+    setSelectedGstin(activeG);
+    if (match) {
+      selectClient(match, activeG);
     }
   };
 
@@ -713,6 +730,16 @@ export default function Home() {
           selectedGstin={selectedGstin}
           onOpenDiagnosticOnboarding={() => setIsDiagnosticModalOpen(true)}
         />
+
+        {/* Ambient Universal Client Selection Bar */}
+        {currentView !== "client-pwa" && (
+          <AmbientClientContextBar
+            clients={clients}
+            groups={groups}
+            dscTokens={dscTokens}
+            onNavigateTab={handleTabChange}
+          />
+        )}
 
         {/* Master Flex Layout with Left Sidebar */}
         <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">

@@ -22,11 +22,14 @@ import {
   Layers,
   FileCheck2,
   Building2,
-  ArrowRight
+  ArrowRight,
+  Download
 } from "lucide-react";
 import { InvoiceItem, ClientEntity, PayToReleaseConfig } from "@/lib/types";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 interface BillingWipMatrixProps {
   invoices: InvoiceItem[];
@@ -45,6 +48,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
   onReconcileInvoice,
   onCreateInvoice,
 }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "PAID" | "UTR_REVIEW">("ALL");
   const [activeTab, setActiveTab] = useState<"INVOICES" | "UNBILLED_WIP" | "LOCKED_DOCS">("INVOICES");
@@ -68,9 +72,33 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
     }));
   }, [clients]);
 
+  // Context-aware client filtering
+  const effectiveInvoices = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      const qName = (selectedClient.tradeName || selectedClient.name).toLowerCase();
+      const qId = selectedClient.id;
+      const matches = invoices.filter(inv => 
+        inv.entityId === qId || inv.entityName.toLowerCase().includes(qName)
+      );
+      return matches.length > 0 ? matches : invoices;
+    }
+    return invoices;
+  }, [invoices, selectedClient, isFirmWideView]);
+
+  const effectiveWipJobs = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      const qName = (selectedClient.tradeName || selectedClient.name).toLowerCase();
+      const matches = unbilledWipJobs.filter(j => 
+        j.entityName.toLowerCase().includes(qName)
+      );
+      return matches.length > 0 ? matches : unbilledWipJobs;
+    }
+    return unbilledWipJobs;
+  }, [unbilledWipJobs, selectedClient, isFirmWideView]);
+
   // Filtered Invoices
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
+    return effectiveInvoices.filter((inv) => {
       const matchesSearch =
         !searchQuery ||
         inv.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -88,18 +116,36 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
 
       return matchesSearch && matchesStatus;
     });
-  }, [invoices, searchQuery, statusFilter]);
+  }, [effectiveInvoices, searchQuery, statusFilter]);
 
   // Financial Metrics
   const metrics = useMemo(() => {
-    const totalBilled = invoices.reduce((acc, i) => acc + i.amount, 0);
-    const collected = invoices.filter((i) => i.status === "PAID").reduce((acc, i) => acc + i.amount, 0);
-    const pending = invoices.filter((i) => i.status !== "PAID").reduce((acc, i) => acc + i.amount, 0);
-    const wipTotal = unbilledWipJobs.reduce((acc, j) => acc + j.fee, 0);
+    const totalBilled = effectiveInvoices.reduce((acc, i) => acc + i.amount, 0);
+    const collected = effectiveInvoices.filter((i) => i.status === "PAID").reduce((acc, i) => acc + i.amount, 0);
+    const pending = effectiveInvoices.filter((i) => i.status !== "PAID").reduce((acc, i) => acc + i.amount, 0);
+    const wipTotal = effectiveWipJobs.reduce((acc, j) => acc + j.fee, 0);
     const realizationRate = totalBilled > 0 ? Math.round((collected / totalBilled) * 100) : 100;
 
     return { totalBilled, collected, pending, wipTotal, realizationRate };
-  }, [invoices, unbilledWipJobs]);
+  }, [effectiveInvoices, effectiveWipJobs]);
+
+  const handleExportInvoicesCsv = () => {
+    const headers = "Invoice No,Client Name,SAC Code,Service,Amount,GST (18%),Total,Due Date,Status,UTR";
+    const rows = effectiveInvoices.map(i => 
+      `"${i.invoiceNo}","${i.entityName}","${i.sacCode || '998231'}","${i.serviceDescription}",${i.taxableAmount || Math.round(i.amount / 1.18)},${i.gstAmount || Math.round(i.amount - i.amount / 1.18)},${i.amount},"${i.dueDate}","${i.status}","${i.clientUtrNumber || ''}"`
+    );
+    const csvContent = [headers, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Firm_Fee_Invoices_${selectedClient && !isFirmWideView ? selectedClient.pan : 'ALL'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Fee Register Exported', 'Invoices and billing registers downloaded as CSV.');
+  };
 
   const handleOpenReconcile = (inv: InvoiceItem) => {
     setSelectedInvoice(inv);
@@ -167,31 +213,42 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Top Banner & KPI Ribbon */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-                <CreditCard className="w-5 h-5" />
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Billing &amp; WIP &bull; Collections &bull; MSME 43B(h) &bull; SAC 998231
               </span>
-              <div>
-                <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Billing &amp; WIP
-                </h1>
-                <p className="text-xs text-slate-500 font-medium">
-                  Statutory invoicing, collections, and MSME 43B(h) compliance
-                </p>
-              </div>
+              {selectedClient && !isFirmWideView && (
+                <span className="text-[11px] font-mono text-slate-400">
+                  PAN: {selectedClient.pan}
+                </span>
+              )}
             </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-red-600" />
+              Statutory Invoicing, Fee Realization &amp; WIP Matrix
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
+            <button
+              onClick={handleExportInvoicesCsv}
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+              title="Download Invoice & Collections Register CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Export Register</span>
+            </button>
+
             {onRefreshData && (
               <button
                 onClick={() => onRefreshData()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-                title="Sync Live Records"
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
                 <span>Sync</span>
@@ -199,8 +256,10 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
             )}
           </div>
         </div>
+      </div>
 
-        {/* 4 Financial Metric Cards */}
+      {/* 4 Financial Metric Cards */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
           <div 
             onClick={() => setActiveTab("INVOICES")}
@@ -250,7 +309,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
               <span className="text-xl sm:text-2xl font-black text-amber-800">
                 ₹{(metrics.wipTotal / 1000).toFixed(1)}k
               </span>
-              <span className="text-[10px] text-amber-600 font-bold">{unbilledWipJobs.length} Jobs</span>
+              <span className="text-[10px] text-amber-600 font-bold">{effectiveWipJobs.length} Jobs</span>
             </div>
           </div>
         </div>
@@ -268,7 +327,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
-            <span>Tax Invoices &amp; Receipts ({invoices.length})</span>
+            <span>Tax Invoices &amp; Receipts ({effectiveInvoices.length})</span>
           </button>
 
           <button
@@ -280,7 +339,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Unbilled Work-in-Progress ({unbilledWipJobs.length})</span>
+            <span>Unbilled Work-in-Progress ({effectiveWipJobs.length})</span>
           </button>
         </div>
 
@@ -461,7 +520,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {unbilledWipJobs.map((job) => (
+            {effectiveWipJobs.map((job) => (
               <div key={job.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3">
                 <div className="space-y-1">
                   <strong className="text-xs text-slate-900 block">{job.entityName}</strong>

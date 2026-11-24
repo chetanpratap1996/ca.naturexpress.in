@@ -44,6 +44,8 @@ import {
   getMockTrialBalanceResult 
 } from "@/lib/parsers/tallyTbParser";
 import { ClientEntity } from "@/lib/types";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { FinancialStatementView } from "./schedule3/FinancialStatementView";
 import { McaRatioDisclosures } from "./schedule3/McaRatioDisclosures";
 import { AuditLeadSchedules } from "./schedule3/AuditLeadSchedules";
@@ -63,8 +65,8 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   clients = [],
   onExportAuditDossier 
 }) => {
-  // State
-  const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7");
+  const { selectedClient, isFirmWideView } = useClientContext();
+  const [selectedClientId, setSelectedClientId] = useState<string>(() => clients[0]?.id || "CLI-PRATWI-01");
   const [division, setDivision] = useState<Schedule3Division>("DIVISION_I");
   const [activeSubTab, setActiveSubTab] = useState<"mapping" | "financials" | "ratios-disclosures" | "lead-schedules" | "caro2020" | "bank-reconciliation" | "audit-realization">("mapping");
   
@@ -97,8 +99,19 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Active Client Details
+  // Active Client Details (Prioritizes Universal Client Selection)
   const activeClient = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      return {
+        id: selectedClient.id,
+        name: selectedClient.tradeName || selectedClient.name,
+        type: selectedClient.type || "PVT_LTD",
+        cin: selectedClient.cin || "U72900MH2026PTC199821",
+        pan: selectedClient.pan,
+        partnerInCharge: selectedClient.primaryContact?.name || "CA Gunjan Jain (FCA)",
+        turnoverCr: selectedClient.turnoverCr || 48.5
+      };
+    }
     if (customClientMeta) {
       return {
         id: "CL-ACTIVE",
@@ -121,7 +134,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
       partnerInCharge: "CA Gunjan Jain (FCA)",
       turnoverCr: 1.2
     };
-  }, [clients, selectedClientId, customClientMeta]);
+  }, [clients, selectedClientId, customClientMeta, selectedClient, isFirmWideView]);
 
   // Recalculate mathematical totals dynamically
   const { totalDebit, totalCredit, netDiff, isBalanced } = useMemo(() => {
@@ -353,58 +366,35 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
       {/* -------------------------------------------------------------------- */}
       {/* 1. MASTER WORKBENCH HEADER & CONTROLS                               */}
       {/* -------------------------------------------------------------------- */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Left: Entity & Statutory Meta */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 flex items-center gap-1">
-                <Layers className="w-3 h-3" />
-                Schedule III Financial Statements
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
-                Companies Act 2013 &bull; Sec 129
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" />
-                ICAI Peer Review SA 230 Ready
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Schedule III &bull; Companies Act Sec 129
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-btred-logo shrink-0" />
-              {clients.length > 0 ? (
-                <select
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="text-base sm:text-xl font-black text-slate-900 bg-transparent border-b-2 border-slate-300 focus:border-red-600 focus:outline-none cursor-pointer py-0.5"
-                  title="Switch Corporate Audit Client"
-                >
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.pan})
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  {activeClient.name}
-                </h2>
-              )}
-            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Layers className="w-5 h-5 text-red-600" />
+              Schedule III Financial Statements &amp; Audit Engine
+            </h1>
 
-            <div className="flex items-center gap-3 text-xs text-slate-500 font-medium flex-wrap">
-              <span>CIN: <strong className="text-slate-800">{activeClient.cin || "U24231MP2018PTC045812"}</strong></span>
+            <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium flex-wrap pt-0.5">
+              <span>CIN: <strong className="font-mono text-slate-800">{activeClient.cin || "U24231MP2018PTC045812"}</strong></span>
               <span>&bull;</span>
-              <span>PAN: <strong className="text-slate-800">{activeClient.pan}</strong></span>
+              <span>PAN: <strong className="font-mono text-slate-800">{activeClient.pan}</strong></span>
               <span>&bull;</span>
-              <span>Audit Period: <strong className="text-slate-800">FY 2025-26 (AY 2026-27)</strong></span>
+              <span>Audit Period: <strong className="text-slate-800">FY 2025-26</strong></span>
             </div>
           </div>
 
           {/* Right: Actions & Ingestion Triggers */}
           <div className="flex items-center gap-2 flex-wrap">
+            <UniversalClientSelector variant="compact" />
+
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -415,42 +405,33 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
 
             <button
               onClick={() => setIsTallyUploadModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-black bg-btred-logo text-white hover:bg-red-700 shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 shadow-xs transition flex items-center gap-1.5"
             >
-              <UploadCloud className="w-4 h-4" />
+              <UploadCloud className="w-3.5 h-3.5" />
               <span>Import Tally XML</span>
             </button>
 
             <button
               onClick={() => setIsPasteModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-black bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-xs transition flex items-center gap-1.5"
             >
-              <Copy className="w-4 h-4 text-slate-500" />
-              <span>Paste Excel TB</span>
-            </button>
-
-            <button
-              onClick={handleReloadSampleTb}
-              className="px-3.5 py-2 rounded-xl text-xs font-black bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition flex items-center gap-1.5"
-              title="Reset to 48 realistic test ledgers"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              <span>Reset Demo TB</span>
+              <Copy className="w-3.5 h-3.5 text-slate-500" />
+              <span>Paste TB</span>
             </button>
 
             <button
               onClick={() => setIsSa230ModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-xs transition flex items-center gap-1.5"
               title="Export Full SA 230 Audit Lead Schedules and Schedule III Financials"
             >
-              <Download className="w-4 h-4 text-emerald-700" />
+              <Download className="w-3.5 h-3.5 text-slate-200" />
               <span>Export SA 230 Dossier</span>
             </button>
 
             <select
               value={division}
               onChange={(e) => setDivision(e.target.value as Schedule3Division)}
-              className="bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="bg-white border border-slate-300 text-slate-800 text-xs font-semibold rounded-lg px-2.5 py-2 focus:outline-none focus:border-red-500"
             >
               <option value="DIVISION_I">Division I (Non-IndAS / AS)</option>
               <option value="DIVISION_II">Division II (IndAS Compliant)</option>

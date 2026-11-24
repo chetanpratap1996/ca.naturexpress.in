@@ -28,6 +28,8 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientAcceptanceModal, EngagementRecord } from "./engagement/ClientAcceptanceModal";
 import { NewEngagementModal } from "./engagement/NewEngagementModal";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 const DEFAULT_REALISTIC_ENGAGEMENTS: EngagementRecord[] = [
   {
@@ -96,6 +98,7 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
   clients = [],
   initialClient = null,
 }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [engagements, setEngagements] = useState<EngagementRecord[]>(DEFAULT_REALISTIC_ENGAGEMENTS);
   const [activeTab, setActiveTab] = useState<"PREVIEW" | "REGISTER">("PREVIEW");
   const [selectedEngagementId, setSelectedEngagementId] = useState<string>("eng-1");
@@ -104,10 +107,22 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
   const [acceptanceRecord, setAcceptanceRecord] = useState<EngagementRecord | null>(null);
   const [isNewEngagementOpen, setIsNewEngagementOpen] = useState(false);
 
-  // Active Selected Engagement
-  const activeEngagement = useMemo(() => {
-    return engagements.find(e => e.id === selectedEngagementId) || engagements[0];
-  }, [engagements, selectedEngagementId]);
+  // Active Selected Engagement adapted to active client context
+  const activeEngagement = useMemo<EngagementRecord>(() => {
+    const base = engagements.find((e) => e.id === selectedEngagementId) || engagements[0];
+    if (selectedClient && !isFirmWideView) {
+      return {
+        ...base,
+        clientId: selectedClient.id,
+        clientName: selectedClient.tradeName || selectedClient.name,
+        clientPan: selectedClient.pan,
+        clientGstin: selectedClient.gstin || selectedClient.gstinRecords?.[0]?.gstin || base.clientGstin,
+        groupName: selectedClient.groupName || base.groupName,
+        signatoryName: selectedClient.primaryContact?.name || "Managing Director"
+      };
+    }
+    return base;
+  }, [engagements, selectedEngagementId, selectedClient, isFirmWideView]);
 
   const handlePrint = () => {
     window.print();
@@ -163,82 +178,82 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden print:hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Enterprise-Grade Compact Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs text-slate-900 print:hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5 font-bold">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-800" /> ICAI SA 210 Standard Compliant
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                ICAI SA 210 Standard
               </span>
-              <span className="text-xs text-slate-600 font-mono">FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; SA 210 Retainer Generator</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-xs text-slate-500 font-mono">FRN: {DEFAULT_FIRM_BRANDING.frn}</span>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <FileCheck className="w-6 h-6 text-btred-logo" /> ICAI SA 210 Engagement Letters &amp; Retainer Agreements
-            </h2>
-            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Eliminate professional liability risk and satisfy ICAI Peer Review mandates. Generates official SA-210 letters of engagement with statutory clauses for CARO 2020, UDIN obligations, and Section 43B(h) payment schedules.
-            </p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-red-600" />
+              Engagement Letters &amp; Retainer Agreements
+            </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
             <button
               onClick={handleExportRegister}
-              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs"
+              className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs"
               title="Export complete engagement ledger for ICAI Peer Review"
             >
-              <Download className="w-4 h-4 text-emerald-700" />
+              <Download className="w-3.5 h-3.5 text-slate-600" />
               <span>Export Register</span>
             </button>
             <button
               onClick={() => setIsNewEngagementOpen(true)}
-              className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4 text-white" />
-              <span>+ New Engagement</span>
+              <Plus className="w-3.5 h-3.5 text-white" />
+              <span>New Engagement</span>
             </button>
             <button
               onClick={handleWhatsAppDispatch}
-              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send via WhatsApp</span>
+              <Send className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Send WhatsApp</span>
             </button>
             <button
               onClick={handlePrint}
-              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white shadow-sm font-bold text-xs rounded-xl transition flex items-center gap-2"
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white shadow-xs font-semibold text-xs rounded-lg transition flex items-center gap-1.5"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print Official Letter</span>
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Letter</span>
             </button>
           </div>
         </div>
 
         {/* View Switcher Tabs & Active Client Selector */}
-        <div className="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mt-4 pt-3.5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab("PREVIEW")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === "PREVIEW" ? "bg-red-600 text-white shadow-sm" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${activeTab === "PREVIEW" ? "bg-red-600 text-white shadow-xs" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"}`}
             >
               <Eye className="w-3.5 h-3.5" />
               <span>Letterhead Preview</span>
             </button>
             <button
               onClick={() => setActiveTab("REGISTER")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === "REGISTER" ? "bg-red-600 text-white shadow-sm" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${activeTab === "REGISTER" ? "bg-red-600 text-white shadow-xs" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"}`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>Engagement Register ({engagements.length})</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 font-bold uppercase">Viewing Engagement:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium">Viewing Engagement:</span>
             <select
               value={selectedEngagementId}
               onChange={(e) => setSelectedEngagementId(e.target.value)}
-              className="bg-white border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-red-500"
+              className="bg-white border border-slate-300 text-slate-900 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-500"
             >
               {engagements.map((e) => (
                 <option key={e.id} value={e.id}>

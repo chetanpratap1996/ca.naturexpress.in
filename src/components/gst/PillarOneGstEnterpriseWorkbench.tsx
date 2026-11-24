@@ -14,7 +14,8 @@ import {
   Clock, 
   AlertTriangle,
   FileCheck2,
-  DollarSign
+  DollarSign,
+  Download
 } from 'lucide-react';
 import { 
   Gstr9Table8aReconciliation, 
@@ -43,8 +44,17 @@ import {
   Drc01b01cEngine 
 } from '@/lib/gst/drc01b01cEngine';
 import { toast } from '@/components/shared/ToastNotification';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 export function PillarOneGstEnterpriseWorkbench() {
+  const {
+    selectedClient,
+    selectedGstin,
+    selectedFy,
+    isFirmWideView
+  } = useClientContext();
+
   const [activeTab, setActiveTab] = useState<'GSTR9_9C' | 'EINVOICE_EWB' | 'MULTI_GSTIN_ISD' | 'DRC01B_01C'>('GSTR9_9C');
 
   // GSTR-9/9C State
@@ -89,28 +99,81 @@ export function PillarOneGstEnterpriseWorkbench() {
     toast.success(`E-Way Bill validity extended by 24 hours under Rule 138(10)`);
   };
 
+  const handleExportDrc03Json = () => {
+    const gstin = selectedGstin || selectedClient?.gstin || "27AAACT2727Q1ZW";
+    const legalName = selectedClient?.name || "Client Assessee";
+    const tradeName = selectedClient?.tradeName || legalName;
+    const fy = selectedFy || "2024-25";
+
+    const payload = {
+      gstin,
+      legalName,
+      tradeName,
+      financialYear: fy,
+      formType: "FORM_GST_DRC_03",
+      causeOfPayment: "Voluntary (Section 73(5) of CGST Act)",
+      paymentSection: "73(5)",
+      statutoryTaxPeriod: {
+        from: `01-04-${fy.split("-")[0]}`,
+        to: `31-03-20${fy.split("-")[1]}`
+      },
+      taxLiabilityBreakup: {
+        igst: drc03Challan.igstLiability,
+        cgst: drc03Challan.cgstLiability,
+        sgst: drc03Challan.sgstLiability,
+        cess: 0,
+        totalTax: drc03Challan.igstLiability + drc03Challan.cgstLiability + drc03Challan.sgstLiability
+      },
+      interestBreakup: {
+        section: "50(1)",
+        ratePercentage: 18.0,
+        interestAmount: drc03Challan.interestSec50
+      },
+      totalChallanAmount: drc03Challan.totalPaymentAmount,
+      auditorDeclaration: {
+        certifiedBy: "CA Gunjan Jain (FCA)",
+        firmRegistrationNumber: "022998C",
+        peerReviewCompliant: true,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", jsonString);
+    downloadAnchor.setAttribute("download", `GST_DRC03_${gstin}_${fy}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    toast.success("DRC-03 JSON Exported", `Downloaded GST_DRC03_${gstin}_${fy}.json ready for GST portal upload.`);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Clean Professional Header */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-slate-900">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>GST Compliance &amp; Audit Workpapers</span>
+      {/* Enterprise-Grade Compact Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs text-slate-900">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                GSTR-9 &bull; GSTR-9C &bull; DRC-03 &bull; Section 73(5)
+              </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              GST Annual Audit &amp; Compliance Workbench
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              GST Annual Audit &amp; Compliance
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              <strong>GSTR-9/9C Table 8A matrix</strong>, <strong>DRC-03 voluntary payment</strong>, <strong>E-Invoicing &amp; EWB distance monitoring</strong>, <strong>Multi-GSTIN ISD distribution</strong>, and <strong>Rule 88C/88D notices</strong>.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold">
-              Statutory Workpapers Active
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+            <button
+              onClick={handleExportDrc03Json}
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export DRC-03 JSON</span>
+            </button>
           </div>
         </div>
       </div>
@@ -262,7 +325,7 @@ export function PillarOneGstEnterpriseWorkbench() {
                 <p className="text-xs text-slate-500">Drafted to voluntarily discharge tax liability ascertained during GSTR-9 reconciliation</p>
               </div>
               <button
-                onClick={() => toast.success('DRC-03 Challan JSON exported for GST portal direct upload')}
+                onClick={handleExportDrc03Json}
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition"
               >
                 <DollarSign className="w-3.5 h-3.5" />

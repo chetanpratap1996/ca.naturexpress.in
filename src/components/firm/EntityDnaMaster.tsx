@@ -44,6 +44,8 @@ import {
   X
 } from "lucide-react";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 interface EntityDnaMasterProps {
   clients: ClientEntity[];
@@ -96,13 +98,18 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
     }
   }, [initialTab]);
 
-  // Selected Client
+  const { selectedClient } = useClientContext();
+
+  // Selected Client (Prefers Universal Client Context)
   const currentClient = useMemo(() => {
+    if (selectedClient) {
+      return clients.find((c) => c.id === selectedClient.id) || selectedClient;
+    }
     if (selectedClientId) {
       return clients.find((c) => c.id === selectedClientId) || clients[0] || null;
     }
     return clients[0] || null;
-  }, [clients, selectedClientId]);
+  }, [clients, selectedClientId, selectedClient]);
 
   // Derived or Overridden Entity Type
   const [overrideType, setOverrideType] = useState<EntityType | "DEFAULT">("DEFAULT");
@@ -161,23 +168,24 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
 
   return (
     <div className="space-y-5 animate-fadeIn">
-      {/* Top Header Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Enterprise-Grade Top Header Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-3 py-1 bg-red-50 border border-red-200 text-btred-logo text-xs font-bold rounded-full flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" /> Client Master Profile
+            <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+              Client Master &bull; Statutory Profile
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Compliance Health: {healthScore}%
+            <span className="text-slate-300">•</span>
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              Health: {healthScore}%
             </span>
           </div>
 
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            {currentClient.name}
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            {currentClient.tradeName || currentClient.name}
           </h2>
 
-          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+          <div className="flex items-center gap-2.5 mt-1 text-xs text-slate-500 flex-wrap">
             <span className="font-mono font-bold text-slate-800">PAN: {currentClient.pan}</span>
             {currentClient.cin && (
               <>
@@ -192,81 +200,21 @@ export const EntityDnaMaster: React.FC<EntityDnaMasterProps> = ({
               </>
             )}
             <span>•</span>
-            <span className="font-bold text-slate-700">{panInfo.legalConstitution}</span>
+            <span className="font-semibold text-slate-700">{panInfo.legalConstitution}</span>
           </div>
         </div>
 
-        {/* Actions & Client Switcher */}
+        {/* Actions & Universal Client Selector */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Searchable Client Selector */}
-          <div ref={searchRef} className="relative min-w-[240px] sm:min-w-[280px]">
-            <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl px-3 py-2 transition">
-              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <input
-                type="text"
-                value={clientSearch}
-                onChange={(e) => {
-                  setClientSearch(e.target.value);
-                  setIsDropdownOpen(true);
-                }}
-                onFocus={() => setIsDropdownOpen(true)}
-                placeholder={`Search ${clients.length} assessees...`}
-                className="bg-transparent text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none w-full"
-              />
-              {clientSearch && (
-                <button
-                  onClick={() => {
-                    setClientSearch("");
-                    setIsDropdownOpen(false);
-                  }}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Dropdown Results */}
-            {isDropdownOpen && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-1.5 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
-                  Select Entity ({filteredClients.length} of {clients.length})
-                </div>
-                {filteredClients.length === 0 ? (
-                  <div className="text-xs text-slate-500 text-center py-3">No assessees match &ldquo;{clientSearch}&rdquo;</div>
-                ) : (
-                  filteredClients.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => {
-                        if (onSelectClient) onSelectClient(c.id);
-                        setIsDropdownOpen(false);
-                        setClientSearch("");
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 transition ${
-                        c.id === currentClient.id ? "bg-red-50 text-btred-logo font-black" : "hover:bg-slate-50 text-slate-800 font-semibold"
-                      }`}
-                    >
-                      <div className="truncate">
-                        <div className="truncate font-bold">{c.name}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">PAN: {c.pan} &bull; {c.type}</div>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
-                        ₹{c.turnoverCr || 5} Cr
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+          <UniversalClientSelector variant="compact" />
 
           {onOpenDiagnosticModal && (
             <button
               onClick={onOpenDiagnosticModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-btred-logo text-white text-xs font-black shadow-xs hover:from-red-700 hover:to-red-800 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition"
             >
-              <Sparkles className="w-3.5 h-3.5" /> + Onboard Client
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Diagnostic Check</span>
             </button>
           )}
         </div>

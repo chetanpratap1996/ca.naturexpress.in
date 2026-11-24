@@ -48,8 +48,15 @@ import {
   SAMPLE_SHAREHOLDERS_REGISTER 
 } from '@/lib/mca/ben2SboDetectorEngine';
 import { toast } from '@/components/shared/ToastNotification';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 export function PillarSixMcaEnterpriseWorkbench() {
+  const { selectedClient, selectedFy, isFirmWideView } = useClientContext();
+
+  const activeCompanyName = selectedClient && !isFirmWideView ? selectedClient.name : 'Pratwi Solutions Private Limited';
+  const activeCin = selectedClient && !isFirmWideView && selectedClient.cin ? selectedClient.cin : 'U72200MP2020PTC051234';
+
   const [activeTab, setActiveTab] = useState<
     'DPT_3_DEPOSITS' | 'MSME_1_RETURN' | 'DIR3_KYC_GUARDIAN' | 'MINUTE_BOOK_AGM' | 'BEN2_SBO_DETECTOR'
   >('DPT_3_DEPOSITS');
@@ -57,19 +64,19 @@ export function PillarSixMcaEnterpriseWorkbench() {
   // Sub-Engine 1: Form DPT-3 State
   const [dpt3Items, setDpt3Items] = useState<Dpt3LiabilityItem[]>(SAMPLE_DPT3_LIABILITIES);
   const dpt3Summary: Dpt3FilingSummary = Dpt3DepositEngine.evaluateDpt3Liabilities(dpt3Items, {
-    cin: 'U72200MP2020PTC051234',
-    companyName: 'Pratwi Solutions Private Limited',
-    financialYear: '2025-26',
+    cin: activeCin,
+    companyName: activeCompanyName,
+    financialYear: selectedFy || '2025-26',
     netWorth: 85000000 // ₹8.5 Cr net worth
   });
 
   // Sub-Engine 2: Form MSME-1 State
   const [msme1Items, setMsme1Items] = useState<Msme1SupplierDueRecord[]>(SAMPLE_MSME1_RECORDS);
   const msme1Summary: Msme1FilingSummary = Msme1HalfYearlyEngine.compileMsme1Return(msme1Items, {
-    cin: 'U72200MP2020PTC051234',
-    companyName: 'Pratwi Solutions Private Limited',
+    cin: activeCin,
+    companyName: activeCompanyName,
     halfYear: 'HY1_APR_SEP',
-    financialYear: '2026-27'
+    financialYear: selectedFy || '2026-27'
   });
 
   // Sub-Engine 3: Director KYC State
@@ -90,10 +97,52 @@ export function PillarSixMcaEnterpriseWorkbench() {
   };
 
   const handleDownloadDpt3Payload = () => {
+    const payload = {
+      form: 'DPT-3',
+      cin: activeCin,
+      companyName: activeCompanyName,
+      financialYear: selectedFy || '2025-26',
+      summary: dpt3Summary,
+      liabilities: dpt3Items,
+      generatedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Form_DPT3_${activeCin}_FY${selectedFy || '2025-26'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     toast.success('Form DPT-3 ROC filing JSON schema exported ready for MCA V3 upload!');
   };
 
   const handleDownloadBen2Payload = () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<FormBEN2 xmlns="http://www.mca.gov.in/v3/ben2">
+  <CIN>${activeCin}</CIN>
+  <CompanyName>${activeCompanyName}</CompanyName>
+  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
+  <SBOs>
+    ${detectedSbos.map(s => `
+    <SBO>
+      <Name>${s.sboName}</Name>
+      <PAN>${s.panOrPassport}</PAN>
+      <HoldingPct>${s.totalEffectiveHoldingPercent}%</HoldingPct>
+      <IntermediateEntity>${s.intermediateEntityName}</IntermediateEntity>
+    </SBO>`).join('')}
+  </SBOs>
+</FormBEN2>`;
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Form_BEN2_${activeCin}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     toast.success('Form BEN-2 ROC filing XML payload generated with SBO declaration!');
   };
 
@@ -103,29 +152,42 @@ export function PillarSixMcaEnterpriseWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner - Crisp White & Brand Red Accent */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600" />
-              <span>Company Law &amp; MCA V3 Secretarial Desk</span>
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Company Law &bull; MCA V3 Secretarial Desk &bull; Companies Act 2013
+              </span>
+              <span className="text-[11px] font-mono text-slate-400">
+                CIN: {activeCin}
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-red-600" />
               Corporate Governance, Form DPT-3, MSME-1 &amp; SBO
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              MCA V3 compliance under the Companies Act 2013: <strong>Form DPT-3 deposits &amp; director loans</strong>, <strong>Form MSME-1 overdue supplier dues</strong>, <strong>Director KYC (DIR-3)</strong>, <strong>SS-1/SS-2 Minute Books</strong>, and <strong>Form BEN-2 SBO declarations</strong>.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
+            <button
+              onClick={handleDownloadDpt3Payload}
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+              title="Download Form DPT-3 ROC JSON payload"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Export DPT-3 JSON</span>
+            </button>
+
             <button
               onClick={handlePrintMinutes}
-              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-200 flex items-center space-x-2 transition"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print Official Minute Book</span>
+              <Printer className="w-3.5 h-3.5 text-white" />
+              <span>Print Minute Book</span>
             </button>
           </div>
         </div>

@@ -52,8 +52,11 @@ import {
   SAMPLE_FORM16_CERTIFICATES 
 } from '@/lib/tds/form16SignerEngine';
 import { toast } from '@/components/shared/ToastNotification';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 export function PillarFiveTdsEnterpriseWorkbench() {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<
     'QUARTERLY_RETURN' | 'TRACES_JUSTIFICATION' | 'SEC_197_GUARDIAN' | 'FORM_15CA_15CB' | 'FORM_16_SIGNER'
   >('QUARTERLY_RETURN');
@@ -146,23 +149,21 @@ export function PillarFiveTdsEnterpriseWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Clean Professional Header */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>e-TDS Return &amp; TRACES Compliance Workbench</span>
+      {/* Header with Enterprise Simplicity */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-blue-600" />
+              <span>e-TDS Return &amp; TRACES Desk</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Quarterly TDS Returns &amp; TRACES Compliance Desk
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              Quarterly TDS Returns &amp; TRACES Compliance
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              <strong>FVU text generator</strong>, <strong>CSI challan matcher</strong>, <strong>TRACES justification report analyzer</strong> (Sec 234E &amp; 201(1A)), <strong>Section 197 lower deduction certificates</strong>, and <strong>Form 15CA/CB remittances</strong>.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+            <UniversalClientSelector variant="compact" />
             <button
               onClick={handleDownloadFvu}
               className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs flex items-center space-x-2 transition"

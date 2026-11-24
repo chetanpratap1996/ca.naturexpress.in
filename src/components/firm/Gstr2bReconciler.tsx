@@ -13,6 +13,8 @@ import { ItcClassifier } from "@/lib/gst/itcClassifier";
 import { Rule42And43Engine, Rule42CalculationResult, Rule43MonthlyResult, Rule42AnnualTrueUpResult } from "@/lib/gst/rule42And43Engine";
 import { VendorRiskEngine, VendorComplianceProfile } from "@/lib/gst/vendorRiskEngine";
 import { VendorNoticeGenerator, GeneratedNotice } from "@/lib/gst/vendorNoticeGenerator";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 import { 
   FileSpreadsheet, 
@@ -291,7 +293,15 @@ export const Gstr2bReconciler: React.FC = () => {
     return (hookClients && hookClients.length > 0) ? hookClients : SANDBOX_CLIENTS;
   }, [hookClients]);
 
-  const [selectedEntityId, setSelectedEntityId] = useState<string>(clients[0]?.id || "CLI-PRATWI-01");
+  const {
+    selectedClient,
+    selectedGstin,
+    selectedFy,
+    selectedPeriod,
+    isFirmWideView,
+    selectClient,
+  } = useClientContext();
+
   const [activeTab, setActiveTab] = useState<"matrix" | "sec17_5" | "rule42_43" | "notices">("matrix");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
@@ -311,10 +321,15 @@ export const Gstr2bReconciler: React.FC = () => {
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<GeneratedNotice | null>(null);
 
-  // Active Client
+  // Active Client from context or fallback
   const currentEntity = useMemo(() => {
-    return clients.find(c => c.id === selectedEntityId) || clients[0];
-  }, [clients, selectedEntityId]);
+    if (selectedClient && !isFirmWideView) return selectedClient;
+    return clients[0] || SANDBOX_CLIENTS[0];
+  }, [selectedClient, isFirmWideView, clients]);
+
+  const activeGstin = useMemo(() => {
+    return selectedGstin || currentEntity?.gstin || "09AANCP9915B1Z4";
+  }, [selectedGstin, currentEntity]);
 
   const handleProcessUploadedFiles = async () => {
     if (!json2bFile && !booksFile) {
@@ -356,7 +371,7 @@ export const Gstr2bReconciler: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taxPeriod: "September 2026",
-          clientGstin: currentEntity?.gstin || "23AANCP9915B1Z9",
+          clientGstin: activeGstin,
           gstr2bInvoices: next2bList,
           booksInvoices: nextBooksList,
           toleranceInr
@@ -380,7 +395,7 @@ export const Gstr2bReconciler: React.FC = () => {
   const recoReport = useMemo(() => {
     const report = RecoMatcher.reconcile({
       taxPeriod: "September 2026 (Monthly 3B)",
-      clientGstin: currentEntity?.gstin || "23AANCP9915B1Z9",
+      clientGstin: activeGstin,
       gstr2bInvoices: gstr2bList,
       booksInvoices: booksList,
       toleranceInr
@@ -526,8 +541,8 @@ export const Gstr2bReconciler: React.FC = () => {
   const handleGenerateNotice = (record: ReconciledRecord) => {
     playSoftClick();
     const notice = VendorNoticeGenerator.generateNotice({
-      buyerEntityName: currentEntity?.tradeName || "Pratwi Solutions Private Limited",
-      buyerGstin: currentEntity?.gstin || "23AANCP9915B1Z9",
+      buyerEntityName: currentEntity?.tradeName || currentEntity?.name || "Client Assessee",
+      buyerGstin: activeGstin,
       vendorTradeName: record.vendorName,
       vendorGstin: record.vendorGstin,
       vendorContactPhone: record.vendorPhone || "919820011223",
@@ -614,45 +629,27 @@ export const Gstr2bReconciler: React.FC = () => {
       {/* ========================================================================= */}
       {/* HEADER: Enterprise Practice Control & Client Context                     */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+      <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-blue-200">
-                Statutory ITC Reconciliation
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Sec 16(2)(aa) &amp; Rule 37A
               </span>
-              <span className="text-xs text-slate-400 font-medium font-mono">CGST Sec 16(2)(aa) &amp; Rule 37A</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              GSTR-2B vs Books Reconciliation Desk
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              GSTR-2B Reconciliation
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Multi-pass invoice matching, Section 17(5) blocked credit classification, and 1-click vendor notice generation.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Entity Picker */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
-              <Building2 className="w-4 h-4 text-slate-500" />
-              <select
-                value={selectedEntityId}
-                onChange={(e) => {
-                  playSoftClick();
-                  setSelectedEntityId(e.target.value);
-                }}
-                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-              >
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.tradeName} ({c.gstin?.substring(0, 5)}...)</option>
-                ))}
-              </select>
-            </div>
+            {/* Universal Client Selector */}
+            <UniversalClientSelector variant="compact" />
 
             {/* Tolerance Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5 text-xs">
+            <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-xs">
               <Scale className="w-3.5 h-3.5 text-slate-500" />
-              <span className="text-slate-500 font-medium">Tolerance:</span>
+              <span className="text-slate-500">Tolerance:</span>
               <select
                 value={toleranceInr}
                 onChange={(e) => {
@@ -660,7 +657,7 @@ export const Gstr2bReconciler: React.FC = () => {
                   setToleranceInr(parseFloat(e.target.value));
                   toast.info("Tolerance Updated", `Matching tolerance set to ±₹${e.target.value} u/s 170 CGST Act.`);
                 }}
-                className="bg-transparent font-bold text-slate-800 outline-none cursor-pointer"
+                className="bg-transparent font-semibold text-slate-900 outline-none cursor-pointer"
               >
                 <option value={1.0}>± ₹1.00</option>
                 <option value={2.0}>± ₹2.00</option>
@@ -675,9 +672,9 @@ export const Gstr2bReconciler: React.FC = () => {
                 playSoftClick();
                 setIsUploadModalOpen(true);
               }}
-              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+              className="px-3 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
             >
-              <Upload className="w-4 h-4 text-emerald-400" />
+              <Upload className="w-3.5 h-3.5 text-emerald-400" />
               Upload 2B &amp; Books
             </button>
 
@@ -687,50 +684,50 @@ export const Gstr2bReconciler: React.FC = () => {
                 playSoftClick();
                 setIsTable4DrawerOpen(true);
               }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
             >
-              <FileCheck className="w-4 h-4 text-white" />
+              <FileCheck className="w-3.5 h-3.5 text-white" />
               GSTR-3B Table 4 Values
             </button>
           </div>
         </div>
 
         {/* Real-Time Statutory Telemetry Banner */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-100">
-          <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Books Total ITC</span>
-            <span className="text-sm font-black text-slate-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.totalBooksItc)}</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-100">
+          <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Books Total ITC</span>
+            <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.totalBooksItc)}</span>
             <span className="text-[10px] text-slate-500 font-medium">{booksList.length} Vouchers</span>
           </div>
 
-          <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">GSTR-2B Total ITC</span>
-            <span className="text-sm font-black text-blue-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.total2bItc)}</span>
+          <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">GSTR-2B Total ITC</span>
+            <span className="text-sm font-bold text-blue-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.total2bItc)}</span>
             <span className="text-[10px] text-blue-600 font-medium">{gstr2bList.length} Invoices</span>
           </div>
 
-          <div className="bg-emerald-50/60 rounded-2xl p-3 border border-emerald-100">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Eligible ITC 4(A)(5)</span>
-            <span className="text-sm font-black text-emerald-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.matchedEligibleItc)}</span>
-            <span className="text-[10px] text-emerald-600 font-bold">{recoReport.summary.exactMatches + recoReport.summary.fuzzyMatches + recoReport.summary.roundingMatches} Matched</span>
+          <div className="bg-emerald-50/50 rounded-lg p-3 border border-emerald-200">
+            <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider block">Eligible ITC 4(A)(5)</span>
+            <span className="text-sm font-bold text-emerald-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.matchedEligibleItc)}</span>
+            <span className="text-[10px] text-emerald-600 font-semibold">{recoReport.summary.exactMatches + recoReport.summary.fuzzyMatches + recoReport.summary.roundingMatches} Matched</span>
           </div>
 
-          <div className="bg-amber-50/60 rounded-2xl p-3 border border-amber-100">
-            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sec 17(5) Blocked</span>
-            <span className="text-sm font-black text-amber-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.ineligibleSec17_5Itc)}</span>
-            <span className="text-[10px] text-amber-600 font-bold">Auto Table 4(B)(1)</span>
+          <div className="bg-amber-50/50 rounded-lg p-3 border border-amber-200">
+            <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider block">Sec 17(5) Blocked</span>
+            <span className="text-sm font-bold text-amber-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.ineligibleSec17_5Itc)}</span>
+            <span className="text-[10px] text-amber-600 font-semibold">Auto Table 4(B)(1)</span>
           </div>
 
-          <div className="bg-rose-50/60 rounded-2xl p-3 border border-rose-100">
-            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Missing in 2B</span>
-            <span className="text-sm font-black text-rose-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.provisionalMissing2bItc)}</span>
-            <span className="text-[10px] text-rose-600 font-bold">{recoReport.summary.missingIn2b} Invoices (Sec 16(2)(aa))</span>
+          <div className="bg-rose-50/50 rounded-lg p-3 border border-rose-200">
+            <span className="text-[10px] font-semibold text-rose-700 uppercase tracking-wider block">Missing in 2B</span>
+            <span className="text-sm font-bold text-rose-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.provisionalMissing2bItc)}</span>
+            <span className="text-[10px] text-rose-600 font-semibold">{recoReport.summary.missingIn2b} Invoices (Sec 16(2)(aa))</span>
           </div>
 
-          <div className="bg-indigo-50/60 rounded-2xl p-3 border border-indigo-100">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Unclaimed in Books</span>
-            <span className="text-sm font-black text-indigo-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.unclaimed2bItc)}</span>
-            <span className="text-[10px] text-indigo-600 font-bold">{recoReport.summary.missingInBooks} In 2B (Tally XML Ready)</span>
+          <div className="bg-indigo-50/50 rounded-lg p-3 border border-indigo-200">
+            <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider block">Unclaimed in Books</span>
+            <span className="text-sm font-bold text-indigo-900 font-mono mt-0.5 block">{formatCurrencyINR(recoReport.summary.unclaimed2bItc)}</span>
+            <span className="text-[10px] text-indigo-600 font-semibold">{recoReport.summary.missingInBooks} In 2B (Tally Ready)</span>
           </div>
         </div>
       </div>

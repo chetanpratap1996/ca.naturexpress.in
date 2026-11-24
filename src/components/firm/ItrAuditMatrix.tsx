@@ -23,6 +23,8 @@ import {
 import { ComplianceTask, ClientEntity, PortalCredential, DscRecord, WorkflowStatus } from "@/lib/types";
 import { ContextualFilingDrawer } from "@/components/shared/ContextualFilingDrawer";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 interface ItrAuditMatrixProps {
   tasks: ComplianceTask[];
@@ -41,6 +43,7 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
   onUpdateTask,
   onRefreshData,
 }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "FILED" | "CRITICAL">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<"ALL" | "INCOME_TAX" | "TAX_AUDIT">("ALL");
@@ -49,10 +52,21 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
   const [activeClient, setActiveClient] = useState<ClientEntity | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Filter only Direct Tax & Audit tasks
+  // Filter only Direct Tax & Audit tasks, scoped to client if selected
   const itTasks = useMemo(() => {
-    return tasks.filter((t) => t.category === "INCOME_TAX" || t.category === "TAX_AUDIT");
-  }, [tasks]);
+    return tasks.filter((t) => {
+      const isTaxCategory = t.category === "INCOME_TAX" || t.category === "TAX_AUDIT";
+      if (!isTaxCategory) return false;
+      if (selectedClient && !isFirmWideView) {
+        return (
+          t.entityId === selectedClient.id ||
+          t.entityName.toLowerCase() === selectedClient.name.toLowerCase() ||
+          t.groupId === selectedClient.groupId
+        );
+      }
+      return true;
+    });
+  }, [tasks, selectedClient, isFirmWideView]);
 
   // Derived periods for filter dropdown
   const availablePeriods = useMemo(() => {
@@ -147,29 +161,26 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Banner & KPI Ribbon */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                <Calculator className="w-5 h-5" />
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Direct Tax &bull; AY 2026-27 &bull; Section 44AB
               </span>
-              <div>
-                <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                  Income Tax &amp; Audit Operations Matrix
-                </h1>
-                <p className="text-xs text-slate-500 font-medium">
-                  Direct tax return radar, Form 3CD audit certifications, and Section 115BAC regime insights.
-                </p>
-              </div>
             </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-red-600" />
+              Income Tax &amp; Audit Operations Matrix
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <UniversalClientSelector variant="compact" />
             {onRefreshData && (
               <button
                 onClick={() => onRefreshData()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 shadow-xs transition"
                 title="Sync Live Records"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
@@ -180,48 +191,48 @@ export const ItrAuditMatrix: React.FC<ItrAuditMatrixProps> = ({
         </div>
 
         {/* 4 Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
           <div 
             onClick={() => setStatusFilter("ALL")}
-            className="bg-slate-50 hover:bg-slate-100/80 border border-slate-200 p-3 rounded-2xl cursor-pointer transition"
+            className="bg-slate-50/70 hover:bg-slate-100/80 border border-slate-200 p-3 rounded-lg cursor-pointer transition shadow-xs"
           >
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Tax Obligations</span>
+            <span className="text-[10px] uppercase font-semibold text-slate-500 block">Total Obligations</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-black text-slate-900">{metrics.total}</span>
-              <span className="text-[10px] text-slate-500 font-bold">Assessees</span>
+              <span className="text-xl font-bold text-slate-900">{metrics.total}</span>
+              <span className="text-[10px] text-slate-500 font-medium">Assessees</span>
             </div>
           </div>
 
           <div 
             onClick={() => setStatusFilter("FILED")}
-            className="bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 p-3 rounded-2xl cursor-pointer transition"
+            className="bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200 p-3 rounded-lg cursor-pointer transition shadow-xs"
           >
-            <span className="text-[10px] uppercase font-bold text-emerald-700 block">ITR &amp; 3CD Acknowledged</span>
+            <span className="text-[10px] uppercase font-semibold text-emerald-700 block">ITR &amp; 3CD Filed</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-black text-emerald-800">{metrics.filed}</span>
-              <span className="text-[10px] text-emerald-600 font-bold font-mono">{metrics.rate}% compliant</span>
+              <span className="text-xl font-bold text-emerald-800">{metrics.filed}</span>
+              <span className="text-[10px] text-emerald-600 font-semibold font-mono">{metrics.rate}% compliant</span>
             </div>
           </div>
 
           <div 
             onClick={() => setCategoryFilter("TAX_AUDIT")}
-            className="bg-purple-50 hover:bg-purple-100/70 border border-purple-200 p-3 rounded-2xl cursor-pointer transition"
+            className="bg-purple-50/50 hover:bg-purple-100/60 border border-purple-200 p-3 rounded-lg cursor-pointer transition shadow-xs"
           >
-            <span className="text-[10px] uppercase font-bold text-purple-700 block">Sec 44AB Tax Audits</span>
+            <span className="text-[10px] uppercase font-semibold text-purple-700 block">Sec 44AB Audits</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-black text-purple-800">{metrics.audits}</span>
-              <span className="text-[10px] text-purple-600 font-bold">Form 3CD</span>
+              <span className="text-xl font-bold text-purple-800">{metrics.audits}</span>
+              <span className="text-[10px] text-purple-600 font-semibold">Form 3CD</span>
             </div>
           </div>
 
           <div 
             onClick={() => setStatusFilter("CRITICAL")}
-            className="bg-red-50 hover:bg-red-100/70 border border-red-200 p-3 rounded-2xl cursor-pointer transition"
+            className="bg-red-50/50 hover:bg-red-100/60 border border-red-200 p-3 rounded-lg cursor-pointer transition shadow-xs"
           >
-            <span className="text-[10px] uppercase font-bold text-red-700 block">Critical Deadlines</span>
+            <span className="text-[10px] uppercase font-semibold text-red-700 block">Critical Deadlines</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-black text-btred-logo">{metrics.critical}</span>
-              <span className="text-[10px] text-red-600 font-bold">Sec 234F / 271B Risk</span>
+              <span className="text-xl font-bold text-red-700">{metrics.critical}</span>
+              <span className="text-[10px] text-red-600 font-semibold">Sec 234F / 271B</span>
             </div>
           </div>
         </div>

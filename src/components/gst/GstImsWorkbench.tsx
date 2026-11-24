@@ -26,8 +26,17 @@ import {
   ImsActionType 
 } from '@/lib/gst/imsEngine';
 import { toast } from '@/components/shared/ToastNotification';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 export function GstImsWorkbench() {
+  const {
+    selectedClient,
+    selectedGstin,
+    selectedFy,
+    isFirmWideView
+  } = useClientContext();
+
   const [activeTab, setActiveTab] = useState<'IMS_INVOICES' | 'RULE_37A'>('IMS_INVOICES');
   const [invoices, setInvoices] = useState<ImsInvoiceItem[]>(SAMPLE_IMS_INVOICES);
   const [rule37aList, setRule37aList] = useState<Rule37ARecord[]>(() => 
@@ -120,36 +129,36 @@ export function GstImsWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner - Clean Professional Container */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Invoice Management System • 14th Cutoff Radar</span>
+      {/* Top Banner - Enterprise-Grade Simplicity */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Invoice Management System &bull; 14th Cutoff
+              </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               GST IMS &amp; Rule 37A Action Desk
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Recipient statutory actions (<strong>Accept</strong>, <strong>Reject</strong>, <strong>Keep Pending</strong>) before the 14th cutoff to dictate GSTR-2B generation. Track Rule 37A supplier GSTR-3B defaults to eliminate Section 50(1) interest liabilities.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
             <button
               onClick={handleBatchAcceptClean}
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 transition"
+              className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Batch Accept Exact Matches</span>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Batch Accept Exact</span>
             </button>
 
             <button
               onClick={handleBatchRejectMismatches}
-              className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 transition"
+              className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-3.5 h-3.5" />
               <span>Batch Reject Mismatches</span>
             </button>
           </div>
@@ -157,52 +166,52 @@ export function GstImsWorkbench() {
       </div>
 
       {/* KPI Telemetry Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-slate-50/80 border border-slate-200 rounded-lg p-3.5 shadow-xs">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
             IMS Accepted ITC (GSTR-2B)
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-emerald-700">
+            <span className="text-xl font-bold text-emerald-700">
               ₹{(stats.acceptedItc / 1000).toFixed(1)}k
             </span>
             <span className="text-xs font-mono text-slate-500">({stats.acceptedCount} Invoices)</span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Flows to GSTR-3B Table 4(A)(5)</p>
+          <p className="text-[11px] text-slate-500 mt-1">Flows to Table 4(A)(5)</p>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50/80 border border-slate-200 rounded-lg p-3.5 shadow-xs">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
             IMS Rejected / Variance
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-red-600">
+            <span className="text-xl font-bold text-red-700">
               ₹{(stats.rejectedItc / 1000).toFixed(1)}k
             </span>
             <span className="text-xs font-mono text-slate-500">({stats.rejectedCount} Invoices)</span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Blocked from 2B; Supplier must amend</p>
+          <p className="text-[11px] text-slate-500 mt-1">Blocked from GSTR-2B</p>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50/80 border border-slate-200 rounded-lg p-3.5 shadow-xs">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
             IMS Kept Pending
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-amber-800">
+            <span className="text-xl font-bold text-amber-800">
               ₹{(stats.pendingItc / 1000).toFixed(1)}k
             </span>
             <span className="text-xs font-mono text-slate-500">({stats.pendingCount} Invoices)</span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Rolls forward to next tax period</p>
+          <p className="text-[11px] text-slate-500 mt-1">Rolls to next tax period</p>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-1">
+        <div className="bg-slate-50/80 border border-slate-200 rounded-lg p-3.5 shadow-xs">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
             Rule 37A At-Risk ITC
           </span>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-black text-red-600">
+            <span className="text-xl font-bold text-red-600">
               ₹{(stats.rule37aAtRiskAmount / 1000).toFixed(1)}k
             </span>
             <span className="text-xs font-mono text-red-600 font-bold">18% p.a.</span>

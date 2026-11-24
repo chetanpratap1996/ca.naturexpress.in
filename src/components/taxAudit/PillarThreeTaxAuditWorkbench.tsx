@@ -12,8 +12,11 @@ import {
   Calendar,
   AlertTriangle,
   CheckCircle2,
-  DollarSign
+  DollarSign,
+  Download
 } from 'lucide-react';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 import { 
   IcdsClause13AuditReport, 
   SAMPLE_ICDS_REPORT 
@@ -38,6 +41,7 @@ import {
 import { toast } from '@/components/shared/ToastNotification';
 
 export function PillarThreeTaxAuditWorkbench() {
+  const { selectedClient, selectedAy, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<'ICDS_CLAUSE13' | 'DISALLOWANCES_CLAUSE21' | 'STATUTORY_DUES_SEC43B' | 'CASH_LOANS_CLAUSE31' | 'LOSS_MATRIX_RATIOS'>('ICDS_CLAUSE13');
 
   // State
@@ -47,28 +51,71 @@ export function PillarThreeTaxAuditWorkbench() {
   const [clause32Report] = useState<Clause32SummaryReport>(SAMPLE_CLAUSE_32_RECORDS);
   const [clause40Report] = useState<Clause40RatiosReport>(SAMPLE_CLAUSE_40_REPORT);
 
+  const handleExportForm3CdJson = () => {
+    const pan = selectedClient?.pan || "AANCP9915B";
+    const name = selectedClient?.name || "Client Assessee";
+    const ay = selectedAy || "2026-27";
+    const payload = {
+      form: "3CD",
+      assessmentYear: ay,
+      pan,
+      assesseeName: name,
+      section44AB: true,
+      clause13d: {
+        totalIncrease: icdsReport.totalIncreaseInProfit,
+        totalDecrease: icdsReport.totalDecreaseInProfit,
+        netAdjustment: icdsReport.netAdjustmentToTaxableProfit,
+        standards: icdsReport.standards
+      },
+      clause21: {
+        totalDisallowances: clause21Report.grandTotalDisallowances,
+        breakdown: clause21Report.items
+      },
+      clause26: {
+        sec43bSummary: clause26Report
+      },
+      auditCertification: {
+        auditorName: "CA Gunjan Jain (FCA)",
+        frn: "022998C",
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", jsonString);
+    downloadAnchor.setAttribute("download", `Form3CD_${pan}_AY_${ay}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    toast.success("Form 3CD Exported", `Downloaded Form3CD_${pan}_AY_${ay}.json ready for Income Tax portal.`);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Clean Professional Header */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>ICAI Auditing Standards • Section 44AB</span>
+      {/* Header with Enterprise Simplicity */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-blue-600" />
+              <span>Tax Audit &bull; Section 44AB</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Form 3CD Tax Audit Workpapers &amp; Reporting Desk
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              Form 3CD Tax Audit Workpapers &amp; Reporting
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              <strong>Clause 13(d) ICDS adjustments</strong>, <strong>Clause 21 Section 40(a)(ia) &amp; 40A(3) disallowances</strong>, <strong>Clause 26 Section 43B dues</strong>, <strong>Clause 31 Section 269SS/T cash loans</strong>, and <strong>Clause 32/40 loss ratios</strong>.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold shadow-xs">
-              Form 3CD JSON Export Ready
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+            <button
+              onClick={handleExportForm3CdJson}
+              className="px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 transition"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Form 3CD JSON</span>
+            </button>
           </div>
         </div>
       </div>

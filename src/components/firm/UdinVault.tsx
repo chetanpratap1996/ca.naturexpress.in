@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   KeyRound, 
   CheckCircle2, 
@@ -23,6 +23,8 @@ import {
 import { ClientEntity } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { validateIcaUdin, formatDate } from "@/lib/utils";
 import { UdinBulkImportModal } from "./udin/UdinBulkImportModal";
 import { UdinVerificationSlipModal } from "./udin/UdinVerificationSlipModal";
@@ -83,6 +85,7 @@ interface UdinVaultProps {
 }
 
 export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [entries, setEntries] = useState<UdinEntry[]>(DEFAULT_REALISTIC_UDIN_DATA);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("ALL");
@@ -231,7 +234,21 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
     setRevocationReason("");
   };
 
-  const filtered = entries.filter(e => {
+  // Client-context aware filtering
+  const effectiveEntries = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      const qName = (selectedClient.tradeName || selectedClient.name).toLowerCase();
+      const qPan = (selectedClient.pan || "").toLowerCase();
+      const matches = entries.filter((e: UdinEntry) => 
+        (e.clientPan && e.clientPan.toLowerCase() === qPan) ||
+        (e.clientName && e.clientName.toLowerCase().includes(qName))
+      );
+      return matches.length > 0 ? matches : entries;
+    }
+    return entries;
+  }, [entries, selectedClient, isFirmWideView]);
+
+  const filtered = effectiveEntries.filter((e: UdinEntry) => {
     const matchesFilter = 
       filterType === "ALL" ||
       (filterType === "PENDING" && (e.status === "PENDING_GENERATION" || e.status === "EXPIRING_SOON")) ||
@@ -246,46 +263,45 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
     return matchesFilter && matchesSearch;
   });
 
-  const pendingCount = entries.filter(e => e.status === "PENDING_GENERATION" || e.status === "EXPIRING_SOON").length;
-  const validCount = entries.filter(e => e.status === "GENERATED_VALID").length;
-  const revokedCount = entries.filter(e => e.status === "REVOKED").length;
+  const pendingCount = effectiveEntries.filter((e: UdinEntry) => e.status === "PENDING_GENERATION" || e.status === "EXPIRING_SOON").length;
+  const validCount = effectiveEntries.filter((e: UdinEntry) => e.status === "GENERATED_VALID").length;
+  const revokedCount = effectiveEntries.filter((e: UdinEntry) => e.status === "REVOKED").length;
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-btred-logo" /> Mandatory ICAI Council Directive
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                ICAI Council Directive &bull; 60-Day Mandate &bull; MRN: Gunjan
               </span>
-              <span className="text-xs text-slate-500 font-mono">MRN: {DEFAULT_FIRM_BRANDING.managingPartner.split(" ")[1] || "518492"} &bull; 60-Day Clock</span>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <KeyRound className="w-6 h-6 text-purple-700" /> UDIN Compliance &amp; Regulatory Vault
-            </h2>
-            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Prevents professional misconduct proceedings under Clause 1 of Part II of Second Schedule. Tracks every signed certificate, audit report and 3CD with real-time 60-day expiry countdowns and direct ICAI verification links.
-            </p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-purple-700" />
+              UDIN Compliance &amp; Regulatory Vault
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <UniversalClientSelector variant="compact" />
+
             <button
               onClick={() => setIsBulkImportOpen(true)}
-              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs"
               title="Bulk Import Signed Documents / ICAI Export CSV"
             >
-              <FileCheck className="w-4 h-4 text-btred-logo" />
+              <FileCheck className="w-3.5 h-3.5 text-slate-600" />
               <span>Bulk Import</span>
             </button>
 
             <button
               onClick={handleExportRegister}
-              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs"
               title="Export Official ICAI Peer Review Register (CSV)"
             >
-              <Download className="w-4 h-4 text-emerald-700" />
+              <Download className="w-3.5 h-3.5 text-slate-600" />
               <span>Export Register</span>
             </button>
 
@@ -293,7 +309,7 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
               href="https://udin.icai.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3.5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs"
             >
               <span>ICAI Portal</span>
               <ExternalLink className="w-3.5 h-3.5 text-purple-700" />
@@ -301,9 +317,9 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
 
             <button
               onClick={() => setIsAddOpen(true)}
-              className="px-4 py-2.5 bg-btred-logo hover:bg-red-700 text-white shadow-sm font-bold text-xs rounded-xl transition flex items-center gap-2"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white shadow-xs font-semibold text-xs rounded-lg transition flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>Log Signed Report</span>
             </button>
           </div>
@@ -394,7 +410,7 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => {
+                filtered.map((item: UdinEntry) => {
                   const effectiveDays = getEffectiveDaysRemaining(item);
                   const isUrgent = (item.status === "PENDING_GENERATION" || item.status === "EXPIRING_SOON") && effectiveDays <= 15;
 

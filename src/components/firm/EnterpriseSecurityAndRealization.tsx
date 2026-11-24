@@ -5,6 +5,8 @@ import {
   PartnerRealizationMetrics, 
   StaffDataSecurityAudit 
 } from "@/lib/types";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -46,6 +48,7 @@ export function EnterpriseSecurityAndRealization({
   partnerMetrics = [],
   securityLogs = [],
 }: EnterpriseSecurityAndRealizationProps) {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<"realization" | "security" | "dpdp">("realization");
   const [logs, setLogs] = useState<StaffDataSecurityAudit[]>(securityLogs);
 
@@ -55,30 +58,61 @@ export function EnterpriseSecurityAndRealization({
   const firmRealizationRate = totalBilled > 0 ? ((totalRecovered / totalBilled) * 100).toFixed(1) : "90.0";
   const totalWipFirm = activeMetrics.reduce((sum, p) => sum + p.unbilledWipAmount, 0);
 
+  const handleExportAuditLog = () => {
+    const headers = "Timestamp,Staff Member,Staff Role,Action,Entity Name,IP Address,Security Status";
+    const rows = logs.map(l => 
+      `"${l.timestamp}","${l.staffName}","${l.staffRole}","${l.action}","${l.entityName}","${l.ipAddress}","${l.status}"`
+    );
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ICAI_DPDP_Security_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 font-bold rounded-full flex items-center gap-1.5">
-                <Fingerprint className="w-3.5 h-3.5 text-btred-logo" /> Firm Realization &amp; Data Governance
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Firm Realization &bull; ICAI Code of Ethics &bull; DPDP Act 2023
               </span>
-              <span className="text-xs text-slate-600 font-mono">ICAI Code of Ethics Part I Clause 1</span>
+              {selectedClient && !isFirmWideView && (
+                <span className="text-[11px] font-mono text-slate-400">
+                  PAN: {selectedClient.pan}
+                </span>
+              )}
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-btred-logo" /> Multi-Partner Realization &amp; Client Data Protection
-            </h2>
-            <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-              Monitor partner-wise fee realization and WIP conversion while maintaining strict client confidentiality and data access controls under the ICAI Code of Ethics and DPDP Act 2023.
-            </p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-red-600" />
+              Multi-Partner Realization &amp; Client Data Protection
+            </h1>
           </div>
 
-          <div className="bg-white border border-slate-200 p-4 rounded-xl min-w-[220px] text-right shadow-xs text-slate-900">
-            <span className="text-xs text-slate-600 uppercase tracking-wider font-semibold">Firm Realization Rate</span>
-            <div className="text-3xl font-extrabold text-emerald-700 mt-1">{firmRealizationRate}%</div>
-            <span className="text-xs text-slate-600 mt-0.5 block">₹{totalRecovered.toLocaleString("en-IN")} collected / ₹{totalBilled.toLocaleString("en-IN")} billed</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
+            <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-right">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Realization Rate</span>
+              <span className="text-sm font-bold text-emerald-700">{firmRealizationRate}%</span>
+            </div>
+
+            <button
+              onClick={handleExportAuditLog}
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+              title="Export DPDP Data Access & Security Audit Log"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Export Audit Log</span>
+            </button>
           </div>
         </div>
       </div>

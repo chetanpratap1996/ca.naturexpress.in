@@ -4,6 +4,8 @@ import React, { useState, useMemo } from "react";
 import { NoticeRecord, PortalCredential, ClientEntity } from "@/lib/types";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { 
   AlertCircle, 
   Clock, 
@@ -50,6 +52,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
   onNavigateTab,
   onNavigateToDrafter
 }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [notices, setNotices] = useState<NoticeRecord[]>(initialNotices);
   const [selectedNotice, setSelectedNotice] = useState<NoticeRecord | null>(initialNotices[0] || null);
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
@@ -68,6 +71,21 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
   const [selectedAuthority, setSelectedAuthority] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Context-aware client filtering
+  const effectiveNotices = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      const qName = (selectedClient.tradeName || selectedClient.name).toLowerCase();
+      const qPan = (selectedClient.pan || "").toLowerCase();
+      const matches = notices.filter(n => 
+        (n.entityId && n.entityId === selectedClient.id) ||
+        (n.entityName && n.entityName.toLowerCase().includes(qName)) ||
+        (n.pan && n.pan.toLowerCase() === qPan)
+      );
+      return matches.length > 0 ? matches : notices;
+    }
+    return notices;
+  }, [notices, selectedClient, isFirmWideView]);
 
   React.useEffect(() => {
     setNotices(initialNotices);
@@ -107,7 +125,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
   }, [selectedNotice, credentials]);
 
   const filteredNotices = useMemo(() => {
-    return notices.filter((n) => {
+    return effectiveNotices.filter((n) => {
       const matchesAuthority = selectedAuthority === "ALL" || n.authority === selectedAuthority;
       const matchesStatus = 
         selectedStatus === "ALL" ? true :
@@ -123,7 +141,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
 
       return matchesAuthority && matchesStatus && matchesSearch;
     });
-  }, [notices, selectedAuthority, selectedStatus, searchQuery]);
+  }, [effectiveNotices, selectedAuthority, selectedStatus, searchQuery]);
 
   const handleRunPortalScraper = async () => {
     setIsScanningPortals(true);
@@ -271,59 +289,57 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
         </div>
       )}
 
-      {/* Govt Portal Direct Sync Strip */}
-      <div className="bg-white border border-slate-200 p-3.5 sm:p-4 rounded-3xl shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs text-slate-900">
-        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-          <span className="text-slate-600 font-bold uppercase text-[11px] flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-slate-700" /> Portal Sync Status:
-          </span>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> GSTN Common Portal
+      {/* Enterprise-Grade Header with Portal Telemetry & Client Context */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs space-y-4 text-slate-900">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                DIN Verified &bull; CBDT &bull; CBIC &bull; Faceless Assessment
+              </span>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-red-600" />
+              Statutory Notice &amp; Faceless Scrutiny Defense Center
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+            <button
+              onClick={handleRunPortalScraper}
+              disabled={isScanningPortals}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs px-3 py-2 rounded-lg shadow-xs transition flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isScanningPortals ? "animate-spin" : ""}`} />
+              <span>{isScanningPortals ? "Syncing..." : "Sync Portals"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Portal Status Strip & Exposure Metrics */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            <span className="text-slate-500 font-semibold uppercase text-[10px] flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-slate-600" /> Portal Sync:
             </span>
-            <span className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
+            <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> GSTN Portal
+            </span>
+            <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> ITD e-Filing 2.0
             </span>
-            <span className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> MCA V3 (DIR-3 KYC)
+            <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> MCA V3
             </span>
           </div>
-        </div>
 
-        <button
-          onClick={handleRunPortalScraper}
-          disabled={isScanningPortals}
-          className="bg-btred-logo hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isScanningPortals ? "animate-spin" : ""}`} />
-          {isScanningPortals ? "Syncing Dept Portals..." : "Sync Department Portals"}
-        </button>
-      </div>
-
-      {/* Overview Banner */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 bg-red-50 text-btred-logo rounded-2xl border border-red-200 shadow-sm">
-            <ShieldAlert className="w-6 h-6" />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-semibold text-slate-500">Total Scrutiny Exposure:</span>
+            <span className="text-base font-bold text-red-600 font-mono">
+              {formatCurrencyINR(effectiveNotices.reduce((acc, n) => acc + n.demandAmount, 0))}
+            </span>
           </div>
-          <div>
-            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              Statutory Notice &amp; Faceless Scrutiny Defense Center
-              <span className="text-[11px] bg-red-100 text-btred-logo border border-red-200 px-2.5 py-0.5 rounded-full font-black">
-                DIN Verified
-              </span>
-            </h3>
-            <p className="text-xs text-slate-600 mt-0.5 font-medium">
-              Tracks CBDT &amp; CBIC notices with statutory DIN numbers. Auto-scraped countdown prevents time-barred ex-parte orders.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-200 text-right">
-          <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Scrutiny Exposure</p>
-          <p className="text-xl font-black text-btred-logo">
-            {formatCurrencyINR(notices.reduce((acc, n) => acc + n.demandAmount, 0))}
-          </p>
         </div>
       </div>
 

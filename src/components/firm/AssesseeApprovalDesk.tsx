@@ -28,6 +28,8 @@ import {
 import { ClientEntity } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { Sa580CertificateModal } from "./signoff/Sa580CertificateModal";
 import { SendSignRequestModal } from "./signoff/SendSignRequestModal";
 import { ClientSignoffModal } from "./signoff/ClientSignoffModal";
@@ -84,6 +86,7 @@ interface AssesseeApprovalDeskProps {
 }
 
 export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clients = [] }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [approvals, setApprovals] = useState<ApprovalRecord[]>(DEFAULT_REALISTIC_APPROVALS);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
@@ -94,8 +97,22 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
   const [isSendRequestOpen, setIsSendRequestOpen] = useState(false);
   const [signingRecord, setSigningRecord] = useState<ApprovalRecord | null>(null);
 
+  // Client-context aware filtering
+  const effectiveApprovals = React.useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      const qName = (selectedClient.tradeName || selectedClient.name).toLowerCase();
+      const qPan = (selectedClient.pan || "").toLowerCase();
+      const matches = approvals.filter(a => 
+        (a.clientPan && a.clientPan.toLowerCase() === qPan) ||
+        (a.clientName && a.clientName.toLowerCase().includes(qName))
+      );
+      return matches.length > 0 ? matches : approvals;
+    }
+    return approvals;
+  }, [approvals, selectedClient, isFirmWideView]);
+
   // Filtered Records
-  const filteredRecords = approvals.filter(item => {
+  const filteredRecords = effectiveApprovals.filter(item => {
     const matchesSearch = 
       item.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.clientPan.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,8 +125,8 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
     return true;
   });
 
-  const lockedCount = approvals.filter(a => a.status === "APPROVED_AND_LOCKED").length;
-  const pendingCount = approvals.filter(a => a.status === "AWAITING_CLIENT_SIGN").length;
+  const lockedCount = effectiveApprovals.filter(a => a.status === "APPROVED_AND_LOCKED").length;
+  const pendingCount = effectiveApprovals.filter(a => a.status === "AWAITING_CLIENT_SIGN").length;
 
   const handleCopyHash = (id: string, hash?: string) => {
     if (!hash) return;
@@ -145,49 +162,50 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-50/70 via-white to-red-50/40 border border-red-200 rounded-2xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider bg-red-50 text-btred-logo border border-red-200 rounded-full flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-800" /> ICAI SA 580 Compliance
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                ICAI SA 580 Compliance &bull; Client Representation &bull; Indian Evidence Act Sec 65B
               </span>
-              <span className="text-xs text-slate-500 font-mono">Client Written Representation Trail</span>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <FileCheck className="w-6 h-6 text-teal-700" /> Assessee Verification &amp; Legal Sign-off Trail
-            </h2>
-            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-              Captures timestamped client consent, digital canvas verification, IP addresses, and explicit statutory authorization before tax returns (ITR, GSTR-3B) or Form 3CD audit reports are submitted to government portals.
-            </p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-teal-700" />
+              Assessee Verification &amp; Legal Sign-off Trail
+            </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
             <button
               onClick={handleExportRegister}
-              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
               title="Export complete sign-off log for ICAI Peer Review"
             >
               <Download className="w-3.5 h-3.5 text-slate-600" />
-              <span>Export SA 580 Register</span>
+              <span>Export Register</span>
             </button>
+
             <button
               onClick={() => setIsSendRequestOpen(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
             >
-              <Plus className="w-4 h-4 text-white" />
-              <span>+ Issue E-Sign Request</span>
+              <Plus className="w-3.5 h-3.5 text-white" />
+              <span>Issue E-Sign</span>
             </button>
+
             <button
               onClick={() => {
-                const target = approvals.find(a => a.status === "AWAITING_CLIENT_SIGN") || approvals[0];
+                const target = effectiveApprovals.find(a => a.status === "AWAITING_CLIENT_SIGN") || effectiveApprovals[0];
                 setSigningRecord(target);
               }}
-              className="px-4 py-2 bg-btred-logo hover:bg-red-700 text-white font-bold text-xs shadow-sm rounded-xl transition flex items-center gap-2"
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs rounded-lg transition flex items-center gap-1.5"
             >
-              <Smartphone className="w-4 h-4" />
-              <span>Simulate Client E-Sign</span>
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Simulate Client Sign</span>
             </button>
           </div>
         </div>

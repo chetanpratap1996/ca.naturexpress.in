@@ -41,6 +41,8 @@ import {
 import { openWhatsAppPreset, createWhatsAppWebLink, sanitizeIndianPhoneNumber, generateDynamicUpiUri } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { BankStatementReconcileModal } from "./billing/BankStatementReconcileModal";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 interface PayToReleaseManagerProps {
   configs: PayToReleaseConfig[];
@@ -59,6 +61,7 @@ export function PayToReleaseManager({
   onUpdateConfig,
   onRefreshData,
 }: PayToReleaseManagerProps) {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [configs, setConfigs] = useState<PayToReleaseConfig[]>(initialConfigs);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
@@ -148,9 +151,13 @@ export function PayToReleaseManager({
   }, [configs, clients, invoices, firmUpiVpa, lockPolicyDays]);
 
   const filteredConfigs = useMemo(() => {
-    if (!searchQuery.trim()) return effectiveConfigs;
+    let list = effectiveConfigs;
+    if (selectedClient && !isFirmWideView) {
+      list = effectiveConfigs.filter(cfg => cfg.entityId === selectedClient.id);
+    }
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return effectiveConfigs.filter(cfg => {
+    return list.filter(cfg => {
       const client = clients.find(c => c.id === cfg.entityId);
       return (
         client?.name.toLowerCase().includes(q) ||
@@ -159,7 +166,7 @@ export function PayToReleaseManager({
         cfg.entityId.toLowerCase().includes(q)
       );
     });
-  }, [effectiveConfigs, clients, searchQuery]);
+  }, [effectiveConfigs, clients, searchQuery, selectedClient, isFirmWideView]);
 
   const totalLockedAmount = effectiveConfigs
     .filter((c) => c.isLocked)
@@ -413,50 +420,47 @@ export function PayToReleaseManager({
 
   return (
     <div className="space-y-6">
-      {/* 1. High-Contrast Executive Banner */}
-      <div className="bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/40 border border-emerald-200 rounded-3xl p-6 text-slate-900 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="px-2.5 py-1 text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full flex items-center gap-1.5 shadow-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" /> Deliverable Gatekeeper
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Deliverable Gatekeeper &bull; MSMED Act Sec 15 &amp; 16 &bull; ICAI SA 210
               </span>
-              <span className="text-xs text-emerald-900 font-bold bg-teal-100/70 border border-teal-200 px-2.5 py-0.5 rounded-full">
-                MSMED Act Sec 15 &amp; 16 Protection
-              </span>
-              <span className="text-xs text-slate-700 font-bold bg-amber-100/70 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                ICAI SA 210 Compliance
-              </span>
+              {selectedClient && !isFirmWideView && (
+                <span className="text-[11px] font-mono text-slate-400">
+                  PAN: {selectedClient.pan}
+                </span>
+              )}
             </div>
-            <h2 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-emerald-600" /> Fee Realization &amp; Deliverable Gatekeeper (Pay-to-Release)
-            </h2>
-            <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed font-medium">
-              Control statutory deliverable release (Form 3CD, audited financial statements, ITR acknowledgments) against overdue fee invoices. Reconcile bank payments or collect directly via NPCI Dynamic UPI QR codes.
-            </p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+              Fee Realization &amp; Deliverable Gatekeeper (Pay-to-Release)
+            </h1>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 min-w-[200px] text-right shadow-sm text-slate-900">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Outstanding Fees</div>
-              <div className="text-2xl font-black text-emerald-700 mt-0.5">₹{totalLockedAmount.toLocaleString("en-IN")}</div>
-              <div className="text-[11px] text-slate-600 font-semibold mt-0.5">{lockedClientsCount} client(s) with pending dues</div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
+            <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-right">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Outstanding Dues</span>
+              <span className="text-sm font-bold text-emerald-700">₹{totalLockedAmount.toLocaleString("en-IN")}</span>
             </div>
 
             <button
               onClick={() => setIsBankModalOpen(true)}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-sm whitespace-nowrap"
+              className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
               title="Upload ICICI/HDFC/SBI Bank Statement to Auto-Clear Invoices"
             >
-              <UploadCloud className="w-4 h-4" />
-              <span>Auto-Reconcile Bank Statement</span>
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Auto-Reconcile Statement</span>
             </button>
 
             <button
               onClick={handleOpenBulkHub}
               disabled={lockedClientsCount === 0}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-sm disabled:opacity-50 whitespace-nowrap"
-              title="Open WhatsApp Reminder Dispatch Center"
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
               <span>WhatsApp Reminders ({lockedClientsCount})</span>

@@ -41,6 +41,8 @@ import {
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
 import { validateAndExtractBankStatement } from "@/lib/fileIntelligence/documentValidator";
 import { TOP_15_INDIAN_BANKS, resolveClientBankPasswords, BankDefinition } from "@/lib/bankOcr/bankProfiles";
@@ -211,12 +213,19 @@ export interface BankStatementParserProps {
 
 export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initialEntityId, initialBank }) => {
   const { clients: hookClients } = useTaxoData();
+  const { selectedClient, isFirmWideView } = useClientContext();
   const clients = useMemo(() => {
     return (hookClients && hookClients.length > 0) ? hookClients : SANDBOX_CLIENTS;
   }, [hookClients]);
 
   const [selectedEntityId, setSelectedEntityId] = useState<string>(initialEntityId || (clients[0]?.id || "CLI-PRATWI-01"));
   const [selectedBank, setSelectedBank] = useState<string>(initialBank || "HDFC_BANK");
+
+  React.useEffect(() => {
+    if (selectedClient && !isFirmWideView && selectedClient.id !== selectedEntityId) {
+      setSelectedEntityId(selectedClient.id);
+    }
+  }, [selectedClient, isFirmWideView, selectedEntityId]);
 
   // File Upload & Drag-and-Drop State
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -271,12 +280,15 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
 
   // Resolve current active client
   const currentEntity = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      return selectedClient;
+    }
     if (!clients || clients.length === 0) return SANDBOX_CLIENTS[0];
     if (selectedEntityId) {
       return clients.find(c => c.id === selectedEntityId) || clients[0];
     }
     return clients[0];
-  }, [clients, selectedEntityId]);
+  }, [clients, selectedEntityId, selectedClient, isFirmWideView]);
 
   // Client Bank Account Profile
   const activeProfile = useMemo<BankAccountProfile>(() => {
@@ -706,53 +718,45 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
-      {/* Top Header Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Bank Statement OCR &amp; Vouchers
-            </span>
-            <span className="text-xs px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-full font-bold flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-600" /> CARO 2020 / AS-27 Audit Verified
-            </span>
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Bank Statement OCR &bull; Auto-Decryption &bull; CARO 2020 / AS-27 &bull; Tally XML
+              </span>
+              {currentEntity && (
+                <span className="text-[11px] font-mono text-slate-400">
+                  PAN: {currentEntity.pan}
+                </span>
+              )}
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-red-600" />
+              Bank Statement OCR &amp; Tally XML Generator
+            </h1>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            Bank Statement OCR &amp; Tally XML Generator
-          </h2>
-          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Auto-decrypt password-protected bank PDFs, map narrations to standard ledgers, and export directly into Tally XML without manual typing.
-          </p>
-        </div>
 
-        {/* Client Selector & Rule Manager Launcher */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setIsRulesModalOpen(true)}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl flex items-center gap-1.5 transition"
-            title="Manage narration auto-mapping rules"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Rules ({mappingRules.length})</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
 
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
-            <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
-            <select
-              value={selectedEntityId || currentEntity?.id || ""}
-              onChange={(e) => {
-                setSelectedEntityId(e.target.value);
-                const selected = clients.find(c => c.id === e.target.value);
-                toast.info("Switched Client Entity", `Active statement ledger: ${selected?.name || "Client"}`);
-              }}
-              className="bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
+            <button
+              onClick={() => setIsRulesModalOpen(true)}
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+              title="Manage narration auto-mapping rules"
             >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.type})
-                </option>
-              ))}
-            </select>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600" />
+              <span>Rules ({mappingRules.length})</span>
+            </button>
+
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-white" />
+              <span>Upload Statement</span>
+            </button>
           </div>
         </div>
       </div>

@@ -57,8 +57,11 @@ import {
   LoanPricingAuditItem 
 } from '@/lib/bankAudit/revenueLeakageEngine';
 import { toast } from '@/components/shared/ToastNotification';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 export function BankAuditWorkbench() {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<
     'IRAC_MOC' | 'DRAWING_POWER' | 'LFAR_MASTER' | 'CONCURRENT_AUDIT' | 'GHOSH_JILANI_EWS' | 'REVENUE_LEAKAGE'
   >('IRAC_MOC');
@@ -116,29 +119,35 @@ export function BankAuditWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner - Clean Professional Panel */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-slate-900">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-              <span>Statutory Bank Audit &amp; IRAC Desk</span>
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                Statutory Bank Audit &bull; RBI IRAC 90-Day NPAs &bull; LFAR 2020 &bull; ICAI SA 700
+              </span>
+              {selectedClient && !isFirmWideView && (
+                <span className="text-[11px] font-mono text-slate-400">
+                  Client: {selectedClient.name} ({selectedClient.pan})
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-red-600" />
               RBI IRAC Norms, LFAR &amp; Bank Audit Desk
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Statutory Bank Branch Audits, Concurrent Audits, and Stock Audits under RBI guidelines: <strong>90-day IRAC NPAs</strong>, <strong>Drawing Power calculations</strong>, <strong>RBI 2020 LFAR checklists</strong>, <strong>Ghosh &amp; Jilani fraud indicators</strong>, and <strong>MCLR/EBLR revenue leakages</strong>.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
             <button
               onClick={handlePrintMoc}
-              className="px-4 py-2.5 rounded-xl bg-btred-logo hover:bg-red-700 text-white text-xs font-bold shadow-sm flex items-center space-x-2 transition"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print Official MOC &amp; LFAR Pack</span>
+              <Printer className="w-3.5 h-3.5 text-white" />
+              <span>Print MOC &amp; LFAR Pack</span>
             </button>
           </div>
         </div>

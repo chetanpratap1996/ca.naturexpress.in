@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastContainer } from "@/components/shared/ToastNotification";
+import { ClientProvider } from "@/lib/context/ClientContext";
 
 export const metadata: Metadata = {
   title: "Brains & Taxes - Client & Practice Portal",
@@ -98,7 +99,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen min-h-[100dvh] bg-slate-50 text-slate-900 selection:bg-btred-logo selection:text-white flex flex-col">
         <ToastContainer />
-        {children}
+        <ClientProvider>
+          {children}
+        </ClientProvider>
       </body>
     </html>
   );

@@ -39,8 +39,11 @@ import {
   SAMPLE_VDA_SUMMARY 
 } from '@/lib/itr/vdaCryptoEngine';
 import { toast } from '@/components/shared/ToastNotification';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 export function PillarTwoDirectTaxWorkbench() {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<'CAPITAL_GAINS' | 'DEPRECIATION_SEC32' | 'FORM_10IEA' | 'FOREIGN_ASSETS_FA' | 'VDA_CRYPTO'>('CAPITAL_GAINS');
 
   // State
@@ -52,24 +55,22 @@ export function PillarTwoDirectTaxWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Clean Professional Header */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Direct Tax Schedules &amp; Computations</span>
+      {/* Header with Enterprise Simplicity */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-blue-600" />
+              <span>Capital Gains &amp; Depreciation</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
               Capital Gains, Depreciation &amp; Statutory Tax Schedules
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              <strong>STCG @ 20% u/s 111A</strong>, <strong>LTCG @ 12.5% u/s 112A with ₹1.25L exemption</strong>, <strong>Section 32 Additional Depreciation (20%)</strong>, <strong>Form 10-IEA regime evaluation</strong>, <strong>Schedule FA &amp; Form 67</strong>, and <strong>Section 115BBH Crypto ledger</strong>.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold shadow-xs">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+            <span className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono font-bold shadow-2xs">
               Budget 2024 Regimes Active
             </span>
           </div>

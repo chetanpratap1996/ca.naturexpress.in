@@ -43,6 +43,8 @@ import {
   MdiDesktopManager, 
   MdiClientTab 
 } from '@/lib/desktop/mdiDesktopManager';
+import { useClientContext } from '@/lib/context/ClientContext';
+import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
 
 type SubView = 'TALLY_KEYBOARD_GRID' | 'MDI_DESKTOP' | 'TALLY_SYNC_BRIDGE' | 'BILLING_RECOVERY' | 'MORNING_DIGEST';
 
@@ -55,6 +57,9 @@ interface VoucherRow {
 }
 
 export default function PillarEightTallyDesktopWorkbench() {
+  const { selectedClient, isFirmWideView } = useClientContext();
+  const activeClientName = selectedClient && !isFirmWideView ? selectedClient.name : 'Pratwi Solutions Private Limited';
+
   const [activeView, setActiveView] = useState<SubView>('TALLY_KEYBOARD_GRID');
 
   // MDI Tabs State
@@ -87,9 +92,9 @@ export default function PillarEightTallyDesktopWorkbench() {
 
   // Setup initial XML preview
   useEffect(() => {
-    const xml = TallySyncBridgeEngine.generateTallyXmlForMocs('Pratwi Solutions Private Limited', mocs);
+    const xml = TallySyncBridgeEngine.generateTallyXmlForMocs(activeClientName, mocs);
     setXmlExportPreview(xml);
-  }, [mocs]);
+  }, [mocs, activeClientName]);
 
   // Global Keyboard Navigation (Tally Speed)
   useEffect(() => {
@@ -170,33 +175,60 @@ export default function PillarEightTallyDesktopWorkbench() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner - Clean Professional Panel */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+      {/* Enterprise-Grade Header */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold mb-2">
-              <Keyboard className="w-3.5 h-3.5 text-red-600" />
-              TallyPrime Desktop &amp; Accounting Integration
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                TallyPrime Integration &bull; ODBC &bull; Multi-Client MDI &bull; Tally XML
+              </span>
+              {selectedClient && !isFirmWideView && (
+                <span className="text-[11px] font-mono text-slate-400">
+                  PAN: {selectedClient.pan}
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <Keyboard className="w-5 h-5 text-red-600" />
               Tally Voucher Grid &amp; XML Sync Bridge
             </h1>
-            <p className="text-sm text-slate-600 mt-1 max-w-3xl">
-              High-speed accounting grid (Enter, Alt+C, Ctrl+A), Multi-Client MDI window switcher, 
-              1-click bidirectional TallyPrime XML sync bridge, Rule 33 Pure Agent disbursement calculations, and daily partner executive digest.
-            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-red-600" />
-              TallyPrime 4.0 / ODBC Compliant
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <UniversalClientSelector variant="compact" />
+
+            <button
+              onClick={() => {
+                const blob = new Blob([xmlExportPreview], { type: 'application/xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Tally_MOC_${activeClientName.replace(/[^a-zA-Z0-9]/g, '_')}.xml`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+              title="Download TallyPrime 4.0 XML File"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Export XML</span>
+            </button>
+
+            <button
+              onClick={triggerVoucherSave}
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+            >
+              <Check className="w-3.5 h-3.5 text-white" />
+              <span>Commit Voucher (Ctrl+A)</span>
+            </button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-slate-200">
+        <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100">
           <button
             onClick={() => setActiveView('TALLY_KEYBOARD_GRID')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -295,7 +327,7 @@ export default function PillarEightTallyDesktopWorkbench() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Audit MOC Journal Entry (Tally Format)</h3>
-                <p className="text-xs text-slate-500">Client: Pratwi Solutions Private Limited • Voucher Date: 31-Mar-2026</p>
+                <p className="text-xs text-slate-500">Client: {activeClientName} • Voucher Date: 31-Mar-2026</p>
               </div>
 
               <button

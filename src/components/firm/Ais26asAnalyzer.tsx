@@ -11,6 +11,8 @@ import { SftEngine, RULE_114E_THRESHOLDS, SftTransactionCode, CategorizedSftItem
 import { parseOfficialAisJson } from "@/lib/parsers/aisParser";
 import { AisCrossReconciler, BooksIncomeSourceItem, CrossReconciliationReport, CrossReconciliationItem } from "@/lib/ais/aisCrossReconciler";
 import { InsightNoticeForecaster, ScrutinyForecastResult, AisPortalFeedbackPayload, AisFeedbackOption } from "@/lib/ais/insightNoticeForecaster";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 
 import { 
   FileSearch, 
@@ -319,7 +321,8 @@ interface Ais26asAnalyzerProps {
 }
 
 export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }) => {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7");
+  const { selectedClient, isFirmWideView } = useClientContext();
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "CLI-PRATWI-01");
   const [activeSuite, setActiveSuite] = useState<"reconciliation" | "sft_radar" | "gatekeeper" | "notice_forecaster">("reconciliation");
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
@@ -338,8 +341,9 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
   }, [clients]);
 
   const currentEntity = useMemo(() => {
+    if (selectedClient && !isFirmWideView) return selectedClient;
     return activeClients.find(c => c.id === selectedEntityId) || activeClients[0];
-  }, [activeClients, selectedEntityId]);
+  }, [selectedClient, isFirmWideView, activeClients, selectedEntityId]);
 
   // Client Profile
   const activeProfile = useMemo<ClientAisProfile>(() => {
@@ -500,43 +504,25 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
       {/* ========================================================================= */}
       {/* HEADER: Forensic Context & Client Switcher                                */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+      <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-rose-200">
-                CBDT Information Reconciliation • Form 26AS &amp; AIS
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                AIS &bull; Form 26AS &bull; Sec 285BA &bull; Rule 114E
               </span>
-              <span className="text-xs text-slate-400 font-medium font-mono">Sec 285BA, Rule 114E &amp; Sec 143(1)(a)</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               AIS &amp; Form 26AS SFT Reconciler
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              High-value SFT transaction categorization, books cross-reconciliation, and CBDT Insight notice risk forecasting.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Entity Switcher */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
-              <User className="w-4 h-4 text-slate-500" />
-              <select
-                value={selectedEntityId}
-                onChange={(e) => {
-                  playSoftClick();
-                  setSelectedEntityId(e.target.value);
-                }}
-                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-              >
-                {activeClients.map(c => (
-                  <option key={c.id} value={c.id}>{c.tradeName} ({c.pan})</option>
-                ))}
-              </select>
-            </div>
+            {/* Universal Client Selector */}
+            <UniversalClientSelector variant="compact" />
 
             {/* RMS Scrutiny Badge */}
-            <div className={`px-3 py-1.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 ${
+            <div className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 shadow-xs ${
               noticeForecast.scrutinyRiskTier === "CRITICAL"
                 ? "bg-rose-50 text-rose-700 border-rose-200"
                 : noticeForecast.scrutinyRiskTier === "HIGH"
@@ -553,9 +539,9 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
                 playSoftClick();
                 setIsUploadModalOpen(true);
               }}
-              className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+              className="px-3 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
             >
-              <Upload className="w-4 h-4 text-rose-400" />
+              <Upload className="w-3.5 h-3.5 text-rose-400" />
               Upload AIS JSON
             </button>
 
@@ -565,50 +551,50 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
                 playSoftClick();
                 setIsNoticeLetterModalOpen(true);
               }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition"
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
             >
-              <FileText className="w-4 h-4 text-white" />
+              <FileText className="w-3.5 h-3.5 text-white" />
               CBDT Response Drafter
             </button>
           </div>
         </div>
 
         {/* Real-Time Telemetry Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-100">
-          <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">AIS Gross Volume</span>
-            <span className="text-sm font-black text-slate-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalAisGrossReportedInr)}</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-100">
+          <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">AIS Gross Volume</span>
+            <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalAisGrossReportedInr)}</span>
             <span className="text-[10px] text-slate-500 font-medium">{crossRecoReport.summary.totalAisItems} Records</span>
           </div>
 
-          <div className="bg-emerald-50/60 rounded-2xl p-3 border border-emerald-100">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Matched in ITR</span>
-            <span className="text-sm font-black text-emerald-900 font-mono mt-0.5 block">{crossRecoReport.summary.matchedCount} Items</span>
-            <span className="text-[10px] text-emerald-600 font-bold">100% Reconciled</span>
+          <div className="bg-emerald-50/50 rounded-lg p-3 border border-emerald-200">
+            <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider block">Matched in ITR</span>
+            <span className="text-sm font-bold text-emerald-900 font-mono mt-0.5 block">{crossRecoReport.summary.matchedCount} Items</span>
+            <span className="text-[10px] text-emerald-600 font-semibold">100% Reconciled</span>
           </div>
 
-          <div className="bg-rose-50/60 rounded-2xl p-3 border border-rose-100">
-            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Unreported Income</span>
-            <span className="text-sm font-black text-rose-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalUnreportedIncomeExposureInr)}</span>
-            <span className="text-[10px] text-rose-600 font-bold">Sec 68/69 Risk</span>
+          <div className="bg-rose-50/50 rounded-lg p-3 border border-rose-200">
+            <span className="text-[10px] font-semibold text-rose-700 uppercase tracking-wider block">Unreported Income</span>
+            <span className="text-sm font-bold text-rose-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalUnreportedIncomeExposureInr)}</span>
+            <span className="text-[10px] text-rose-600 font-semibold">Sec 68/69 Risk</span>
           </div>
 
-          <div className="bg-amber-50/60 rounded-2xl p-3 border border-amber-100">
-            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sec 143(1)(a) Risk</span>
-            <span className="text-sm font-black text-amber-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.potentialAdditionRiskSec143_1_Inr)}</span>
-            <span className="text-[10px] text-amber-600 font-bold">Prima Facie Defect</span>
+          <div className="bg-amber-50/50 rounded-lg p-3 border border-amber-200">
+            <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider block">Sec 143(1)(a) Risk</span>
+            <span className="text-sm font-bold text-amber-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.potentialAdditionRiskSec143_1_Inr)}</span>
+            <span className="text-[10px] text-amber-600 font-semibold">Prima Facie Defect</span>
           </div>
 
-          <div className="bg-blue-50/60 rounded-2xl p-3 border border-blue-100">
-            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Total 26AS TDS</span>
-            <span className="text-sm font-black text-blue-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalAisTdsInr)}</span>
-            <span className="text-[10px] text-blue-600 font-medium">Prepaid Tax</span>
+          <div className="bg-blue-50/50 rounded-lg p-3 border border-blue-200">
+            <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider block">Total 26AS TDS</span>
+            <span className="text-sm font-bold text-blue-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.totalAisTdsInr)}</span>
+            <span className="text-[10px] text-blue-600 font-semibold">Prepaid Tax</span>
           </div>
 
-          <div className="bg-indigo-50/60 rounded-2xl p-3 border border-indigo-100">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Unclaimed TDS</span>
-            <span className="text-sm font-black text-indigo-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.unclaimedTdsCreditInr)}</span>
-            <span className="text-[10px] text-indigo-600 font-bold">Refund Potential</span>
+          <div className="bg-indigo-50/50 rounded-lg p-3 border border-indigo-200">
+            <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider block">Unclaimed TDS</span>
+            <span className="text-sm font-bold text-indigo-900 font-mono mt-0.5 block">{formatCurrencyINR(crossRecoReport.summary.unclaimedTdsCreditInr)}</span>
+            <span className="text-[10px] text-indigo-600 font-semibold">Refund Potential</span>
           </div>
         </div>
       </div>

@@ -7,7 +7,6 @@ import { AuthUser, DEMO_USERS } from "@/lib/auth/session";
 import { 
   Building2, 
   ShieldCheck, 
-  PhoneCall, 
   Search, 
   Download, 
   LogOut, 
@@ -152,8 +151,8 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           </div>
 
-          {/* CENTER: Practice Identity Badge */}
-          {isClientMode ? (
+          {/* CENTER: Client Identity Badge (Only in Client Portal Mode) */}
+          {isClientMode && (
             <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
               <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="font-black text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px] md:max-w-[260px]">
@@ -165,30 +164,20 @@ export const TopNav: React.FC<TopNavProps> = ({
                 Verified Portal
               </span>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs shrink-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="text-xs font-black text-slate-800 tracking-tight">
-                {currentUser?.role === "PARTNER" ? "Practice Management" : "Team Execution"}
-              </span>
-              <span className="text-[10px] text-slate-500 font-mono hidden md:inline border-l border-slate-200 pl-2">
-                FRN: {DEFAULT_FIRM_BRANDING.frn}
-              </span>
-            </div>
           )}
 
           {/* RIGHT: Quick Tools & Profile Cluster */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Client Master & WhatsApp Broadcast Fast Button */}
+            {/* Client Master Quick Launcher (Icon only) */}
             {onOpenClientMaster && !isClientMode && (
               <button
+                type="button"
                 onClick={onOpenClientMaster}
-                className="hidden xl:flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap"
-                title="Client Master & 1-Tap WhatsApp Broadcast"
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center shrink-0"
+                title="Client Master"
+                aria-label="Client Master"
               >
-                <Users className="w-3.5 h-3.5 text-slate-600" />
-                <span className="hidden 2xl:inline">Clients &amp; WhatsApp Desk</span>
-                <span className="2xl:hidden">Clients</span>
+                <Building2 className="w-3.5 h-3.5 text-slate-700" />
               </button>
             )}
 
@@ -229,17 +218,6 @@ export const TopNav: React.FC<TopNavProps> = ({
               </button>
             )}
 
-            {/* Direct WhatsApp Desk Link */}
-            <a
-              href={`https://wa.me/${DEFAULT_FIRM_BRANDING.whatsappNumber}`}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden xl:flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 px-2.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap"
-              title="Official Firm WhatsApp Desk"
-            >
-              <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden 2xl:inline">WhatsApp</span>
-            </a>
 
             {/* 1-Tap PWA Install */}
             <button

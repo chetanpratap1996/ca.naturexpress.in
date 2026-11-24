@@ -68,6 +68,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onSwitchUser,
   onOpenClientMaster,
   onOpenFirmHub,
+  onOpenClientBroadcaster,
   onExitSandbox,
   isSandbox = true,
 }) => {
@@ -442,6 +443,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         onNavigateTab={onNavigateTab}
+        onOpenClientBroadcaster={onOpenClientBroadcaster}
         currentUserRole={currentUser?.role}
       />
     </>

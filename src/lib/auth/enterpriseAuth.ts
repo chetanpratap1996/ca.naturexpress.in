@@ -232,17 +232,19 @@ export async function authenticateClientEntity(
       return panMatch || phoneMatch || emailMatch;
     });
 
-    if (!matchedClient && (cleanPhone10 === "9800000003" || cleanUpper === "CLIENT" || cleanId.toLowerCase() === "director@client-portal.in")) {
+    if (!matchedClient && (cleanPhone10 === "8077170715" || cleanUpper === "CLIENT" || cleanId.toLowerCase() === "chetanpratap1996@gmail.com" || cleanUpper === "AANCP9915B")) {
       matchedClient = {
-        id: "d301662a-10ce-4e32-84ed-a9423a70101d",
-        groupId: "3c5eb209-459d-4af7-9868-36d7ac3d6493",
-        name: "Apex AutoTech Private Limited",
+        id: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+        groupId: "157e58d9-cc53-4e5d-9497-ec6d2ecbf59a",
+        name: "Pratwi Solutions Private Limited",
         type: "PVT_LTD",
-        pan: "AABCA8891D",
+        pan: "AANCP9915B",
+        gstin: "09AANCP9915B1Z4",
+        cin: "U72900UP2026PTC199821",
         primaryContact: {
-          name: "Rajesh Sharma",
-          email: "director@client-portal.in",
-          phone: "+91 98000 00003",
+          name: "Chetan Pratap Singh",
+          email: "chetanpratap1996@gmail.com",
+          phone: "+91 80771 70715",
           designation: "Director"
         }
       } as any;

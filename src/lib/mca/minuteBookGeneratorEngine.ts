@@ -113,13 +113,13 @@ export const SAMPLE_MEETINGS_DATA: MinuteBookMeetingItem[] = [
     meetingDate: '2026-09-05',
     meetingTime: '11:30 AM',
     venueOrMode: 'REGISTERED_OFFICE',
-    chairmanName: 'Rahul Vikram Sharma',
+    chairmanName: 'Chetan Pratap Singh',
     directorsPresent: [
-      { din: '08910241', name: 'Rahul Vikram Sharma', mode: 'PHYSICAL' },
+      { din: '10807715', name: 'Chetan Pratap Singh', mode: 'PHYSICAL' },
       { din: '09124810', name: 'Priya Narang', mode: 'PHYSICAL' },
-      { din: '07192842', name: 'Dr. Anand Kumar Verma', mode: 'VIDEO_CONFERENCING' }
+      { din: '07192842', name: 'Advisory Consultant', mode: 'VIDEO_CONFERENCING' }
     ],
-    inviteesPresent: ['CA Chetan Pratap Singh (Statutory Auditor)'],
+    inviteesPresent: ['CA Gunjan Jain (Statutory Auditor)'],
     noticeDispatchDate: '2026-08-28',
     isSevenClearDaysNoticeGiven: true,
     shorterNoticeConsentObtained: false,
@@ -131,7 +131,7 @@ export const SAMPLE_MEETINGS_DATA: MinuteBookMeetingItem[] = [
         resolutionType: 'BOARD_RESOLUTION',
         agendaTitle: 'Approval of Audited Financial Statements for FY 2025-26',
         statutorySection: 'Section 134(5) & Rule 8',
-        resolutionDraftText: 'RESOLVED THAT the Balance Sheet as at 31st March 2026, the Statement of Profit and Loss, and Cash Flow Statement along with the Notes forming part thereof, as placed before the Board, be and are hereby approved and signed on behalf of the Board by Mr. Rahul Vikram Sharma and Ms. Priya Narang, Directors of the Company.',
+        resolutionDraftText: 'RESOLVED THAT the Balance Sheet as at 31st March 2026, the Statement of Profit and Loss, and Cash Flow Statement along with the Notes forming part thereof, as placed before the Board, be and are hereby approved and signed on behalf of the Board by Mr. Chetan Pratap Singh and Ms. Priya Narang, Directors of the Company.',
         votingSummary: { votesInFavor: 3, votesAgainst: 0, passedUnanimously: true }
       },
       {
@@ -153,12 +153,12 @@ export const SAMPLE_MEETINGS_DATA: MinuteBookMeetingItem[] = [
     meetingDate: '2026-09-30',
     meetingTime: '03:00 PM',
     venueOrMode: 'REGISTERED_OFFICE',
-    chairmanName: 'Rahul Vikram Sharma',
+    chairmanName: 'Chetan Pratap Singh',
     directorsPresent: [
-      { din: '08910241', name: 'Rahul Vikram Sharma', mode: 'PHYSICAL' },
+      { din: '10807715', name: 'Chetan Pratap Singh', mode: 'PHYSICAL' },
       { din: '09124810', name: 'Priya Narang', mode: 'PHYSICAL' }
     ],
-    inviteesPresent: ['CA Chetan Pratap Singh (Statutory Auditor)'],
+    inviteesPresent: ['CA Gunjan Jain (Statutory Auditor)'],
     noticeDispatchDate: '2026-09-08',
     isSevenClearDaysNoticeGiven: true,
     shorterNoticeConsentObtained: false,

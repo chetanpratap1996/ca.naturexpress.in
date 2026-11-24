@@ -43,7 +43,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_PORTAL_CREDENTIALS,
   INITIAL_STAFF_MEMBERS
-} from "@/lib/data/mockData";
+} from "@/lib/data/firmDefaults";
 import { SANDBOX_NOTICES, SANDBOX_GROUPS, SANDBOX_CLIENTS, SANDBOX_INVOICES, SANDBOX_DSC_TOKENS } from "@/lib/data/sandboxData";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 import { ImprestTransactionItem, DEFAULT_IMPREST_TRANSACTIONS } from "@/lib/billing/pureAgentImprest";
@@ -187,25 +187,25 @@ export function ensureDatabase(): DatabaseSchema {
 
   const createDefaultData = (): DatabaseSchema => ({
     firmMetrics: FIRM_METRICS,
-    groups: INITIAL_GROUPS.length > 0 ? INITIAL_GROUPS : SANDBOX_GROUPS,
-    clients: INITIAL_CLIENTS.length > 0 ? INITIAL_CLIENTS : SANDBOX_CLIENTS,
-    tasks: INITIAL_TASKS,
-    notices: INITIAL_NOTICES.length > 0 ? INITIAL_NOTICES : SANDBOX_NOTICES,
-    invoices: INITIAL_INVOICES.length > 0 ? INITIAL_INVOICES : SANDBOX_INVOICES,
-    dscTokens: INITIAL_DSC_TOKENS,
-    portalCredentials: INITIAL_PORTAL_CREDENTIALS,
-    documents: INITIAL_DOCUMENTS,
-    auditTrail: INITIAL_AUDIT_TRAIL,
-    passwordVaults: INITIAL_PASSWORD_VAULTS,
-    parsedStatements: INITIAL_PARSED_STATEMENTS as any,
-    payToReleaseConfigs: INITIAL_PAY_TO_RELEASE_CONFIGS as any,
-    portalSyncProfiles: INITIAL_PORTAL_SYNC_PROFILES as any,
-    msmeRecords: INITIAL_MSME_43BH_RECORDS as any,
-    section40a2bSamples: INITIAL_SECTION_40A2B_SAMPLES as any,
-    staffSecurityLogs: INITIAL_STAFF_SECURITY_LOGS as any,
-    partnerMetrics: INITIAL_PARTNER_METRICS as any,
-    notifications: INITIAL_NOTIFICATIONS,
-    imprestTransactions: DEFAULT_IMPREST_TRANSACTIONS,
+    groups: [],
+    clients: [],
+    tasks: [],
+    notices: [],
+    invoices: [],
+    dscTokens: [],
+    portalCredentials: [],
+    documents: [],
+    auditTrail: [],
+    passwordVaults: [],
+    parsedStatements: [],
+    payToReleaseConfigs: [],
+    portalSyncProfiles: [],
+    msmeRecords: [],
+    section40a2bSamples: [],
+    staffSecurityLogs: [],
+    partnerMetrics: [],
+    notifications: [],
+    imprestTransactions: [],
     staff: INITIAL_STAFF_MEMBERS,
     lastUpdated: new Date().toISOString(),
   });
@@ -236,15 +236,17 @@ export function ensureDatabase(): DatabaseSchema {
     if (!parsed.portalCredentials) { parsed.portalCredentials = INITIAL_PORTAL_CREDENTIALS; modified = true; }
     if (!parsed.notifications) { parsed.notifications = INITIAL_NOTIFICATIONS; modified = true; }
     if (!parsed.imprestTransactions) { parsed.imprestTransactions = DEFAULT_IMPREST_TRANSACTIONS; modified = true; }
-    if (!parsed.notices || parsed.notices.length === 0) { parsed.notices = SANDBOX_NOTICES; modified = true; }
-    if (!parsed.clients || parsed.clients.length === 0) { parsed.clients = SANDBOX_CLIENTS; modified = true; }
-    if (!parsed.groups || parsed.groups.length === 0) { parsed.groups = SANDBOX_GROUPS; modified = true; }
-    if (!parsed.invoices || parsed.invoices.length === 0) { parsed.invoices = SANDBOX_INVOICES; modified = true; }
-    if (!parsed.dscTokens || parsed.dscTokens.length === 0) { parsed.dscTokens = SANDBOX_DSC_TOKENS; modified = true; }
+    if (!parsed.notices) { parsed.notices = []; modified = true; }
+    if (!parsed.clients) { parsed.clients = []; modified = true; }
+    if (!parsed.groups) { parsed.groups = []; modified = true; }
+    if (!parsed.invoices) { parsed.invoices = []; modified = true; }
+    if (!parsed.dscTokens) { parsed.dscTokens = []; modified = true; }
+    if (!parsed.documents) { parsed.documents = []; modified = true; }
+    if (!parsed.auditTrail) { parsed.auditTrail = []; modified = true; }
     if (!parsed.clientGstReconciliations) { parsed.clientGstReconciliations = []; modified = true; }
     if (!parsed.clientAisData) { parsed.clientAisData = []; modified = true; }
     if (!parsed.clientTrialBalances) { parsed.clientTrialBalances = []; modified = true; }
-    if (!parsed.noticeDockets || parsed.noticeDockets.length === 0) { parsed.noticeDockets = getSampleNoticeDockets(); modified = true; }
+    if (!parsed.noticeDockets) { parsed.noticeDockets = []; modified = true; }
     if (!parsed.clientItrComputations) { parsed.clientItrComputations = []; modified = true; }
     if (!parsed.staff || parsed.staff.length === 0) { parsed.staff = INITIAL_STAFF_MEMBERS; modified = true; }
 

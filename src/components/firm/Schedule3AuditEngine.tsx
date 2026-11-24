@@ -64,7 +64,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   onExportAuditDossier 
 }) => {
   // State
-  const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "CL-APEX");
+  const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7");
   const [division, setDivision] = useState<Schedule3Division>("DIVISION_I");
   const [activeSubTab, setActiveSubTab] = useState<"mapping" | "financials" | "ratios-disclosures" | "lead-schedules" | "caro2020" | "bank-reconciliation" | "audit-realization">("mapping");
   
@@ -86,9 +86,9 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
   const [isSa230ModalOpen, setIsSa230ModalOpen] = useState(false);
   const [customClientMeta, setCustomClientMeta] = useState<{ name: string; pan: string; cin: string } | null>({
-    name: "Apex AutoTech Private Limited",
-    pan: "AABCA8891D",
-    cin: "U29100MP2015PTC034120"
+    name: "Pratwi Solutions Private Limited",
+    pan: "AANCP9915B",
+    cin: "U72900UP2026PTC199821"
   });
 
   // Paste TB Modal State
@@ -113,13 +113,13 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
     const found = clients.find((c) => c.id === selectedClientId);
     if (found) return found;
     return {
-      id: "CL-APEX",
-      name: "Apex AutoTech Private Limited",
+      id: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+      name: "Pratwi Solutions Private Limited",
       type: "PVT_LTD",
-      cin: "U29100MP2015PTC034120",
-      pan: "AABCA8891D",
+      cin: "U72900UP2026PTC199821",
+      pan: "AANCP9915B",
       partnerInCharge: "CA Gunjan Jain (FCA)",
-      turnoverCr: 48.5
+      turnoverCr: 1.2
     };
   }, [clients, selectedClientId, customClientMeta]);
 
@@ -274,7 +274,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
     const mock = getMockTrialBalanceResult();
     setTbResult(mock);
     setLedgers(mock.ledgers);
-    toast.info("Sample TB Loaded", "Loaded 48 real-world Tally ledgers for Apex Laboratories Pvt Ltd (₹14.85 Cr).");
+    toast.info("Sample TB Loaded", "Loaded 48 real-world Tally ledgers for ${activeClient.name}.");
   };
 
   // 1-Click Auto-Approve High Confidence Ledgers

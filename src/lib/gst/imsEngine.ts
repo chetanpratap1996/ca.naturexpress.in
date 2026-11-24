@@ -212,7 +212,7 @@ export const SAMPLE_IMS_INVOICES: ImsInvoiceItem[] = [
     recommendedAction: 'ACCEPT',
     recommendationReason: 'Exact match with Books of Accounts and verified supplier status. Safe to accept for GSTR-2B ITC inclusion.',
     actionTimestamp: '2026-11-10T11:42:00Z',
-    actionBy: 'CA. Rajesh Agarwal (Partner)'
+    actionBy: 'CA Gunjan Jain (Partner)'
   },
   {
     id: 'IMS-2026-002',
@@ -238,7 +238,7 @@ export const SAMPLE_IMS_INVOICES: ImsInvoiceItem[] = [
     recommendedAction: 'REJECT',
     recommendationReason: 'Value variance of ₹40,000.00 exceeds threshold. Supplier billed extra freight not in PO. Reject for credit note.',
     actionTimestamp: '2026-11-11T15:10:00Z',
-    actionBy: 'Pooja Verma (Audit Manager)'
+    actionBy: 'Kriti Jain (Article Trainee)'
   },
   {
     id: 'IMS-2026-003',
@@ -287,7 +287,7 @@ export const SAMPLE_IMS_INVOICES: ImsInvoiceItem[] = [
     recommendedAction: 'ACCEPT',
     recommendationReason: 'Staff transport car > 13 seater exempt, but passenger car is blocked u/s 17(5)(a). Accept and flag for auto-reversal in 4(B)(1).',
     actionTimestamp: '2026-11-10T14:20:00Z',
-    actionBy: 'CA. Rajesh Agarwal (Partner)'
+    actionBy: 'CA Gunjan Jain (Partner)'
   }
 ];
 

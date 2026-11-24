@@ -102,11 +102,11 @@ export class Ben2SboDetectorEngine {
 export const SAMPLE_SHAREHOLDERS_REGISTER: ShareholderTierNode[] = [
   {
     id: 'SH-01',
-    entityName: 'Rahul Vikram Sharma',
+    entityName: 'Chetan Pratap Singh',
     entityType: 'INDIVIDUAL_RESIDENT',
-    panOrCinOrRegistrationNo: 'BNZPA4912K',
+    panOrCinOrRegistrationNo: 'AANCP9915B',
     countryOfIncorporation: 'India',
-    directHoldingPercentInReportingCompany: 35.0 // Direct natural individual 35%
+    directHoldingPercentInReportingCompany: 75.0 // Majority promoter 75%
   },
   {
     id: 'SH-02',

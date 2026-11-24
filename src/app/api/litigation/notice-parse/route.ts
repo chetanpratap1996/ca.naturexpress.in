@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     // Match client
     const client = (db.clients || []).find((c) => c.id === clientId) || db.clients?.[0] || {
       id: "CLI-DEFAULT",
-      name: "Apex AutoTech Private Limited",
+      name: "Pratwi Solutions Private Limited",
       pan: "AABCA8891D",
       gstin: "23AABCA8891D1Z4"
     };

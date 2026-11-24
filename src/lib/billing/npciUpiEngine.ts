@@ -17,7 +17,7 @@ export interface NpciUpiParams {
   merchantName: string;       // e.g. "Brains & Taxes CA Firm"
   amount: number;             // e.g. 4500.00
   invoiceNo: string;          // e.g. "INV-2026-1024"
-  clientName?: string;        // e.g. "Apex AutoTech"
+  clientName?: string;        // e.g. "Pratwi Solutions"
   transactionNote?: string;   // Optional custom note
 }
 

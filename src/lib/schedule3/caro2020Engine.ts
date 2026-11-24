@@ -105,7 +105,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Records, physical verification, title deeds not held in company name, revaluation, and Benami property proceedings.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -183,7 +183,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Physical verification of inventory coverage, discrepancies >= 10%, and reconciliation of quarterly bank statements for facilities > ₹5 Crore.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -221,7 +221,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Investments, guarantees, securities, loans or advances granted; terms not prejudicial; overdue > 90 days; renewals/evergreening; loans repayable on demand.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -229,7 +229,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
         subClauseTitle: "Aggregate Amount & Balance of Loans/Guarantees",
         requirement: "Reporting of aggregate amount granted during the year and balance outstanding at balance sheet date to subsidiaries/JVs/associates and to other parties.",
         status: "COMPLIANT_UNQUALIFIED",
-        findingDetails: "Inter-corporate deposit of ₹45,00,000 granted to wholly-owned subsidiary Apex Engineering Components Ltd at 9.5% p.a. interest. Closing balance: ₹45,00,000.",
+        findingDetails: "Inter-corporate deposit of ₹45,00,000 granted to wholly-owned subsidiary Pratwi Engineering Components Ltd at 9.5% p.a. interest. Closing balance: ₹45,00,000.",
         auditorRemarks: "The Company has granted unsecured loans to its subsidiary during the year: Aggregate amount granted during year: ₹45.00 Lakhs; Balance outstanding as at 31st March: ₹45.00 Lakhs. No loans were granted to parties other than subsidiaries.",
         isAutomatedRule: true,
         workpaperRef: "WP-CARO-03A-LOANS-SCHEDULE"
@@ -299,7 +299,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Compliance with Section 185 (prohibition/restrictions on loans to directors) and Section 186 (limits and conditions for loans, guarantees, and investments).",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -337,7 +337,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Compliance with directives of RBI, Sections 73 to 76, and rules framed thereunder; orders passed by CLB/NCLT/RBI/Court.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -365,7 +365,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether maintenance of cost records has been specified by Central Govt u/s 148(1); whether such accounts and records have been made and maintained.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -393,7 +393,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Regularity in deposit of undisputed statutory dues (PF, ESI, IT, GST, Customs); undisputed arrears > 6 months; details of disputed dues with forum.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -431,7 +431,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether any transactions not recorded in the books of account have been surrendered or disclosed as income during the year in tax assessments under Income Tax Act, 1961.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -459,7 +459,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Defaults in repayment of loans/borrowings, wilful defaulter declaration, application of term loans, short-term funds for long-term purposes, funds for subsidiaries.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -537,7 +537,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Moneys raised by IPO/FPO and preferential allotment or private placement of shares or convertible debentures.",
     status: "NOT_APPLICABLE",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -575,7 +575,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Fraud noticed or reported; reporting u/s 143(12) in Form ADT-4 to Central Govt; whistle-blower complaints received and considered.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -623,7 +623,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Net Owned Funds to Deposits ratio 1:20 and 10% unencumbered term deposits.",
     status: "NOT_APPLICABLE",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -651,7 +651,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether all transactions with related parties are in compliance with Sections 177 and 188 where applicable and details disclosed in financial statements.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -659,7 +659,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
         subClauseTitle: "RPT Compliance & Financial Disclosures",
         requirement: "Transactions in ordinary course of business at arm's length; Board approval obtained; disclosed in Note 28 per AS 18 / Ind AS 24.",
         status: "COMPLIANT_UNQUALIFIED",
-        findingDetails: "Purchases of ₹1.24 Cr from related entity Apex Components LLP backed by benchmarked transfer pricing study and omnibus board approval.",
+        findingDetails: "Purchases of ₹1.24 Cr from related entity Pratwi Infotech LLP backed by benchmarked transfer pricing study and omnibus board approval.",
         auditorRemarks: "In our opinion and according to the information and explanations given to us, all transactions with related parties are in compliance with Sections 177 and 188 of the Act where applicable and the details have been disclosed in the Financial Statements as required by the applicable accounting standards.",
         isAutomatedRule: true,
         workpaperRef: "WP-CARO-13-RPT-AS18"
@@ -679,7 +679,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether company has an internal audit system commensurate with size and nature of business; whether statutory auditor considered internal audit reports.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -717,7 +717,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether company has entered into non-cash transactions with directors or persons connected with him; compliance with Section 192.",
     status: "NOT_APPLICABLE",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -745,7 +745,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether company is required to be registered under Section 45-IA of RBI Act, 1934; whether registration obtained; whether company is a Core Investment Company (CIC).",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -773,7 +773,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether company has incurred cash losses in the financial year and in the immediately preceding financial year; specify amount.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -801,7 +801,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether there has been any resignation of the statutory auditors during the year; whether auditor has taken into consideration the issues, objections or concerns raised by outgoing auditors.",
     status: "NOT_APPLICABLE",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -829,7 +829,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Auditor evaluation of financial ratios, ageing of assets/liabilities, Board plans to form opinion on capability to meet liabilities existing at balance sheet date within 1 year.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -857,7 +857,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Transfer of unspent amounts to Fund specified in Schedule VII within 6 months or to Special Unspent CSR Account within 30 days.",
     status: "COMPLIANT_UNQUALIFIED",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -895,7 +895,7 @@ export const DEFAULT_CARO_2020_CLAUSES: CaroClauseReport[] = [
     primaryRequirement: "Whether there have been any qualifications or adverse remarks by the respective auditors in the CARO reports of the companies included in the consolidated financial statements; details of paragraph numbers.",
     status: "NOT_APPLICABLE",
     partnerSignedOff: true,
-    signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+    signedOffBy: "CA Gunjan Jain (M.No 022998C)",
     signedOffAt: "2026-09-15",
     subItems: [
       {
@@ -1074,7 +1074,7 @@ export class Caro2020Engine {
     lines.push(`**M/s AGGARWAL SHUKLA & CO.**`);
     lines.push(`Chartered Accountants (FRN: 014285C)`);
     lines.push(``);
-    lines.push(`**CA Rajesh Aggarwal, FCA**`);
+    lines.push(`**CA Gunjan Jain, FCA**`);
     lines.push(`Partner | Membership No. 054891`);
     lines.push(`UDIN: 26054891BGTA8829`);
     lines.push(`Date: 15th September 2026 | Place: Indore`);

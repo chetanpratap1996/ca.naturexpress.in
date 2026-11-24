@@ -55,15 +55,18 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
   const [paymentMode, setPaymentMode] = useState<"UPI" | "NEFT_RTGS" | "IMPS" | "CHEQUE">("UPI");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Unbilled WIP Jobs (derived from completed work or default queue)
+  // Unbilled WIP Jobs (derived dynamically from registered active clients)
   const unbilledWipJobs = useMemo(() => {
-    return [
-      { id: "WIP-01", entityName: "Apex AutoTech Private Limited", service: "GSTR-3B Monthly Filing (October 2026)", fee: 6500, status: "READY_TO_BILL", staff: "Rahul Sharma" },
-      { id: "WIP-02", entityName: "Pratwi Solutions Private Limited", service: "ITR-6 Corporate Return Preparation & 115BAC", fee: 18500, status: "READY_TO_BILL", staff: "Kriti Jain" },
-      { id: "WIP-03", entityName: "Sharma Engineering Works", service: "GSTR-2B Vendor ITC Reconciliation", fee: 4500, status: "READY_TO_BILL", staff: "Amit Patel" },
-      { id: "WIP-04", entityName: "Kailash Agro Industries", service: "Form 3CD Clause 44 MSME Due Diligence", fee: 22000, status: "READY_TO_BILL", staff: "Rahul Sharma" },
-    ];
-  }, []);
+    if (!clients || clients.length === 0) return [];
+    return clients.map((c, i) => ({
+      id: `WIP-${c.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6)}-${i + 1}`,
+      entityName: c.name,
+      service: c.type === "PVT_LTD" ? "ITR-6 Corporate Compliance & MCA AOC-4" : "GSTR-3B & 2B ITC Reconciliation",
+      fee: c.type === "PVT_LTD" ? 18500 : 7500,
+      status: "READY_TO_BILL",
+      staff: c.assignedArticle || "Kriti Jain (Article)",
+    }));
+  }, [clients]);
 
   // Filtered Invoices
   const filteredInvoices = useMemo(() => {

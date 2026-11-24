@@ -136,7 +136,7 @@ export const SAMPLE_UDIN_ITEMS: UdinCertificateItem[] = [
   {
     id: 'UD-03',
     documentTitle: 'Accountant Certificate u/s 195 in Form 15CB',
-    clientName: 'Apex Machinery Distributors Pvt Ltd',
+    clientName: 'Pratwi Solutions Private Limited',
     clientPan: 'AALCA8912P',
     caMemberRegNo: '049210',
     signingDate: '2026-11-05',

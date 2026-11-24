@@ -485,7 +485,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
                   <div className="space-y-2 text-xs">
                     <div className="bg-white p-2.5 rounded-xl border border-slate-200 flex items-center justify-between shadow-sm">
                       <div>
-                        <strong className="text-slate-900 block font-bold">Apex Steel Traders</strong>
+                        <strong className="text-slate-900 block font-bold">Pratwi Solutions</strong>
                         <span className="text-[10px] text-slate-500">Invoice #AST-901</span>
                       </div>
                       <span className="text-rose-700 font-bold bg-rose-50 border border-rose-200 px-2 py-1 rounded text-[11px]">Hold ₹42,500</span>

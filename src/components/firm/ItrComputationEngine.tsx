@@ -87,13 +87,13 @@ export interface TaxpayerProfilePreset {
 
 const PRESET_TAXPAYER_PROFILES: TaxpayerProfilePreset[] = [
   {
-    id: "PROF-RAJESH",
-    name: "Rajesh Sharma (MD - Apex AutoTech)",
-    pan: "ABFPS1234E",
+    id: "PROF-CHETAN",
+    name: "Chetan Pratap Singh (Director - Pratwi Solutions)",
+    pan: "AANCP9915B",
     category: "INDIVIDUAL",
-    roleDescription: "Salaried Corporate Director + Home Loan + 80C/80D Investments",
-    phone: "919820011223",
-    salaryGross: 1250000,
+    roleDescription: "Director / Tech Entrepreneur + Chapter VI-A Deductions",
+    phone: "918077170715",
+    salaryGross: 1440000,
     salaryExemptions: 0,
     professionalTax: 2500,
     homeLoanInterest: 150000,
@@ -113,90 +113,6 @@ const PRESET_TAXPAYER_PROFILES: TaxpayerProfilePreset[] = [
     sec80G: 0,
     tdsPaid: 65000,
     advanceTaxPaid: 0
-  },
-  {
-    id: "PROF-ADITYA",
-    name: "Aditya Singhal (Promoter - OmniRetail)",
-    pan: "AFAPS5512B",
-    category: "INDIVIDUAL",
-    roleDescription: "Executive Director + Significant Chapter VI-A + NPS Allocation",
-    phone: "919811044211",
-    salaryGross: 2400000,
-    salaryExemptions: 120000,
-    professionalTax: 2500,
-    homeLoanInterest: 200000,
-    businessProfit: 0,
-    isPresumptive: false,
-    presumptiveScheme: "44ADA",
-    businessTurnover: 0,
-    stcg111A: 180000,
-    ltcg112A: 320000,
-    otherIncome: 150000,
-    sec80C: 150000,
-    sec80D_Self: 25000,
-    sec80D_Parents: 50000,
-    sec80CCD_1B: 50000,
-    sec80CCD_2: 180000, // Corporate NPS u/s 80CCD(2)
-    sec80E: 35000,
-    sec80G: 25000,
-    tdsPaid: 280000,
-    advanceTaxPaid: 60000
-  },
-  {
-    id: "PROF-PRATWI",
-    name: "Pratwi Shah (Director - Pratwi Solutions)",
-    pan: "AAYPS4412K",
-    category: "INDIVIDUAL",
-    roleDescription: "Tech Founder / Senior Consultant (44ADA Professional Presumptive)",
-    phone: "919820044101",
-    salaryGross: 0,
-    salaryExemptions: 0,
-    professionalTax: 2500,
-    homeLoanInterest: 0,
-    businessProfit: 2500000,
-    isPresumptive: true,
-    presumptiveScheme: "44ADA",
-    businessTurnover: 5000000,
-    stcg111A: 55000,
-    ltcg112A: 110000,
-    otherIncome: 85000,
-    sec80C: 150000,
-    sec80D_Self: 25000,
-    sec80D_Parents: 0,
-    sec80CCD_1B: 50000,
-    sec80CCD_2: 0,
-    sec80E: 0,
-    sec80G: 0,
-    tdsPaid: 150000,
-    advanceTaxPaid: 45000
-  },
-  {
-    id: "PROF-RAMESH",
-    name: "Ramesh Sharma (Senior Citizen Retd - Parent)",
-    pan: "AAFPS9912M",
-    category: "SENIOR",
-    roleDescription: "Senior Citizen (> 60 Yrs) Pensioner + High FD Interest + 80TTB",
-    phone: "919820099881",
-    salaryGross: 650000,
-    salaryExemptions: 0,
-    professionalTax: 0,
-    homeLoanInterest: 0,
-    businessProfit: 0,
-    isPresumptive: false,
-    presumptiveScheme: "44ADA",
-    businessTurnover: 0,
-    stcg111A: 0,
-    ltcg112A: 40000,
-    otherIncome: 180000,
-    sec80C: 100000,
-    sec80D_Self: 50000,
-    sec80D_Parents: 0,
-    sec80CCD_1B: 0,
-    sec80CCD_2: 0,
-    sec80E: 0,
-    sec80G: 10000,
-    tdsPaid: 15000,
-    advanceTaxPaid: 0
   }
 ];
 
@@ -207,7 +123,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
 }) => {
   // Selected Profile Preset or Real Client
   const [selectedProfileId, setSelectedProfileId] = useState<string>(
-    initialClient?.id || "PROF-RAJESH"
+    initialClient?.id || "PROF-CHETAN"
   );
 
   // Tax Audit Disallowances bridged from Form 3CD (Cl 22 & 34)
@@ -233,9 +149,9 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
   const [taxpayerCategory, setTaxpayerCategory] = useState<"INDIVIDUAL" | "SENIOR" | "SUPER_SENIOR">("INDIVIDUAL");
 
   // Taxpayer Name & PAN
-  const [taxpayerName, setTaxpayerName] = useState<string>("Rajesh Sharma (MD - Apex AutoTech)");
-  const [taxpayerPan, setTaxpayerPan] = useState<string>("ABFPS1234E");
-  const [taxpayerPhone, setTaxpayerPhone] = useState<string>("919820011223");
+  const [taxpayerName, setTaxpayerName] = useState<string>("Chetan Pratap Singh (Director - Pratwi Solutions)");
+  const [taxpayerPan, setTaxpayerPan] = useState<string>("AANCP9915B");
+  const [taxpayerPhone, setTaxpayerPhone] = useState<string>("918077170715");
 
   // Income Inputs
   // 1. Salary
@@ -305,7 +221,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
         pan: c.pan,
         type: c.type,
         isFirmClient: true,
-        phone: c.primaryContact?.phone || "919820011223"
+        phone: c.primaryContact?.phone || "918077170715"
       });
     });
 

@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const tan = searchParams.get("tan") || "BPLR01492E";
-    const assesseeName = searchParams.get("name") || "Apex AutoTech Private Limited";
+    const assesseeName = searchParams.get("name") || "Pratwi Solutions Private Limited";
     const fy = searchParams.get("fy") || "FY 2025-26";
     const ay = searchParams.get("ay") || "AY 2026-27";
 
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         tanOfAssessee: tan,
         sectionCode: "194C",
         natureOfPayment: "Contractual Tooling & Fabrication",
-        payeeName: "Apex Engineering Works",
+        payeeName: "Pratwi Engineering Works",
         payeePan: "AAACE9912M",
         grossPaymentInr: 300000,
         thresholdExemptionInr: 100000,
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         tanOfAssessee: tan,
         sectionCode: "194J_PROF",
         natureOfPayment: "Legal & Corporate Advisory Fees",
-        payeeName: "Singhania & Partners LLP",
+        payeeName: "Corporate Legal Advisors LLP",
         payeePan: "AAAFS1102P",
         grossPaymentInr: 450000,
         thresholdExemptionInr: 30000,

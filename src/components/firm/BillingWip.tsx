@@ -61,46 +61,13 @@ export interface WipJobItem {
 export const DEFAULT_WIP_JOBS: WipJobItem[] = [
   {
     id: "WIP-01",
-    entityName: "Apex AutoTech Private Limited",
-    clientPan: "AABCA8891D",
-    serviceTitle: "Tax Audit Form 3CD Clause 44 & 43B(h) Compilation",
-    assignedStaff: "Kriti Jain (Article)",
-    hoursSpent: 18.5,
-    estimatedFee: 45000,
-    completionDate: "2026-10-24",
-    status: "READY_FOR_BILLING"
-  },
-  {
-    id: "WIP-02",
     entityName: "Pratwi Solutions Private Limited",
-    clientPan: "AAKCS8812K",
-    serviceTitle: "Transfer Pricing Study & Form 3CEB Certification",
-    assignedStaff: "CA Gunjan Jain (Partner)",
-    hoursSpent: 24.0,
-    estimatedFee: 65000,
-    completionDate: "2026-10-22",
-    status: "READY_FOR_BILLING"
-  },
-  {
-    id: "WIP-03",
-    entityName: "OmniRetail India Limited",
-    clientPan: "AACO1234F",
-    serviceTitle: "GSTR-9 & 9C Annual Reconciliation Statement",
+    clientPan: "AANCP9915B",
+    serviceTitle: "ITR-6 Corporate Compliance & MCA AOC-4 Advisory",
     assignedStaff: "Kriti Jain (Article)",
-    hoursSpent: 16.0,
-    estimatedFee: 50000,
-    completionDate: "2026-10-21",
-    status: "READY_FOR_BILLING"
-  },
-  {
-    id: "WIP-04",
-    entityName: "Zenith SaaS Technologies Private Limited",
-    clientPan: "AAACZ9921E",
-    serviceTitle: "Section 142(1) Faceless Scrutiny Evidence Dossier",
-    assignedStaff: "CA Gunjan Jain (Partner)",
-    hoursSpent: 14.5,
-    estimatedFee: 35000,
-    completionDate: "2026-10-23",
+    hoursSpent: 12.0,
+    estimatedFee: 18500,
+    completionDate: "2026-11-20",
     status: "READY_FOR_BILLING"
   }
 ];
@@ -128,7 +95,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
   const [payerNote, setPayerNote] = useState("");
 
   // New Invoice Form State (SAC 9982, PoS & TDS u/s 194J)
-  const [newEntityName, setNewEntityName] = useState(() => clients[0]?.name || "Apex AutoTech Private Limited");
+  const [newEntityName, setNewEntityName] = useState(() => clients[0]?.name || "Pratwi Solutions Private Limited");
   const [selectedSacCode, setSelectedSacCode] = useState("998221");
   const [newServiceDesc, setNewServiceDesc] = useState("Statutory & Tax Audit (Sec 44AB / Companies Act)");
   const [newAmount, setNewAmount] = useState("75000");

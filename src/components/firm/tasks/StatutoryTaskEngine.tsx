@@ -128,12 +128,14 @@ export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
 
     tasks.forEach((t) => {
       if (t.status !== "FILED_AND_COMPLETED") {
-        totalAccruingDailyPenalty += (t.accruingDailyPenalty || 0);
         const due = new Date(t.dueDate);
         const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 3600 * 24));
         if (diffDays < 0) {
           overdue += 1;
-          // Calculate realistic penalty
+          const dailyRate = t.accruingDailyPenalty || (t.category === "GST" ? 50 : t.category === "TDS" ? 200 : t.category === "ROC_MCA" ? 100 : 0);
+          totalAccruingDailyPenalty += dailyRate;
+
+          // Calculate realistic penalty under specific statutory provisions
           if (t.category === "GST") {
             const res = StatutoryPenaltyEngine.calculateGstLateFeeAndInterest({
               statutoryDueDate: t.dueDate,
@@ -261,23 +263,29 @@ export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
         <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
           <span className="text-[10px] uppercase font-bold text-rose-700 block">Overdue Default</span>
           <div className="text-xl font-black text-rose-700 mt-1">{stats.overdue}</div>
-          <span className="text-[10px] text-rose-800 font-bold">Late Fees Accruing</span>
+          <span className={`text-[10px] font-bold ${stats.overdue > 0 ? "text-rose-800" : "text-emerald-700"}`}>
+            {stats.overdue > 0 ? "Late Fees Accruing" : "Zero Overdue"}
+          </span>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
           <span className="text-[10px] uppercase font-bold text-slate-500 block">Accruing Daily</span>
-          <div className="text-xl font-black text-slate-900 mt-1 font-mono">
+          <div className={`text-xl font-black mt-1 font-mono ${stats.overdue > 0 ? "text-rose-600" : "text-slate-900"}`}>
             ₹{stats.totalAccruingDailyPenalty}/day
           </div>
-          <span className="text-[10px] text-slate-500">Sec 47 &amp; Sec 234E</span>
+          <span className={`text-[10px] font-bold ${stats.overdue > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+            {stats.overdue > 0 ? "Sec 47 & Sec 234E" : "Zero Daily Accrual"}
+          </span>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
           <span className="text-[10px] uppercase font-bold text-slate-500 block">Accrued Penalty</span>
-          <div className="text-xl font-black text-red-600 mt-1 font-mono">
+          <div className={`text-xl font-black mt-1 font-mono ${stats.overdue > 0 ? "text-red-600" : "text-emerald-700"}`}>
             ₹{stats.totalAccruedLateFees.toLocaleString("en-IN")}
           </div>
-          <span className="text-[10px] text-red-700 font-bold">Default Exposure</span>
+          <span className={`text-[10px] font-bold ${stats.overdue > 0 ? "text-red-700" : "text-emerald-700"}`}>
+            {stats.overdue > 0 ? "Default Exposure" : "Current & Compliant"}
+          </span>
         </div>
       </div>
 
@@ -393,10 +401,8 @@ export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
               className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none"
             >
               <option value="ALL">All Assigned Staff</option>
-              <option value="Kriti Jain (Article)">Kriti Jain</option>
-              <option value="Aman Verma (Article)">Aman Verma</option>
-              <option value="Rahul Sharma (Article)">Rahul Sharma</option>
-              <option value="Pooja Mehta (Article)">Pooja Mehta</option>
+              <option value="CA Gunjan Jain (Partner)">CA Gunjan Jain (Partner)</option>
+              <option value="Kriti Jain (Article)">Kriti Jain (Article)</option>
             </select>
           </div>
 
@@ -865,10 +871,8 @@ export const StatutoryTaskEngine: React.FC<StatutoryTaskEngineProps> = ({
                     onChange={(e) => setNewTaskAssignedTo(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 font-bold text-xs text-slate-900"
                   >
-                    <option value="Kriti Jain (Article)">Kriti Jain</option>
-                    <option value="Aman Verma (Article)">Aman Verma</option>
-                    <option value="Rahul Sharma (Article)">Rahul Sharma</option>
-                    <option value="Pooja Mehta (Article)">Pooja Mehta</option>
+                    <option value="CA Gunjan Jain (Partner)">CA Gunjan Jain (Partner)</option>
+                    <option value="Kriti Jain (Article)">Kriti Jain (Article)</option>
                   </select>
                 </div>
               </div>

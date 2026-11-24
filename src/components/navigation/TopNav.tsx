@@ -129,16 +129,16 @@ export const TopNav: React.FC<TopNavProps> = ({
     <>
       <header className="sticky top-0 z-40 bg-white/95 text-slate-900 border-b border-slate-200 shadow-sm backdrop-blur-md pt-safe w-full">
         {/* Single Unified High-Density Responsive Header matching main container width & padding */}
-        <div className="w-full max-w-[1720px] mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
+        <div className="w-full max-w-[1920px] mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
           
           {/* LEFT: Platform Brand & Firm Identity Badge */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0">
             <Link href="/" className="flex items-center gap-2 shrink-0">
               <BtLogo size="sm" showTagline={false} />
             </Link>
 
             {/* Tenant Firm Pill (Hidden on screens < xl to preserve toolbar space) */}
-            <div className="hidden xl:flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-xl text-xs">
+            <div className="hidden xl:flex items-center gap-2 bg-slate-50 border border-slate-200/90 h-9 px-3 rounded-xl text-xs shadow-2xs">
               <ShieldCheck className="w-3.5 h-3.5 text-btred-logo shrink-0" />
               <div className="leading-tight">
                 <span className="font-extrabold text-slate-900 block text-[11px] truncate max-w-[180px] 2xl:max-w-[240px]">
@@ -153,7 +153,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
           {/* CENTER: Client Identity Badge (Only in Client Portal Mode) */}
           {isClientMode && (
-            <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 border border-emerald-500/40 h-9 px-3 rounded-xl shadow-inner shrink-0">
               <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="font-black text-slate-900 text-xs truncate max-w-[120px] sm:max-w-[200px] md:max-w-[260px]">
                 {currentUser?.designation?.includes("(")
@@ -166,42 +166,21 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           )}
 
-          {/* RIGHT: Quick Tools & Profile Cluster */}
+          {/* RIGHT: Quick Tools & Profile Cluster (Consistent h-9 Enterprise Grid) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Client Master Quick Launcher (Icon only) */}
-            {onOpenClientMaster && !isClientMode && (
-              <button
-                type="button"
-                onClick={onOpenClientMaster}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center shrink-0"
-                title="Client Master"
-                aria-label="Client Master"
-              >
-                <Building2 className="w-3.5 h-3.5 text-slate-700" />
-              </button>
-            )}
-
-            {/* Firm Hub Instant Launcher */}
-            {onOpenFirmHub && !isClientMode && (
-              <button
-                onClick={onOpenFirmHub}
-                className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-btred-logo hover:text-red-700 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap"
-                title="Open CA Firm Action Hub"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
-                <span className="hidden sm:inline">Firm Hub</span>
-              </button>
-            )}
-
-            {/* Quick Search Spotlight (Desktop) - Only for Staff/Partners */}
+            {/* Quick Search Bar (Desktop) - Only for Staff/Partners */}
             {!isClientMode && (
               <button
+                type="button"
                 onClick={() => setIsCommandOpen(true)}
-                className="hidden lg:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap"
+                className="hidden md:flex items-center justify-between h-9 w-44 lg:w-56 xl:w-64 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-500 hover:text-slate-800 text-xs transition-colors shadow-2xs"
+                title="Quick Search (⌘K)"
               >
-                <Search className="w-3.5 h-3.5 text-btred-logo" />
-                <span className="hidden xl:inline">Search...</span>
-                <kbd className="bg-white border border-slate-200 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold text-slate-500">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-slate-400 font-medium truncate">Search...</span>
+                </div>
+                <kbd className="bg-white border border-slate-200 text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold text-slate-400 shrink-0">
                   ⌘K
                 </kbd>
               </button>
@@ -210,38 +189,66 @@ export const TopNav: React.FC<TopNavProps> = ({
             {/* Mobile Search Icon Button - Only for Staff/Partners */}
             {!isClientMode && (
               <button
+                type="button"
                 onClick={() => setIsCommandOpen(true)}
-                className="lg:hidden p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-slate-200"
+                className="md:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors shadow-2xs shrink-0"
                 title="Search"
               >
                 <Search className="w-4 h-4 text-slate-600" />
               </button>
             )}
 
+            {/* Client Master Quick Launcher (Icon only) */}
+            {onOpenClientMaster && !isClientMode && (
+              <button
+                type="button"
+                onClick={onOpenClientMaster}
+                className="h-9 w-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center shrink-0 shadow-2xs"
+                title="Client Master & Desk"
+                aria-label="Client Master & Desk"
+              >
+                <Building2 className="w-4 h-4 text-slate-700" />
+              </button>
+            )}
 
-            {/* 1-Tap PWA Install */}
+            {/* Firm Hub Instant Launcher */}
+            {onOpenFirmHub && !isClientMode && (
+              <button
+                type="button"
+                onClick={onOpenFirmHub}
+                className="h-9 px-3 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-btred-logo font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-2xs"
+                title="Open CA Firm Action Hub"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
+                <span className="hidden sm:inline">Firm Hub</span>
+              </button>
+            )}
+
+            {/* 1-Tap PWA Install (Icon Only with Tooltip) */}
             <button
+              type="button"
               onClick={triggerInstall}
-              className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap"
-              title="Install Mobile App"
+              className="h-9 w-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center shrink-0 shadow-2xs"
+              title={isInstalled ? "Mobile App Installed" : "Download & Install Mobile App"}
+              aria-label="Download App"
             >
-              <Smartphone className="w-3.5 h-3.5 text-btred-logo" />
-              <span className="hidden 2xl:inline">{isInstalled ? "App Installed" : "Download App"}</span>
+              <Smartphone className="w-4 h-4 text-slate-700" />
             </button>
 
             {/* Notification Center Bell */}
             <button
+              type="button"
               onClick={() => {
                 setIsNotificationOpen(true);
                 setUnreadCount(0);
               }}
-              className="relative p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 shrink-0"
+              className="h-9 w-9 relative rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center shrink-0 shadow-2xs"
               title="Statutory Alerts & Notifications"
+              aria-label="Alerts"
             >
-              <Bell className="w-3.5 h-3.5 text-slate-700" />
-              <span className="hidden xl:inline text-xs font-bold">Alerts</span>
+              <Bell className="w-4 h-4 text-slate-700" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 sm:static w-4 h-4 rounded-full bg-btred-logo text-white font-mono text-[9px] font-black flex items-center justify-center animate-pulse">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-btred-logo text-white font-mono text-[9px] font-black flex items-center justify-center shadow-xs">
                   {unreadCount}
                 </span>
               )}
@@ -254,10 +261,10 @@ export const TopNav: React.FC<TopNavProps> = ({
                 id="profile-dropdown-btn"
                 data-testid="profile-dropdown-btn"
                 onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                className="flex items-center gap-1.5 p-1 rounded-xl sm:rounded-2xl hover:bg-slate-100 border border-slate-200 transition focus:outline-none bg-white cursor-pointer"
+                className="h-9 pl-1 pr-2.5 rounded-xl hover:bg-slate-50 border border-slate-200 bg-white flex items-center gap-2 cursor-pointer transition-colors shadow-2xs"
                 aria-label="User Profile"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-tr from-red-600 to-btred-logo text-white flex items-center justify-center font-black text-[11px] sm:text-xs shadow-sm shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-red-600 to-btred-logo text-white flex items-center justify-center font-black text-xs shadow-2xs shrink-0">
                   {getInitials(currentUser?.name)}
                 </div>
                 <div className="text-left text-xs leading-none hidden xl:block max-w-[130px] 2xl:max-w-[180px]">

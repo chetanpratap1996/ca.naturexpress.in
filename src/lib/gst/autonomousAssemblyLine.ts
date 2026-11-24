@@ -233,7 +233,7 @@ export function calculateGstr3bRule88AOffset(
 /**
  * Generate Sample Institutional Assembly Profiles
  * Client 1: Pratwi Solutions (100% clean profile -> Zero-Touch auto dispatched)
- * Client 2: Apex Heavy Engineering (Dirty profile -> 5 items routed to Partner Triage)
+ * Client 2: Pratwi Solutions (Dirty profile -> 5 items routed to Partner Triage)
  */
 export function getSampleAssemblyProfiles(): ClientAssemblyProfile[] {
   // 1. Pratwi Solutions Private Limited (Clean profile)
@@ -243,9 +243,9 @@ export function getSampleAssemblyProfiles(): ClientAssemblyProfile[] {
   );
 
   const pratwiProfile: ClientAssemblyProfile = {
-    clientId: "client-pratwi",
+    clientId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
     clientName: "Pratwi Solutions Private Limited",
-    gstin: "27AABCP1234F1Z8",
+    gstin: "09AANCP9915B1Z4",
     period: "October 2026",
     isCleanProfile: true,
     matchPercentage: 100,
@@ -293,152 +293,11 @@ export function getSampleAssemblyProfiles(): ClientAssemblyProfile[] {
       "[10:14:00] Profile classified as 100% CLEAN. Automated Client WhatsApp Sign-off card dispatched.",
     ],
     whatsappSignOffPayload: {
-      recipientMobile: "+91 98201 12345",
+      recipientMobile: "+91 80771 70715",
       messageText: "Hi Pratwi Solutions, your GSTR-3B for October 2026 has been autonomously audited and 100% reconciled against GSTR-2B. Net tax payable: ₹95,000. Review and sign off: https://firm.tax/sign/pratwi-oct-2026",
       quickActionUrl: "/client?tab=gst-approvals&doc=gstr3b-oct-2026",
     },
-  };
-
-  // 2. Apex Heavy Engineering Ltd (Dirty profile with 5 exceptions)
-  const apexExceptions: GstExceptionItem[] = [
-    {
-      id: "exc-001",
-      clientId: "client-apex",
-      clientName: "Apex Heavy Engineering Ltd",
-      invoiceNumber: "SC/26-27/0889",
-      invoiceDate: "2026-10-14",
-      vendorGstin: "27AAACS4412K1Z9",
-      vendorName: "Steel Craft Fabricators Pvt Ltd",
-      taxableAmount: 480000,
-      taxAmount: 86400,
-      exceptionCategory: "MISSING_IN_2B",
-      riskScore: 92,
-      suggestedAction: "Hold payment & issue Section 16(2)(c) WhatsApp recovery notice to vendor.",
-      statutoryReference: "Section 16(2)(aa) of CGST Act, 2017",
-      status: "PENDING_JUDGMENT",
-    },
-    {
-      id: "exc-002",
-      clientId: "client-apex",
-      clientName: "Apex Heavy Engineering Ltd",
-      invoiceNumber: "UBER/INV/99412",
-      invoiceDate: "2026-10-21",
-      vendorGstin: "27AABCU1844G1ZM",
-      vendorName: "Uber India Technology Pvt Ltd",
-      taxableAmount: 18500,
-      taxAmount: 3330,
-      exceptionCategory: "SECTION_17_5_BLOCKED",
-      riskScore: 85,
-      suggestedAction: "Block ITC u/s 17(5)(a) and shift to Table 4(D)(1) Ineligible.",
-      statutoryReference: "Section 17(5)(b)(i) of CGST Act (Passenger Travel)",
-      status: "PENDING_JUDGMENT",
-    },
-    {
-      id: "exc-003",
-      clientId: "client-apex",
-      clientName: "Apex Heavy Engineering Ltd",
-      invoiceNumber: "VK/OCT/112",
-      invoiceDate: "2026-10-08",
-      vendorGstin: "27AABCV8814F1Z1",
-      vendorName: "VK Industrial Paints & Coatings",
-      taxableAmount: 125000,
-      taxAmount: 22500,
-      exceptionCategory: "INACTIVE_VENDOR",
-      riskScore: 95,
-      suggestedAction: "Vendor GSTIN cancelled on 2026-09-30. Block credit and alert client management.",
-      statutoryReference: "Section 16(2)(c) proviso — Cancelled Supplier",
-      status: "PENDING_JUDGMENT",
-    },
-    {
-      id: "exc-004",
-      clientId: "client-apex",
-      clientName: "Apex Heavy Engineering Ltd",
-      invoiceNumber: "ELE/2026/512",
-      invoiceDate: "2026-10-18",
-      vendorGstin: "27AAACE5521L1Z0",
-      vendorName: "ElectroTech Power Sub-assemblies",
-      taxableAmount: 340000,
-      taxAmount: 61200, // Books recorded 18% (₹61,200), 2B shows 12% (₹40,800)
-      exceptionCategory: "VALUE_OR_RATE_MISMATCH",
-      riskScore: 78,
-      suggestedAction: "Rate mismatch: Books recorded 18% (₹61.2k), GSTR-2B shows 12% (₹40.8k).",
-      statutoryReference: "Table 4(A)(5) rate divergence",
-      status: "PENDING_JUDGMENT",
-    },
-    {
-      id: "exc-005",
-      clientId: "client-apex",
-      clientName: "Apex Heavy Engineering Ltd",
-      invoiceNumber: "BANK-DR-261019",
-      invoiceDate: "2026-10-25",
-      vendorGstin: "UNKNOWN_GSTIN",
-      vendorName: "Unmatched Bank Debit — RTGS Outflow",
-      taxableAmount: 150000,
-      taxAmount: 27000,
-      exceptionCategory: "UNMATCHED_BANK_DEBIT",
-      riskScore: 65,
-      suggestedAction: "Bank statement debit ₹1,77,000 without matching GST purchase bill.",
-      statutoryReference: "Forensic Bank Statement Reconciler",
-      status: "PENDING_JUDGMENT",
-    },
-  ];
-
-  const apexOffset = calculateGstr3bRule88AOffset(
-    480000, 310000, 310000, // Output: IGST 4.8L, CGST 3.1L, SGST 3.1L
-    320000, 240000, 240000  // Input: IGST 3.2L, CGST 2.4L, SGST 2.4L (provisional before triage)
-  );
-
-  const apexProfile: ClientAssemblyProfile = {
-    clientId: "client-apex",
-    clientName: "Apex Heavy Engineering Ltd",
-    gstin: "27AAACA9921E1Z4",
-    period: "October 2026",
-    isCleanProfile: false,
-    matchPercentage: 86.4,
-    totalInvoicesCount: 112,
-    matchedInvoicesCount: 107,
-    exceptionsCount: 5,
-    pipelineStage: "GSTR2B_MATCH",
-    status: "NEEDS_PARTNER_TRIAGE",
-    computation: {
-      period: "October 2026",
-      outwardTaxableSupplies: 7800000,
-      outwardIgst: 480000,
-      outwardCgst: 310000,
-      outwardSgst: 310000,
-      rcmTaxableSupplies: 45000,
-      rcmIgst: 8100,
-      rcmCgst: 0,
-      rcmSgst: 0,
-      totalOutputTax: 1108100,
-      totalGrossItcIgst: 320000,
-      totalGrossItcCgst: 240000,
-      totalGrossItcSgst: 240000,
-      rule42ReversalIgst: 4200,
-      rule42ReversalCgst: 3150,
-      rule42ReversalSgst: 3150,
-      ineligible17_5Igst: 0,
-      ineligible17_5Cgst: 0,
-      ineligible17_5Sgst: 0,
-      netEligibleItcIgst: 315800,
-      netEligibleItcCgst: 236850,
-      netEligibleItcSgst: 236850,
-      offset: apexOffset,
-      section47LateFee: 0,
-      section50Interest: 0,
-      totalChallanPayable: apexOffset.totalCashPayable,
-    },
-    exceptions: apexExceptions,
-    auditLog: [
-      "[09:40:12] WhatsApp Ingestion Agent received 112 purchase bills & bank statements.",
-      "[09:42:30] Bank OCR engine validated 48 vendor payments, but flagged 1 unmatched debit.",
-      "[09:44:10] GSTR-2B Matcher ran: 107 matched, 5 high-risk exceptions quarantined.",
-      "[09:44:35] Profile classified as DIRTY / EXCEPTION RISK. Auto-dispatch halted.",
-      "[09:44:40] Routed to Exception-Only Partner Triage Desk for human judgment.",
-    ],
-  };
-
-  return [pratwiProfile, apexProfile];
+  };  return [pratwiProfile];
 }
 
 /**

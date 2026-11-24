@@ -4,7 +4,7 @@ import { Caro2020Engine, DEFAULT_CARO_2020_CLAUSES } from "@/lib/schedule3/caro2
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const clientName = searchParams.get("clientName") || "Apex AutoTech Private Limited";
+    const clientName = searchParams.get("clientName") || "Pratwi Solutions Private Limited";
     const cin = searchParams.get("cin") || "U29100MP2015PTC034120";
     const fy = searchParams.get("fy") || "FY 2025-26";
     const ay = searchParams.get("ay") || "AY 2026-27";
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      clientName = "Apex AutoTech Private Limited",
+      clientName = "Pratwi Solutions Private Limited",
       cin = "U29100MP2015PTC034120",
       fy = "FY 2025-26",
       ay = "AY 2026-27",

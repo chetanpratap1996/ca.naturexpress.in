@@ -90,11 +90,11 @@ export class Dir3KycGuardianEngine {
 
 export const SAMPLE_DIRECTOR_KYC_DATA: DirectorKycItem[] = [
   {
-    din: '08910241',
-    directorName: 'Rahul Vikram Sharma',
-    pan: 'BNZPA4912K',
-    mobile: '+91 98260 11921',
-    email: 'rahul.sharma@pratwi.com',
+    din: '10807715',
+    directorName: 'Chetan Pratap Singh',
+    pan: 'AANCP9915B',
+    mobile: '+91 80771 70715',
+    email: 'chetan@pratwisolutions.com',
     kycMode: 'WEB_KYC_OTP',
     hasDemographicChanges: false,
     kycFilingDeadline: '2026-09-30',
@@ -103,48 +103,9 @@ export const SAMPLE_DIRECTOR_KYC_DATA: DirectorKycItem[] = [
     lateFeeExposureInr: 0,
     isDeactivated: false,
     crossDirectorshipCompanies: [
-      { cin: 'U72200MP2020PTC051234', companyName: 'Pratwi Solutions Private Limited', isListed: false },
-      { cin: 'U29100MP2018PTC049210', companyName: 'Apex Machinery Distributors Pvt Ltd', isListed: false }
+      { cin: 'U72900UP2026PTC199821', companyName: 'Pratwi Solutions Private Limited', isListed: false }
     ],
     otpMagicLinkSent: true,
     lastKycFiledDate: '2026-08-14'
-  },
-  {
-    din: '07192842',
-    directorName: 'Dr. Anand Kumar Verma',
-    pan: 'AVKPV9182M',
-    mobile: '+91 98201 44102',
-    email: 'anand.verma@diagnostics.in',
-    kycMode: 'EFORM_DIR3_KYC_DSC', // Address changed -> eForm with DSC required!
-    hasDemographicChanges: true,
-    kycFilingDeadline: '2026-09-30',
-    kycStatus: 'DEACTIVATED_NON_FILING', // Past 30th Sep deadline!
-    daysUntilExpiry: -51,
-    lateFeeExposureInr: 5000,
-    isDeactivated: true,
-    crossDirectorshipCompanies: [
-      { cin: 'U85110MH2016PTC081294', companyName: 'Narmada Healthcare Diagnostics Pvt Ltd', isListed: false }
-    ],
-    otpMagicLinkSent: true,
-    lastKycFiledDate: '2025-09-20'
-  },
-  {
-    din: '09124810',
-    directorName: 'Priya Narang',
-    pan: 'CPZPS1829L',
-    mobile: '+91 98260 88210',
-    email: 'priya.narang@pratwi.com',
-    kycMode: 'WEB_KYC_OTP',
-    hasDemographicChanges: false,
-    kycFilingDeadline: '2026-09-30',
-    kycStatus: 'COMPLIANT_ACTIVE',
-    daysUntilExpiry: 0,
-    lateFeeExposureInr: 0,
-    isDeactivated: false,
-    crossDirectorshipCompanies: [
-      { cin: 'U72200MP2020PTC051234', companyName: 'Pratwi Solutions Private Limited', isListed: false }
-    ],
-    otpMagicLinkSent: true,
-    lastKycFiledDate: '2026-09-10'
   }
 ];

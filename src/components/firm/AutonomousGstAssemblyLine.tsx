@@ -39,7 +39,7 @@ import {
 
 export const AutonomousGstAssemblyLine: React.FC = () => {
   const [profiles, setProfiles] = useState<ClientAssemblyProfile[]>(() => getSampleAssemblyProfiles());
-  const [selectedClientId, setSelectedClientId] = useState<string>("client-apex");
+  const [selectedClientId, setSelectedClientId] = useState<string>("client-pratwi");
   const [activeTab, setActiveTab] = useState<"pipeline" | "triage" | "computation">("triage");
   const [triageFilter, setTriageFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");

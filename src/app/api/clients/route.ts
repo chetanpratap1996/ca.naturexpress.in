@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { getPostgresPool } from "@/lib/server/postgres";
 import { ClientEntity } from "@/lib/types";
 import { isValidPan, isValidGstin } from "@/lib/utils";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
@@ -108,32 +109,35 @@ export async function POST(req: Request) {
       db.firmMetrics.activeEntities = db.clients.length;
       await saveDatabase(db);
 
-      // Bi-Directional Supabase Sync for Batch Import
-      if (isSupabaseConfigured() && inserted.length > 0) {
-        try {
-          const { data: firms } = await supabase.from("firms").select("id").limit(1);
-          const firmId = firms?.[0]?.id;
-          if (firmId) {
-            for (const item of inserted) {
-              await supabase.from("client_entities").upsert({
-                firm_id: firmId,
-                entity_name: item.name,
-                type: item.type,
-                pan: item.pan,
-                gstin: item.gstin || null,
-                cin: item.cin || null,
-                turnover_cr: item.turnoverCr,
-                incorporation_year: item.incorporationYear,
-                primary_contact_name: item.primaryContact?.name,
-                primary_contact_phone: item.primaryContact?.phone,
-                primary_contact_email: item.primaryContact?.email,
-                primary_contact_designation: item.primaryContact?.designation,
-              }, { onConflict: "pan" });
-            }
+      // Direct PostgreSQL Superuser Sync for Batch Import
+      try {
+        const pool = getPostgresPool();
+        const firmRes = await pool.query("SELECT id FROM firms LIMIT 1");
+        const firmId = firmRes.rows[0]?.id;
+        if (firmId && inserted.length > 0) {
+          for (const item of inserted) {
+            await pool.query(
+              `INSERT INTO client_entities (
+                 firm_id, entity_name, type, pan, gstin, cin, turnover_cr, incorporation_year,
+                 primary_contact_name, primary_contact_phone, primary_contact_email, primary_contact_designation
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+               ON CONFLICT (pan) DO UPDATE SET
+                 entity_name = EXCLUDED.entity_name,
+                 gstin = EXCLUDED.gstin,
+                 cin = EXCLUDED.cin,
+                 turnover_cr = EXCLUDED.turnover_cr,
+                 primary_contact_name = EXCLUDED.primary_contact_name,
+                 primary_contact_phone = EXCLUDED.primary_contact_phone,
+                 primary_contact_email = EXCLUDED.primary_contact_email`,
+              [
+                firmId, item.name, item.type, item.pan, item.gstin || null, item.cin || null, item.turnoverCr, item.incorporationYear,
+                item.primaryContact?.name, item.primaryContact?.phone, item.primaryContact?.email, item.primaryContact?.designation
+              ]
+            );
           }
-        } catch (sbErr) {
-          console.warn("Supabase batch client sync warning:", sbErr);
         }
+      } catch (pgErr) {
+        console.warn("Postgres batch client sync warning:", pgErr);
       }
 
       await logAuditEvent(
@@ -217,80 +221,77 @@ export async function POST(req: Request) {
       paidUpCapitalCr: body.paidUpCapitalCr || undefined,
     };
 
-    // 1. Persist to Supabase PostgreSQL Cloud if connected
-    if (isSupabaseConfigured()) {
-      try {
-        const { data: firms } = await supabase.from("firms").select("id").limit(1);
-        const firmId = firms?.[0]?.id;
+    // 1. Persist directly to Supabase PostgreSQL Cloud (Direct Superuser Connection)
+    try {
+      const pool = getPostgresPool();
+      const firmRes = await pool.query("SELECT id FROM firms LIMIT 1");
+      const firmId = firmRes.rows[0]?.id;
 
-        if (firmId) {
-          let targetGroupId: string | null = null;
+      if (firmId) {
+        let targetGroupId: string | null = null;
 
-          if (body.groupId) {
-            const { data: gById } = await supabase
-              .from("client_groups")
-              .select("id")
-              .eq("id", body.groupId)
-              .maybeSingle();
-            if (gById?.id) targetGroupId = gById.id;
-          }
-
-          if (!targetGroupId && groupName) {
-            const { data: gByName } = await supabase
-              .from("client_groups")
-              .select("id")
-              .eq("firm_id", firmId)
-              .ilike("group_name", groupName)
-              .maybeSingle();
-            if (gByName?.id) targetGroupId = gByName.id;
-          }
-
-          if (!targetGroupId) {
-            const { data: insertedGroup } = await supabase
-              .from("client_groups")
-              .insert({
-                firm_id: firmId,
-                group_name: groupName,
-                promoter_name: newClient.primaryContact.name,
-                promoter_phone: newClient.primaryContact.phone,
-                promoter_email: newClient.primaryContact.email,
-                unbilled_wip_total: 0,
-                overdue_fees_total: 0,
-              })
-              .select("id")
-              .single();
-
-            if (insertedGroup) targetGroupId = insertedGroup.id;
-          }
-
-          const { data: insertedClient, error: clientErr } = await supabase
-            .from("client_entities")
-            .insert({
-              firm_id: firmId,
-              group_id: targetGroupId,
-              entity_name: newClient.name,
-              type: newClient.type,
-              pan: newClient.pan,
-              gstin: newClient.gstin || null,
-              cin: newClient.cin || null,
-              turnover_cr: newClient.turnoverCr,
-              incorporation_year: newClient.incorporationYear,
-              primary_contact_name: newClient.primaryContact.name,
-              primary_contact_phone: newClient.primaryContact.phone,
-              primary_contact_email: newClient.primaryContact.email,
-              primary_contact_designation: newClient.primaryContact.designation,
-            })
-            .select("id")
-            .single();
-
-          if (insertedClient?.id) {
-            newClient.id = insertedClient.id;
-            if (targetGroupId) newClient.groupId = targetGroupId;
-          }
+        if (body.groupId) {
+          const gById = await pool.query("SELECT id FROM client_groups WHERE id = $1 LIMIT 1", [body.groupId]);
+          if (gById.rows[0]?.id) targetGroupId = gById.rows[0].id;
         }
-      } catch (sbError) {
-        console.warn("Supabase single client onboarding error (continuing with atomic local fallback):", sbError);
+
+        if (!targetGroupId && groupName) {
+          const gByName = await pool.query(
+            "SELECT id FROM client_groups WHERE firm_id = $1 AND LOWER(group_name) = LOWER($2) LIMIT 1",
+            [firmId, groupName]
+          );
+          if (gByName.rows[0]?.id) targetGroupId = gByName.rows[0].id;
+        }
+
+        if (!targetGroupId) {
+          const insertedGroup = await pool.query(
+            `INSERT INTO client_groups (
+               firm_id, group_name, promoter_name, promoter_phone, promoter_email, unbilled_wip_total, overdue_fees_total
+             ) VALUES ($1, $2, $3, $4, $5, 0, 0) RETURNING id`,
+            [firmId, groupName, newClient.primaryContact.name, newClient.primaryContact.phone, newClient.primaryContact.email]
+          );
+          if (insertedGroup.rows[0]?.id) targetGroupId = insertedGroup.rows[0].id;
+        }
+
+        const insertedClient = await pool.query(
+          `INSERT INTO client_entities (
+             firm_id, group_id, entity_name, type, pan, gstin, cin, turnover_cr,
+             incorporation_year, primary_contact_name, primary_contact_phone, primary_contact_email, primary_contact_designation
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           ON CONFLICT (pan) DO UPDATE SET
+             entity_name = EXCLUDED.entity_name,
+             gstin = EXCLUDED.gstin,
+             cin = EXCLUDED.cin,
+             turnover_cr = EXCLUDED.turnover_cr,
+             primary_contact_name = EXCLUDED.primary_contact_name,
+             primary_contact_phone = EXCLUDED.primary_contact_phone,
+             primary_contact_email = EXCLUDED.primary_contact_email,
+             primary_contact_designation = EXCLUDED.primary_contact_designation
+           RETURNING id`,
+          [
+            firmId,
+            targetGroupId,
+            newClient.name,
+            newClient.type,
+            newClient.pan,
+            newClient.gstin || null,
+            newClient.cin || null,
+            newClient.turnoverCr,
+            newClient.incorporationYear,
+            newClient.primaryContact.name,
+            newClient.primaryContact.phone,
+            newClient.primaryContact.email,
+            newClient.primaryContact.designation,
+          ]
+        );
+
+        if (insertedClient.rows[0]?.id) {
+          newClient.id = insertedClient.rows[0].id;
+          if (targetGroupId) newClient.groupId = targetGroupId;
+        }
       }
+    } catch (pgError) {
+      console.warn("Postgres single client onboarding warning:", pgError);
     }
 
     // 2. Persist to local JSON DB
@@ -304,6 +305,37 @@ export async function POST(req: Request) {
     if (!hasExistingTasks) {
       const clientTasks = generateStatutoryTasksForClient(newClient);
       db.tasks.push(...clientTasks);
+
+      // Persist generated statutory tasks to Supabase PostgreSQL
+      try {
+        const pool = getPostgresPool();
+        const firmRes = await pool.query("SELECT id FROM firms LIMIT 1");
+        const firmId = firmRes.rows[0]?.id;
+        if (firmId && newClient.id) {
+          for (const t of clientTasks) {
+            await pool.query(
+              `INSERT INTO compliance_tasks (
+                 firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+               ON CONFLICT DO NOTHING`,
+              [
+                firmId,
+                newClient.id,
+                t.category,
+                t.title,
+                t.period,
+                t.dueDate,
+                t.status,
+                t.priority,
+                t.penaltyRisk,
+                t.accruingDailyPenalty,
+              ]
+            ).catch(() => {});
+          }
+        }
+      } catch (taskErr) {
+        console.warn("Postgres statutory tasks insert warning:", taskErr);
+      }
     }
 
     const groupIndex = db.groups.findIndex((g) => g.id === newClient.groupId);
@@ -374,25 +406,22 @@ export async function PATCH(req: Request) {
     db.clients[idx] = updated;
     await saveDatabase(db);
 
-    // Bi-Directional Supabase update
-    if (isSupabaseConfigured()) {
-      try {
-        await supabase
-          .from("client_entities")
-          .update({
-            entity_name: updated.name,
-            type: updated.type,
-            pan: updated.pan,
-            gstin: updated.gstin || null,
-            turnover_cr: updated.turnoverCr,
-            primary_contact_name: updated.primaryContact.name,
-            primary_contact_phone: updated.primaryContact.phone,
-            primary_contact_email: updated.primaryContact.email,
-          })
-          .or(`id.eq.${clientId},pan.eq.${updated.pan}`);
-      } catch (sbErr) {
-        console.warn("Supabase client patch warning:", sbErr);
-      }
+    // Direct PostgreSQL update
+    try {
+      const pool = getPostgresPool();
+      await pool.query(
+        `UPDATE client_entities SET
+           entity_name = $1, type = $2, pan = $3, gstin = $4, turnover_cr = $5,
+           primary_contact_name = $6, primary_contact_phone = $7, primary_contact_email = $8
+         WHERE id::text = $9 OR pan = $3`,
+        [
+          updated.name, updated.type, updated.pan, updated.gstin || null, updated.turnoverCr,
+          updated.primaryContact.name, updated.primaryContact.phone, updated.primaryContact.email,
+          clientId
+        ]
+      );
+    } catch (pgErr) {
+      console.warn("Postgres client patch warning:", pgErr);
     }
 
     await logAuditEvent(
@@ -429,16 +458,13 @@ export async function DELETE(req: Request) {
     db.firmMetrics.activeEntities = db.clients.length;
     await saveDatabase(db);
 
-    // Bi-Directional Supabase delete
-    if (isSupabaseConfigured()) {
-      try {
-        await supabase
-          .from("client_entities")
-          .delete()
-          .or(`id.eq.${clientId},pan.eq.${removed.pan}`);
-      } catch (sbErr) {
-        console.warn("Supabase client delete warning:", sbErr);
-      }
+    // Direct PostgreSQL delete
+    try {
+      const pool = getPostgresPool();
+      await pool.query("DELETE FROM compliance_tasks WHERE entity_id::text = $1", [clientId]);
+      await pool.query("DELETE FROM client_entities WHERE id::text = $1 OR pan = $2", [clientId, removed.pan]);
+    } catch (pgErr) {
+      console.warn("Postgres client delete warning:", pgErr);
     }
 
     await logAuditEvent(

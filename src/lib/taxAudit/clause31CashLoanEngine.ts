@@ -98,42 +98,12 @@ export class Clause31CashLoanEngine {
 export const SAMPLE_CLAUSE_31_DATA = Clause31CashLoanEngine.analyzeCashTransactions([
   {
     id: '31-01',
-    partyName: 'Shri Rameshwar Dayal Agrawal (Director Relative)',
-    partyPan: 'AAHCA1290K',
-    partyAddress: '14, Snehalataganj, Indore (M.P.)',
-    transactionType: 'TAKEN_269SS',
-    modeOfPayment: 'CASH',
-    transactionDate: '2026-06-18',
-    amount: 150000
-  },
-  {
-    id: '31-02',
-    partyName: 'M/s Narmada Cottons Partnership Firm',
-    partyPan: 'AABFN8812M',
-    partyAddress: 'Khandwa Road, Sanawad (M.P.)',
-    transactionType: 'REPAID_269T',
-    modeOfPayment: 'CASH',
-    transactionDate: '2026-09-12',
-    amount: 85000
-  },
-  {
-    id: '31-03',
-    partyName: 'Apex Machinery Financiers',
-    partyPan: 'AAACF9021R',
-    partyAddress: 'Apollo Tower, MG Road, Indore',
+    partyName: 'HDFC Bank Ltd — Cash Credit Facility',
+    partyPan: 'AAACH1244K',
+    partyAddress: 'Corporate Banking Branch, Noida',
     transactionType: 'REPAID_269T',
     modeOfPayment: 'ELECTRONIC_NEFT_RTGS',
     transactionDate: '2026-10-05',
-    amount: 1250000
-  },
-  {
-    id: '31-04',
-    partyName: 'Shri Kailash Chand Sharma (Agriculturalist)',
-    partyPan: 'AAHCS8821P',
-    partyAddress: 'Gram Depalpur, Dist. Indore',
-    transactionType: 'TAKEN_269SS',
-    modeOfPayment: 'BEARER_CHEQUE',
-    transactionDate: '2026-08-22',
-    amount: 50000
+    amount: 500000
   }
 ]);

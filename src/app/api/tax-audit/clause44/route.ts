@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const pan = searchParams.get("pan") || "AABCA8891D";
-    const assesseeName = searchParams.get("name") || "Apex AutoTech Private Limited";
+    const assesseeName = searchParams.get("name") || "Pratwi Solutions Private Limited";
     const fy = searchParams.get("fy") || "FY 2025-26";
     const ay = searchParams.get("ay") || "AY 2026-27";
 

@@ -3,174 +3,90 @@ import { ensureDatabase, saveDatabase, createNotification } from "@/lib/server/d
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { NotificationItem } from "@/lib/types";
 
-// Standard Practice Default Notifications (Clean, realistic statutory alerts)
+// Standard Practice Default Notifications (Clean, verified statutory alerts for registered firm clients)
 const STANDARD_PARTNER_NOTIFICATIONS: NotificationItem[] = [
   {
-    id: "notif-gstr3b-apex",
+    id: "notif-gstr1-pratwi",
     recipientRole: "PARTNER",
-    title: "Statutory Deadline (<72h): GSTR-3B Monthly Filing",
-    message: "Apex AutoTech Private Limited monthly GSTR-3B return is due on 20-Oct-2026. Action required to avoid Section 47 late fees and 18% interest.",
+    title: "Statutory Deadline: GSTR-1 Monthly Outward Supplies",
+    message: "Pratwi Solutions Private Limited (GSTIN: 09AANCP9915B1Z4) GSTR-1 return filing scheduled. Sales register mapped under Rule 59(6) compliance protocol.",
     category: "COMPLIANCE",
-    priority: "CRITICAL",
+    priority: "HIGH",
     targetTab: "gst-filing",
     actionUrl: "gst-filing",
     isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
     metadata: { 
-      clientName: "Apex AutoTech Private Limited", 
-      clientPhone: "+919820011223",
-      entityId: "client-apex",
-      statutoryAct: "Section 39 / Rule 88B",
-      actionLabel: "Review & File (GSTR-3B)",
-      demandOrAmount: "₹1,55,800 Net Tax",
-      badgeText: "Due in 48h"
+      clientName: "Pratwi Solutions Private Limited", 
+      clientPhone: "+91 80771 70715",
+      entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+      statutoryAct: "CGST Section 37 / Rule 59",
+      actionLabel: "Review & File GSTR-1",
+      demandOrAmount: "₹0 Penalty",
+      badgeText: "Compliant"
     }
   },
   {
-    id: "notif-notice-omni",
+    id: "notif-gstr3b-pratwi",
     recipientRole: "PARTNER",
-    title: "Statutory Scrutiny Notice: Section 148 Reassessment",
-    message: "OmniRetail Hypermarkets Private Limited received reassessment notice from NFAC (Demand: ₹42,50,000). Statutory reply limitation ends in 19 days.",
-    category: "NOTICE",
-    priority: "CRITICAL",
-    targetTab: "notices",
-    actionUrl: "notices",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    metadata: { 
-      clientName: "OmniRetail Hypermarkets Private Limited", 
-      clientPhone: "+919811022334",
-      entityId: "client-omni",
-      statutoryAct: "NFAC Section 148 Reassessment",
-      actionLabel: "Open Defense Dossier",
-      demandOrAmount: "₹42,50,000 Exposure",
-      badgeText: "19 Days Left"
-    }
-  },
-  {
-    id: "notif-pay-pratwi",
-    recipientRole: "PARTNER",
-    title: "Fee Payment Reconciled: ₹59,000 (UPI)",
-    message: "Pratwi Solutions Private Limited settled Invoice #GPA/2026-27/098 via UPI (UTR: AUTOUPI982341982). Pay-to-Release fee gate automatically unlocked deliverables.",
-    category: "BILLING",
+    title: "Statutory Compliance: GSTR-3B Return & ITC Match",
+    message: "Pratwi Solutions Private Limited monthly GSTR-3B summary and GSTR-2B Input Tax Credit reconciliation prepared by Kriti Jain.",
+    category: "COMPLIANCE",
     priority: "HIGH",
-    targetTab: "billing-matrix",
-    actionUrl: "billing-matrix",
+    targetTab: "gst-filing",
+    actionUrl: "gst-filing",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
     metadata: { 
       clientName: "Pratwi Solutions Private Limited", 
-      clientPhone: "+919920033445",
-      entityId: "client-pratwi",
-      statutoryAct: "MSME 43B(h) / Pay-to-Release",
-      actionLabel: "Unlock Deliverables",
-      demandOrAmount: "₹59,000 Settled",
-      badgeText: "UTR Matched"
+      clientPhone: "+91 80771 70715",
+      entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+      statutoryAct: "CGST Section 39 / Rule 61",
+      actionLabel: "Review GSTR-3B",
+      demandOrAmount: "ITC Reconciled",
+      badgeText: "On Track"
     }
   },
   {
-    id: "notif-stmt-singhal",
+    id: "notif-tds-pratwi",
     recipientRole: "PARTNER",
-    title: "Inbound Document Vaulted: HDFC Bank Statement",
-    message: "Singhal Logistics uploaded encrypted statement via WhatsApp. Automatically decrypted using Entity DNA; 8 vouchers mapped and ready for Tally sync.",
-    category: "DOCUMENT",
-    priority: "NORMAL",
-    targetTab: "bank-parser",
-    actionUrl: "bank-parser",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    metadata: { 
-      clientName: "Singhal Logistics & Warehousing", 
-      clientPhone: "+919730044556",
-      entityId: "client-singhal",
-      statutoryAct: "WhatsApp AI / Tally XML Bridge",
-      actionLabel: "Review & Post to Tally",
-      demandOrAmount: "8 Vouchers Ready",
-      badgeText: "Auto-Decrypted"
-    }
-  },
-  {
-    id: "notif-audit-apex",
-    recipientRole: "PARTNER",
-    title: "Tax Audit u/s 44AB: Form 3CD Workpapers Ready",
-    message: "Form 3CD final certification for Apex AutoTech Private Limited is prepared. Awaiting Partner digital sign-off and 60-day UDIN registration.",
+    title: "TDS Deposit Advice: Challan 281 Deposit",
+    message: "Monthly TDS deduction advice u/s 200(1) verified for Pratwi Solutions Private Limited. Deposit slip ready for review.",
     category: "COMPLIANCE",
-    priority: "HIGH",
-    targetTab: "itr-matrix",
-    actionUrl: "itr-matrix",
+    priority: "NORMAL",
+    targetTab: "tasks",
+    actionUrl: "tasks",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
     metadata: { 
-      clientName: "Apex AutoTech Private Limited", 
-      clientPhone: "+919820011223",
-      entityId: "client-apex",
-      statutoryAct: "Section 44AB / Form 3CD",
-      actionLabel: "Audit Form 3CD",
-      demandOrAmount: "₹34,200 Tax Saved",
-      badgeText: "Awaiting Sign-off"
+      clientName: "Pratwi Solutions Private Limited", 
+      clientPhone: "+91 80771 70715",
+      entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+      statutoryAct: "Income Tax Section 200(1)",
+      actionLabel: "View Challan",
+      demandOrAmount: "Challan 281",
+      badgeText: "Due 07th"
     }
   },
   {
-    id: "notif-udin-apex",
+    id: "notif-dsc-pratwi",
     recipientRole: "PARTNER",
-    title: "UDIN 60-Day Mandate: Form 3CD Certification",
-    message: "Form 3CD for Apex AutoTech was signed 52 days ago. Only 8 days remaining to register UDIN on ICAI portal before statutory non-compliance.",
-    category: "UDIN",
-    priority: "HIGH",
-    targetTab: "udin-vault",
-    actionUrl: "udin-vault",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    metadata: { 
-      clientName: "Apex AutoTech Private Limited", 
-      clientPhone: "+919820011223",
-      entityId: "client-apex",
-      statutoryAct: "ICAI SQC-1 / UDIN 60-Day Mandate",
-      actionLabel: "Generate UDIN",
-      demandOrAmount: "8 Days Remaining",
-      badgeText: "Mandate Risk"
-    }
-  },
-  {
-    id: "notif-dsc-apex",
-    recipientRole: "PARTNER",
-    title: "DSC Token Expiry Alert: Director Rajesh Sharma",
-    message: "Class 3 USB DSC token for Director Rajesh Sharma (Apex AutoTech) expires in 18 days. Physical token custody safe requires renewal to prevent MCA lockout.",
+    title: "DSC Token Vault: Chetan Pratap Singh (Director)",
+    message: "Class 3 USB DSC hardware token for Director Chetan Pratap Singh verified in office custody safe (Locker A-01). Status active and compliant.",
     category: "SECURITY",
-    priority: "HIGH",
+    priority: "NORMAL",
     targetTab: "dsc",
     actionUrl: "dsc",
     isRead: false,
     createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
     metadata: { 
-      clientName: "Apex AutoTech Private Limited", 
-      clientPhone: "+919820011223",
-      entityId: "client-apex",
-      statutoryAct: "MCA V3 / Class 3 Hardware Token",
+      clientName: "Pratwi Solutions Private Limited", 
+      clientPhone: "+91 80771 70715",
+      entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+      statutoryAct: "MCA V3 / Class 3 Token",
       actionLabel: "Open DSC Vault",
-      demandOrAmount: "Locker Rack #4",
-      badgeText: "Expires in 18d"
-    }
-  },
-  {
-    id: "notif-notice-asmt10",
-    recipientRole: "PARTNER",
-    title: "GST Scrutiny Notice: Form ASMT-10 (DRC-01A)",
-    message: "Apex AutoTech Private Limited has an active DRC-01A ITC mismatch notice (Demand: ₹18,50,000). Statutory legal defense reply drafting in progress.",
-    category: "NOTICE",
-    priority: "HIGH",
-    targetTab: "notices",
-    actionUrl: "notices",
-    isRead: true,
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    metadata: { 
-      clientName: "Apex AutoTech Private Limited", 
-      clientPhone: "+919820011223",
-      entityId: "client-apex",
-      statutoryAct: "CGST Section 61 / Rule 99",
-      actionLabel: "Review Reply Draft",
-      demandOrAmount: "₹18,50,000 Exposure",
-      badgeText: "Under Review"
+      demandOrAmount: "Custody Safe A-01",
+      badgeText: "Active"
     }
   }
 ];
@@ -214,7 +130,7 @@ export async function GET(req: NextRequest) {
       let clientNotifs = notifications.filter((n) =>
         (n.recipientEntityId === targetClient.id || (isPratwi && (n.recipientEntityId === "client-pratwi" || n.recipientEntityId === "CLI-PRATWI-01"))) ||
         (n.recipientRole === "CLIENT" && (!n.recipientEntityId || n.recipientEntityId === targetClient.id || (isPratwi && (n.recipientEntityId === "client-pratwi" || n.recipientEntityId === "CLI-PRATWI-01")))) ||
-        (n.recipientRole === "ALL" && !n.message.toLowerCase().includes("apex autotech"))
+        (n.recipientRole === "ALL" )
       );
 
       // If no valid client notifications exist, seed realistic statutory compliance intimations

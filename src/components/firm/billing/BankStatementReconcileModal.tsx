@@ -47,18 +47,18 @@ export const BankStatementReconcileModal: React.FC<BankStatementReconcileModalPr
     {
       id: "icici_current",
       bankName: "ICICI Bank — Smart Business Current A/c",
-      description: "Direct client UPI and NEFT settlements for Apex AutoTech & Pratwi Solutions",
+      description: "Direct client UPI and NEFT settlements for Pratwi Solutions Private Limited",
       csv: `Transaction Date,Value Date,Cheque Number,Transaction Remarks,Withdrawal Amount (INR ),Deposit Amount (INR ),Balance (INR )
-24/10/2026,24/10/2026,,UPI/412389123012/DR/Apex AutoTech/ICIC/GPA-2026-27-089,,118000.00,529500.00
+24/10/2026,24/10/2026,,UPI/412389123012/DR/Pratwi Solutions/ICIC/GPA-2026-27-089,,118000.00,529500.00
 25/10/2026,25/10/2026,,NEFT-N10293847561-PRATWI SOLUTIONS-FEE INV 090,,76700.00,594500.00
-26/10/2026,26/10/2026,,IMPS/429182019283/DR/OmniRetail India/SBIN/INV-091,,59000.00,644500.00`
+26/10/2026,26/10/2026,,IMPS/429182019283/DR/Pratwi Solutions/SBIN/INV-091,,59000.00,644500.00`
     },
     {
       id: "hdfc_corporate",
       bankName: "HDFC Bank — Corporate CA Retainer A/c",
       description: "NEFT & RTGS bulk client settlements for statutory audit fees",
       csv: `Date,Narration,Chq./Ref.No.,Value Dt,Withdrawal Amt.,Deposit Amt.,Closing Balance
-24/10/2026,NEFT CR-HDFCN26102938475-ZENITH SAAS TECH-INV GPA 2026 27 092,HDFCN26102938475,24/10/2026,,41300.00,835000.00
+24/10/2026,NEFT CR-HDFCN26102938475-PRATWI SOLUTIONS-INV GPA 2026 27 092,HDFCN26102938475,24/10/2026,,41300.00,835000.00
 25/10/2026,RTGS CR-AXIR2026102500129-BHARAT AGRO-GPA/2026-27/093,AXIR2026102500129,25/10/2026,,97350.00,917500.00`
     },
     {
@@ -66,7 +66,7 @@ export const BankStatementReconcileModal: React.FC<BankStatementReconcileModalPr
       bankName: "State Bank of India — Current Account",
       description: "UPI receipts from corporate directors and SME clients",
       csv: `Txn Date,Value Date,Description,Ref No./Cheque No.,Debit,Credit,Balance
-24/10/2026,24/10/2026,TRANSFER FROM 501002391029 UPI/CR/519283746501/APEX LABS/SBIN/FEE-AUDIT,,0.00,45000.00,345000.00
+24/10/2026,24/10/2026,TRANSFER FROM 501002391029 UPI/CR/519283746501/PRATWI SOLUTIONS/SBIN/FEE-AUDIT,,0.00,45000.00,345000.00
 25/10/2026,25/10/2026,UPI/CR/519283746502/KAPOOR TEXTILE/BARB/TAX CONSULT,,0.00,25000.00,370000.00`
     }
   ];

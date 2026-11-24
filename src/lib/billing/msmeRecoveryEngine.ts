@@ -307,8 +307,8 @@ export const SAMPLE_MSME_OVERDUE_INVOICES: MsmeInvoiceEvaluation[] = [
   {
     invoiceId: "INV-2026-089",
     invoiceNo: "INV-2026-089",
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    clientName: "Pratwi Solutions Private Limited",
     pan: "AABCA8891D",
     amount: 118000,
     dueDate: "2026-09-30",

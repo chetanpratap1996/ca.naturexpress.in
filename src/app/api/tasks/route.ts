@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { getPostgresPool } from "@/lib/server/postgres";
 import { ComplianceTask, DocumentItem } from "@/lib/types";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
@@ -57,38 +58,40 @@ export async function POST(req: NextRequest) {
     db.tasks.unshift(newTask);
     await saveDatabase(db);
 
-    // Bi-Directional Supabase Cloud Sync
-    if (isSupabaseConfigured()) {
-      try {
-        const { data: firms } = await supabase.from("firms").select("id").limit(1);
-        const firmId = firms?.[0]?.id;
+    // Direct PostgreSQL Superuser Task Insert
+    try {
+      const pool = getPostgresPool();
+      const firmRes = await pool.query("SELECT id FROM firms LIMIT 1");
+      const firmId = firmRes.rows[0]?.id;
 
-        // Verify entity exists in Supabase
-        const { data: entityRow } = await supabase
-          .from("client_entities")
-          .select("id")
-          .or(`id.eq.${newTask.entityId},entity_name.ilike.${newTask.entityName}`)
-          .limit(1)
-          .maybeSingle();
+      // Verify entity exists in Supabase
+      const entityRes = await pool.query(
+        "SELECT id FROM client_entities WHERE id::text = $1 OR LOWER(entity_name) = LOWER($2) LIMIT 1",
+        [newTask.entityId, newTask.entityName]
+      );
+      const targetEntityId = entityRes.rows[0]?.id;
 
-        if (firmId && entityRow?.id) {
-          await supabase.from("compliance_tasks").insert({
-            firm_id: firmId,
-            entity_id: entityRow.id,
-            category: newTask.category,
-            title: newTask.title,
-            period: newTask.period,
-            due_date: newTask.dueDate,
-            status: newTask.status,
-            priority: newTask.priority,
-            penalty_risk: newTask.penaltyRisk,
-            accruing_daily_penalty: newTask.accruingDailyPenalty,
-            chase_count: 0
-          });
-        }
-      } catch (sbErr) {
-        console.warn("Supabase compliance task insert warning:", sbErr);
+      if (firmId && targetEntityId) {
+        await pool.query(
+          `INSERT INTO compliance_tasks (
+             firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty, chase_count
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)`,
+          [
+            firmId,
+            targetEntityId,
+            newTask.category,
+            newTask.title,
+            newTask.period,
+            newTask.dueDate,
+            newTask.status,
+            newTask.priority,
+            newTask.penaltyRisk,
+            newTask.accruingDailyPenalty,
+          ]
+        );
       }
+    } catch (pgErr) {
+      console.warn("Postgres compliance task insert warning:", pgErr);
     }
 
     await logAuditEvent(
@@ -241,30 +244,21 @@ export async function PATCH(req: NextRequest) {
       console.warn("Autopilot sweep error:", e);
     }
 
-    // Bi-directional Supabase update
-    if (isSupabaseConfigured()) {
-      try {
-        const updatePayload: Record<string, any> = {};
-        if (status) updatePayload.status = status;
-        if (officialUdin) {
-          updatePayload.official_udin = officialUdin;
-          updatePayload.udin_generated_at = new Date().toISOString();
-        }
-        if (chaseCount !== undefined) {
-          updatePayload.chase_count = chaseCount;
-          updatePayload.last_chase_at = new Date().toISOString();
-        }
-
-        if (Object.keys(updatePayload).length > 0) {
-          // Attempt update by UUID or title match
-          await supabase
-            .from("compliance_tasks")
-            .update(updatePayload)
-            .or(`id.eq.${taskId},title.eq.${currentTask.title}`);
-        }
-      } catch (sbErr) {
-        console.warn("Supabase compliance task update warning:", sbErr);
-      }
+    // Direct PostgreSQL Superuser Task Update
+    try {
+      const pool = getPostgresPool();
+      await pool.query(
+        `UPDATE compliance_tasks SET
+           status = COALESCE($1, status),
+           official_udin = COALESCE($2, official_udin),
+           udin_generated_at = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE udin_generated_at END,
+           chase_count = COALESCE($3, chase_count),
+           last_chase_at = CASE WHEN $3 IS NOT NULL THEN NOW() ELSE last_chase_at END
+         WHERE id::text = $4 OR title = $5`,
+        [status || null, officialUdin || null, chaseCount !== undefined ? chaseCount : null, taskId, currentTask.title]
+      );
+    } catch (pgErr) {
+      console.warn("Postgres compliance task update warning:", pgErr);
     }
 
     return NextResponse.json({ success: true, task: currentTask });

@@ -388,107 +388,84 @@ export class UniversalEntityDnaMesh {
   }
 }
 
-export const SAMPLE_CLIENT_DNA_APEX: ClientEntityDna = {
-  id: 'CLI-APEX-01',
-  legalName: 'Apex AutoTech Private Limited',
-  tradeName: 'Apex AutoTech Pithampur',
-  entityType: 'PVT_LTD',
-  pan: 'AABCA8891D',
-  gstin: '23AABCA8891D1Z2',
-  cin: 'U29100MP2015PTC034120',
-  tan: 'BPLR01928F',
-  registeredAddress: 'Plot No. 42-45, Sector 3, Industrial Area Pithampur, Dhar, Madhya Pradesh - 454775',
-  stateCode: '23',
-  stateName: 'Madhya Pradesh',
-  turnoverFy2526: 485000000, // ₹48.50 Crores
-  digitalTxnPct: 96.5,
-  primaryBank: {
-    bankName: 'HDFC Bank Limited (Industrial Finance Branch)',
-    accountNo: '50200019284019',
-    ifsc: 'HDFC0000123',
-    sanctionedLimit: 35000000, // ₹3.50 Crores Cash Credit
-    interestRateSpread: 1.85 // MCLR + 1.85%
-  },
-  directors: [
-    {
-      name: 'Rajesh Sharma',
-      din: '01928410',
-      pan: 'ABRPS1294K',
-      shareholdingPct: 52.5,
-      dir3KycStatus: 'COMPLIANT'
+export function clientEntityToDna(client: {
+  id: string;
+  name: string;
+  type?: string;
+  pan?: string;
+  gstin?: string;
+  cin?: string;
+  tan?: string;
+  turnoverCr?: number;
+  primaryContact?: { name: string; phone: string; email: string; designation?: string };
+}): ClientEntityDna {
+  const stateCode = client.gstin ? client.gstin.slice(0, 2) : "09";
+  const stateName = stateCode === "09" ? "Uttar Pradesh" : stateCode === "23" ? "Madhya Pradesh" : stateCode === "27" ? "Maharashtra" : "Delhi";
+  return {
+    id: client.id,
+    legalName: client.name,
+    tradeName: client.name,
+    entityType: ((client.type as any) || "PVT_LTD"),
+    pan: client.pan || "AANCP9915B",
+    gstin: client.gstin || "09AANCP9915B1Z4",
+    cin: client.cin || "U72900UP2026PTC199821",
+    tan: client.tan || "LKOP01824E",
+    registeredAddress: "Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh - 201301",
+    stateCode,
+    stateName,
+    turnoverFy2526: (client.turnoverCr || 1.5) * 10000000,
+    digitalTxnPct: 99.0,
+    primaryBank: {
+      bankName: "HDFC Bank (Noida Sector 62 Branch)",
+      accountNo: "50200080771707",
+      ifsc: "HDFC0001234",
+      sanctionedLimit: 15000000,
+      interestRateSpread: 1.5
     },
-    {
-      name: 'Pooja Sharma',
-      din: '06819204',
-      pan: 'AQEPS8192M',
-      shareholdingPct: 47.5,
-      dir3KycStatus: 'COMPLIANT'
-    }
-  ]
-};
+    directors: [
+      {
+        name: client.primaryContact?.name || "Chetan Pratap Singh",
+        din: "10982190",
+        pan: client.pan || "AANCP9915B",
+        shareholdingPct: 100,
+        dir3KycStatus: "COMPLIANT"
+      }
+    ]
+  };
+}
 
-export const SAMPLE_CLIENT_DNA_BRAINSTAXES: ClientEntityDna = {
-  id: 'CLI-BT-01',
-  legalName: 'Brains & Taxes Private Limited',
-  tradeName: 'Brains & Taxes',
+export const REAL_CLIENT_DNA_PRATWI: ClientEntityDna = {
+  id: 'ddd33056-b6dc-46ca-b145-cd111045aff7',
+  legalName: 'Pratwi Solutions Private Limited',
+  tradeName: 'Pratwi Solutions',
   entityType: 'PVT_LTD',
-  pan: 'AABCU9821F',
-  gstin: '23AABCU9821F1ZX',
-  cin: 'U74110MP2017PTC043716',
-  tan: 'BPLB01821C',
-  registeredAddress: 'Office No. 103, NM Verge, Y.N. Road, Indore, Madhya Pradesh - 452001',
-  stateCode: '23',
-  stateName: 'Madhya Pradesh',
-  turnoverFy2526: 100000000,
-  digitalTxnPct: 97.2,
+  pan: 'AANCP9915B',
+  gstin: '09AANCP9915B1Z4',
+  cin: 'U72900UP2026PTC199821',
+  tan: 'LKOP01824E',
+  registeredAddress: 'Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh - 201301',
+  stateCode: '09',
+  stateName: 'Uttar Pradesh',
+  turnoverFy2526: 15000000,
+  digitalTxnPct: 99.0,
   primaryBank: {
-    bankName: 'ICICI Bank (New Palasia, Indore)',
-    accountNo: '657005601799',
-    ifsc: 'ICIC0006570',
-    sanctionedLimit: 20000000,
-    interestRateSpread: 1.65
+    bankName: 'HDFC Bank (Noida Sector 62 Branch)',
+    accountNo: '50200080771707',
+    ifsc: 'HDFC0001234',
+    sanctionedLimit: 15000000,
+    interestRateSpread: 1.5
   },
   directors: [
     {
       name: 'Chetan Pratap Singh',
-      din: '19982101',
-      pan: 'AABCU9821F',
-      shareholdingPct: 60.0,
+      din: '10982190',
+      pan: 'AANCP9915B',
+      shareholdingPct: 100.0,
       dir3KycStatus: 'COMPLIANT'
     }
   ]
 };
 
-export const SAMPLE_CLIENT_DNA_PRATWI: ClientEntityDna = SAMPLE_CLIENT_DNA_BRAINSTAXES;
-
-export const SAMPLE_CLIENT_DNA_LEGACY_PRATWI: ClientEntityDna = {
-  id: 'CLI-PRATWI-01',
-  legalName: 'Pratwi Solutions Private Limited',
-  tradeName: 'Pratwi Tech',
-  entityType: 'PVT_LTD',
-  pan: 'AABCP9182K',
-  gstin: '27AABCP9182K1Z9',
-  cin: 'U72900MH2021PTC358912',
-  tan: 'MUMP01824E',
-  registeredAddress: 'Level 8, Tower B, Cyber City, Andheri East, Mumbai, Maharashtra - 400069',
-  stateCode: '27',
-  stateName: 'Maharashtra',
-  turnoverFy2526: 285000000, // ₹28.50 Crores
-  digitalTxnPct: 99.2,
-  primaryBank: {
-    bankName: 'ICICI Bank (Nariman Point)',
-    accountNo: '000405019283',
-    ifsc: 'ICIC0000004',
-    sanctionedLimit: 20000000,
-    interestRateSpread: 1.65
-  },
-  directors: [
-    {
-      name: 'Vikramaditya Singhania',
-      din: '02819204',
-      pan: 'AALCS9182F',
-      shareholdingPct: 60.0,
-      dir3KycStatus: 'COMPLIANT'
-    }
-  ]
-};
+export const SAMPLE_CLIENT_DNA_PRATWI: ClientEntityDna = REAL_CLIENT_DNA_PRATWI;
+export const SAMPLE_CLIENT_DNA_BRAINSTAXES: ClientEntityDna = REAL_CLIENT_DNA_PRATWI;
+export const SAMPLE_CLIENT_DNA_LEGACY_PRATWI: ClientEntityDna = REAL_CLIENT_DNA_PRATWI;

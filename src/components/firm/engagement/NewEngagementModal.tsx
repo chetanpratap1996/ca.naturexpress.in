@@ -42,11 +42,11 @@ export const NewEngagementModal: React.FC<NewEngagementModalProps> = ({
   if (!isOpen) return null;
 
   const currentClient = clients.find(c => c.id === selectedClientId) || clients[0] || {
-    id: "CL-APEX",
-    name: "Apex AutoTech Private Limited",
+    id: "CL-PRATWI",
+    name: "Pratwi Solutions Private Limited",
     pan: "AABCA8891D",
     gstin: "23AABCA8891D1Z2",
-    groupName: "The Apex Industrial Group"
+    groupName: "Direct Practice Clients"
   };
 
   const getScopeTitle = (type: EngagementRecord["scopeType"]) => {

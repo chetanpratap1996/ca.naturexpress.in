@@ -41,10 +41,10 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
   isOpen,
   onClose,
   onApplyData,
-  activeClientName = "Apex AutoTech Private Limited",
-  activePan = "AABCA8891D"
+  activeClientName = "Pratwi Solutions Private Limited",
+  activePan = "AANCP9915B"
 }) => {
-  const [activeTab, setActiveTab] = useState<"SAMPLES" | "UPLOAD" | "PASTE">("SAMPLES");
+  const [activeTab, setActiveTab] = useState<"SAMPLES" | "UPLOAD" | "PASTE">("UPLOAD");
   const [isDragging, setIsDragging] = useState(false);
   const [pastedJson, setPastedJson] = useState("");
   const [extractedData, setExtractedData] = useState<ExtractedTaxAuditData | null>(null);
@@ -58,12 +58,12 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
 
     if (type === "MANUFACTURING_CORP") {
       payload = {
-        clientName: "Apex AutoTech Private Limited",
+        clientName: "Pratwi Solutions Private Limited",
         pan: "AABCA8891D",
         turnoverCr: 48.5,
         auditType: "FORM_3CA_3CD",
-        sourceDocument: "Tally_TrialBalance_Audit_ApexAutoTech_FY2526.xml",
-        verificationHash: "AUD-44AB-APEX-8891D",
+        sourceDocument: "Tally_TrialBalance_Audit_PratwiSolutions_FY2526.xml",
+        verificationHash: "AUD-44AB-PRATWI-9915B",
         clauses: [
           {
             clauseNo: "Clause 13",
@@ -145,7 +145,7 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
             description: "Payments to directors, relatives, or substantial shareholders.",
             status: "COMPLIANT",
             disallowanceAmount: 0,
-            auditNotes: "Director remuneration to Rajesh Sharma (₹24L) benchmarked to fair market rates.",
+            auditNotes: "Director remuneration to Chetan Pratap Singh (₹24L) benchmarked to fair market rates.",
             workpaperRef: "WP-23-RELATED-40A2",
             partnerSignedOff: true
           },
@@ -201,12 +201,12 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
       };
     } else if (type === "RETAIL_CHAIN") {
       payload = {
-        clientName: "OmniRetail Hypermarkets Private Limited",
-        pan: "AABCO9912E",
+        clientName: "Pratwi Solutions Private Limited",
+        pan: "AANCP9915B",
         turnoverCr: 112.4,
         auditType: "FORM_3CA_3CD",
-        sourceDocument: "SAP_TrialBalance_OmniRetail_FY2526.json",
-        verificationHash: "AUD-44AB-OMNI-9912E",
+        sourceDocument: "SAP_TrialBalance_Pratwi Solutions_FY2526.json",
+        verificationHash: "AUD-44AB-PRATWI-9915B",
         clauses: [
           {
             clauseNo: "Clause 20(b)",
@@ -241,7 +241,7 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
             status: "QUALIFIED_AUDIT_REPORT",
             disallowanceAmount: 480000,
             auditNotes: "₹4,80,000 payable to micro-supplier QuickPrint packaging remaining unpaid for 58 days.",
-            workpaperRef: "WP-26-MSME-OMNI",
+            workpaperRef: "WP-26-MSME-PRATWI",
             partnerSignedOff: true
           },
           {
@@ -319,12 +319,12 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
       };
     } else {
       payload = {
-        clientName: "Sharma & Sons Trading Enterprise",
-        pan: "AAFPS9912M",
+        clientName: "Pratwi Solutions Private Limited",
+        pan: "AANCP9915B",
         turnoverCr: 4.8,
-        auditType: "FORM_3CB_3CD",
-        sourceDocument: "Busy_Accounting_Audit_SharmaSons_FY2526.csv",
-        verificationHash: "AUD-44AB-SHARMA-3CB",
+        auditType: "FORM_3CA_3CD",
+        sourceDocument: "Busy_Accounting_Audit_Pratwi_FY2526.csv",
+        verificationHash: "AUD-44AB-PRATWI-3CA",
         clauses: [
           {
             clauseNo: "Clause 21(d)",
@@ -464,7 +464,7 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
                   <span className="text-[10px] text-indigo-600 font-mono">Form 3CA</span>
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1">
-                  Apex AutoTech (₹48.5 Cr) • 43B(h) MSME + 40A(3) Cash + 40(a)(ia) TDS defaults
+                  Pratwi Solutions (₹48.5 Cr) • 43B(h) MSME + 40A(3) Cash + 40(a)(ia) TDS defaults
                 </div>
               </button>
 
@@ -478,7 +478,7 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
                   <span className="text-[10px] text-emerald-600 font-mono">Form 3CA</span>
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1">
-                  OmniRetail (₹112.4 Cr) • PF/ESIC delay u/s 36(1)(va) + ₹4.8L MSME overdue
+                  Pratwi Solutions (₹112.4 Cr) • PF/ESIC delay u/s 36(1)(va) + ₹4.8L MSME overdue
                 </div>
               </button>
 
@@ -506,7 +506,7 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
                   <span className="text-[10px] text-purple-600 font-mono">Form 3CB</span>
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1">
-                  Sharma &amp; Sons (₹4.8 Cr) • Non-corporate Rule 6G(1)(b) report
+                  Pratwi Solutions • Corporate Rule 6G(1)(a) report
                 </div>
               </button>
             </div>

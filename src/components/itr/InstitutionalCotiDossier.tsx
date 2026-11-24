@@ -73,8 +73,8 @@ export interface CotiClientData {
 
 const DEFAULT_COTI: CotiClientData = {
   pan: 'AAACG1234F',
-  name: 'Apex Precision Tools Private Limited',
-  tradeName: 'Apex Tools India',
+  name: 'Pratwi Solutions Private Limited',
+  tradeName: 'Pratwi Solutions',
   status: 'Domestic Company (Turnover <= 400 Cr)',
   assessmentYear: '2025-26',
   previousYear: '2024-25',
@@ -134,7 +134,7 @@ const DEFAULT_COTI: CotiClientData = {
   interest234C: 0,
   netTaxPayableOrRefund: -261464, // Refund
   udin: '25088921AAAAAA1029',
-  signingPartner: 'CA. Rajesh Agarwal, FCA',
+  signingPartner: 'CA Gunjan Jain, FCA',
   membershipNumber: '088921',
   firmRegNumber: '004123C'
 };

@@ -253,15 +253,16 @@ export function authenticateUser(
   const allClients = [...clientRegistry];
   if (allClients.length === 0 && DEMO_USERS.client) {
     allClients.push({
-      id: DEMO_USERS.client.clientEntityId || "d301662a-10ce-4e32-84ed-a9423a70101d",
-      groupId: DEMO_USERS.client.clientGroupId || "3c5eb209-459d-4af7-9868-36d7ac3d6493",
+      id: DEMO_USERS.client.clientEntityId || "ddd33056-b6dc-46ca-b145-cd111045aff7",
+      groupId: DEMO_USERS.client.clientGroupId || "157e58d9-cc53-4e5d-9497-ec6d2ecbf59a",
       groupName: "Direct Practice Clients",
-      name: "Apex Laboratories Private Limited",
+      name: "Pratwi Solutions Private Limited",
       type: "PVT_LTD",
-      pan: "AABCA9182K",
-      gstin: "23AABCA9182K1Z5",
-      turnoverCr: 73.4,
-      incorporationYear: 2018,
+      pan: "AANCP9915B",
+      gstin: "09AANCP9915B1Z4",
+      cin: "U72900UP2026PTC199821",
+      turnoverCr: 1.2,
+      incorporationYear: 2026,
       penaltyRiskAccrued: 0,
       partnerInCharge: "CA Gunjan Jain",
       assignedArticle: "Kriti Jain (Article)",

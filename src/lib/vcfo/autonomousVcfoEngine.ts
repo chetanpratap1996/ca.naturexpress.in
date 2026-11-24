@@ -164,79 +164,7 @@ export function generate13WeekCashFlow(
  * Corporate Client vCFO Diagnostics & Bank Covenant Sentinel
  */
 export function getCorporateVcfoProfiles(): ClientVcfoProfile[] {
-  // Client 1: Apex Heavy Engineering Ltd (Capital goods, heavy bank leverage)
-  const apexCashFlows = generate13WeekCashFlow(
-    4850000, // ₹48.50L opening liquidity
-    1850000, // ₹18.50L weekly billing
-    68, // 68 DSO (high)
-    3200000, // ₹32L monthly opex
-    1150000 // ₹11.5L monthly debt service
-  );
-
-  const apexProfile: ClientVcfoProfile = {
-    clientId: "client-apex",
-    clientName: "Apex Heavy Engineering Ltd",
-    industry: "Heavy Machinery & Structural Fabrication",
-    annualTurnoverInr: 96000000, // ₹9.60 Cr
-    monthlyBurnRateInr: 3200000, // ₹32.00 Lakhs
-    safetyReserveFloorInr: 3000000, // 30-day safety floor
-    weeklyCashFlows: apexCashFlows,
-    workingCapital: {
-      dsoDays: 68,
-      dioDays: 74,
-      dpoDays: 42,
-      cashConversionCycleDays: 100, // 68 + 74 - 42 = 100 days
-      benchmarkCccDays: 65,
-      trappedCapitalInr: 5840000, // ₹58.40 Lakhs trapped in excess DSO and DIO
-      topDebtorConcentrationPercent: 54.2,
-      msmePendingDuesInr: 1845000,
-    },
-    bankCovenants: [
-      {
-        name: "Current Ratio (CR)",
-        currentValue: 1.38,
-        covenantThreshold: 1.33,
-        condition: "GREATER_THAN_OR_EQUAL",
-        isCompliant: true,
-        varianceStatus: "SAFE",
-        statutoryNote: "Complies with Tandon Committee Working Capital benchmark (min 1.33:1).",
-      },
-      {
-        name: "Debt Service Coverage Ratio (DSCR)",
-        currentValue: 1.28,
-        covenantThreshold: 1.25,
-        condition: "GREATER_THAN_OR_EQUAL",
-        isCompliant: true,
-        varianceStatus: "NEAR_BREACH",
-        statutoryNote: "DSCR is currently at 1.28x against bank loan mandate of 1.25x. Buffer is thin (₹3.4L cushion).",
-      },
-      {
-        name: "Total Outside Liabilities / Tangible Net Worth (TOL/TNW)",
-        currentValue: 2.85,
-        covenantThreshold: 3.0,
-        condition: "LESS_THAN_OR_EQUAL",
-        isCompliant: true,
-        varianceStatus: "SAFE",
-        statutoryNote: "Within consortium bank upper cap of 3.00:1.",
-      },
-      {
-        name: "Interest Coverage Ratio (ICR)",
-        currentValue: 2.65,
-        covenantThreshold: 2.0,
-        condition: "GREATER_THAN_OR_EQUAL",
-        isCompliant: true,
-        varianceStatus: "SAFE",
-        statutoryNote: "Operating EBITDA covers annual interest obligations 2.65 times.",
-      },
-    ],
-    executiveRecommendations: [
-      "Accelerate milestone billing on Project BHEL: ₹34.50L invoice is pending clearance at Day 55.",
-      "Section 43B(h) MSME Alert: ₹8.45L payable to Micro Tooling Enterprises reaches 45-day statutory cliff on Dec 4, 2026. Schedule immediate NEFT release.",
-      "Stagger raw steel procurement for Q4 to unlock ₹22.00L from DIO (currently 74 days vs 55 industry median).",
-    ],
-  };
-
-  // Client 2: Pratwi Solutions Private Limited (SaaS / IT Services, lean working capital)
+  // Pratwi Solutions Private Limited (SaaS / IT Services, lean working capital)
   const pratwiCashFlows = generate13WeekCashFlow(
     8200000, // ₹82.00L opening liquidity
     1450000, // ₹14.50L weekly billing
@@ -246,7 +174,7 @@ export function getCorporateVcfoProfiles(): ClientVcfoProfile[] {
   );
 
   const pratwiProfile: ClientVcfoProfile = {
-    clientId: "client-pratwi",
+    clientId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
     clientName: "Pratwi Solutions Private Limited",
     industry: "Cloud Enterprise Software & AI Workflows",
     annualTurnoverInr: 75000000, // ₹7.50 Cr
@@ -298,93 +226,33 @@ export function getCorporateVcfoProfiles(): ClientVcfoProfile[] {
     ],
   };
 
-  return [apexProfile, pratwiProfile];
+  return [pratwiProfile];
 }
 
 /**
  * Firm-Wide Practice Margin & Client Profitability Engine (Weeks 49–52)
  */
 export function getPracticeIntelligenceSummary(): PracticeIntelligenceSummary {
-  const clients: FirmClientProfitability[] = [
+    const clients: FirmClientProfitability[] = [
     {
-      clientId: "client-pratwi",
+      clientId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
       clientName: "Pratwi Solutions Private Limited",
       entityType: "Private Limited",
-      annualRetainerFeeInr: 480000, // ₹40k/month
+      annualRetainerFeeInr: 480000,
       realizedFeeInr: 480000,
       unbilledWipInr: 0,
       totalDebtorDueInr: 0,
       billableHoursSpent: 160,
-      effectiveHourlyRateInr: 3000, // ₹4.8L / 160 hrs = ₹3,000/hr
-      directCostInr: 128000, // Internal staff cost
-      grossProfitMarginPercent: 73.3, // 73.3% gross margin
+      effectiveHourlyRateInr: 3000,
+      directCostInr: 128000,
+      grossProfitMarginPercent: 73.3,
       wipDays: 0,
       debtorDays: 5,
       totalLockUpDays: 5,
       scopeCreepHours: 0,
       tier: "TIER_A",
-      tierRationale: "Prime Champion: High margin (73%), EHR > ₹3,000/hr, zero lock-up, automated monthly payments.",
+      tierRationale: "Prime Champion: High margin (73%), EHR > ?3,000/hr, zero lock-up, automated monthly payments.",
       recommendedAction: "MAINTAIN_PRIME",
-    },
-    {
-      clientId: "client-zenith",
-      clientName: "Zenith Global Logistics LLP",
-      entityType: "LLP",
-      annualRetainerFeeInr: 360000,
-      realizedFeeInr: 300000,
-      unbilledWipInr: 35000,
-      totalDebtorDueInr: 60000,
-      billableHoursSpent: 220,
-      effectiveHourlyRateInr: 1363, // ₹3.0L / 220 hrs = ₹1,363/hr
-      directCostInr: 145000,
-      grossProfitMarginPercent: 51.7,
-      wipDays: 14,
-      debtorDays: 28,
-      totalLockUpDays: 42,
-      scopeCreepHours: 12,
-      tier: "TIER_B",
-      tierRationale: "Solid Core: Margin (52%), EHR ₹1,363/hr, lock-up 42 days. Stable ongoing compliance profile.",
-      recommendedAction: "AUTOMATE_ROUTINE",
-    },
-    {
-      clientId: "client-apex",
-      clientName: "Apex Heavy Engineering Ltd",
-      entityType: "Public Limited",
-      annualRetainerFeeInr: 720000,
-      realizedFeeInr: 540000,
-      unbilledWipInr: 120000,
-      totalDebtorDueInr: 180000,
-      billableHoursSpent: 680,
-      effectiveHourlyRateInr: 794, // ₹5.4L / 680 hrs = ₹794/hr
-      directCostInr: 440000,
-      grossProfitMarginPercent: 18.5,
-      wipDays: 32,
-      debtorDays: 65,
-      totalLockUpDays: 97,
-      scopeCreepHours: 145, // Heavy out-of-scope work on Section 148 notices and audit
-      tier: "TIER_C",
-      tierRationale: "Margin Drag: Diluted margin (18.5%), EHR ₹794/hr. Trapped by 145 out-of-scope hours and 97 lock-up days.",
-      recommendedAction: "HIKE_FEE_25_PCT",
-    },
-    {
-      clientId: "client-shree-traders",
-      clientName: "Shree Ganesh Trading Co",
-      entityType: "Partnership Firm",
-      annualRetainerFeeInr: 120000,
-      realizedFeeInr: 60000,
-      unbilledWipInr: 45000,
-      totalDebtorDueInr: 60000,
-      billableHoursSpent: 210,
-      effectiveHourlyRateInr: 285, // ₹60k / 210 hrs = ₹285/hr (Article rate loss)
-      directCostInr: 95000,
-      grossProfitMarginPercent: -58.3, // Net loss for firm!
-      wipDays: 45,
-      debtorDays: 110,
-      totalLockUpDays: 155,
-      scopeCreepHours: 85,
-      tier: "TIER_D",
-      tierRationale: "Toxic / Loss-Making: Negative gross margin (-58%), EHR ₹285/hr, lock-up 155 days. Unresponsive management.",
-      recommendedAction: "ISSUE_SCOPE_EXPANSION_NOTICE",
     },
   ];
 

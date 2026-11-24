@@ -42,7 +42,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<"ALL" | "CRITICAL" | "HIGH" | "DOCS_AWAITED">("ALL");
   const [reassignModalTask, setReassignModalTask] = useState<ComplianceTask | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<string>("Rahul Sharma (Article)");
+  const [selectedStaff, setSelectedStaff] = useState<string>("Kriti Jain (Article)");
   const [isAutoAssigning, setIsAutoAssigning] = useState<boolean>(false);
   const [dynamicStaffList, setDynamicStaffList] = useState<{ name: string; tier: number; role: string }[]>([]);
 
@@ -55,7 +55,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
           const active = data.staff
             .filter((s: any) => s.status === "ACTIVE")
             .map((s: any) => ({
-              name: `${s.fullName} (${s.role === "MANAGING_PARTNER" ? "Partner" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : "Article"})`,
+              name: `${s.fullName} (${s.role === "MANAGING_PARTNER" ? "Partner" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : s.competencyTier >= 3 ? "Senior Associate" : "Associate"})`,
               tier: s.competencyTier || 2,
               role: s.role,
             }));
@@ -69,12 +69,8 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
   }, []);
 
   const defaultStaffMembers = [
-    { name: "Rahul Sharma (Article)", tier: 1, role: "ARTICLE_TRAINEE" },
-    { name: "Kriti Jain (Article)", tier: 3, role: "ARTICLE_TRAINEE" },
-    { name: "Aman Verma (Article)", tier: 2, role: "ARTICLE_TRAINEE" },
-    { name: "Pooja Mehta (Article)", tier: 1, role: "ARTICLE_TRAINEE" },
-    { name: "Priya Mehta (Senior Paid CA)", tier: 4, role: "PAID_CHARTERED_ACCOUNTANT" },
     { name: "CA Gunjan Jain (Partner)", tier: 4, role: "MANAGING_PARTNER" },
+    { name: "Kriti Jain (Article)", tier: 3, role: "ARTICLE_TRAINEE" },
   ];
 
   const activeStaff = dynamicStaffList.length > 0 ? dynamicStaffList : defaultStaffMembers;
@@ -116,7 +112,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
     activeStaff.forEach((s) => map.set(s.name, { total: 0, critical: 0, completed: 0, tier: s.tier }));
 
     tasks.forEach((t) => {
-      const assigned = t.assignedTo || "Rahul Sharma (Article)";
+      const assigned = t.assignedTo || "Kriti Jain (Article)";
       // Match by full name or first name
       let matchedKey = Array.from(map.keys()).find((k) => k === assigned || k.includes(assigned.split(" ")[0]));
       if (!matchedKey) {
@@ -435,7 +431,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
                           title="Click to reassign staff member"
                         >
                           <span className="font-bold text-slate-800 group-hover:underline block">
-                            {t.assignedTo || "Rahul Sharma"}
+                            {t.assignedTo || "Kriti Jain (Article)"}
                           </span>
                           <span className="text-[10px] text-slate-400">✎</span>
                         </button>
@@ -540,7 +536,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
                   >
                     <span>{m.name}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200/60 text-slate-700 font-mono">
-                      Tier {m.tier}
+                      Level {m.tier}
                     </span>
                     {selectedStaff === m.name && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                   </button>

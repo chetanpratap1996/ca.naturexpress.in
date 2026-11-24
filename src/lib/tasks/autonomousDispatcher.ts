@@ -18,18 +18,55 @@ export interface AutonomousDispatchResult {
 }
 
 /**
- * Determine required competency tier based on task category and statutory priority
+ * Map task statutory nature to corresponding CA Practice Tool
+ */
+export function getRequiredToolForTask(task: ComplianceTask): string {
+  const title = (task.title || "").toLowerCase();
+  const category = (task.category || "").toUpperCase();
+
+  if (
+    title.includes("notice") ||
+    title.includes("scrutiny") ||
+    title.includes("148") ||
+    title.includes("asmt") ||
+    title.includes("drc") ||
+    title.includes("udin")
+  ) {
+    return "notices-udin";
+  }
+  if (category === "GST" || title.includes("gstr")) {
+    return "gst";
+  }
+  if (
+    category === "INCOME_TAX" ||
+    category === "TAX_AUDIT" ||
+    category === "TDS" ||
+    title.includes("3cd") ||
+    title.includes("itr") ||
+    title.includes("tax") ||
+    title.includes("challan 28")
+  ) {
+    return "tax-audit";
+  }
+  if (category === "ROC_MCA" || title.includes("dir-3") || title.includes("mca") || title.includes("aoc-4")) {
+    return "tax-audit";
+  }
+  return "tasks";
+}
+
+/**
+ * Determine required competency seniority level based on task category and statutory priority
  */
 export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
   const title = (task.title || "").toLowerCase();
   const category = task.category || "";
 
-  // Tier 4: Scrutiny, Appeals, High Court, Partner Review
+  // Level 4: Scrutiny, Appeals, High Court, Partner Review
   if (title.includes("scrutiny") || title.includes("148") || title.includes("appeal") || (task.priority === "CRITICAL" && category === "TAX_AUDIT")) {
     return 4;
   }
 
-  // Tier 3: Senior Article (Tax Audit Form 3CD, Corporate ITR-6, MCA AOC-4/MGT-7)
+  // Level 3: Senior Associate (Tax Audit Form 3CD, Corporate ITR-6, MCA AOC-4/MGT-7)
   if (
     category === "TAX_AUDIT" ||
     title.includes("form 3cd") ||
@@ -41,7 +78,7 @@ export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
     return 3;
   }
 
-  // Tier 2: Intermediate Article (GSTR-3B, TDS 26Q Quarterly, ITR-1 to 4)
+  // Level 2: Senior Associate (GSTR-3B, TDS 26Q Quarterly, ITR-1 to 4)
   if (
     (category === "GST" && title.includes("3b")) ||
     (category === "TDS" && title.includes("26q")) ||
@@ -51,7 +88,7 @@ export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
     return 2;
   }
 
-  // Tier 1: Routine (DIR-3 KYC, GSTR-1 Outward, Challan 281, Bank OCR, Bookkeeping)
+  // Level 1: Associate Routine (DIR-3 KYC, GSTR-1 Outward, Challan 281, Bank OCR, Bookkeeping)
   return 1;
 }
 
@@ -126,6 +163,7 @@ export function autoAssignTasksInMemory(
   for (const task of candidateTasks) {
     tasksEvaluated++;
     const requiredTier = getRequiredTierForTask(task);
+    const requiredTool = getRequiredToolForTask(task);
     const requiredSkill = mapCategoryToSpecialization(task.category);
 
     let bestStaff: StaffMember | null = null;
@@ -136,14 +174,25 @@ export function autoAssignTasksInMemory(
       const currentLoad = assignedCounts.get(staff.id) || 0;
       const capacity = staff.maxDailyTaskCapacity || 10;
 
-      // Hard gatekeeper: Do not exceed max capacity
+      // 1. Hard Gatekeeper: Do not exceed max capacity
       if (currentLoad >= capacity) {
+        continue;
+      }
+
+      // 2. Practice Tool Gatekeeper: Must have CA permission for this practice tool
+      if (
+        requiredTool &&
+        requiredTool !== "tasks" &&
+        Array.isArray(staff.allowedTools) &&
+        staff.allowedTools.length > 0 &&
+        !staff.allowedTools.includes(requiredTool)
+      ) {
         continue;
       }
 
       let score = 0;
 
-      // 1. Domain Skill Match (Weight: 40 points)
+      // Domain Skill Match (Weight: 40 points)
       const hasSkill = staff.specializations && staff.specializations.includes(requiredSkill);
       if (hasSkill) {
         score += 40;
@@ -151,7 +200,7 @@ export function autoAssignTasksInMemory(
         score += 10; // Can still perform with supervision
       }
 
-      // 2. Competency Tier Alignment (Weight: 30 points)
+      // Seniority Level Alignment (Weight: 30 points)
       const tierDiff = staff.competencyTier - requiredTier;
       if (tierDiff === 0) {
         score += 30; // Perfect match
@@ -161,11 +210,11 @@ export function autoAssignTasksInMemory(
         score += Math.max(0, 30 - Math.abs(tierDiff) * 20); // Under-qualified penalty
       }
 
-      // 3. Available Capacity Headroom (Weight: 20 points)
+      // Available Capacity Headroom (Weight: 20 points)
       const headroomRatio = (capacity - currentLoad) / capacity;
       score += Math.round(headroomRatio * 20);
 
-      // 4. Client Continuity (Weight: 10 points)
+      // Client Continuity (Weight: 10 points)
       const prevHandler = clientAffinityMap.get(task.entityId);
       if (prevHandler && prevHandler.includes(staff.fullName.split(" ")[0])) {
         score += 10;
@@ -174,12 +223,28 @@ export function autoAssignTasksInMemory(
       if (score > highestScore) {
         highestScore = score;
         bestStaff = staff;
-        matchReason = `Tier ${staff.competencyTier} (${hasSkill ? requiredSkill : "General"}), ${Math.round(headroomRatio * 100)}% capacity free`;
+        const candidateRole =
+          staff.role === "MANAGING_PARTNER"
+            ? "Partner"
+            : staff.role === "PAID_CHARTERED_ACCOUNTANT"
+            ? "Qualified CA"
+            : staff.competencyTier >= 3
+            ? "Senior Associate"
+            : "Associate";
+        matchReason = `${candidateRole} (${hasSkill ? requiredSkill : "General"}), ${Math.round(headroomRatio * 100)}% capacity free`;
       }
     }
 
     if (bestStaff) {
-      const newAssignedFormatted = `${bestStaff.fullName} (${bestStaff.role === "MANAGING_PARTNER" ? "Partner" : bestStaff.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : "Article"})`;
+      const roleLabel =
+        bestStaff.role === "MANAGING_PARTNER"
+          ? "Partner"
+          : bestStaff.role === "PAID_CHARTERED_ACCOUNTANT"
+          ? "Qualified CA"
+          : bestStaff.competencyTier >= 3
+          ? "Senior Associate"
+          : "Associate";
+      const newAssignedFormatted = `${bestStaff.fullName} (${roleLabel})`;
       const prevAssigned = task.assignedTo || "Unassigned";
 
       // If unassigned or needs re-allocation

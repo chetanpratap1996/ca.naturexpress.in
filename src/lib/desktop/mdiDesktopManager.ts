@@ -53,9 +53,9 @@ export class MdiDesktopManager {
       {
         id: 'TAB-03',
         clientPan: 'AALCA8912P',
-        clientName: 'Apex Machinery Distributors Pvt Ltd',
+        clientName: 'Pratwi Solutions Private Limited',
         module: 'MCA_ROC_AOC4',
-        title: 'Apex Machinery - AOC-4 XBRL Filing',
+        title: 'Pratwi Solutions - AOC-4 XBRL Filing',
         isDirty: false,
         lastActiveTimestamp: Date.now() - 45 * 60 * 1000,
         draftState: {

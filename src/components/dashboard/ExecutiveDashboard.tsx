@@ -133,12 +133,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   // Team Workload Breakdown for Managing Partner
   const teamWorkload = useMemo(() => {
     const staffList = [
-      { name: "Rahul Sharma", shortName: "Rahul", role: "Article Trainee" },
-      { name: "Kriti Jain", shortName: "Kriti", role: "Article Trainee" },
-      { name: "Aman Verma", shortName: "Aman", role: "Article Trainee" },
-      { name: "Pooja Mehta", shortName: "Pooja", role: "Article Trainee" },
-      { name: "Priya Mehta", shortName: "Priya (CA)", role: "Paid CA" },
-      { name: "CA Gunjan Jain", shortName: "CA Gunjan", role: "Partner" }
+      { name: "CA Gunjan Jain", shortName: "CA Gunjan", role: "Managing Partner (FCA)" },
+      { name: "Kriti Jain", shortName: "Kriti", role: "Team Associate (Article Trainee)" }
     ];
 
     return staffList.map((member) => {

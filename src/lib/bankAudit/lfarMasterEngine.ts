@@ -73,7 +73,7 @@ export class LfarMasterEngine {
         questionText: 'Were quick mortalities observed in advances sanctioned during the year (i.e. accounts slipping to NPA within 12 months of sanction)?',
         guidanceText: 'Check for deficiencies in pre-sanction inspection or due diligence leading to early defaults.',
         status: 'DEFICIENCY_NOTED',
-        auditorRemarks: 'One CC account (M/s Apex Granites, Limit ₹1.20 Cr, sanctioned Aug-2025) slipped to SMA-2 within 7 months due to non-verification of GST turnover mismatch.',
+        auditorRemarks: 'One CC account (M/s Pratwi Granites, Limit ₹1.20 Cr, sanctioned Aug-2025) slipped to SMA-2 within 7 months due to non-verification of GST turnover mismatch.',
         borrowerAccountImpacted: ['3819002100099412'],
         requiresMoc: false,
         riskRating: 'HIGH'

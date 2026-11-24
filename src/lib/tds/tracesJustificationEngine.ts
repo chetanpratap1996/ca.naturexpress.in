@@ -67,7 +67,7 @@ export class TracesJustificationEngine {
         defaults.push({
           id: `DEF-00${idx + 1}`,
           panOfDeductee: 'PANNOTAVBL',
-          nameOfDeductee: 'Apex Fabrication Works',
+          nameOfDeductee: 'Pratwi Engineering Works',
           sectionCode: '194C',
           challanSerialNo: '00412',
           defaultCategory: 'SHORT_DEDUCTION_206AA',
@@ -157,7 +157,7 @@ export const SAMPLE_TRACES_DEFAULTS: TracesDefaultRecord[] = [
   {
     id: 'TRC-DEF-01',
     panOfDeductee: 'PANNOTAVBL',
-    nameOfDeductee: 'Apex Fabrication & Engineering Works',
+    nameOfDeductee: 'Pratwi Engineering Works',
     sectionCode: '194C',
     challanSerialNo: '00412',
     defaultCategory: 'SHORT_DEDUCTION_206AA',

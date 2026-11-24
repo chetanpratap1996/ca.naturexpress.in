@@ -154,9 +154,9 @@ export function generateMicroApprovalWhatsAppMessage(params: {
  */
 export const SAMPLE_ENGAGEMENT_AGREEMENTS: EngagementAgreement[] = [
   {
-    id: "AGR-APEX-2026",
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
+    id: "AGR-PRATWI-2026",
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    clientName: "Pratwi Solutions Private Limited",
     billingCycle: "MONTHLY",
     baseRetainerFee: 4500,
     includedServices: [
@@ -270,9 +270,9 @@ export const SAMPLE_ENGAGEMENT_AGREEMENTS: EngagementAgreement[] = [
 export const SAMPLE_SCOPE_CREEP_INCIDENTS: ScopeCreepIncident[] = [
   {
     id: "SCP-2026-001",
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
-    agreementId: "AGR-APEX-2026",
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    clientName: "Pratwi Solutions Private Limited",
+    agreementId: "AGR-PRATWI-2026",
     serviceCategory: "GST_NOTICE_DEFENCE",
     detectedVia: "NOTICE_DOCKET_UPLOAD",
     title: "GST Form ASMT-10 Input Tax Credit Discrepancy Defense",
@@ -282,7 +282,7 @@ export const SAMPLE_SCOPE_CREEP_INCIDENTS: ScopeCreepIncident[] = [
     standardIcaiTariff: 5000,
     proposedMicroBillFee: 3500,
     status: "DETECTED",
-    clientApprovalToken: "tok_apex_asmt10_9921",
+    clientApprovalToken: "tok_pratwi_asmt10_9921",
     partnerInCharge: "CA Gunjan Jain"
   },
   {

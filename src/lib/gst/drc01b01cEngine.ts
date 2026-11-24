@@ -123,7 +123,7 @@ export const SAMPLE_DRC_NOTICES: DrcIntimationNotice[] = [
     financialYear: 'FY 2025-26',
     taxPeriod: 'September 2026',
     gstin: '23AAACG1234F1Z5',
-    taxpayerName: 'Apex Precision Tools Private Limited',
+    taxpayerName: 'Pratwi Solutions Private Limited',
     dateOfIntimation: '2026-11-15',
     statutoryDeadlineDate: '2026-11-22',
     daysRemaining: 2, // 2 days left!
@@ -142,7 +142,7 @@ export const SAMPLE_DRC_NOTICES: DrcIntimationNotice[] = [
     financialYear: 'FY 2025-26',
     taxPeriod: 'October 2026',
     gstin: '23AAACG1234F1Z5',
-    taxpayerName: 'Apex Precision Tools Private Limited',
+    taxpayerName: 'Pratwi Solutions Private Limited',
     dateOfIntimation: '2026-11-16',
     statutoryDeadlineDate: '2026-11-23',
     daysRemaining: 3,

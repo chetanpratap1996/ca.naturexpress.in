@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, UPLOADS_DIR } from "@/lib/server/db";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import fs from "fs";
 import path from "path";
@@ -68,7 +69,46 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Check if physical file exists in UPLOADS_DIR
+    // 1. Check Supabase Cloud Storage first for permanent cloud persistence
+    if (isSupabaseConfigured()) {
+      try {
+        const bucketList = ["practice-documents", "client-documents"];
+        const possiblePaths = [
+          (doc as any).storagePath,
+          `${doc.entityId}/${doc.id}_${doc.fileName}`,
+          `${doc.entityId}/${doc.fileName}`,
+          `${doc.id}_${doc.fileName}`,
+          doc.fileName,
+        ].filter(Boolean) as string[];
+
+        for (const bucket of bucketList) {
+          for (const sPath of possiblePaths) {
+            const { data: fileBlob, error: downloadErr } = await supabase.storage
+              .from(bucket)
+              .download(sPath);
+
+            if (!downloadErr && fileBlob) {
+              const arrayBuffer = await fileBlob.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              if (buffer.length > 0) {
+                return new NextResponse(buffer, {
+                  status: 200,
+                  headers: {
+                    "Content-Type": "application/pdf",
+                    "Content-Disposition": `attachment; filename="${encodeURIComponent(doc.fileName)}"`,
+                    "Content-Length": buffer.length.toString(),
+                  },
+                });
+              }
+            }
+          }
+        }
+      } catch (sbErr) {
+        console.warn("Supabase storage fetch fallback:", sbErr);
+      }
+    }
+
+    // 2. Check if physical file exists in local UPLOADS_DIR cache
     let physicalFilePath: string | null = null;
     if (fs.existsSync(UPLOADS_DIR)) {
       const files = fs.readdirSync(UPLOADS_DIR);

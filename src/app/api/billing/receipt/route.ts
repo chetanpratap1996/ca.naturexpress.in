@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const db = ensureDatabase();
     let matchedInvoice = invoiceId ? db.invoices.find((i) => i.id === invoiceId) : db.invoices[0];
 
-    const entityName = matchedInvoice?.entityName || "Apex AutoTech Private Limited";
+    const entityName = matchedInvoice?.entityName || "Pratwi Solutions Private Limited";
     const invoiceNo = matchedInvoice?.invoiceNo || `GPA/2026-27/${Date.now().toString().slice(-4)}`;
     const amount = matchedInvoice?.amount || 29500;
     const taxable = Math.round(amount / 1.18);

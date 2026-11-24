@@ -209,7 +209,7 @@ export async function GET(req: NextRequest) {
         id: "bk-5",
         voucherNumber: "PUR-2026-015",
         vendorGstin: "24AADCA1192M1ZN",
-        vendorName: "Apex Industrial Logistics",
+        vendorName: "Pratwi Cloud Infrastructure Logistics",
         invoiceNumber: "AIL/GJ/4402",
         invoiceDate: "2026-09-02",
         taxableValue: 240000,

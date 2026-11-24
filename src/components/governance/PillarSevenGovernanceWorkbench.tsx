@@ -68,7 +68,7 @@ export default function PillarSevenGovernanceWorkbench() {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [selectedTokenForCheckout, setSelectedTokenForCheckout] = useState<DscTokenItem | null>(null);
   const [checkoutPurpose, setCheckoutPurpose] = useState('MCA V3 Form AOC-4 Filing');
-  const [checkoutStaff, setCheckoutStaff] = useState('Rohit Sharma (Article)');
+  const [checkoutStaff, setCheckoutStaff] = useState('Kriti Jain (Article Trainee)');
 
   // Handlers
   const handleBulkGenerateUdin = () => {

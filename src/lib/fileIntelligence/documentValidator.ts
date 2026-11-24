@@ -310,7 +310,7 @@ export interface ValidatedStatutoryNotice {
 
 export async function validateAndExtractStatutoryNotice(
   file: File,
-  activeClientName: string = "Apex AutoTech Private Limited",
+  activeClientName: string = "Pratwi Solutions Private Limited",
   activePan: string = "AABCA8891D",
   activeGstin: string = "23AABCA8891D1Z4"
 ): Promise<DocumentValidationResult<ValidatedStatutoryNotice>> {

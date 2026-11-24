@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { StaffMember, CompetencyTier, StaffRole, StaffSpecialization, ComplianceTask } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
-import { INITIAL_STAFF_MEMBERS } from "@/lib/data/mockData";
+import { INITIAL_STAFF_MEMBERS } from "@/lib/data/firmDefaults";
 import { 
   Users, 
   UserPlus, 
@@ -54,26 +54,26 @@ export const PRACTICE_TOOLS = [
   { id: "client-master", label: "Client Master & Desk", icon: Building2 },
 ];
 
-const TIER_DESCRIPTIONS: Record<CompetencyTier, { label: string; badge: string; description: string }> = {
+export const SENIORITY_LEVELS: Record<CompetencyTier, { label: string; short: string; badge: string }> = {
   1: {
-    label: "Tier 1: Junior Article",
-    badge: "bg-slate-100 text-slate-700 border-slate-300",
-    description: "Bookkeeping, Bank OCR, DIR-3 KYC, GSTR-1 Nil / Simple Outward",
+    label: "Associate (Year 1)",
+    short: "Associate (Yr 1)",
+    badge: "bg-slate-100 text-slate-700 border-slate-200",
   },
   2: {
-    label: "Tier 2: Intermediate Article",
-    badge: "bg-blue-100 text-blue-800 border-blue-300",
-    description: "GSTR-3B Monthly, TDS 26Q Quarterly, ITR-1 to 4 Individual / Firm",
+    label: "Senior Associate (Year 2–3)",
+    short: "Senior Associate",
+    badge: "bg-blue-50 text-blue-700 border-blue-200",
   },
   3: {
-    label: "Tier 3: Senior Article",
-    badge: "bg-purple-100 text-purple-800 border-purple-300",
-    description: "Form 3CD Clauses 22/31/44, Corporate ITR-6, MCA AOC-4/MGT-7",
+    label: "Manager / Qualified CA",
+    short: "Manager / CA",
+    badge: "bg-purple-50 text-purple-700 border-purple-200",
   },
   4: {
-    label: "Tier 4: Manager / Paid CA",
-    badge: "bg-red-100 text-btred-logo border-red-300",
-    description: "Scrutiny Defense 143(2)/148, Complex Notices, Partner Review & UDIN",
+    label: "Managing Partner (FCA)",
+    short: "Partner (FCA)",
+    badge: "bg-red-50 text-btred-logo border-red-200",
   },
 };
 
@@ -117,6 +117,11 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
     window.dispatchEvent(new CustomEvent("bt_permissions_changed", {
       detail: { memberId, tools: next }
     }));
+    fetch("/api/staff", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: memberId, allowedTools: next }),
+    }).catch(() => {});
     const toolLabel = PRACTICE_TOOLS.find(t => t.id === toolId)?.label || toolId;
     toast.success(
       "Tool Access Updated",
@@ -225,7 +230,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Competency Rank Updated", `Staff member updated to Tier ${newTier}.`);
+        toast.success("Seniority Updated", `Team member set to ${SENIORITY_LEVELS[newTier]?.label || "Associate"}.`);
         setStaffList((prev) =>
           prev.map((s) => (s.id === staffId ? { ...s, competencyTier: newTier } : s))
         );
@@ -233,7 +238,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
         toast.error("Update Failed", data.error || "Could not update rank.");
       }
     } catch {
-      toast.error("Error", "Server error updating rank.");
+      toast.error("Error", "Server error updating seniority.");
     }
   };
 
@@ -243,7 +248,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
     const cleanPhone = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : phoneDigits;
     const defaultPin = member.tempPin || (cleanPhone.length >= 4 ? cleanPhone.slice(-4) : "1234");
     
-    const message = `*GPA & Co., Chartered Accountants*\nOfficial Practice Portal Invite\n\nDear ${member.fullName},\nYou have been registered as an ${member.role === "ARTICLE_TRAINEE" ? "Article Trainee" : "Team Member"} (Tier ${member.competencyTier}).\n\n👉 *Login URL:* https://brainsandtaxes.com/?portal=staff\n📱 *Mobile:* +91 ${cleanPhone}\n🔑 *Your 4-Digit Access PIN:* ${defaultPin}\n\nPlease log in and review your assigned statutory compliance queue.`;
+    const message = `*GPA & Co., Chartered Accountants*\nOfficial Practice Portal Invite\n\nDear ${member.fullName},\nYou have been registered as a Team Member (${SENIORITY_LEVELS[member.competencyTier]?.label || "Associate"}).\n\n👉 *Login URL:* https://brainsandtaxes.com/?portal=staff\n📱 *Mobile:* +91 ${cleanPhone}\n🔑 *Your 4-Digit Access PIN:* ${defaultPin}\n\nPlease log in and review your assigned statutory compliance queue.`;
 
     const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
@@ -259,7 +264,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       if (data.success) {
         toast.success(
           "Workload Re-allocated",
-          `Evaluated ${data.tasksEvaluated} tasks. Reassigned ${data.tasksReassigned} tasks based on competency tiers.`
+          `Evaluated ${data.tasksEvaluated} tasks. Reassigned ${data.tasksReassigned} tasks based on tool access, seniority, and capacity.`
         );
         await fetchStaff();
         if (onRefreshData) await onRefreshData();
@@ -386,9 +391,12 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Autopilot Allocation Active</span>
+            <div
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold"
+              title="Practice team directory with role-based access"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Active Practice Roster</span>
             </div>
 
             <button
@@ -472,23 +480,23 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
           <select
             value={tierFilter}
             onChange={(e) => setTierFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-btred-logo font-medium"
+            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-btred-logo font-medium cursor-pointer"
           >
-            <option value="ALL">All Competency Tiers</option>
-            <option value="4">Tier 4: Manager / Paid CA</option>
-            <option value="3">Tier 3: Senior Article</option>
-            <option value="2">Tier 2: Intermediate Article</option>
-            <option value="1">Tier 1: Junior Article</option>
+            <option value="ALL">All Seniority Levels</option>
+            <option value="4">Managing Partner (FCA)</option>
+            <option value="3">Manager / Qualified CA</option>
+            <option value="2">Senior Associate</option>
+            <option value="1">Associate (Year 1)</option>
           </select>
 
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-btred-logo font-medium"
+            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-btred-logo font-medium cursor-pointer"
           >
             <option value="ALL">All Roles</option>
-            <option value="ARTICLE_TRAINEE">Article Trainees</option>
-            <option value="PAID_CHARTERED_ACCOUNTANT">Paid Chartered Accountants</option>
+            <option value="ARTICLE_TRAINEE">Team Associates</option>
+            <option value="PAID_CHARTERED_ACCOUNTANT">Qualified Paid CAs</option>
             <option value="MANAGING_PARTNER">Managing Partners</option>
           </select>
         </div>
@@ -509,7 +517,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredStaff.map((member) => {
-            const tierMeta = TIER_DESCRIPTIONS[member.competencyTier] || TIER_DESCRIPTIONS[2];
+            const seniorityMeta = SENIORITY_LEVELS[member.competencyTier] || SENIORITY_LEVELS[2];
             const capacity = member.maxDailyTaskCapacity || 10;
             const currentAssigned = member.activeOpenTasksCount || 0;
             const utilizationPct = Math.min(100, Math.round((currentAssigned / capacity) * 100));
@@ -523,80 +531,59 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                     : "border-slate-200"
                 }`}
               >
-                {/* Top Member Header */}
+                {/* Top Member Header & Seniority Selector */}
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900">{member.fullName}</h3>
+                      <h3 className="text-sm font-bold text-slate-900 truncate">{member.fullName}</h3>
                       {member.status === "ACTIVE" ? (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" title="Active in Office" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active in Office" />
                       ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-bold shrink-0">
                           {member.status}
                         </span>
                       )}
                     </div>
-                    <span className="text-[11px] font-medium text-slate-500 block">
+                    <span className="text-xs font-medium text-slate-500 block truncate mt-0.5">
                       {member.role === "MANAGING_PARTNER"
                         ? "Managing Partner (FCA)"
                         : member.role === "PAID_CHARTERED_ACCOUNTANT"
                         ? "Qualified Paid CA"
-                        : "Team Associate"}
+                        : seniorityMeta.label}
                       {member.icaiRegistrationNo && ` • ${member.icaiRegistrationNo}`}
                     </span>
                   </div>
 
-                  {/* Competency Rank Dropdown */}
+                  {/* Seniority Selector */}
                   <select
                     value={member.competencyTier}
                     onChange={(e) => handleQuickRankChange(member.id, Number(e.target.value) as CompetencyTier)}
                     disabled={member.status === "DEACTIVATED"}
-                    className="text-[11px] font-bold px-2 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:ring-1 focus:ring-btred-logo"
+                    className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 focus:outline-none focus:ring-1 focus:ring-btred-logo transition-colors cursor-pointer shrink-0"
+                    title="Change Seniority Level"
                   >
-                    <option value="1">Tier 1 ⭐</option>
-                    <option value="2">Tier 2 ⭐⭐</option>
-                    <option value="3">Tier 3 ⭐⭐⭐</option>
-                    <option value="4">Tier 4 ⭐⭐⭐⭐</option>
+                    <option value="1">Associate (Yr 1)</option>
+                    <option value="2">Senior Associate</option>
+                    <option value="3">Manager / CA</option>
+                    <option value="4">Partner (FCA)</option>
                   </select>
                 </div>
 
-                {/* Tier Description Badge */}
-                <div className="mt-2.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-block ${tierMeta.badge}`}>
-                    {tierMeta.label}
-                  </span>
-                  <p className="text-[10px] text-slate-400 mt-1 line-clamp-1" title={tierMeta.description}>
-                    {tierMeta.description}
-                  </p>
-                </div>
-
-                {/* Domain Specialization Badges */}
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {(member.specializations || []).map((spec) => (
-                    <span
-                      key={spec}
-                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium border border-slate-200"
-                    >
-                      {spec}
-                    </span>
-                  ))}
-                </div>
-
                 {/* Live Workload Capacity Bar */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-xs mb-1">
+                <div className="mt-3.5 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-slate-500 font-medium text-[11px]">Daily Task Load</span>
                     <span className="font-bold text-slate-800 text-[11px]">
                       {currentAssigned} / {capacity} Tasks ({utilizationPct}%)
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
                         utilizationPct > 85
                           ? "bg-red-500"
                           : utilizationPct > 60
-                          ? "bg-purple-600"
+                          ? "bg-amber-500"
                           : "bg-emerald-500"
                       }`}
                       style={{ width: `${utilizationPct}%` }}
@@ -728,7 +715,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Aman Verma"
+                    placeholder="e.g. Kriti Jain"
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-btred-logo"
@@ -788,27 +775,27 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as StaffRole })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-btred-logo font-medium"
                   >
-                    <option value="ARTICLE_TRAINEE">Article Trainee</option>
-                    <option value="PAID_CHARTERED_ACCOUNTANT">Paid Chartered Accountant</option>
+                    <option value="ARTICLE_TRAINEE">Team Associate</option>
+                    <option value="PAID_CHARTERED_ACCOUNTANT">Qualified Paid CA</option>
                     <option value="MANAGING_PARTNER">Managing Partner</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Competency Rank (1 to 4) *
+                    Seniority Level *
                   </label>
                   <select
                     value={formData.competencyTier}
                     onChange={(e) =>
                       setFormData({ ...formData, competencyTier: Number(e.target.value) as CompetencyTier })
                     }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-btred-logo font-bold"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-btred-logo font-medium"
                   >
-                    <option value="1">Tier 1: Junior (Bookkeeping & OCR)</option>
-                    <option value="2">Tier 2: Intermediate (GSTR-3B & TDS 26Q)</option>
-                    <option value="3">Tier 3: Senior (ITR-6 & 3CD Audit)</option>
-                    <option value="4">Tier 4: Manager / Sign-off</option>
+                    <option value="1">Associate (Year 1 - Routine Filings)</option>
+                    <option value="2">Senior Associate (Year 2–3 - Returns & Audit 3CD)</option>
+                    <option value="3">Manager / Qualified CA (Complex Scrutiny & Review)</option>
+                    <option value="4">Managing Partner (Final Sign-off & Representation)</option>
                   </select>
                 </div>
               </div>

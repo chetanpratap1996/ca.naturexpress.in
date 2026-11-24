@@ -430,120 +430,9 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     reader.readAsText(file);
   };
 
-  // Instant 1-Click Load 10 Practice Clients Demo
-  const handleLoadDemoClients = async () => {
-    setIsImporting(true);
-    const demoClientsPayload: Partial<ClientEntity>[] = [
-      {
-        name: "Zenith Precision Robotics India Pvt Ltd",
-        type: "PVT_LTD",
-        pan: "AAACZ9941K",
-        gstin: "27AAACZ9941K1Z4",
-        turnoverCr: 42.5,
-        incorporationYear: 2020,
-        partnerInCharge: "CA Gunjan Jain",
-        assignedArticle: "Kriti Jain (Article)",
-        primaryContact: {
-          name: "Siddharth Deshmukh",
-          phone: "+91 98201 10099",
-          email: "siddharth@zenithrobotics.in",
-          designation: "Managing Director"
-        }
-      },
-      {
-        name: "Bharat AgriLogistics & Warehousing LLP",
-        type: "LLP",
-        pan: "AAHFB7712M",
-        gstin: "23AAHFB7712M1Z2",
-        turnoverCr: 18.0,
-        incorporationYear: 2021,
-        partnerInCharge: "CA Gunjan Jain",
-        assignedArticle: "Kriti Jain (Article)",
-        primaryContact: {
-          name: "Gopal Patidar",
-          phone: "+91 94250 18822",
-          email: "gopal@bharatwarehouse.com",
-          designation: "Designated Partner"
-        }
-      },
-      {
-        name: "Paramount Solar Infra Solutions Pvt Ltd",
-        type: "PVT_LTD",
-        pan: "AABCP8831R",
-        gstin: "24AABCP8831R1Z9",
-        turnoverCr: 65.0,
-        incorporationYear: 2018,
-        partnerInCharge: "CA Gunjan Jain",
-        assignedArticle: "Kriti Jain (Article)",
-        primaryContact: {
-          name: "Ravi Teja",
-          phone: "+91 98490 22314",
-          email: "ravi@paramountsolar.co.in",
-          designation: "Director"
-        }
-      },
-      {
-        name: "Khandelwal Steels & Hardware Traders",
-        type: "PARTNERSHIP",
-        pan: "AAAFK3321L",
-        gstin: "23AAAFK3321L1Z0",
-        turnoverCr: 8.5,
-        incorporationYear: 2015,
-        partnerInCharge: "CA Gunjan Jain",
-        assignedArticle: "Kriti Jain (Article)",
-        primaryContact: {
-          name: "Ashok Khandelwal",
-          phone: "+91 98270 44510",
-          email: "ashok.steels@gmail.com",
-          designation: "Managing Partner"
-        }
-      },
-      {
-        name: "CloudNexus Cloud Systems Pvt Ltd",
-        type: "PVT_LTD",
-        pan: "AABCC4490Q",
-        gstin: "29AABCC4490Q1Z8",
-        turnoverCr: 28.0,
-        incorporationYear: 2022,
-        partnerInCharge: "CA Gunjan Jain",
-        assignedArticle: "Kriti Jain (Article)",
-        primaryContact: {
-          name: "Ananya Swaminathan",
-          phone: "+91 99000 81223",
-          email: "ananya@cloudnexus.io",
-          designation: "Director & CTO"
-        }
-      }
-    ];
-
-    try {
-      const response = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batch: demoClientsPayload, actorName: DEFAULT_FIRM_BRANDING.managingPartner }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Demo Clients Loaded", `Successfully ingested 5 corporate client entities into practice registry.`);
-        if (data.clients && Array.isArray(data.clients)) {
-          data.clients.forEach((c: ClientEntity) => onAddClient(c));
-        } else {
-          demoClientsPayload.forEach((b) => onAddClient(b as ClientEntity));
-        }
-        setActiveTab("directory");
-      }
-    } catch (e: any) {
-      toast.error("Failed", e.message);
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   const handleDownloadCsvTemplate = () => {
     const csvContent = `entity_name,legal_type,pan,gstin,contact_name,contact_phone,contact_email,turnover_cr,assigned_article
-"Pratwi Solutions Private Limited","PVT_LTD","AANCP9915B","09AANCP9915B1Z4","Chetan Pratap Singh","+91 80771 70715","chetanpratap1996@gmail.com",10.0,"Kriti Jain"
-"Apex Logistics & Freight LLP","LLP","AABFA8812L","27AABFA8812L1Z8","Amitabh Verma","+91 98200 44101","amitabh@apexlogistics.in",14.5,"Kriti Jain"
-"Sharma Infrastructure Works","PROPRIETORSHIP","AAFPS1290C","23AAFPS1290C1Z2","Ramesh Sharma","+91 94250 88912","sharma.infra@gmail.com",4.2,"Kriti Jain"`;
+"Pratwi Solutions Private Limited","PVT_LTD","AANCP9915B","09AANCP9915B1Z4","Chetan Pratap Singh","+91 80771 70715","chetanpratap1996@gmail.com",1.0,"Kriti Jain"`;
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1262,15 +1151,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={handleLoadDemoClients}
-                    disabled={isImporting}
-                    className="bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Load 5 Practice Demo Clients</span>
-                  </button>
+                  
 
                   <button
                     type="button"
@@ -1556,7 +1437,6 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                   >
                     <option value="Kriti Jain (Article)">Kriti Jain (CRO022998)</option>
-                    <option value="Aman Verma (Article)">Aman Verma (CRO023101)</option>
                   </select>
                 </div>
                 <div>
@@ -1567,7 +1447,6 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                   >
                     <option value="CA Gunjan Jain">CA Gunjan Jain (Managing Partner)</option>
-                    <option value="CA Rohit Sharma">CA Rohit Sharma (Partner)</option>
                   </select>
                 </div>
               </div>

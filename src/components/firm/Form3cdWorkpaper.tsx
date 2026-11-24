@@ -83,20 +83,20 @@ export interface ClientAuditProfile {
 }
 
 const CLIENT_AUDIT_PROFILES: Record<string, ClientAuditProfile> = {
-  // Apex AutoTech (Manufacturing - Form 3CA/3CD)
-  "CLI-APEX-01": {
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
-    pan: "AABCA8891D",
-    cinOrLlp: "U29100MP2015PTC034120",
+  // Pratwi Solutions Private Limited (IT Services - Form 3CA/3CD)
+  "ddd33056-b6dc-46ca-b145-cd111045aff7": {
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    clientName: "Pratwi Solutions Private Limited",
+    pan: "AANCP9915B",
+    cinOrLlp: "U72900UP2026PTC199821",
     auditType: "FORM_3CA_3CD",
-    turnoverCr: 48.5,
+    turnoverCr: 1.2,
     assessmentYear: "AY 2026-27",
     financialYear: "FY 2025-26",
     primaryContact: {
-      name: "Rajesh Sharma",
-      phone: "+91 98200 11223",
-      designation: "Managing Director"
+      name: "Chetan Pratap Singh",
+      phone: "+91 80771 70715",
+      designation: "Director"
     },
     clauses: [
       {
@@ -338,7 +338,7 @@ const INITIAL_TDS_TRANSACTIONS: TdsTransactionAuditItem[] = [
     tanOfAssessee: "BPLR01492E",
     sectionCode: "194C",
     natureOfPayment: "Contractual Tooling & Fabrication",
-    payeeName: "Apex Engineering Works",
+    payeeName: "Pratwi Infotech Services",
     payeePan: "AAACE9912M",
     grossPaymentInr: 300000,
     thresholdExemptionInr: 100000,
@@ -354,7 +354,7 @@ const INITIAL_TDS_TRANSACTIONS: TdsTransactionAuditItem[] = [
     tanOfAssessee: "BPLR01492E",
     sectionCode: "194J_PROF",
     natureOfPayment: "Legal & Corporate Advisory Fees",
-    payeeName: "Singhania & Partners LLP",
+    payeeName: "Corporate Legal Advisors LLP",
     payeePan: "AAAFS1102P",
     grossPaymentInr: 450000,
     thresholdExemptionInr: 30000,
@@ -414,7 +414,7 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
   clients = [],
   onPushToItr
 }) => {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-APEX-01");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7");
   const [activeSuite, setActiveSuite] = useState<"clauses_master" | "clause44_engine" | "clause22_msme" | "clause34_tds">("clauses_master");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [search, setSearch] = useState("");
@@ -435,11 +435,11 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
   }, [activeClients, selectedEntityId]);
 
   const activeProfile = useMemo<ClientAuditProfile>(() => {
-    const entityId = currentEntity?.id || "CLI-APEX-01";
+    const entityId = currentEntity?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7";
     if (CLIENT_AUDIT_PROFILES[entityId]) {
       return CLIENT_AUDIT_PROFILES[entityId];
     }
-    return CLIENT_AUDIT_PROFILES["CLI-APEX-01"];
+    return CLIENT_AUDIT_PROFILES["ddd33056-b6dc-46ca-b145-cd111045aff7"] || Object.values(CLIENT_AUDIT_PROFILES)[0];
   }, [currentEntity]);
 
   const [clauses, setClauses] = useState<Form3cdClause[]>(() => activeProfile.clauses);
@@ -545,7 +545,6 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
                 }}
                 className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
               >
-                <option value="CLI-APEX-01">Apex AutoTech Private Limited (AABCA8891D)</option>
                 <option value="CLI-PRATWI-01">Pratwi Solutions Private Limited (AANCP9915B)</option>
               </select>
             </div>

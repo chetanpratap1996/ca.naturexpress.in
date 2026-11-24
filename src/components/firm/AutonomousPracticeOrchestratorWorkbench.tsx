@@ -26,27 +26,41 @@ import {
 import { 
   UniversalEntityDnaMesh, 
   ClientEntityDna, 
-  SAMPLE_CLIENT_DNA_APEX, 
-  SAMPLE_CLIENT_DNA_PRATWI,
+  REAL_CLIENT_DNA_PRATWI,
+  clientEntityToDna,
   CrossSuiteEventType,
   RippleImpactSummary
 } from '@/lib/mesh/universalEntityDnaMesh';
+import { useTaxoData } from '@/lib/hooks/useTaxoData';
 import { 
   AutonomousPracticeOrchestrator, 
   AutonomousRunReport 
 } from '@/lib/mesh/autonomousPracticeOrchestrator';
 
 export default function AutonomousPracticeOrchestratorWorkbench() {
-  const [selectedClient, setSelectedClient] = useState<ClientEntityDna>(SAMPLE_CLIENT_DNA_APEX);
-  const [customPan, setCustomPan] = useState(SAMPLE_CLIENT_DNA_APEX.pan);
-  const [customGstin, setCustomGstin] = useState(SAMPLE_CLIENT_DNA_APEX.gstin);
-  const [customCin, setCustomCin] = useState(SAMPLE_CLIENT_DNA_APEX.cin || '');
+  const { clients } = useTaxoData();
+  const [selectedClient, setSelectedClient] = useState<ClientEntityDna>(REAL_CLIENT_DNA_PRATWI);
+  const [customPan, setCustomPan] = useState(REAL_CLIENT_DNA_PRATWI.pan);
+  const [customGstin, setCustomGstin] = useState(REAL_CLIENT_DNA_PRATWI.gstin);
+  const [customCin, setCustomCin] = useState(REAL_CLIENT_DNA_PRATWI.cin || '');
 
   // Full autonomous run state
   const [isRunning, setIsRunning] = useState(false);
   const [runReport, setRunReport] = useState<AutonomousRunReport>(
-    AutonomousPracticeOrchestrator.executeFullPracticeRun(SAMPLE_CLIENT_DNA_APEX)
+    AutonomousPracticeOrchestrator.executeFullPracticeRun(REAL_CLIENT_DNA_PRATWI)
   );
+
+  React.useEffect(() => {
+    if (clients && clients.length > 0) {
+      const first = clients[0];
+      const dna = clientEntityToDna(first);
+      setSelectedClient(dna);
+      setCustomPan(dna.pan);
+      setCustomGstin(dna.gstin);
+      setCustomCin(dna.cin || '');
+      setRunReport(AutonomousPracticeOrchestrator.executeFullPracticeRun(dna));
+    }
+  }, [clients]);
 
   // Ripple simulation state
   const [simEventType, setSimEventType] = useState<CrossSuiteEventType>('MSME_OVERDUE_INVOICE_FLAGGED');
@@ -176,28 +190,30 @@ export default function AutonomousPracticeOrchestratorWorkbench() {
             <p className="text-xs text-slate-500">Select an institutional client or verify statutory credentials (PAN, GSTIN, CIN)</p>
           </div>
 
-          {/* Client Switcher Buttons */}
+          {/* Dynamic Live Client Selector */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleSelectClientProfile(SAMPLE_CLIENT_DNA_APEX)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                selectedClient.id === SAMPLE_CLIENT_DNA_APEX.id
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
-              }`}
-            >
-              Apex AutoTech (MP)
-            </button>
-            <button
-              onClick={() => handleSelectClientProfile(SAMPLE_CLIENT_DNA_PRATWI)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                selectedClient.id === SAMPLE_CLIENT_DNA_PRATWI.id
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
-              }`}
-            >
-              Brains & Taxes (MP)
-            </button>
+            {clients && clients.length > 0 ? (
+              <select
+                value={selectedClient.id}
+                onChange={(e) => {
+                  const target = clients.find((c) => c.id === e.target.value);
+                  if (target) {
+                    handleSelectClientProfile(clientEntityToDna(target));
+                  }
+                }}
+                className="bg-slate-50 border border-slate-300 font-bold text-xs px-3 py-2 rounded-xl text-slate-900 focus:outline-none focus:border-red-600 cursor-pointer shadow-xs"
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.pan})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                {REAL_CLIENT_DNA_PRATWI.legalName}
+              </span>
+            )}
           </div>
         </div>
 

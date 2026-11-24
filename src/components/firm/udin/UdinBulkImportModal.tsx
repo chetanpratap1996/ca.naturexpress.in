@@ -49,7 +49,7 @@ export const UdinBulkImportModal: React.FC<UdinBulkImportModalProps> = ({
           udin: "26518492BTAX901284",
           documentTitle: "Tax Audit Report Form 3CA/3CD u/s 44AB (Manufacturing)",
           documentType: "TAX_AUDIT_3CD",
-          clientName: "Apex AutoTech Private Limited",
+          clientName: "Pratwi Solutions Private Limited",
           clientPan: "AABCA8891D",
           signingDate: "2026-09-29",
           generatedDate: "2026-09-30",
@@ -96,7 +96,7 @@ export const UdinBulkImportModal: React.FC<UdinBulkImportModalProps> = ({
           udin: "26518492BSTATU7701",
           documentTitle: "Independent Statutory Auditor's Report (Schedule III Division I)",
           documentType: "STATUTORY_AUDIT",
-          clientName: "Apex AutoTech Private Limited",
+          clientName: "Pratwi Solutions Private Limited",
           clientPan: "AABCA8891D",
           signingDate: "2026-09-15",
           generatedDate: "2026-09-16",
@@ -129,7 +129,7 @@ export const UdinBulkImportModal: React.FC<UdinBulkImportModalProps> = ({
           udin: "PENDING_GENERATION",
           documentTitle: "Net Worth Certificate for Working Capital Loan of ₹5 Crore",
           documentType: "NET_WORTH_CERTIFICATE",
-          clientName: "Rajesh Sharma (Promoter)",
+          clientName: "Chetan Pratap Singh (Director)",
           clientPan: "ABFPS1234E",
           signingDate: "2026-10-25",
           financialFigures: "Certified Net Worth: ₹8.45 Cr as on 30-09-2026",
@@ -143,7 +143,7 @@ export const UdinBulkImportModal: React.FC<UdinBulkImportModalProps> = ({
           udin: "26518492BCERT09123",
           documentTitle: "Turnover Certificate for Government EPC Tender (NHAI)",
           documentType: "TURNOVER_CERTIFICATE",
-          clientName: "Zenith Infra Projects Limited",
+          clientName: "Pratwi Solutions Private Limited",
           clientPan: "AABCZ9941M",
           signingDate: "2026-09-10",
           generatedDate: "2026-09-11",
@@ -326,7 +326,7 @@ export const UdinBulkImportModal: React.FC<UdinBulkImportModalProps> = ({
                 rows={7}
                 value={pastedContent}
                 onChange={(e) => setPastedContent(e.target.value)}
-                placeholder="Document Title&#9;Client Name&#9;18-Digit UDIN&#9;Certified Figures&#10;Tax Audit Report Form 3CD&#9;Apex AutoTech Pvt Ltd&#9;26518492BTAX901284&#9;Turnover: ₹48.5 Cr&#10;Net Worth Certificate&#9;Rajesh Sharma&#9;PENDING&#9;Net Worth: ₹8.45 Cr"
+                placeholder="Document Title&#9;Client Name&#9;18-Digit UDIN&#9;Certified Figures&#10;Tax Audit Report Form 3CD&#9;Pratwi Solutions Pvt Ltd&#9;26518492BTAX901284&#9;Turnover: ₹48.5 Cr&#10;Net Worth Certificate&#9;Chetan Pratap Singh&#9;PENDING&#9;Net Worth: ₹8.45 Cr"
                 className="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-btred-logo"
               />
               <button

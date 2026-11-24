@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     // Default real production client profile if omitted
     const defaultProfile: ClientAuditProfile = {
-      legalName: body.clientProfile?.legalName || "Apex AutoTech Private Limited",
+      legalName: body.clientProfile?.legalName || "Pratwi Solutions Private Limited",
       pan: body.clientProfile?.pan || "AABCA8891D",
       gstin: body.clientProfile?.gstin || "23AABCA8891D1Z4",
       cin: body.clientProfile?.cin || "U74110MP2017PTC043716",
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         tanOfAssessee: "BPLG02299C",
         sectionCode: "194C",
         natureOfPayment: "Factory Logistics & Freight",
-        payeeName: "Apex Express Logistics",
+        payeeName: "Pratwi Express Logistics",
         payeePan: "AAACX1029P",
         grossPaymentInr: 1500000,
         thresholdExemptionInr: 100000,
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         tanOfAssessee: "BPLG02299C",
         sectionCode: "194J_PROF",
         natureOfPayment: "Legal & Corporate Consultancy",
-        payeeName: "Singhania Law Chambers",
+        payeeName: "Corporate Legal Advisors LLP",
         payeePan: "AAAFS9920L",
         grossPaymentInr: 500000,
         thresholdExemptionInr: 30000,

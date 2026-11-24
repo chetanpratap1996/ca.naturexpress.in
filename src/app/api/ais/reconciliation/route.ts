@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
 
     const forecast = InsightNoticeForecaster.forecastNoticeExposure({
       pan,
-      taxpayerName: "Rajesh Sharma",
+      taxpayerName: "Chetan Pratap Singh",
       financialYear: fy,
       assessmentYear: ay,
       totalUnreportedIncomeInr: report.summary.totalUnreportedIncomeExposureInr,

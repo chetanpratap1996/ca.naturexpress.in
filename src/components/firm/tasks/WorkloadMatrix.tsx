@@ -37,10 +37,8 @@ export interface StaffWorkloadSummary {
 }
 
 const DEFAULT_STAFF_MEMBERS = [
-  { name: "Kriti Jain (Article)", role: "Senior Article Trainee (Corporate Audit & Direct Tax)" },
-  { name: "Aman Verma (Article)", role: "Article Trainee (GST & TDS Reconciliations)" },
-  { name: "Rahul Sharma (Article)", role: "Article Trainee (Bookkeeping & Bank OCR)" },
-  { name: "Pooja Mehta (Article)", role: "Junior Article Trainee (Secretarial & MCA Filings)" }
+  { name: "CA Gunjan Jain (Partner)", role: "Managing Partner & Admin (FCA)" },
+  { name: "Kriti Jain (Article)", role: "Team Associate & Article Trainee" }
 ];
 
 export const WorkloadMatrix: React.FC<WorkloadMatrixProps> = ({
@@ -49,7 +47,7 @@ export const WorkloadMatrix: React.FC<WorkloadMatrixProps> = ({
 }) => {
   const [selectedStaff, setSelectedStaff] = useState<string>("ALL");
   const [reassignModalTask, setReassignModalTask] = useState<ComplianceTask | null>(null);
-  const [targetArticle, setTargetArticle] = useState<string>("Aman Verma (Article)");
+  const [targetArticle, setTargetArticle] = useState<string>("Kriti Jain (Article)");
   const [isReassigning, setIsReassigning] = useState(false);
   const [dynamicStaffList, setDynamicStaffList] = useState<{ name: string; role: string }[]>([]);
 
@@ -61,8 +59,8 @@ export const WorkloadMatrix: React.FC<WorkloadMatrixProps> = ({
           const active = data.staff
             .filter((s: any) => s.status === "ACTIVE")
             .map((s: any) => ({
-              name: `${s.fullName} (${s.role === "MANAGING_PARTNER" ? "Partner" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : "Article"})`,
-              role: s.role === "MANAGING_PARTNER" ? "Managing Partner (FCA)" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "Senior Paid CA" : `Article Trainee (Tier ${s.competencyTier})`,
+              name: `${s.fullName} (${s.role === "MANAGING_PARTNER" ? "Partner" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "CA" : s.competencyTier >= 3 ? "Senior Associate" : "Associate"})`,
+              role: s.role === "MANAGING_PARTNER" ? "Managing Partner (FCA)" : s.role === "PAID_CHARTERED_ACCOUNTANT" ? "Senior Paid CA" : s.competencyTier >= 3 ? "Senior Associate" : "Associate",
             }));
           if (active.length > 0) setDynamicStaffList(active);
         }
@@ -117,12 +115,12 @@ export const WorkloadMatrix: React.FC<WorkloadMatrixProps> = ({
         item.completedTasks += 1;
       } else {
         item.openTasks += 1;
-        item.dailyPenaltyUnderCustody += (t.accruingDailyPenalty || 0);
 
         const due = new Date(t.dueDate);
         const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 3600 * 24));
         if (diffDays < 0) {
           item.overdueTasksCount += 1;
+          item.dailyPenaltyUnderCustody += (t.accruingDailyPenalty || 0);
         } else if (diffDays <= 3 || t.priority === "CRITICAL") {
           item.criticalTasksCount += 1;
         }

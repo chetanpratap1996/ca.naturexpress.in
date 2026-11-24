@@ -206,7 +206,7 @@ export const SAMPLE_WIP_ITEMS: BillableWipItem[] = [
   },
   {
     id: 'WIP-03',
-    clientName: 'Apex Machinery Distributors Pvt Ltd',
+    clientName: 'Pratwi Solutions Private Limited',
     clientPan: 'AALCA8912P',
     engagementType: 'TAX_AUDIT_44AB',
     partnerHours: 10,

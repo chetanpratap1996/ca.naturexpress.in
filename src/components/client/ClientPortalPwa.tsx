@@ -8,7 +8,7 @@ import {
   INITIAL_INVOICES,
   INITIAL_PAY_TO_RELEASE_CONFIGS,
   FIRM_METRICS 
-} from "@/lib/data/mockData";
+} from "@/lib/data/firmDefaults";
 import { DocumentItem, InvoiceItem, PayToReleaseConfig, ComplianceTask, ClientEntity } from "@/lib/types";
 import { AuthUser } from "@/lib/auth/session";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
@@ -1473,7 +1473,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Sent from Suresh Kulkarni HDFC A/c"
+                  placeholder="e.g. Sent from Chetan Pratap Singh HDFC A/c"
                   value={clientPayerNote}
                   onChange={(e) => setClientPayerNote(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 text-xs px-3.5 py-2.5 rounded-xl text-slate-900 focus:outline-none focus:border-slate-800 font-medium"

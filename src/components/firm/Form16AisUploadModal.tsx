@@ -64,7 +64,7 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
   activeClientName = "Taxpayer Assessee",
   activePan = "ABFPS1234E"
 }) => {
-  const [activeTab, setActiveTab] = useState<"UPLOAD" | "PASTE" | "SAMPLES">("SAMPLES");
+  const [activeTab, setActiveTab] = useState<"UPLOAD" | "PASTE" | "SAMPLES">("UPLOAD");
   const [isDragging, setIsDragging] = useState(false);
   const [pastedText, setPastedText] = useState("");
   const [extractedData, setExtractedData] = useState<ExtractedTaxData | null>(null);
@@ -262,8 +262,8 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
 
     if (type === "FORM16_DIRECTOR") {
       sampleData = {
-        taxpayerName: "Rajesh Sharma (MD - Apex AutoTech)",
-        pan: "ABFPS1234E",
+        taxpayerName: "Chetan Pratap Singh (Director - Pratwi Solutions)",
+        pan: "AANCP9915B",
         assessmentYear: "AY 2026-27",
         category: "INDIVIDUAL",
         salaryGross: 1850000,
@@ -286,13 +286,13 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
         sec80G: 25000,
         tdsPaid: 145000,
         advanceTaxPaid: 35000,
-        sourceDocument: "Form16_PartA_B_ApexAutoTech_FY2526.pdf",
+        sourceDocument: "Form16_PartA_B_PratwiSolutions_FY2526.pdf",
         verificationHash: "TRACES-F16-8891A"
       };
     } else if (type === "AIS_HNI_TRADER") {
       sampleData = {
-        taxpayerName: "Aditya Singhal (Promoter - OmniRetail)",
-        pan: "AFAPS5512B",
+        taxpayerName: "Chetan Pratap Singh (Director - Pratwi Solutions)",
+        pan: "AANCP9915B",
         assessmentYear: "AY 2026-27",
         category: "INDIVIDUAL",
         salaryGross: 3200000,
@@ -315,13 +315,13 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
         sec80G: 50000,
         tdsPaid: 480000,
         advanceTaxPaid: 150000,
-        sourceDocument: "ITD_AIS_TIS_OmniRetail_AY2627.json",
+        sourceDocument: "ITD_AIS_TIS_PratwiSolutions_AY2627.json",
         verificationHash: "ITD-AIS-7721-HNI"
       };
     } else if (type === "CONSULTANT_44ADA") {
       sampleData = {
-        taxpayerName: "Pratwi Shah (Director & Tech Consultant)",
-        pan: "AAYPS4412K",
+        taxpayerName: "Chetan Pratap Singh (Director - Pratwi Solutions)",
+        pan: "AANCP9915B",
         assessmentYear: "AY 2026-27",
         category: "INDIVIDUAL",
         salaryGross: 0,
@@ -349,10 +349,10 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
       };
     } else {
       sampleData = {
-        taxpayerName: "Ramesh Sharma (Senior Citizen Retd.)",
-        pan: "AAFPS9912M",
+        taxpayerName: "Chetan Pratap Singh (Director - Pratwi Solutions)",
+        pan: "AANCP9915B",
         assessmentYear: "AY 2026-27",
-        category: "SENIOR",
+        category: "INDIVIDUAL",
         salaryGross: 720000,
         salaryExemptions: 0,
         homeLoanInterest: 0,
@@ -373,7 +373,7 @@ export const Form16AisUploadModal: React.FC<Form16AisUploadModalProps> = ({
         sec80G: 10000,
         tdsPaid: 28000,
         advanceTaxPaid: 0,
-        sourceDocument: "AIS_Pension_BankInterest_AY2627.json",
+        sourceDocument: "AIS_TIS_Taxpayer_AY2627.json",
         verificationHash: "ITD-TIS-80TTB-SR"
       };
     }

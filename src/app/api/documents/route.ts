@@ -68,16 +68,36 @@ export async function POST(req: NextRequest) {
           fileContentBase64: item.fileContentBase64 || undefined,
         };
 
-        // If real base64 file buffer provided, persist to durable disk vault
+        // If real base64 file buffer provided, persist to Supabase Cloud Storage and local cache
         if (item.fileContentBase64) {
+          const safeBaseName = (newDoc.fileName || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+          const sanitizedFileName = `${newDoc.id}_${safeBaseName}`;
+          const buffer = Buffer.from(item.fileContentBase64, "base64");
+          const storagePath = `${newDoc.entityId}/${sanitizedFileName}`;
+
+          // Upload to Supabase Cloud Storage for permanent retention
+          if (isSupabaseConfigured()) {
+            try {
+              const { error: sbStorageErr } = await supabase.storage
+                .from("practice-documents")
+                .upload(storagePath, buffer, {
+                  contentType: "application/pdf",
+                  upsert: true
+                });
+              if (!sbStorageErr) {
+                newDoc.storagePath = storagePath;
+              }
+            } catch (sbErr) {
+              console.warn("Supabase Storage batch upload error:", sbErr);
+            }
+          }
+
+          // Local disk cache
           try {
             if (!fs.existsSync(UPLOADS_DIR)) {
               fs.mkdirSync(UPLOADS_DIR, { recursive: true });
             }
-            const safeBaseName = (newDoc.fileName || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-            const sanitizedFileName = `${newDoc.id}_${safeBaseName}`;
             const filePath = path.join(UPLOADS_DIR, sanitizedFileName);
-            const buffer = Buffer.from(item.fileContentBase64, "base64");
             fs.writeFileSync(filePath, buffer);
           } catch (writeErr) {
             console.warn("Disk save error for batch deliverable:", writeErr);
@@ -192,15 +212,38 @@ export async function POST(req: NextRequest) {
 
     const docId = `DOC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+    let uploadedStoragePath: string | undefined;
+
     if (fileContentBase64) {
+      const safeBaseName = (fileName || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const sanitizedFileName = `${docId}_${safeBaseName}`;
+      const buffer = Buffer.from(fileContentBase64, "base64");
+      const bucketName = auth.role === "CLIENT" ? "client-documents" : "practice-documents";
+      uploadedStoragePath = `${targetEntityId}/${sanitizedFileName}`;
+
+      // Upload to Supabase Cloud Storage for permanent cloud retention
+      if (isSupabaseConfigured()) {
+        try {
+          const { error: sbStorageErr } = await supabase.storage
+            .from(bucketName)
+            .upload(uploadedStoragePath, buffer, {
+              contentType: "application/pdf",
+              upsert: true
+            });
+          if (sbStorageErr) {
+            console.warn("Supabase Storage single upload error:", sbStorageErr);
+          }
+        } catch (sbErr) {
+          console.warn("Supabase Storage single upload exception:", sbErr);
+        }
+      }
+
+      // Local disk cache
       try {
         if (!fs.existsSync(UPLOADS_DIR)) {
           fs.mkdirSync(UPLOADS_DIR, { recursive: true });
         }
-        const safeBaseName = (fileName || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-        const sanitizedFileName = `${docId}_${safeBaseName}`;
         const filePath = path.join(UPLOADS_DIR, sanitizedFileName);
-        const buffer = Buffer.from(fileContentBase64, "base64");
         fs.writeFileSync(filePath, buffer);
       } catch (writeErr) {
         console.warn("Local disk write error (fallback to virtual record):", writeErr);
@@ -220,6 +263,7 @@ export async function POST(req: NextRequest) {
       isUnlocked: true,
       financialYear: financialYear || "FY 2026-27",
       taskId: taskId || undefined,
+      storagePath: uploadedStoragePath,
       reviewStatus: auth.role === "PARTNER" ? "APPROVED" : "PENDING_REVIEW",
       reviewedBy: auth.role === "PARTNER" ? auth.user.name : undefined,
     };

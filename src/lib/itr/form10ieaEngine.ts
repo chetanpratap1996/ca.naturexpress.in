@@ -91,7 +91,7 @@ export class Form10IeaEngine {
 
 export const SAMPLE_FORM_10IEA: Form10IeaRecord = Form10IeaEngine.evaluateEligibility({
   assesseePan: 'AAACG1234F',
-  assesseeName: 'Apex Precision Tools Private Limited',
+  assesseeName: 'Pratwi Solutions Private Limited',
   assessmentYear: 'AY 2025-26',
   hasPgbpIncome: true,
   historicalOptOutYears: [],

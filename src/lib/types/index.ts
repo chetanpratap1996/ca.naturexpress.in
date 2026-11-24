@@ -294,6 +294,7 @@ export interface DocumentItem {
   reviewedBy?: string;
   reviewedAt?: string;
   fileContentBase64?: string;
+  storagePath?: string;
 }
 
 export interface AuditTrailLog {
@@ -617,8 +618,9 @@ export interface StaffMember {
   phone: string;                      // 10-digit mobile for login and WhatsApp invites
   icaiRegistrationNo?: string;        // CRO/NRO/WRO number or ICAI Membership number
   role: StaffRole;
-  competencyTier: CompetencyTier;     // 1 to 4 ranking
+  competencyTier: CompetencyTier;     // 1 to 4 ranking (1: Associate Yr 1, 2: Senior Associate Yr 2-3, 3: Manager/CA, 4: Partner)
   specializations: StaffSpecialization[];
+  allowedTools?: string[];            // Allowed practice tools (e.g. ["tasks", "gst", "tax-audit", "notices-udin", "billing-wip", "client-master"])
   maxDailyTaskCapacity: number;       // Default: Tier 1: 8, Tier 2: 12, Tier 3: 16, Tier 4: 20
   status: "ACTIVE" | "ON_LEAVE" | "EXAM_LEAVE" | "DEACTIVATED";
   pinHash?: string;

@@ -78,11 +78,11 @@ export class Form16SignerEngine {
 export const SAMPLE_FORM16_CERTIFICATES: Form16EmployeeCertificate[] = [
   {
     id: 'F16-001',
-    employeePan: 'BNZPA4912K',
-    employeeName: 'Rahul Vikram Sharma',
-    designation: 'Senior Lead Architect',
-    email: 'rahul.sharma@pratwi.com',
-    mobile: '+91 98260 11921',
+    employeePan: 'AANCP9915B',
+    employeeName: 'Chetan Pratap Singh',
+    designation: 'Managing Director',
+    email: 'chetan@pratwisolutions.com',
+    mobile: '+91 80771 70715',
     financialYear: '2025-26',
     assessmentYear: '2026-27',
     grossSalarySection17_1: 2400000,

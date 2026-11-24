@@ -203,20 +203,20 @@ export class ArticleTrainingEngine {
 export const SAMPLE_ARTICLES: ArticleTraineeProfile[] = [
   {
     id: 'ART-01',
-    registrationNumber: 'WRO-0612991',
-    fullName: 'Rohit Sharma',
+    registrationNumber: 'CRO022998',
+    fullName: 'Kriti Jain',
     articleshipScheme: 'NEW_SCHEME_2_YEAR',
     cityTier: 'TIER_1_ABOVE_20_LAKHS',
     commencementDate: '2025-04-01',
     stipulatedCompletionDate: '2027-03-31',
     currentYearOfTraining: 2,
-    principalMemberNo: '049210',
-    principalName: 'CA Rajesh Mehta',
+    principalMemberNo: '022998C',
+    principalName: 'CA Gunjan Jain',
     bankAccountNo: '50100239102914',
     ifscCode: 'HDFC0000123',
     monthlyStipendPaid: 5000,
     totalDaysServed: 580,
-    totalLeaveTakenDays: 62, // 1/6th of 580 is 96 days -> Compliant
+    totalLeaveTakenDays: 14,
     workHoursBreakdown: {
       statutoryAudit: 1100,
       taxAudit44AB: 650,
@@ -225,58 +225,6 @@ export const SAMPLE_ARTICLES: ArticleTraineeProfile[] = [
       companyLawAndMca: 210,
       bankAudit: 160,
       internalAudit: 180
-    }
-  },
-  {
-    id: 'ART-02',
-    registrationNumber: 'WRO-0628410',
-    fullName: 'Pooja Kulkarni',
-    articleshipScheme: 'NEW_SCHEME_2_YEAR',
-    cityTier: 'TIER_1_ABOVE_20_LAKHS',
-    commencementDate: '2025-08-01',
-    stipulatedCompletionDate: '2027-07-31',
-    currentYearOfTraining: 2,
-    principalMemberNo: '049210',
-    principalName: 'CA Rajesh Mehta',
-    bankAccountNo: '91823901928301',
-    ifscCode: 'SBIN0001234',
-    monthlyStipendPaid: 5500,
-    totalDaysServed: 460,
-    totalLeaveTakenDays: 95, // 1/6th of 460 is 76 days -> Excess 19 days!
-    workHoursBreakdown: {
-      statutoryAudit: 750,
-      taxAudit44AB: 520,
-      incomeTaxReturns: 390,
-      gstComplianceAndAudit: 410,
-      companyLawAndMca: 150,
-      bankAudit: 80,
-      internalAudit: 100
-    }
-  },
-  {
-    id: 'ART-03',
-    registrationNumber: 'WRO-0649102',
-    fullName: 'Amit Patel',
-    articleshipScheme: 'NEW_SCHEME_2_YEAR',
-    cityTier: 'TIER_1_ABOVE_20_LAKHS',
-    commencementDate: '2026-03-01',
-    stipulatedCompletionDate: '2028-02-29',
-    currentYearOfTraining: 1,
-    principalMemberNo: '049210',
-    principalName: 'CA Rajesh Mehta',
-    bankAccountNo: '10293847561029',
-    ifscCode: 'ICIC0000099',
-    monthlyStipendPaid: 4500,
-    totalDaysServed: 260,
-    totalLeaveTakenDays: 14,
-    workHoursBreakdown: {
-      statutoryAudit: 380,
-      taxAudit44AB: 290,
-      incomeTaxReturns: 340,
-      gstComplianceAndAudit: 310,
-      companyLawAndMca: 90,
-      bankAudit: 0,
-      internalAudit: 70
     }
   }
 ];

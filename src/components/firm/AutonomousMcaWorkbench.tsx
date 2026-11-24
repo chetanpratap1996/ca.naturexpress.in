@@ -44,7 +44,7 @@ import { parseCin, ParsedCinResult } from "@/lib/parsers/cinParser";
 
 export const AutonomousMcaWorkbench: React.FC = () => {
   const [profiles, setProfiles] = useState<McaClientAssemblyProfile[]>(() => getSampleMcaProfiles());
-  const [selectedClientId, setSelectedClientId] = useState<string>("client-apex");
+  const [selectedClientId, setSelectedClientId] = useState<string>("client-pratwi");
   const [activeTab, setActiveTab] = useState<"pipeline" | "sentinel" | "dockets" | "xbrl">("sentinel");
   const [xbrlResult, setXbrlResult] = useState<XbrlParseResult | null>(null);
   const [isXbrlProcessing, setIsXbrlProcessing] = useState<boolean>(false);
@@ -801,12 +801,12 @@ export const AutonomousMcaWorkbench: React.FC = () => {
                   onClick={() => {
                     const parsed = parseXbrlFinancials(sampleXbrlXml, activeProfile.cinOrLlp);
                     setXbrlResult(parsed);
-                    toast.success("Sample XBRL Ingested", `Loaded audited AOC-4 XBRL for ${activeProfile.clientName}`);
+                    toast.success("XBRL Loaded", `Loaded AOC-4 XBRL for ${activeProfile.clientName} — ready for ratio analysis`);
                     playSoftClick();
                   }}
                   className="px-3.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Load Sample AOC-4 XBRL
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Preview AOC-4 XBRL Template
                 </button>
 
                 <label className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm">

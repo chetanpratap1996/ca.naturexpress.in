@@ -11,7 +11,6 @@ import {
   Lock, 
   Clock, 
   Trash2,
-  RefreshCw,
   ExternalLink,
   Plus
 } from "lucide-react";
@@ -191,35 +190,6 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
     }
   };
 
-  // Load Demonstration Monthly Batch (Fallback for quick simulation)
-  const handleLoadSampleBatch = () => {
-    if (clients.length === 0) {
-      alert("No client entities registered yet. Please onboard clients in Client Master first.");
-      return;
-    }
-    const initialized: BatchParsedDoc[] = clients.slice(0, 3).map((c, i) => ({
-      id: `BATCH-ITEM-${Date.now()}-${i}`,
-      fileName: `GSTR3B_${c.gstin || c.pan}_OCT2026_ACK.pdf`,
-      fileSizeBytes: 245000,
-      detectedPan: c.pan,
-      detectedGstin: c.gstin,
-      detectedPeriod: "October 2026",
-      detectedFy: "FY 2026-27",
-      detectedCategory: "GST_INVOICES",
-      matchedEntityId: c.id,
-      matchedEntityName: c.name,
-      recipientPhone: c.primaryContact.phone,
-      recipientContactName: c.primaryContact.name,
-      payToReleaseLocked: false,
-      outstandingFeeAmount: 0,
-      status: "MATCHED",
-      selected: true,
-    }));
-    setParsedQueue((prev) => [...prev, ...initialized]);
-    setIsCompleted(false);
-    setDispatchLogs([]);
-  };
-
   // Toggle selection
   const handleToggleSelect = (id: string) => {
     setParsedQueue((prev) =>
@@ -368,16 +338,17 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
               className="bg-slate-900 hover:bg-slate-800 text-white shadow-xs text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer"
             >
               <UploadCloud className="w-4 h-4 text-slate-300" />
-              <span>Browse PDF Documents</span>
+              <span>Browse Filing Receipts</span>
             </button>
-            <button
-              onClick={handleLoadSampleBatch}
-              title="Load test mock documents for rapid demonstration"
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              <span>Load Sample Batch</span>
-            </button>
+            {parsedQueue.length > 0 && (
+              <button
+                onClick={() => setParsedQueue([])}
+                className="bg-white hover:bg-red-50 text-red-600 border border-red-200 text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                <span>Clear Queue</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -416,20 +387,10 @@ export const BatchOutwardDispatcher: React.FC<BatchOutwardDispatcherProps> = ({
                     e.stopPropagation();
                     fileInputRef.current?.click();
                   }}
-                  className="bg-btred-logo text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-700 transition shadow-sm flex items-center gap-1.5"
+                  className="bg-btred-logo text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-red-700 transition shadow-sm flex items-center gap-2"
                 >
-                  <UploadCloud className="w-3.5 h-3.5" />
+                  <UploadCloud className="w-4 h-4" />
                   Select Files from Computer
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLoadSampleBatch();
-                  }}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition"
-                >
-                  Or Load Demo Samples
                 </button>
               </div>
             </div>

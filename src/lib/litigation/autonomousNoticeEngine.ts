@@ -173,12 +173,11 @@ export function getRankedPrecedentsFromGraph(
 /**
  * Generate Sample Institutional Notice Defense Dockets
  * Docket 1: Pratwi Solutions (Section 143(1)(a) adjustment — AIS SFT verified, 100% clean, brief ready)
- * Docket 2: Apex Heavy Engineering (Section 148 Reassessment AY 2018-19 — DIN missing fatal defect + limitation bar + 20% stay petition)
+ * Docket 2: Pratwi Solutions (Section 148 Reassessment AY 2018-19 — DIN missing fatal defect + limitation bar + 20% stay petition)
  */
 export function getSampleNoticeDockets(): NoticeDocketItem[] {
   // Query knowledge graph with constitutional reranker for dynamic precedent integration
   const pratwiGraphPrecedents = getRankedPrecedentsFromGraph("143(1)(a) prima facie debatable khatau", "BOMBAY_HC");
-  const apexGraphPrecedents = getRankedPrecedentsFromGraph("brandix mauritius din circular 19/2019 kelvinator", "DELHI_HC");
 
   // 1. Pratwi Solutions Private Limited (Section 143(1)(a) Dividend Mismatch - Clean)
   const pratwiBrief: DefenseBriefDocket = {
@@ -206,9 +205,9 @@ export function getSampleNoticeDockets(): NoticeDocketItem[] {
 
   const pratwiDocket: NoticeDocketItem = {
     id: "NOTICE-DOCKET-01",
-    clientId: "client-pratwi",
+    clientId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
     clientName: "Pratwi Solutions Private Limited",
-    panOrGstin: "AABCP1234F",
+    panOrGstin: "AANCP9915B",
     assessmentYearOrPeriod: "AY 2026-27",
     authority: "ITD_FACELESS",
     section: "SEC_143_1_A_ADJUSTMENT",
@@ -236,95 +235,11 @@ export function getSampleNoticeDockets(): NoticeDocketItem[] {
       "[10:17:30] Client WhatsApp risk briefing prepared.",
     ],
     whatsappBriefingPayload: {
-      recipientMobile: "+91 98201 12345",
+      recipientMobile: "+91 80771 70715",
       messageText: "Hi Pratwi Solutions, an automated Section 143(1)(a) response has been prepared for the dividend adjustment of ₹1.45L. DIN verified valid. No tax payable. Review response: https://firm.tax/litigation/pratwi-143",
       quickActionUrl: "/client?tab=tax-notices&docket=NOTICE-DOCKET-01",
     },
-  };
-
-  // 2. Apex Heavy Engineering Ltd (Section 148 Reassessment AY 2018-19 - FATAL DEFECT + 20% STAY PETITION)
-  const apexBrief: DefenseBriefDocket = {
-    preliminaryObjections: [
-      "FATAL JURISDICTIONAL DEFECT — ABSENCE OF VALID DIN (CBDT Circular No. 19/2019): The notice uploaded on the portal does not bear any computer-generated DIN. In terms of binding CBDT Circular 19/2019 and the landmark ruling of the Hon'ble Delhi High Court in CIT v. Brandix Mauritius (456 ITR 34) as affirmed by the Hon'ble Supreme Court, the impugned notice is non-est and void ab initio.",
-      "BARRED BY STATUTORY LIMITATION UNDER SECTION 149(1)(b): The notice relates to AY 2018-19, which is beyond the 3-year limitation window. The AO has failed to demonstrate that escaped income represented in the form of an asset exceeds ₹50 Lakhs.",
-      "LACK OF MANDATORY HIGHER SANCTION UNDER SECTION 151: Notice issued beyond 3 years without the express sanction of the Principal Chief Commissioner of Income Tax, violating Section 151(ii).",
-    ],
-    factualSubmissions: [
-      "The alleged escaped turnover of ₹68,00,000 from M/s Steel Craft Fabricators represents bona fide commercial capital purchases of machinery fully capitalized in Schedule III and verified during the original assessment u/s 143(3).",
-      "Cross-verification with Module 2.1 GSTR-2B and Module 2.4 Schedule III establishes that invoices were paid via banking channels (RTGS) with proper GST e-way bills.",
-      "No fresh tangible material outside the original assessment record was in the possession of the AO, rendering the reassessment a mere impermissible 'change of opinion'.",
-    ],
-    judicialPrecedents: apexGraphPrecedents.length > 0 ? apexGraphPrecedents : [
-      {
-        caseTitle: "CIT (International Taxation) v. Brandix Mauritius Holdings Ltd.",
-        citation: "456 ITR 34 (SC) / 2023-TIOL-92-SC-IT",
-        court: "Supreme Court of India",
-        ratio: "Any notice, order or communication issued without a computer-generated DIN is deemed never to have been issued and is invalid in law.",
-        precedenceWeight: 5.0,
-        isBindingArticle141: true,
-        constitutionalClassification: "SUPREME_COURT_ARTICLE_141",
-      },
-      {
-        caseTitle: "CIT v. Kelvinator of India Ltd.",
-        citation: "320 ITR 561 (SC)",
-        court: "Supreme Court of India",
-        ratio: "Reassessment cannot be initiated on a mere 'change of opinion' without fresh tangible material outside the original assessment record.",
-        precedenceWeight: 5.0,
-        isBindingArticle141: true,
-        constitutionalClassification: "SUPREME_COURT_ARTICLE_141",
-      },
-    ],
-    prayer: "It is respectfully prayed that: (i) the impugned Section 148 notice be quashed as void ab initio for absence of DIN and limitation bar; (ii) the proceedings be dropped in toto; and (iii) in terms of the Faceless Assessment Scheme, an opportunity of personal hearing through Video Conference (VC) be granted prior to passing any adverse order.",
-  };
-
-  const apexStay: StayPetitionDocket = {
-    disputedDemand: 3450000, // ₹34.50 Lakhs demand
-    proposedPreDeposit: 0, // Requesting complete 100% waiver due to fatal DIN defect
-    hardshipGrounds: [
-      "The impugned demand arises from an invalid Section 148 notice lacking a DIN (void ab initio under Supreme Court ruling in Brandix Mauritius).",
-      "The Assessee company has a strong prima facie case on merits and jurisdiction.",
-      "Enforcing a 20% pre-deposit (₹6,90,000) will cause severe liquidity crisis and disrupt ongoing manufacturing operations and worker payrolls.",
-    ],
-    petitionText: "Application for Stay of Demand under Section 220(6) read with CBDT Instruction No. 1914 & Office Memorandum dated 31.07.2017: The Assessee respectfully requests complete stay of disputed demand of ₹34,50,000 without insistence on 20% pre-deposit pending disposal of preliminary jurisdictional objections.",
-  };
-
-  const apexDocket: NoticeDocketItem = {
-    id: "NOTICE-DOCKET-02",
-    clientId: "client-apex",
-    clientName: "Apex Heavy Engineering Ltd",
-    panOrGstin: "AAACA9921E",
-    assessmentYearOrPeriod: "AY 2018-19",
-    authority: "ITD_FACELESS",
-    section: "SEC_148_REASSESSMENT",
-    dinOrNoticeNo: "NO_DIN_QUOTED_FIELD_NOTICE",
-    dinStatus: "MISSING_DIN_FATAL",
-    noticeDate: "2026-10-18",
-    limitationDueDate: "2026-11-28",
-    daysRemaining: calculateLimitationCountdown("2026-11-28"),
-    allegedDemandInr: 3450000,
-    issuesIdentified: [
-      "Notice u/s 148 issued for AY 2018-19 alleging ₹68,00,000 escaped capital purchases.",
-      "Notice uploaded on ITD portal completely lacks a computer-generated DIN (FATAL JURISDICTIONAL DEFECT).",
-      "Limitation period of 3 years expired; Section 151 higher sanction not attached.",
-    ],
-    crossWorkpaperEvidenceFound: [
-      "Module 2.1 GSTR-2B: Purchases from Steel Craft Fabricators paid via RTGS with e-way bills.",
-      "Module 2.4 Schedule III: Fully capitalized in Fixed Assets register during original scrutiny assessment.",
-    ],
-    defenseStatus: "DRAFT_READY",
-    defenseBrief: apexBrief,
-    stayPetition: apexStay,
-    auditLog: [
-      "[09:30:10] Ingested Section 148 reassessment notice from ITD e-Filing portal.",
-      "[09:31:00] Circular 19/2019 DIN Sentinel: NO DIN DETECTED. Flagged Fatal Jurisdictional Defect.",
-      "[09:31:35] Limitation Engine: Notice relates to AY 2018-19 (beyond 3-year normal limitation).",
-      "[09:32:10] Built Preliminary Jurisdictional Objections citing Supreme Court Brandix Mauritius & Kelvinator.",
-      "[09:32:45] Compiled CBDT Instruction No. 1914 Stay of Demand Petition (100% waiver requested).",
-      "[09:33:15] Routed to Partner Triage Desk for 1-Click Approval and Video Conference request.",
-    ],
-  };
-
-  return [pratwiDocket, apexDocket];
+  };  return [pratwiDocket];
 }
 
 /**
@@ -347,7 +262,7 @@ export function approveNoticeDefense(
           `[${new Date().toLocaleTimeString()}] CA Partner approved legal defense brief & interim stay petition. Ready for portal upload.`,
         ],
         whatsappBriefingPayload: {
-          recipientMobile: "+91 98200 44124",
+          recipientMobile: "+91 80771 70715",
           messageText: `Hi ${docket.clientName}, your legal defense brief for notice ${docket.section} has been approved by the Partner and is ready for portal filing. Review: https://firm.tax/litigation/${docket.id}`,
           quickActionUrl: `/client?tab=tax-notices&docket=${docket.id}`,
         },

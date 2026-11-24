@@ -1181,7 +1181,7 @@ export function PayToReleaseManager({
                 Client Mobile View
               </span>
               <h4 className="text-base font-black text-slate-900 mt-2">Certified Deliverables</h4>
-              <p className="text-xs text-slate-500">Apex AutoTech Private Limited</p>
+              <p className="text-xs text-slate-500">{selectedQrConfig?.client?.name || clients[0]?.name || "Pratwi Solutions Private Limited"}</p>
             </div>
 
             {/* Locked Deliverables Blurred Preview */}
@@ -1215,7 +1215,7 @@ export function PayToReleaseManager({
               <button
                 onClick={() => {
                   setClientPwaPreviewOpen(false);
-                  handleSimulatePayment("CLI-APEX-01", 118000);
+                  handleSimulatePayment(selectedQrConfig?.config?.entityId || clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7", 29500);
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md"
               >

@@ -3,7 +3,7 @@ import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 import { StaffMember, CompetencyTier, StaffRole, StaffSpecialization } from "@/lib/types";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { hashSecret, normalizePhone10 } from "@/lib/auth/enterpriseAuth";
-import { INITIAL_STAFF_MEMBERS } from "@/lib/data/mockData";
+import { INITIAL_STAFF_MEMBERS } from "@/lib/data/firmDefaults";
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fullName, email, phone, role, competencyTier, specializations, maxDailyTaskCapacity, icaiRegistrationNo } = body;
+    const { fullName, email, phone, role, competencyTier, specializations, maxDailyTaskCapacity, icaiRegistrationNo, allowedTools } = body;
 
     if (!fullName || typeof fullName !== "string" || !fullName.trim()) {
       return NextResponse.json({ success: false, error: "Full Name is required." }, { status: 400 });
@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
       role: (role as StaffRole) || "ARTICLE_TRAINEE",
       competencyTier: (Number(competencyTier) as CompetencyTier) || 2,
       specializations: Array.isArray(specializations) && specializations.length > 0 ? specializations : ["GST", "INCOME_TAX"],
+      allowedTools: Array.isArray(allowedTools) && allowedTools.length > 0 ? allowedTools : ["tasks", "gst"],
       maxDailyTaskCapacity: Number(maxDailyTaskCapacity) || (Number(competencyTier) === 1 ? 8 : Number(competencyTier) === 2 ? 12 : 16),
       status: "ACTIVE",
       pinHash: hash,
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
       "PARTNER",
       "Staff Registry",
       "ADD_STAFF",
-      `Added new staff member ${newStaff.fullName} (${newStaff.role}, Tier ${newStaff.competencyTier}) with default PIN: ${defaultPin}.`,
+      `Added new team member ${newStaff.fullName} (${newStaff.role}, Seniority Level ${newStaff.competencyTier}) with default PIN: ${defaultPin}.`,
       "SYSTEM"
     );
 
@@ -138,7 +139,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, fullName, role, competencyTier, specializations, maxDailyTaskCapacity, status, phone, email, icaiRegistrationNo, tempPin } = body;
+    const { id, fullName, role, competencyTier, specializations, maxDailyTaskCapacity, status, phone, email, icaiRegistrationNo, tempPin, allowedTools } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Staff ID is required." }, { status: 400 });
@@ -158,6 +159,7 @@ export async function PUT(req: NextRequest) {
     if (role) existing.role = role as StaffRole;
     if (competencyTier) existing.competencyTier = Number(competencyTier) as CompetencyTier;
     if (Array.isArray(specializations)) existing.specializations = specializations;
+    if (Array.isArray(allowedTools)) existing.allowedTools = allowedTools;
     if (maxDailyTaskCapacity) existing.maxDailyTaskCapacity = Number(maxDailyTaskCapacity);
     if (status) existing.status = status;
     if (email) existing.email = email.trim();

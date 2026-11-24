@@ -446,7 +446,7 @@ function processParsedRows(rawRows: ParsedTbRow[], errors: string[]): TbParseRes
 }
 
 // ----------------------------------------------------------------------------
-// PRODUCTION-GRADE REALISTIC MOCK DATA (45 Ledgers for "Apex Labs Pvt Ltd")
+// PRODUCTION-GRADE REALISTIC MOCK DATA (45 Ledgers for "Pratwi Solutions Private Limited")
 // Exactly matching real Tally Prime export with balanced ₹14.85 Crore TB
 // ----------------------------------------------------------------------------
 export const MOCK_REALISTIC_TALLY_TB: ParsedTbRow[] = [

@@ -40,7 +40,7 @@ import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
-import { INITIAL_CLIENTS } from "@/lib/data/mockData";
+import { INITIAL_CLIENTS } from "@/lib/data/firmDefaults";
 
 interface VirtualCfoCockpitProps {
   clients?: ClientEntity[];
@@ -188,7 +188,7 @@ export const VirtualCfoCockpit: React.FC<VirtualCfoCockpitProps> = ({ clients: p
           badgeColor: "bg-amber-50 text-amber-800 border-amber-200"
         }
       ];
-    } else if (name.includes("zenith") || name.includes("saas") || name.includes("tech")) {
+    } else if (name.includes("pratwi") || name.includes("saas") || name.includes("tech")) {
       return [
         {
           name: "Enterprise Annual SaaS Subscriptions (ARR)",

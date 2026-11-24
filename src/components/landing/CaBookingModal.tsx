@@ -253,7 +253,7 @@ ${gstin ? `🏛 *GSTIN:* ${gstin}\n` : ""}📞 *Contact Phone:* ${phone}
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Apex Engineering Pvt Ltd"
+                    placeholder="e.g. Pratwi Solutions Private Limited"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-btred-500/20 focus:border-btred-500"
@@ -299,7 +299,7 @@ ${gstin ? `🏛 *GSTIN:* ${gstin}\n` : ""}📞 *Contact Phone:* ${phone}
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Rajesh Sharma (Director / CFO)"
+                    placeholder="e.g. Chetan Pratap Singh (Director / CFO)"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-btred-500/20 focus:border-btred-500"
@@ -328,7 +328,7 @@ ${gstin ? `🏛 *GSTIN:* ${gstin}\n` : ""}📞 *Contact Phone:* ${phone}
                 </label>
                 <input
                   type="email"
-                  placeholder="director@apexengineering.com"
+                  placeholder="director@pratwi.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-btred-500/20 focus:border-btred-500"

@@ -338,7 +338,7 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
                   required
                   value={entityNameInput}
                   onChange={(e) => setEntityNameInput(e.target.value)}
-                  placeholder="e.g. Apex Industrial Technologies Pvt Ltd"
+                  placeholder="e.g. Pratwi Solutions Private Limited"
                   className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-red-500"
                 />
               </div>
@@ -351,7 +351,7 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
                   type="text"
                   value={tradeNameInput}
                   onChange={(e) => setTradeNameInput(e.target.value)}
-                  placeholder="e.g. Apex Tech"
+                  placeholder="e.g. Pratwi Tech"
                   className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-red-500"
                 />
               </div>
@@ -560,7 +560,7 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
                   type="text"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  placeholder="e.g. Director Rajesh Sharma"
+                  placeholder="e.g. Director Chetan Pratap Singh"
                   className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900"
                 />
               </div>

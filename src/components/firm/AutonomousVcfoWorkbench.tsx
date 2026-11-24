@@ -39,7 +39,7 @@ import {
 export function AutonomousVcfoWorkbench() {
   const [activeTab, setActiveTab] = useState<"client-vcfo" | "practice-intelligence" | "stress-testing">("client-vcfo");
   const [vcfoProfiles, setVcfoProfiles] = useState<ClientVcfoProfile[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<string>("client-apex");
+  const [selectedClientId, setSelectedClientId] = useState<string>("client-pratwi");
   const [practiceSummary, setPracticeSummary] = useState<PracticeIntelligenceSummary | null>(null);
   const [loading, setLoading] = useState(true);
 

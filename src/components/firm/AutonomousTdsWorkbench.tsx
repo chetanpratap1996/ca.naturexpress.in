@@ -41,7 +41,7 @@ import {
 
 export const AutonomousTdsWorkbench: React.FC = () => {
   const [profiles, setProfiles] = useState<TdsClientAssemblyProfile[]>(() => getSampleTdsProfiles());
-  const [selectedClientId, setSelectedClientId] = useState<string>("client-apex");
+  const [selectedClientId, setSelectedClientId] = useState<string>("client-pratwi");
   const [activeTab, setActiveTab] = useState<"pipeline" | "triage" | "certificates">("triage");
   const [triageFilter, setTriageFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");

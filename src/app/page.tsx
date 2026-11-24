@@ -108,7 +108,7 @@ import {
   INITIAL_SECTION_40A2B_SAMPLES,
   INITIAL_STAFF_SECURITY_LOGS,
   INITIAL_PARTNER_METRICS
-} from "@/lib/data/mockData";
+} from "@/lib/data/firmDefaults";
 import { ComplianceTask, WorkflowStatus } from "@/lib/types";
 import { 
   Calendar, 
@@ -218,8 +218,8 @@ const DOMAIN_DEFAULT_TAB: Record<DomainId, string> = {
 };
 
 export default function Home() {
-  // Practice Desk runs in live partner mode for GPA & Co. and Brains & Taxes
-  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(true);
+  // Practice Desk runs in 100% live mode connected to Supabase
+  const [isDemoSandbox, setIsDemoSandbox] = useState<boolean>(false);
 
   // Use persistent hook - receives sandbox flag
   const {
@@ -248,8 +248,8 @@ export default function Home() {
     deleteDscToken,
   } = useTaxoData(isDemoSandbox);
 
-  // Default to authenticated Managing Partner (CA Gunjan Jain, GPA & Co.)
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
+  // Authenticated user session
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
   const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
@@ -414,7 +414,7 @@ export default function Home() {
       if (roleParam === "team" || roleParam === "article" || viewParam === "team") {
         setCurrentUser(DEMO_USERS.team || DEMO_USERS.article);
         setCurrentView("partner");
-        setIsDemoSandbox(true);
+        setIsDemoSandbox(false);
         setActivePartnerTab("dashboard");
         return;
       }
@@ -434,11 +434,11 @@ export default function Home() {
         return;
       }
 
-      // CASE 4: Explicit Sandbox Evaluation Flag or Direct Practice Tab Deep Link
-      if (demoParam === "true" || viewParam === "sandbox" || tabParam) {
+      // CASE 4: Explicit Sandbox Evaluation Flag
+      if (demoParam === "true" || viewParam === "sandbox") {
         setCurrentUser(DEMO_USERS.partner);
         setCurrentView("partner");
-        setIsDemoSandbox(true);
+        setIsDemoSandbox(false);
         if (tabParam) {
           setActivePartnerTab(tabParam);
         }
@@ -596,7 +596,7 @@ export default function Home() {
       );
     }
     setCurrentUser(targetUser);
-    setIsDemoSandbox(true);
+    setIsDemoSandbox(false);
     if (role === "client") {
       setCurrentView("client-pwa");
     } else {

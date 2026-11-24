@@ -210,7 +210,7 @@ export const CaComplianceHealthCheck: React.FC<CaComplianceHealthCheckProps> = (
   // =========================================================================
   const sampleTb = useMemo(() => {
     return {
-      companyName: "Apex Forge & Engineering Pvt Ltd (Pithampur)",
+      companyName: "Pratwi Solutions Private Limited",
       totalDebits: 148560240, // ₹14.85 Cr
       totalCredits: 148560240, // ₹14.85 Cr
       difference: 0,

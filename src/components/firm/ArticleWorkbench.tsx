@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { INITIAL_TASKS, INITIAL_DOCUMENTS } from "@/lib/data/mockData";
+import { INITIAL_TASKS, INITIAL_DOCUMENTS } from "@/lib/data/firmDefaults";
 import { ComplianceTask, DocumentItem } from "@/lib/types";
 import { formatDate, formatCurrencyINR } from "@/lib/utils";
 import { openWhatsAppPreset, sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
@@ -80,50 +80,26 @@ interface ClientWhatsAppChannel {
 }
 
 const DEFAULT_WHATSAPP_CHANNELS: Record<string, ClientWhatsAppChannel> = {
-  "CLI-APEX-01": {
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
-    pan: "AABCA8891D",
-    contactName: "Rajesh Sharma",
+  "ddd33056-b6dc-46ca-b145-cd111045aff7": {
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    clientName: "Pratwi Solutions Private Limited",
+    pan: "AANCP9915B",
+    contactName: "Chetan Pratap Singh",
     designation: "Managing Director",
-    phone: "919823011928",
+    phone: "918077170715",
     messages: [
       {
-        id: "APX-01",
+        id: "PRT-01",
         sender: "Kriti Jain (Article)",
-        text: "Sir, we completed the statutory GSTR-3B reconciliation for Apex AutoTech. Vendor invoice of ₹4,20,000 from precision tooling supplier is missing in GSTR-2B. Please confirm if we should reverse ITC or pay under protest.",
-        time: "10:15 AM",
+        text: "Sir, we have initiated the monthly compliance audit for Pratwi Solutions. All GST and TDS ledgers are in sync.",
+        time: "10:00 AM",
         isClient: false,
       },
       {
-        id: "APX-02",
-        sender: "Rajesh Sharma (MD)",
-        text: "Checked with the vendor. They will upload in quarterly GSTR 1. Please defer the ITC to next month and file 3B today.",
-        time: "10:42 AM",
-        isClient: true,
-      }
-    ]
-  },
-  "CLI-OMNI-01": {
-    entityId: "CLI-OMNI-01",
-    clientName: "OmniRetail Hypermarkets Private Limited",
-    pan: "AAFCO4492K",
-    contactName: "Sahil Mehta",
-    designation: "VP Finance & Operations",
-    phone: "919811123456",
-    messages: [
-      {
-        id: "OMN-01",
-        sender: "Kriti Jain (Article)",
-        text: "Sir, for Form 3CD Tax Audit Clause 22/26, we require Udyam certificates for 4 micro/small vendors to determine Section 43B(h) disallowance.",
-        time: "Yesterday 04:30 PM",
-        isClient: false,
-      },
-      {
-        id: "OMN-02",
-        sender: "Sahil Mehta (VP Finance)",
-        text: "Shared 3 Udyam certificates on the firm upload portal. The 4th vendor is unregistered, so 43B(h) does not apply. Please add back only registered ones.",
-        time: "Yesterday 05:12 PM",
+        id: "PRT-02",
+        sender: "Chetan Pratap Singh (MD)",
+        text: "Acknowledged. All recent invoices and bank statements are uploaded to the portal.",
+        time: "10:30 AM",
         isClient: true,
       }
     ]
@@ -139,63 +115,15 @@ const DEFAULT_WHATSAPP_CHANNELS: Record<string, ClientWhatsAppChannel> = {
       {
         id: "PRT-01",
         sender: "Kriti Jain (Article)",
-        text: "Sir, ICICI bank statement for October has an IMPS transfer of ₹1,50,000. Please confirm if this is business travel reimbursement against vouchers or director remuneration u/s 192.",
-        time: "24 Oct 11:00 AM",
+        text: "Sir, we have initiated the monthly compliance audit for Pratwi Solutions. All GST and TDS ledgers are in sync.",
+        time: "10:00 AM",
         isClient: false,
       },
       {
         id: "PRT-02",
         sender: "Chetan Pratap Singh (MD)",
-        text: "This was executive travel & client software demo expense reimbursement. All boarding passes and hotel bills submitted to firm vault.",
-        time: "24 Oct 11:45 AM",
-        isClient: true,
-      }
-    ]
-  },
-  "CLI-ZENITH-01": {
-    entityId: "CLI-ZENITH-01",
-    clientName: "Zenith SaaS Technologies Private Limited",
-    pan: "AAACZ5512L",
-    contactName: "Vikramaditya Singh",
-    designation: "Director",
-    phone: "919988776655",
-    messages: [
-      {
-        id: "ZEN-01",
-        sender: "Kriti Jain (Article)",
-        text: "Sir, MCA V3 DIR-3 KYC filing for your DIN requires an updated passport copy with current residential address. Kindly upload on firm portal today.",
-        time: "21 Oct 02:15 PM",
-        isClient: false,
-      },
-      {
-        id: "ZEN-02",
-        sender: "Vikramaditya Singh (Director)",
-        text: "Uploaded passport scan on portal. Please proceed with MCA V3 submission.",
-        time: "21 Oct 03:00 PM",
-        isClient: true,
-      }
-    ]
-  },
-  "CLI-SINGHAL-01": {
-    entityId: "CLI-SINGHAL-01",
-    clientName: "Singhal Logistics & Warehousing",
-    pan: "AAFPS1290C",
-    contactName: "Ramesh Singhal",
-    designation: "Partner",
-    phone: "919712345678",
-    messages: [
-      {
-        id: "SNG-01",
-        sender: "Kriti Jain (Article)",
-        text: "Sir, Q2 Form 26Q TDS return preparation is pending for September Challan 281 receipts. Please share BSR codes and challan numbers.",
-        time: "20 Oct 09:30 AM",
-        isClient: false,
-      },
-      {
-        id: "SNG-02",
-        sender: "Ramesh Singhal (Partner)",
-        text: "Accountant will share bank challan counterfoil PDFs on WhatsApp by 2 PM today.",
-        time: "20 Oct 10:10 AM",
+        text: "Acknowledged. All recent invoices and bank statements are uploaded to the portal.",
+        time: "10:30 AM",
         isClient: true,
       }
     ]
@@ -218,31 +146,7 @@ interface OtpCallRecord {
 const DEFAULT_OTP_CALL_RECORDS: OtpCallRecord[] = [
   {
     id: "CALL-101",
-    timestamp: "2026-10-24 11:42 AM",
-    clientName: "Apex AutoTech Private Limited",
-    portal: "GST Common Portal (GSTN)",
-    returnName: "GSTR-3B Monthly Return (Sept 2026)",
-    signatory: "Rajesh Sharma (Director)",
-    phone: "+91 98230 11928",
-    articleMaker: "Kriti Jain (Article)",
-    result: "AUTHENTICATED_AND_FILED",
-    arnOrAck: "AA2709260192841"
-  },
-  {
-    id: "CALL-102",
-    timestamp: "2026-10-22 03:15 PM",
-    clientName: "Zenith SaaS Technologies Private Limited",
-    portal: "MCA V3 Portal",
-    returnName: "DIR-3 KYC Web (Director Vikramaditya)",
-    signatory: "Vikramaditya Singh",
-    phone: "+91 99887 76655",
-    articleMaker: "Kriti Jain (Article)",
-    result: "AUTHENTICATED_AND_FILED",
-    arnOrAck: "MCA-SRN-9912048"
-  },
-  {
-    id: "CALL-103",
-    timestamp: "2026-10-20 04:50 PM",
+    timestamp: "2026-11-20 04:50 PM",
     clientName: "Pratwi Solutions Private Limited",
     portal: "Income Tax E-Filing (ITBA)",
     returnName: "ITR-6 Corporate Return (AY 2026-27)",
@@ -270,7 +174,7 @@ interface EncryptedQueueDoc {
 const DEFAULT_ENCRYPTED_BANK_DOCS: EncryptedQueueDoc[] = [
   {
     id: "DOC-BS-01",
-    entityId: "CLI-PRATWI-01",
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
     entityName: "Pratwi Solutions Private Limited",
     pan: "AANCP9915B",
     bankName: "HDFC Bank (Corporate NetBanking)",
@@ -279,42 +183,6 @@ const DEFAULT_ENCRYPTED_BANK_DOCS: EncryptedQueueDoc[] = [
     fileSize: "1.4 MB",
     heuristicRule: "PAN_INCORP_YEAR",
     computedPassword: "AANC2024"
-  },
-  {
-    id: "DOC-BS-02",
-    entityId: "CLI-APEX-01",
-    entityName: "Apex AutoTech Private Limited",
-    pan: "AABCA8891D",
-    bankName: "State Bank of India (Corporate)",
-    bankKey: "SBI_BANK",
-    fileName: "SBI_Current_AABCA8891D_Sept2026.pdf",
-    fileSize: "1.8 MB",
-    heuristicRule: "ACCOUNT_LAST_6",
-    computedPassword: "019284"
-  },
-  {
-    id: "DOC-BS-03",
-    entityId: "CLI-OMNI-01",
-    entityName: "OmniRetail Hypermarkets Private Limited",
-    pan: "AAFCO4492K",
-    bankName: "ICICI Bank Ltd (CIB)",
-    bankKey: "ICICI_BANK",
-    fileName: "ICICI_CIB_AAFCO4492K_Statement.pdf",
-    fileSize: "2.1 MB",
-    heuristicRule: "COMPANY_ACRONYM_DDMM",
-    computedPassword: "OMNI1508"
-  },
-  {
-    id: "DOC-BS-04",
-    entityId: "CLI-ZENITH-01",
-    entityName: "Zenith SaaS Technologies Private Limited",
-    pan: "AAACZ5512L",
-    bankName: "Kotak Mahindra Bank",
-    bankKey: "KOTAK_BANK",
-    fileName: "Kotak_Corporate_AAACZ5512L_Q2.pdf",
-    fileSize: "950 KB",
-    heuristicRule: "PAN_LOWERCASE",
-    computedPassword: "aaacz5512l"
   }
 ];
 
@@ -341,7 +209,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
 
   // Multi-Client WhatsApp Desk State
   const [channels, setChannels] = useState<Record<string, ClientWhatsAppChannel>>(DEFAULT_WHATSAPP_CHANNELS);
-  const [selectedChatEntityId, setSelectedChatEntityId] = useState<string>("CLI-APEX-01");
+  const [selectedChatEntityId, setSelectedChatEntityId] = useState<string>("CLI-PRATWI-01");
   const [chatMessage, setChatMessage] = useState("");
   const [whatsAppPlatform, setWhatsAppPlatform] = useState<"WEB" | "APP">("WEB");
   const [presetModalOpen, setPresetModalOpen] = useState(false);
@@ -352,7 +220,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
   });
 
   const activeChannel = useMemo(() => {
-    return channels[selectedChatEntityId] || channels["CLI-APEX-01"] || DEFAULT_WHATSAPP_CHANNELS["CLI-APEX-01"];
+    return channels[selectedChatEntityId] || channels["CLI-PRATWI-01"] || DEFAULT_WHATSAPP_CHANNELS["CLI-PRATWI-01"];
   }, [channels, selectedChatEntityId]);
 
   // Document Review Filters & Modal State
@@ -365,20 +233,20 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
   const [resubmitCustomNote, setResubmitCustomNote] = useState<string>("");
   const [manualUploadModalOpen, setManualUploadModalOpen] = useState(false);
   const [manualDocName, setManualDocName] = useState("");
-  const [manualDocEntity, setManualDocEntity] = useState("Apex AutoTech Private Limited");
+  const [manualDocEntity, setManualDocEntity] = useState(clients[0]?.name || "Pratwi Solutions Private Limited");
   const [manualDocCategory, setManualDocCategory] = useState("BANK_STATEMENT");
 
   // Signatory OTP Call Coordination State
   const [otpPortal, setOtpPortal] = useState<"INCOME_TAX" | "GSTN" | "MCA_V3" | "TRACES">("INCOME_TAX");
   const [otpCoordinationState, setOtpCoordinationState] = useState<"idle" | "heads_up_sent" | "live_call" | "filing_authorized">("idle");
-  const [otpSelectedEntityId, setOtpSelectedEntityId] = useState<string>("CLI-APEX-01");
+  const [otpSelectedEntityId, setOtpSelectedEntityId] = useState<string>("CLI-PRATWI-01");
   const [otpCountdownSeconds, setOtpCountdownSeconds] = useState<number>(600);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [otpArnInput, setOtpArnInput] = useState<string>("");
   const [callRecords, setCallRecords] = useState<OtpCallRecord[]>(DEFAULT_OTP_CALL_RECORDS);
 
   const otpActiveChannel = useMemo(() => {
-    return channels[otpSelectedEntityId] || channels["CLI-APEX-01"] || DEFAULT_WHATSAPP_CHANNELS["CLI-APEX-01"];
+    return channels[otpSelectedEntityId] || channels["CLI-PRATWI-01"] || DEFAULT_WHATSAPP_CHANNELS["CLI-PRATWI-01"];
   }, [channels, otpSelectedEntityId]);
 
   React.useEffect(() => {
@@ -418,63 +286,23 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
   const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>([
     {
       id: "TS-101",
-      date: "2026-10-19",
-      entityName: "Apex AutoTech Private Limited",
-      taskTitle: "Tax Audit Form 3CD Clause 44 & 43B(h) MSME Reconciliation",
-      category: "TAX_AUDIT",
-      hours: 7.5,
-      notes: "Compiled Table 44 expenditure matrix (registered vs unregistered). Verified MSMED Act 15-day/45-day vendor payment terms for disallowance testing.",
+      date: "2026-11-20",
+      entityName: "Pratwi Solutions Private Limited",
+      taskTitle: "GSTR-3B Monthly Summary & ITC Electronic Reconciliation",
+      category: "GST",
+      hours: 7.0,
+      notes: "Screened vendor invoices against GSTR-2B. Reconciled electronic credit ledger.",
       status: "PARTNER_APPROVED"
     },
     {
       id: "TS-102",
-      date: "2026-10-20",
+      date: "2026-11-21",
       entityName: "Pratwi Solutions Private Limited",
-      taskTitle: "ITR-6 Corporate Income Tax & MAT Calculation u/s 115JB",
-      category: "DIRECT_TAX",
-      hours: 7.0,
-      notes: "Cross-checked book profit adjustments under Schedule III, brought-forward business loss and unabsorbed depreciation for Sec 115BAA/115JB evaluation.",
+      taskTitle: "Tax Audit Form 3CD Finalization and Clause 34 TDS Examination",
+      category: "TAX_AUDIT",
+      hours: 7.5,
+      notes: "Audited ledger accounts, verified TDS deductor challans under Section 200(1).",
       status: "PARTNER_APPROVED"
-    },
-    {
-      id: "TS-103",
-      date: "2026-10-21",
-      entityName: "OmniRetail India Limited",
-      taskTitle: "GSTR-2B vs Books Auto-Matching & Rule 37A ITC Audit",
-      category: "GST",
-      hours: 7.0,
-      notes: "Screened 1,420 vendor bills against IMS portal. Tagged 4 unpaid bills (>180 days) for Rule 37 reversal and prepared monthly GSTR-3B draft.",
-      status: "PARTNER_APPROVED"
-    },
-    {
-      id: "TS-104",
-      date: "2026-10-22",
-      entityName: "Zenith SaaS Technologies Private Limited",
-      taskTitle: "Direct Tax Scrutiny Submissions u/s 142(1) Dossier",
-      category: "SCRUTINY",
-      hours: 6.0,
-      notes: "Compiled cross-border SaaS service agreements, bank FIRCs, Softex certifications, and transfer pricing benchmarking documentation for ITBA portal.",
-      status: "PARTNER_APPROVED"
-    },
-    {
-      id: "TS-105",
-      date: "2026-10-23",
-      entityName: "Singhal Logistics LLP",
-      taskTitle: "CARO 2020 Clause 3(i) & (ii) Fixed Asset & Inventory Audit",
-      category: "STATUTORY_AUDIT",
-      hours: 7.0,
-      notes: "Conducted physical verification sampling of commercial vehicle fleet. Inspected title deeds of warehouses and bank hypothecation charges.",
-      status: "LOGGED"
-    },
-    {
-      id: "TS-106",
-      date: "2026-10-24",
-      entityName: "GPA & Co. Practice Development",
-      taskTitle: "Encrypted Bank OCR Batch Validation & Weekly Technical Circle",
-      category: "ACCOUNTING",
-      hours: 3.5,
-      notes: "Tested PDF password cracker regex heuristics against Tier-1 bank statements. Attended weekly firm study circle on recent CBDT circulars & SA 580.",
-      status: "LOGGED"
     }
   ]);
   const [isSubmittingTimesheet, setIsSubmittingTimesheet] = useState<boolean>(false);
@@ -485,7 +313,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
   const [timesheetCategoryFilter, setTimesheetCategoryFilter] = useState<string>("ALL");
   const [timesheetClientFilter, setTimesheetClientFilter] = useState<string>("ALL");
   const [newLogDate, setNewLogDate] = useState<string>("2026-10-24");
-  const [newLogEntity, setNewLogEntity] = useState("Apex AutoTech Private Limited");
+  const [newLogEntity, setNewLogEntity] = useState(clients[0]?.name || "Pratwi Solutions Private Limited");
   const [newLogTask, setNewLogTask] = useState("Form 3CD Clause 44 GST Matrix Compilation");
   const [newLogHours, setNewLogHours] = useState("3.5");
   const [newLogCategory, setNewLogCategory] = useState("Tax Audit (44AB)");
@@ -493,7 +321,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
 
   // Modals & Drawers
   const [workpaperModalOpen, setWorkpaperModalOpen] = useState(false);
-  const [selectedWorkpaperEntity, setSelectedWorkpaperEntity] = useState(clients[0]?.name || "Apex AutoTech Private Limited");
+  const [selectedWorkpaperEntity, setSelectedWorkpaperEntity] = useState(clients[0]?.name || "Pratwi Solutions Private Limited");
 
   // Article Attestation & Escalation Modal State
   const [escalateModalOpen, setEscalateModalOpen] = useState(false);
@@ -1653,7 +1481,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   />
                   <div>
                     <span className="font-bold text-slate-900 block">Rule C: First 4 Caps of Entity + Incorp Date (DDMM)</span>
-                    <span className="text-[11px] text-slate-500 font-mono block">e.g. OMNI1508 / APEX0104 (ICICI CIB &amp; IndusInd)</span>
+                    <span className="text-[11px] text-slate-500 font-mono block">e.g. PRATWI2026 (ICICI CIB &amp; IndusInd)</span>
                   </div>
                 </label>
 
@@ -2669,11 +2497,10 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                 className="bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-btred-logo"
               >
                 <option value="ALL">All Engagements (Firm-wide)</option>
-                <option value="Apex">Apex AutoTech</option>
                 <option value="Pratwi">Pratwi Solutions</option>
-                <option value="OmniRetail">OmniRetail India</option>
-                <option value="Zenith">Zenith SaaS</option>
-                <option value="Singhal">Singhal Logistics</option>
+                <option value="Pratwi">Pratwi Solutions</option>
+                
+                
                 <option value="Practice">GPA Practice Dev</option>
               </select>
             </div>
@@ -2893,48 +2720,6 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                 form103Amd: "SSP/ART/2024/09124",
                 form108Due: "2026-08-14",
                 status: "ACTIVE_TRAINING"
-              },
-              {
-                name: "Aman Sharma",
-                croNo: "CRO-0699412",
-                commencement: "2025-02-01",
-                scheme: "New Scheme 2023 (2-Year Track)",
-                year: "Year 1 (Direct Entry Graduate)",
-                minStipend: 4000,
-                bankAcc: "ICICI Bank A/c •••• 7192",
-                leavesTaken: 4,
-                maxPermissibleLeaves: 24,
-                form103Amd: "SSP/ART/2025/01481",
-                form108Due: "2027-01-31",
-                status: "ACTIVE_TRAINING"
-              },
-              {
-                name: "Pooja Agrawal",
-                croNo: "WRO-0741289",
-                commencement: "2026-09-20",
-                scheme: "New Scheme 2023 (2-Year Track)",
-                year: "Year 1 (Foundation Route)",
-                minStipend: 4000,
-                bankAcc: "Axis Bank A/c •••• 3018",
-                leavesTaken: 2,
-                maxPermissibleLeaves: 24,
-                form103Amd: "SSP/ART/2026/08812",
-                form108Due: "2028-09-19",
-                status: "ACTIVE_TRAINING"
-              },
-              {
-                name: "Rahul Verma",
-                croNo: "CRO-0588211",
-                commencement: "2023-11-10",
-                scheme: "Old Scheme (3-Year Transition Track)",
-                year: "Final Year (Approaching Completion)",
-                minStipend: 6000,
-                bankAcc: "SBI Bank A/c •••• 9924",
-                leavesTaken: 42,
-                maxPermissibleLeaves: 156,
-                form103Amd: "SSP/ART/2023/04192",
-                form108Due: "2026-11-09",
-                status: "COMPLETION_PREP"
               }
             ].map((art, i) => (
               <div key={i} className="border border-slate-200 rounded-2xl p-5 space-y-3.5 hover:border-slate-300 transition bg-white shadow-2xs">
@@ -3266,11 +3051,10 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                     onChange={(e) => setNewLogEntity(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-bold p-2 rounded-xl"
                   >
-                    <option value="Apex AutoTech Private Limited">Apex AutoTech Private Limited</option>
-                    <option value="OmniRetail India Limited">OmniRetail India Limited</option>
-                    <option value="Zenith SaaS Technologies Private Limited">Zenith SaaS Technologies</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
                     <option value="Pratwi Solutions Private Limited">Pratwi Solutions Private Limited</option>
-                    <option value="Singhal Logistics LLP">Singhal Logistics LLP</option>
                     <option value="GPA & Co. Practice Development">GPA &amp; Co. Practice Development</option>
                   </select>
                 </div>
@@ -3801,12 +3585,10 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
                   onChange={(e) => setManualDocEntity(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 text-slate-900 p-2 rounded-xl font-medium"
                 >
-                  <option value="Apex AutoTech Private Limited">Apex AutoTech Private Limited</option>
-                  <option value="OmniRetail Hypermarkets Private Limited">OmniRetail Hypermarkets Private Limited</option>
-                  <option value="Pratwi Solutions Private Limited">Pratwi Solutions Private Limited</option>
-                  <option value="Zenith SaaS Technologies Private Limited">Zenith SaaS Technologies Private Limited</option>
-                  <option value="Singhal Logistics & Warehousing">Singhal Logistics &amp; Warehousing</option>
-                </select>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                  </select>
               </div>
 
               <div>
@@ -3970,7 +3752,7 @@ export const ArticleWorkbench: React.FC<{ isSandbox?: boolean }> = ({ isSandbox 
           loginUrl: credTargetPortalType === "GST" ? "https://services.gst.gov.in/services/login" : 
                     credTargetPortalType === "INCOME_TAX" ? "https://eportal.incometax.gov.in/iec/foservices/#/login" : 
                     credTargetPortalType === "MCA_V3" ? "https://www.mca.gov.in/mcafoportal/login.html" : "https://www.tdscpc.gov.in/app/login.xhtml",
-          username: credTargetPortalType === "GST" ? (activeCredTask.pan ? `${activeCredTask.pan.slice(0, 5).toUpperCase()}_GST` : "APEX_GST_01") :
+          username: credTargetPortalType === "GST" ? (activeCredTask.pan ? `${activeCredTask.pan.slice(0, 5).toUpperCase()}_GST` : "PRATWI_GST_01") :
                     activeCredTask.pan || "AABCA8891D",
           password: `${activeCredTask.entityName.slice(0, 4).toUpperCase()}#Tax${new Date().getFullYear()}!`,
           registeredMobile: "+91 98110 22345",

@@ -278,9 +278,9 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
   const [dinOrRef, setDinOrRef] = useState("CBIC/IND/2026/8891024/ASMT10");
   const [replyDeadline, setReplyDeadline] = useState("2026-11-14");
   const [daysRemaining, setDaysRemaining] = useState(21);
-  const [customClientName, setCustomClientName] = useState("Apex AutoTech Private Limited");
-  const [customPan, setCustomPan] = useState("AABCA8891D");
-  const [customGstin, setCustomGstin] = useState("23AABCA8891D1Z4");
+  const [customClientName, setCustomClientName] = useState(() => clients[0]?.name || "Pratwi Solutions Private Limited");
+  const [customPan, setCustomPan] = useState(() => clients[0]?.pan || "AANCP9915B");
+  const [customGstin, setCustomGstin] = useState(() => clients[0]?.gstin || "09AANCP9915B1Z4");
 
   // Masterclass AI Drafter & Predictive Radar States
   const [activeView, setActiveView] = useState<"DRAFTER" | "PREDICTIVE_RADAR">("DRAFTER");
@@ -295,9 +295,9 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
   const currentTemplate = STATUTORY_NOTICE_TEMPLATES.find(t => t.id === selectedNoticeType) || STATUTORY_NOTICE_TEMPLATES[0];
 
   // Active Assessee Info
-  const activeClientName = customClientName || selectedClient?.name || "Apex AutoTech Private Limited";
-  const activePan = customPan || selectedClient?.pan || "AABCA8891D";
-  const activeGstin = customGstin || selectedClient?.gstin || "23AABCA8891D1Z4";
+  const activeClientName = customClientName || selectedClient?.name || "Pratwi Solutions Private Limited";
+  const activePan = customPan || selectedClient?.pan || "AANCP9915B";
+  const activeGstin = customGstin || selectedClient?.gstin || "09AANCP9915B1Z4";
 
   // Generate dynamic draft
   const defaultInterpolated = currentTemplate.replyBodyDraft
@@ -759,7 +759,7 @@ In terms of Section 144B(6)(vii) / (viii) of the Income-tax Act, 1961 read with 
                 {
                   id: "sample-1",
                   clientId: "c1",
-                  clientName: "Zenith Precision Robotics India Pvt Ltd",
+                  clientName: clients[0]?.name || "Pratwi Solutions Private Limited",
                   pan: "AAACZ9941K",
                   gstin: "27AAACZ9941K1Z4",
                   sectionCode: "Rule 88C / Form GST DRC-01B",

@@ -167,7 +167,7 @@ export function generateWhatsAppValueCard(
 export const SAMPLE_VALUE_SUMMARIES: ClientValueDeliveredSummary[] = [
   computeValueDeliveredSummary({
     clientId: "CLI-001",
-    clientName: "Apex AutoTech Private Limited",
+    clientName: "Pratwi Solutions Private Limited",
     clientPan: "AABCA8891D",
     clientGstin: "23AABCA8891D1Z4",
     clientPhone: "9826012345",

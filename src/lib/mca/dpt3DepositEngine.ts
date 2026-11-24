@@ -128,12 +128,12 @@ export const SAMPLE_DPT3_LIABILITIES: Dpt3LiabilityItem[] = [
   {
     id: 'DPT-01',
     category: 'DIRECTOR_LOAN_EXEMPT',
-    partyName: 'Rahul Vikram Sharma (Managing Director)',
-    panOrCin: 'BNZPA4912K',
-    openingBalance: 2500000,
-    amountReceivedDuringYear: 1500000,
-    amountRepaidDuringYear: 500000,
-    closingBalance: 3500000, // ₹35 Lakhs
+    partyName: 'Chetan Pratap Singh (Managing Director)',
+    panOrCin: 'AANCP9915B',
+    openingBalance: 0,
+    amountReceivedDuringYear: 0,
+    amountRepaidDuringYear: 0,
+    closingBalance: 0,
     isDeemedDeposit: false,
     directorDeclarationObtained: true, // Rule 2(1)(c)(viii) verified
     statutoryAuditVerificationStatus: 'VERIFIED_GENUINE'
@@ -154,7 +154,7 @@ export const SAMPLE_DPT3_LIABILITIES: Dpt3LiabilityItem[] = [
   {
     id: 'DPT-03',
     category: 'CUSTOMER_ADVANCE_BEYOND_365D',
-    partyName: 'Apex Machinery Distributors Pvt Ltd',
+    partyName: 'Pratwi Solutions Private Limited',
     panOrCin: 'U29100MP2018PTC049210',
     openingBalance: 1200000,
     amountReceivedDuringYear: 0,

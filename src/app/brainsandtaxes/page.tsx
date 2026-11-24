@@ -6,7 +6,7 @@ import { CaEnterpriseLandingView } from "@/components/landing/CaEnterpriseLandin
 import { LoginModal } from "@/components/auth/LoginModal";
 import { AuthUser, setActiveSession } from "@/lib/auth/session";
 import { toast } from "@/components/shared/ToastNotification";
-import { INITIAL_CLIENTS } from "@/lib/data/mockData";
+import { INITIAL_CLIENTS } from "@/lib/data/firmDefaults";
 
 export default function BrainsAndTaxesPage() {
   const router = useRouter();

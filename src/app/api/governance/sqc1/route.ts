@@ -6,14 +6,14 @@ const coordinator = new SwarmCoordinator();
 
 // Initialize realistic seed sessions
 const session1 = coordinator.startSession(
-  "Apex Heavy Engineering Ltd",
+  "Pratwi Solutions Private Limited",
   "Statutory Audit Form 3CD & Schedule III Financials (AY 2026-27)"
 );
 
 // Submit maker workpaper for session 1
 coordinator.submitMakerWorkpaper(session1.sessionId, {
-  workpaperId: "WP-3CD-APEX-01",
-  clientEntityName: "Apex Heavy Engineering Ltd",
+  workpaperId: "WP-3CD-PRATWI-01",
+  clientEntityName: "Pratwi Solutions Private Limited",
   targetSubject: "Tax Audit Form 3CD Clause 44 & Clause 22 MSME Reconciliation",
   targetFinancialYear: "FY 2025-26",
   targetAssessmentYear: "AY 2026-27",
@@ -62,46 +62,46 @@ export async function GET(request: NextRequest) {
       {
         id: "UDIN-REC-01",
         documentType: "TAX_AUDIT_3CD",
-        clientName: "Apex Heavy Engineering Ltd",
+        clientName: "Pratwi Solutions Private Limited",
         clientPan: "AAACA9921E",
         signingDate: "2026-10-15",
         generatedDate: "2026-10-20",
         udin: "26098221AAAAAA1048",
         status: "GENERATED_VALID",
         daysRemaining: 55,
-        partnerName: "CA Chetan Sharma",
-        membershipNo: "098221",
+        partnerName: "CA Gunjan Jain",
+        membershipNo: "022998C",
       },
       {
         id: "UDIN-REC-02",
         documentType: "STATUTORY_AUDIT",
         clientName: "Pratwi Solutions Private Limited",
-        clientPan: "AABCP1234F",
+        clientPan: "AANCP9915B",
         signingDate: "2026-11-05",
         status: "PENDING_GENERATION",
         daysRemaining: 46, // 60 - 14 days elapsed
-        partnerName: "CA Chetan Sharma",
-        membershipNo: "098221",
+        partnerName: "CA Gunjan Jain",
+        membershipNo: "022998C",
       },
       {
         id: "UDIN-REC-03",
         documentType: "TURNOVER_CERTIFICATE",
-        clientName: "Zenith Global Logistics LLP",
-        clientPan: "AABFZ9921K",
+        clientName: "Pratwi Solutions Private Limited",
+        clientPan: "AANCP9915B",
         signingDate: "2026-09-28",
         status: "EXPIRING_SOON",
         daysRemaining: 8, // Under 15 days warning!
-        partnerName: "CA Rajiv Malhotra",
-        membershipNo: "084512",
+        partnerName: "CA Gunjan Jain",
+        membershipNo: "022998C",
       },
     ];
 
-    // Mock Physical USB DSC Tokens Locker
+    // Physical USB DSC Tokens Locker
     const dscTokens = [
       {
         id: "DSC-01",
-        entityName: "Apex Heavy Engineering Ltd",
-        holderName: "Rajesh Singhania (Managing Director)",
+        entityName: "Pratwi Solutions Private Limited",
+        holderName: "Chetan Pratap Singh (Director)",
         serialNumber: "ePass2003-8849-01",
         vaultSlot: "Rack A, Slot 04",
         expiryDate: "2027-04-15",
@@ -113,26 +113,26 @@ export async function GET(request: NextRequest) {
       {
         id: "DSC-02",
         entityName: "Pratwi Solutions Private Limited",
-        holderName: "Dr. Vikram Patel (Director)",
+        holderName: "Chetan Pratap Singh (Director)",
         serialNumber: "WatchKey-4921-99",
         vaultSlot: "Rack B, Slot 02",
         expiryDate: "2026-12-10",
-        currentCustodian: "Rohan Varma (Article Trainee)",
-        status: "CHECKED_OUT",
+        currentCustodian: "Firm Master Safe",
+        status: "AVAILABLE_IN_VAULT",
         purpose: "Form 3CD Assessee Digital Signature",
-        lastCheckedOutBy: "Rohan Varma (Article Trainee)",
+        lastCheckedOutBy: "Kriti Jain (Article Trainee)",
         lastCheckedOutAt: "2026-11-19 11:15",
       },
       {
         id: "DSC-03",
-        entityName: "Zenith Global Logistics LLP",
-        holderName: "Sunita Reddy (Designated Partner)",
+        entityName: "Pratwi Solutions Private Limited",
+        holderName: "Chetan Pratap Singh (Director)",
         serialNumber: "mToken-7712-44",
         vaultSlot: "Rack A, Slot 08",
         expiryDate: "2027-08-20",
         currentCustodian: "Firm Master Safe",
         status: "AVAILABLE_IN_VAULT",
-        lastCheckedOutBy: "Anil Verma (Associate)",
+        lastCheckedOutBy: "Kriti Jain (Article Trainee)",
         lastCheckedOutAt: "2026-11-05 16:00",
       },
     ];

@@ -388,7 +388,7 @@ export class Schedule3ComplianceEngine {
   }
 
   // --------------------------------------------------------------------------
-  // DEFAULT REALISTIC DATA PACK FOR APEX AUTOTECH PRIVATE LIMITED
+  // DEFAULT REALISTIC DATA PACK FOR PRATWI SOLUTIONS PRIVATE LIMITED
   // --------------------------------------------------------------------------
   public static getDefaultDossier(): Schedule3ComplianceDossier {
     const ratios = this.computeMandatoryRatios({
@@ -603,7 +603,7 @@ export class Schedule3ComplianceEngine {
     ];
 
     return {
-      clientName: "Apex AutoTech Private Limited",
+      clientName: "Pratwi Solutions Private Limited",
       cin: "U29100MP2015PTC034120",
       financialYear: "FY 2025-26",
       assessmentYear: "AY 2026-27",

@@ -49,7 +49,7 @@ import {
   INITIAL_SECTION_40A2B_SAMPLES,
   INITIAL_STAFF_SECURITY_LOGS,
   INITIAL_PARTNER_METRICS
-} from "@/lib/data/mockData";
+} from "@/lib/data/firmDefaults";
 import { ComplianceTask, WorkflowStatus } from "@/lib/types";
 import { 
   Calendar, 

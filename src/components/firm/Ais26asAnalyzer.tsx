@@ -89,13 +89,13 @@ export interface ClientAisProfile {
 }
 
 const CLIENT_AIS_PROFILES: Record<string, ClientAisProfile> = {
-  // Profile 1: Rajesh Sharma (Promoter - Apex AutoTech)
-  "CLI-APEX-01": {
-    entityId: "CLI-APEX-01",
-    taxpayerName: "Rajesh Sharma (Promoter - Apex AutoTech)",
+  // Profile 1: Chetan Pratap Singh (Director - Pratwi Solutions)
+  "ddd33056-b6dc-46ca-b145-cd111045aff7": {
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    taxpayerName: "Chetan Pratap Singh (Director - Pratwi Solutions)",
     taxpayerType: "INDIVIDUAL",
-    pan: "ABFPS1234E",
-    primaryPhone: "919820011223",
+    pan: "AANCP9915B",
+    primaryPhone: "918077170715",
     assessmentYear: "AY 2026-27",
     financialYear: "FY 2025-26",
     annualTurnoverInr: 14500000,
@@ -319,7 +319,7 @@ interface Ais26asAnalyzerProps {
 }
 
 export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }) => {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("CLI-APEX-01");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7");
   const [activeSuite, setActiveSuite] = useState<"reconciliation" | "sft_radar" | "gatekeeper" | "notice_forecaster">("reconciliation");
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
@@ -343,8 +343,8 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
 
   // Client Profile
   const activeProfile = useMemo<ClientAisProfile>(() => {
-    const id = currentEntity?.id || "CLI-APEX-01";
-    const base = CLIENT_AIS_PROFILES[id] || CLIENT_AIS_PROFILES["CLI-APEX-01"];
+    const id = currentEntity?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7";
+    const base = CLIENT_AIS_PROFILES[id] || CLIENT_AIS_PROFILES["ddd33056-b6dc-46ca-b145-cd111045aff7"] || Object.values(CLIENT_AIS_PROFILES)[0];
     if (customAisRecords) {
       return {
         ...base,

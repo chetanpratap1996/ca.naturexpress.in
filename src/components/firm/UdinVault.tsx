@@ -48,61 +48,33 @@ export interface UdinEntry {
 const DEFAULT_REALISTIC_UDIN_DATA: UdinEntry[] = [
   {
     id: "udin-1",
-    udin: "26518492BTA0192841",
-    documentTitle: "Tax Audit Report u/s 44AB in Form 3CB/3CD for FY 2024-25",
-    documentType: "TAX_AUDIT_3CD",
-    clientName: "Apex Laboratories Private Limited",
-    clientPan: "AABCA9182K",
-    signingDate: "2026-09-28",
-    generatedDate: "2026-09-29",
-    financialFigures: "Turnover: ₹48.20 Cr | Total Disallowances: ₹3.65 Lakh",
+    udin: "26022998BTA0881923",
+    documentTitle: "Independent Statutory Auditor's Report under Companies Act 2013",
+    documentType: "STATUTORY_AUDIT",
+    clientName: "Pratwi Solutions Private Limited",
+    clientPan: "AANCP9915B",
+    signingDate: "2026-10-02",
+    generatedDate: "2026-10-03",
+    financialFigures: "Total Assets: ₹1.85 Cr | Net Profit: ₹28.5 Lakh",
     partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-    membershipNo: "518492",
+    membershipNo: "022998C",
     status: "GENERATED_VALID",
     daysRemainingForGeneration: 60
   },
   {
     id: "udin-2",
-    udin: "26518492BTA0881923",
-    documentTitle: "Independent Statutory Auditor's Report under Companies Act 2013",
-    documentType: "STATUTORY_AUDIT",
+    udin: "26022998BTA0192841",
+    documentTitle: "Tax Audit Report u/s 44AB in Form 3CA/3CD for FY 2025-26",
+    documentType: "TAX_AUDIT_3CD",
     clientName: "Pratwi Solutions Private Limited",
-    clientPan: "AABCP8819E",
-    signingDate: "2026-10-02",
-    generatedDate: "2026-10-03",
-    financialFigures: "Total Assets: ₹18.5 Cr | Net Profit: ₹2.1 Cr",
+    clientPan: "AANCP9915B",
+    signingDate: "2026-09-28",
+    generatedDate: "2026-09-29",
+    financialFigures: "Turnover: ₹1.20 Cr | Total Disallowances: ₹0",
     partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-    membershipNo: "518492",
+    membershipNo: "022998C",
     status: "GENERATED_VALID",
     daysRemainingForGeneration: 60
-  },
-  {
-    id: "udin-3",
-    udin: "PENDING_GENERATION",
-    documentTitle: "Banker Net Worth Certificate for Working Capital Loan Enhancement",
-    documentType: "NET_WORTH_CERTIFICATE",
-    clientName: "OmniRetail Supermarkets Private Limited",
-    clientPan: "AABCO4412L",
-    signingDate: "2026-10-18",
-    financialFigures: "Net Worth: ₹14.80 Cr as on 30-Sep-2026",
-    partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-    membershipNo: "518492",
-    status: "EXPIRING_SOON",
-    daysRemainingForGeneration: 11 // 11 days remaining out of 60 days
-  },
-  {
-    id: "udin-4",
-    udin: "PENDING_GENERATION",
-    documentTitle: "GST Annual Return Certification Form GSTR-9C",
-    documentType: "GST_RECON_9C",
-    clientName: "Zenith Infra Projects Limited",
-    clientPan: "AABCZ9941M",
-    signingDate: "2026-10-22",
-    financialFigures: "Taxable Turnover: ₹8.4 Cr | ITC Claimed: ₹42.1 Lakh",
-    partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-    membershipNo: "518492",
-    status: "PENDING_GENERATION",
-    daysRemainingForGeneration: 55
   }
 ];
 
@@ -158,7 +130,7 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
 
   // Form State for logging a new signed document
   const [newTitle, setNewTitle] = useState("");
-  const [newClient, setNewClient] = useState(clients[0]?.name || "Apex Laboratories Private Limited");
+  const [newClient, setNewClient] = useState(clients[0]?.name || "Pratwi Solutions Private Limited");
   const [newType, setNewType] = useState<UdinEntry["documentType"]>("TAX_AUDIT_3CD");
   const [newFigures, setNewFigures] = useState("");
   const [newUdinCode, setNewUdinCode] = useState("");

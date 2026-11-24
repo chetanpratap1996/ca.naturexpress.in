@@ -117,467 +117,91 @@ const STANDARD_CHART_OF_ACCOUNTS = [
   "Cash Withdrawal (Contra to Cash in Hand)"
 ];
 
+const PRATWI_PROFILE: BankAccountProfile = {
+  bankKey: "HDFC_BANK",
+  bankName: "HDFC Bank Ltd",
+  accountNumber: "50200049182394",
+  ifsc: "HDFC0000043",
+  branch: "Nariman Point Corporate Branch, Mumbai",
+  openingBalance: 1000000,
+  statementPeriod: "01 Oct 2026 – 31 Oct 2026",
+  defaultTransactions: [
+    {
+      id: "TXN-8812",
+      date: "2026-10-18",
+      narration: "NEFT/N301262849/INFOSYS LTD/VENDOR PYMT",
+      chqRefNo: "N301262849",
+      withdrawal: 0,
+      deposit: 425000,
+      balance: 1425000,
+      suggestedLedger: "Professional Consultancy Fees",
+      confidence: 98,
+      status: "CONFIRMED",
+      voucherType: "Receipt",
+      matchedRule: "INFOSYS"
+    },
+    {
+      id: "TXN-8813",
+      date: "2026-10-20",
+      narration: "GST PMT / 09AANCP9915B1Z4 / RET-SEP26 / HDFC",
+      chqRefNo: "CHQ-004918",
+      withdrawal: 114500,
+      deposit: 0,
+      balance: 1310500,
+      suggestedLedger: "GST Liability (Electronic Cash Ledger)",
+      confidence: 99,
+      status: "MAPPED",
+      voucherType: "Payment",
+      matchedRule: "GST PMT"
+    },
+    {
+      id: "TXN-8815",
+      date: "2026-10-23",
+      narration: "UPI/329581904/AMAZON WEB SERVICES/INVOICE",
+      chqRefNo: "UPI-329581904",
+      withdrawal: 32450,
+      deposit: 0,
+      balance: 1229150,
+      suggestedLedger: "Cloud Infrastructure & Software",
+      confidence: 96,
+      status: "MAPPED",
+      voucherType: "Payment",
+      matchedRule: "AMAZON WEB SERVICES"
+    },
+    {
+      id: "TXN-8816",
+      date: "2026-10-24",
+      narration: "SALARY TRANSFERS / OCT-2026 / TECH TEAM",
+      chqRefNo: "CMS-SAL-1026",
+      withdrawal: 680000,
+      deposit: 0,
+      balance: 549150,
+      suggestedLedger: "Salaries & Wages Payable",
+      confidence: 100,
+      status: "CONFIRMED",
+      voucherType: "Payment",
+      matchedRule: "SALARY"
+    },
+    {
+      id: "TXN-8818",
+      date: "2026-10-26",
+      narration: "TDS CHLN 281 / SEC 194J / PROFESSIONAL / NSDL",
+      chqRefNo: "CHLN-049182",
+      withdrawal: 42500,
+      deposit: 0,
+      balance: 356650,
+      suggestedLedger: "TDS Payable (Sec 194J)",
+      confidence: 97,
+      status: "MAPPED",
+      voucherType: "Payment",
+      matchedRule: "TDS CHLN 281"
+    }
+  ]
+};
+
 const CLIENT_BANK_PROFILES: Record<string, BankAccountProfile> = {
-  // Pratwi Solutions (IT Services)
-  "CLI-PRATWI-01": {
-    bankKey: "HDFC_BANK",
-    bankName: "HDFC Bank Ltd",
-    accountNumber: "50200049182394",
-    ifsc: "HDFC0000043",
-    branch: "Nariman Point Corporate Branch, Mumbai",
-    openingBalance: 1000000,
-    statementPeriod: "01 Oct 2026 – 31 Oct 2026",
-    defaultTransactions: [
-      {
-        id: "TXN-8812",
-        date: "2026-10-18",
-        narration: "NEFT/N301262849/INFOSYS LTD/VENDOR PYMT",
-        chqRefNo: "N301262849",
-        withdrawal: 0,
-        deposit: 425000,
-        balance: 1425000,
-        suggestedLedger: "Professional Consultancy Fees",
-        confidence: 98,
-        status: "CONFIRMED",
-        voucherType: "Receipt",
-        matchedRule: "INFOSYS"
-      },
-      {
-        id: "TXN-8813",
-        date: "2026-10-20",
-        narration: "GST PMT / 23AAAAA0000A1Z5 / RET-SEP26 / HDFC",
-        chqRefNo: "CHQ-004918",
-        withdrawal: 114500,
-        deposit: 0,
-        balance: 1310500,
-        suggestedLedger: "GST Liability (Electronic Cash Ledger)",
-        confidence: 99,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "GST PMT"
-      },
-      {
-        id: "TXN-8814",
-        date: "2026-10-22",
-        narration: "ACH DR / HDFC ERGO GENERAL INSURANCE / RENEW",
-        chqRefNo: "ACH-49120",
-        withdrawal: 48900,
-        deposit: 0,
-        balance: 1261600,
-        suggestedLedger: "Insurance Expense",
-        confidence: 94,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "HDFC ERGO"
-      },
-      {
-        id: "TXN-8815",
-        date: "2026-10-23",
-        narration: "UPI/329581904/AMAZON WEB SERVICES/INVOICE",
-        chqRefNo: "UPI-329581904",
-        withdrawal: 32450,
-        deposit: 0,
-        balance: 1229150,
-        suggestedLedger: "Cloud Infrastructure & Software",
-        confidence: 96,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "AMAZON WEB SERVICES"
-      },
-      {
-        id: "TXN-8816",
-        date: "2026-10-24",
-        narration: "SALARY TRANSFERS / OCT-2026 / 12 EMPLOYEES",
-        chqRefNo: "CMS-SAL-1026",
-        withdrawal: 680000,
-        deposit: 0,
-        balance: 549150,
-        suggestedLedger: "Salaries & Wages Payable",
-        confidence: 100,
-        status: "CONFIRMED",
-        voucherType: "Payment",
-        matchedRule: "SALARY"
-      },
-      {
-        id: "TXN-8817",
-        date: "2026-10-25",
-        narration: "IMPS/P2A/DIRECTOR DRAWINGS/EXP REIMB",
-        chqRefNo: "IMPS-90214",
-        withdrawal: 150000,
-        deposit: 0,
-        balance: 399150,
-        suggestedLedger: "Director Current Account / Suspense",
-        confidence: 62,
-        status: "SUSPENSE",
-        voucherType: "Payment"
-      },
-      {
-        id: "TXN-8818",
-        date: "2026-10-26",
-        narration: "TDS CHLN 281 / SEC 194J / PROFESSIONAL / NSDL",
-        chqRefNo: "CHLN-049182",
-        withdrawal: 42500,
-        deposit: 0,
-        balance: 356650,
-        suggestedLedger: "TDS Payable (Sec 194J)",
-        confidence: 97,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "TDS CHLN 281"
-      }
-    ]
-  },
-
-  // Apex AutoTech (Precision Engineering / Manufacturing)
-  "CLI-APEX-01": {
-    bankKey: "SBI_BANK",
-    bankName: "State Bank of India",
-    accountNumber: "38910029481",
-    ifsc: "SBIN0001234",
-    branch: "Pithampur Industrial Estate Branch, Indore",
-    openingBalance: 2850000,
-    statementPeriod: "01 Oct 2026 – 31 Oct 2026",
-    defaultTransactions: [
-      {
-        id: "TXN-9011",
-        date: "2026-10-05",
-        narration: "RTGS/SBIN526189/MAHINDRA & MAHINDRA/AUTO COMPONENT PYMT",
-        chqRefNo: "RTGS-526189",
-        withdrawal: 0,
-        deposit: 1840000,
-        balance: 4690000,
-        suggestedLedger: "Sales - Precision Machined Components",
-        confidence: 99,
-        status: "CONFIRMED",
-        voucherType: "Receipt",
-        matchedRule: "MAHINDRA"
-      },
-      {
-        id: "TXN-9012",
-        date: "2026-10-08",
-        narration: "RTGS/TATASTEEL/INV-88912/HR COILS PROCUREMENT",
-        chqRefNo: "RTGS-991204",
-        withdrawal: 1280000,
-        deposit: 0,
-        balance: 3410000,
-        suggestedLedger: "Raw Material Purchases - Steel Coils",
-        confidence: 98,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "TATA STEEL"
-      },
-      {
-        id: "TXN-9013",
-        date: "2026-10-12",
-        narration: "ACH DR / MP POORV KSHETRA VIDYUT VITRAN / HT POWER BILL",
-        chqRefNo: "ACH-110924",
-        withdrawal: 345000,
-        deposit: 0,
-        balance: 3065000,
-        suggestedLedger: "Factory Power & Fuel (HT Meter)",
-        confidence: 97,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "ELECTRICITY"
-      },
-      {
-        id: "TXN-9014",
-        date: "2026-10-16",
-        narration: "CMS CHQ/901824/SHRIRAM TRANSPORT/FREIGHT OUTWARD",
-        chqRefNo: "CHQ-901824",
-        withdrawal: 112000,
-        deposit: 0,
-        balance: 2953000,
-        suggestedLedger: "Freight & Carriage Outward",
-        confidence: 95,
-        status: "MAPPED",
-        voucherType: "Payment"
-      },
-      {
-        id: "TXN-9015",
-        date: "2026-10-21",
-        narration: "CHQ DEP / METAL SCRAP RECYCLERS / CASH DEP TRUCK LOT",
-        chqRefNo: "CHQ-771290",
-        withdrawal: 0,
-        deposit: 285000,
-        balance: 3238000,
-        suggestedLedger: "Scrap Sales Revenue",
-        confidence: 92,
-        status: "CONFIRMED",
-        voucherType: "Receipt"
-      },
-      {
-        id: "TXN-9016",
-        date: "2026-10-24",
-        narration: "IMPS/TRF TO RAJESH SHARMA/FACTORY ADVANCE UNBILLED",
-        chqRefNo: "IMPS-661298",
-        withdrawal: 250000,
-        deposit: 0,
-        balance: 2988000,
-        suggestedLedger: "Director Current Account / Suspense",
-        confidence: 58,
-        status: "SUSPENSE",
-        voucherType: "Payment"
-      },
-      {
-        id: "TXN-9017",
-        date: "2026-10-27",
-        narration: "GST PMT-06 / 23AABCA8891D1Z2 / MONTHLY CHALLAN OCT",
-        chqRefNo: "CHLN-881290",
-        withdrawal: 210000,
-        deposit: 0,
-        balance: 2778000,
-        suggestedLedger: "GST Liability (Electronic Cash Ledger)",
-        confidence: 99,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "GST PMT"
-      }
-    ]
-  },
-
-  // OmniRetail Hypermarkets
-  "CLI-OMNI-01": {
-    bankKey: "ICICI_BANK",
-    bankName: "ICICI Bank Ltd",
-    accountNumber: "000405091823",
-    ifsc: "ICIC0000004",
-    branch: "Commercial Capital Branch, Bhopal",
-    openingBalance: 1420000,
-    statementPeriod: "01 Oct 2026 – 31 Oct 2026",
-    defaultTransactions: [
-      {
-        id: "TXN-9201",
-        date: "2026-10-02",
-        narration: "CMS CR / PINELABS POS CARD BATCH SETTLEMENT / STORE 01",
-        chqRefNo: "CMS-PL-8891",
-        withdrawal: 0,
-        deposit: 890000,
-        balance: 2310000,
-        suggestedLedger: "Daily Store POS Card Collections",
-        confidence: 99,
-        status: "CONFIRMED",
-        voucherType: "Receipt",
-        matchedRule: "PINELABS"
-      },
-      {
-        id: "TXN-9202",
-        date: "2026-10-07",
-        narration: "NEFT / HINDUSTAN UNILEVER LTD / FMCG INVOICE PYMT",
-        chqRefNo: "N11092841",
-        withdrawal: 540000,
-        deposit: 0,
-        balance: 1770000,
-        suggestedLedger: "Purchase of FMCG & Consumer Goods",
-        confidence: 99,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "HINDUSTAN UNILEVER"
-      },
-      {
-        id: "TXN-9203",
-        date: "2026-10-11",
-        narration: "RTGS / DB CITY MALL MGMT / COMMERCIAL RENT OCT26",
-        chqRefNo: "RTGS-449102",
-        withdrawal: 380000,
-        deposit: 0,
-        balance: 1390000,
-        suggestedLedger: "Commercial Mall Store Rent (Sec 194I)",
-        confidence: 96,
-        status: "MAPPED",
-        voucherType: "Payment"
-      },
-      {
-        id: "TXN-9204",
-        date: "2026-10-15",
-        narration: "ACH DR / EPFO TRRN 1082619028 / PF STATUTORY DUES",
-        chqRefNo: "ACH-EPF-991",
-        withdrawal: 165000,
-        deposit: 0,
-        balance: 1225000,
-        suggestedLedger: "Provident Fund & ESIC Statutory Payable",
-        confidence: 99,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "EPFO"
-      },
-      {
-        id: "TXN-9205",
-        date: "2026-10-18",
-        narration: "CMS CR / SWIGGY INSTAMART / FMCG SUPPLIER PAYOUT",
-        chqRefNo: "CMS-SW-4918",
-        withdrawal: 0,
-        deposit: 320000,
-        balance: 1545000,
-        suggestedLedger: "Daily Store POS Card Collections",
-        confidence: 94,
-        status: "CONFIRMED",
-        voucherType: "Receipt"
-      },
-      {
-        id: "TXN-9206",
-        date: "2026-10-22",
-        narration: "UPI / 389102847 / LOCAL CASH PETTY EXPENSES / STORE MGR",
-        chqRefNo: "UPI-389102847",
-        withdrawal: 65000,
-        deposit: 0,
-        balance: 1480000,
-        suggestedLedger: "Office & Administrative Expenses / Suspense",
-        confidence: 54,
-        status: "SUSPENSE",
-        voucherType: "Payment"
-      },
-      {
-        id: "TXN-9207",
-        date: "2026-10-28",
-        narration: "TDS CHLN 281 / SEC 194C / FACILITY CONTRACTORS",
-        chqRefNo: "CHLN-992140",
-        withdrawal: 42000,
-        deposit: 0,
-        balance: 1438000,
-        suggestedLedger: "TDS Payable (Sec 194C)",
-        confidence: 98,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "TDS CHLN 281"
-      }
-    ]
-  },
-
-  // Zenith Cloud & AI Labs (SaaS & AI Infrastructure)
-  "CLI-ZENITH-01": {
-    bankKey: "AXIS_BANK",
-    bankName: "Axis Bank Ltd",
-    accountNumber: "9190200881920",
-    ifsc: "UTIB0000042",
-    branch: "Bandra Kurla Complex Corporate Branch, Mumbai",
-    openingBalance: 3500000,
-    statementPeriod: "01 Oct 2026 – 31 Oct 2026",
-    defaultTransactions: [
-      {
-        id: "TXN-9301",
-        date: "2026-10-04",
-        narration: "NEFT / GOOGLE IRELAND / CLOUD API RESELLER REVENUE",
-        chqRefNo: "N109284102",
-        withdrawal: 0,
-        deposit: 950000,
-        balance: 4450000,
-        suggestedLedger: "Professional Consultancy Fees",
-        confidence: 98,
-        status: "CONFIRMED",
-        voucherType: "Receipt"
-      },
-      {
-        id: "TXN-9302",
-        date: "2026-10-10",
-        narration: "ACH DR / AWS CLOUD SERVICES / INVOICE-OCT26",
-        chqRefNo: "ACH-AWS-912",
-        withdrawal: 280000,
-        deposit: 0,
-        balance: 4170000,
-        suggestedLedger: "Cloud Infrastructure & Software",
-        confidence: 99,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "AMAZON WEB SERVICES"
-      },
-      {
-        id: "TXN-9303",
-        date: "2026-10-15",
-        narration: "CMS SALARY / OCT-2026 / 18 DEV ENGINEERS",
-        chqRefNo: "CMS-SAL-9301",
-        withdrawal: 1250000,
-        deposit: 0,
-        balance: 2920000,
-        suggestedLedger: "Salaries & Wages Payable",
-        confidence: 100,
-        status: "CONFIRMED",
-        voucherType: "Payment",
-        matchedRule: "SALARY"
-      },
-      {
-        id: "TXN-9304",
-        date: "2026-10-22",
-        narration: "IMPS / WITHDRAWAL DIRECTORS AD-HOC EXP",
-        chqRefNo: "IMPS-930192",
-        withdrawal: 300000,
-        deposit: 0,
-        balance: 2620000,
-        suggestedLedger: "Director Current Account / Suspense",
-        confidence: 55,
-        status: "SUSPENSE",
-        voucherType: "Payment"
-      },
-      {
-        id: "TXN-9305",
-        date: "2026-10-26",
-        narration: "TDS CHLN 281 / SEC 194J / DEV CONSULTANTS",
-        chqRefNo: "CHLN-930182",
-        withdrawal: 75000,
-        deposit: 0,
-        balance: 2545000,
-        suggestedLedger: "TDS Payable (Sec 194J)",
-        confidence: 98,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "TDS CHLN 281"
-      }
-    ]
-  },
-
-  // Apex Precision Tools LLP
-  "CLI-APEX-02": {
-    bankKey: "KOTAK_BANK",
-    bankName: "Kotak Mahindra Bank",
-    accountNumber: "44109284102",
-    ifsc: "KKBK0000123",
-    branch: "Sanwer Road Industrial Area, Indore",
-    openingBalance: 1680000,
-    statementPeriod: "01 Oct 2026 – 31 Oct 2026",
-    defaultTransactions: [
-      {
-        id: "TXN-9401",
-        date: "2026-10-06",
-        narration: "RTGS / BHARAT FORGE / CARBIDE TOOLING SUPPLY",
-        chqRefNo: "RTGS-940182",
-        withdrawal: 0,
-        deposit: 740000,
-        balance: 2420000,
-        suggestedLedger: "Sales - Precision Machined Components",
-        confidence: 98,
-        status: "CONFIRMED",
-        voucherType: "Receipt"
-      },
-      {
-        id: "TXN-9402",
-        date: "2026-10-14",
-        narration: "ACH DR / POWER CORPORATION / FACTORY METER",
-        chqRefNo: "ACH-94018",
-        withdrawal: 185000,
-        deposit: 0,
-        balance: 2235000,
-        suggestedLedger: "Factory Power & Fuel (HT Meter)",
-        confidence: 97,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "ELECTRICITY"
-      },
-      {
-        id: "TXN-9403",
-        date: "2026-10-25",
-        narration: "GST PMT / 23AABCA8891D1Z2 / CHLN-OCT26",
-        chqRefNo: "CHLN-94019",
-        withdrawal: 92000,
-        deposit: 0,
-        balance: 2143000,
-        suggestedLedger: "GST Liability (Electronic Cash Ledger)",
-        confidence: 99,
-        status: "MAPPED",
-        voucherType: "Payment",
-        matchedRule: "GST PMT"
-      }
-    ]
-  }
+  "ddd33056-b6dc-46ca-b145-cd111045aff7": PRATWI_PROFILE,
+  "CLI-PRATWI-01": PRATWI_PROFILE
 };
 
 export interface BankStatementParserProps {

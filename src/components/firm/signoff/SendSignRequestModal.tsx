@@ -35,18 +35,36 @@ export const SendSignRequestModal: React.FC<SendSignRequestModalProps> = ({
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "");
   const [filingType, setFilingType] = useState<ApprovalRecord["filingType"]>("ITR_COMPUTATION_139");
   const [docTitle, setDocTitle] = useState("ITR-V & Statement of Computation of Total Income for AY 2026-27");
-  const [signatoryName, setSignatoryName] = useState("Rajesh Sharma (Managing Director)");
+  const [signatoryName, setSignatoryName] = useState("Chetan Pratap Singh (Director)");
   const [phone, setPhone] = useState("+91 98200 11223");
   const [figures, setFigures] = useState("Taxable Income: ₹14,80,000 | Net Tax Payable: ₹1,85,400");
   const [copiedLink, setCopiedLink] = useState(false);
 
   if (!isOpen) return null;
 
-  const currentClient = clients.find(c => c.id === selectedClientId) || clients[0] || {
+  const fallbackClient: ClientEntity = {
     id: "CL-DEFAULT",
-    name: "Apex Laboratories Private Limited",
-    pan: "AABCA9182K"
+    groupId: "GRP-01",
+    groupName: "Direct Practice Clients",
+    name: "Pratwi Solutions Private Limited",
+    type: "PVT_LTD",
+    pan: "AANCP9915B",
+    incorporationYear: 2026,
+    turnoverCr: 1.2,
+    penaltyRiskAccrued: 0,
+    partnerInCharge: "CA Gunjan Jain",
+    assignedArticle: "Kriti Jain (Article)",
+    primaryContact: {
+      name: "Chetan Pratap Singh",
+      phone: "+91 80771 70715",
+      email: "chetanpratap1996@gmail.com",
+      designation: "Director"
+    }
   };
+
+  const currentClient: ClientEntity = (clients && clients.length > 0)
+    ? (clients.find(c => c.id === selectedClientId) || clients[0])
+    : fallbackClient;
 
   const handleClientChange = (clientId: string) => {
     setSelectedClientId(clientId);

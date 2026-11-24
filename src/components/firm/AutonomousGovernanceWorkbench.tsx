@@ -261,7 +261,7 @@ export function AutonomousGovernanceWorkbench() {
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="font-bold text-slate-900 text-sm md:text-base mb-4 flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-purple-600" />
-              Active Quality Control Dossier: {session?.clientName || "Apex Heavy Engineering Ltd"}
+              Active Quality Control Dossier: {session?.clientName || "Pratwi Solutions Private Limited"}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -325,10 +325,10 @@ export function AutonomousGovernanceWorkbench() {
                     <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">FCA PARTNER</span>
                   </div>
                   <div className="mt-2 text-sm font-bold text-slate-900">
-                    CA Chetan Sharma (FCA)
+                    CA Gunjan Jain (FCA)
                   </div>
                   <div className="text-xs text-slate-500 font-mono mt-0.5">
-                    Membership No: 098221 • FRN: 104928W
+                    Membership No: 022998C • FRN: 022998C
                   </div>
                   <div className="mt-3 border-t border-amber-100 pt-2 text-xs text-slate-700">
                     <div className="font-semibold text-slate-800">Statutory Sign-Off Gate:</div>

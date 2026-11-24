@@ -259,7 +259,7 @@ export const DEFAULT_IMPREST_TRANSACTIONS: ImprestTransactionItem[] = [
   {
     id: "IMP-001",
     entityId: "CLI-001",
-    entityName: "Apex AutoTech Private Limited",
+    entityName: "Pratwi Solutions Private Limited",
     clientPan: "AABCA8891D",
     transactionType: "ADVANCE_RECEIVED",
     category: "MCA_ROC_FEES",
@@ -275,7 +275,7 @@ export const DEFAULT_IMPREST_TRANSACTIONS: ImprestTransactionItem[] = [
   {
     id: "IMP-002",
     entityId: "CLI-001",
-    entityName: "Apex AutoTech Private Limited",
+    entityName: "Pratwi Solutions Private Limited",
     clientPan: "AABCA8891D",
     transactionType: "STATUTORY_DISBURSEMENT",
     category: "MCA_ROC_FEES",
@@ -294,7 +294,7 @@ export const DEFAULT_IMPREST_TRANSACTIONS: ImprestTransactionItem[] = [
   {
     id: "IMP-003",
     entityId: "CLI-001",
-    entityName: "Apex AutoTech Private Limited",
+    entityName: "Pratwi Solutions Private Limited",
     clientPan: "AABCA8891D",
     transactionType: "STATUTORY_DISBURSEMENT",
     category: "INCOME_TAX_CHALLAN_280",

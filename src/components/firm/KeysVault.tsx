@@ -375,7 +375,7 @@ export const KeysVault: React.FC<KeysVaultProps> = ({
     const sampleRows = [
       ["Pratwi Solutions Private Limited", "GST", "09AANCP9915B1Z4", "Pratwi@GstPass2026", "AANCP9915B", "8077170715", "chetanpratap1996@gmail.com", "12345678", "Monthly GSTR-1 and 3B"],
       ["Pratwi Solutions Private Limited", "INCOME_TAX", "AANCP9915B", "TaxSecure@2026", "AANCP9915B", "8077170715", "chetanpratap1996@gmail.com", "12345678", "AY 26-27 Corporate ITR"],
-      ["Apex AutoTech Private Limited", "MCA_V3", "rajesh.director@apex.in", "McaV3#Apex99", "DIN: 08912345", "9811022345", "accounts@apex.in", "12345678", "Annual AOC-4 and MGT-7"],
+      ["Pratwi Solutions Private Limited", "MCA_V3", "chetanpratap1996@gmail.com", "McaV3#Pratwi26", "DIN: 08912345", "9811022345", "accounts@pratwi.in", "12345678", "Annual AOC-4 and MGT-7"],
     ];
     const csvContent = [headers.join(","), ...sampleRows.map((r) => r.map((f) => `"${f}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

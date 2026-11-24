@@ -238,12 +238,24 @@ export async function GET(request: NextRequest) {
                 tasks: mappedTasks,
                 invoices: mappedInvoices,
                 dscTokens: mappedDsc,
-                portalCredentials: [],
+                portalCredentials: (ensureDatabase().portalCredentials || []).filter(
+                  (p: any) => !isClientRole || p.entityId === auth.clientEntityId
+                ),
                 documents: mappedDocuments,
-                notices: [],
-                auditTrail: [],
-                payToReleaseConfigs: [],
-                notifications: [],
+                notices: (ensureDatabase().notices || []).filter(
+                  (n: any) => !isClientRole || n.entityId === auth.clientEntityId
+                ),
+                auditTrail: isArticleRole || isClientRole ? [] : ensureDatabase().auditTrail || [],
+                payToReleaseConfigs: (ensureDatabase().payToReleaseConfigs || []).filter(
+                  (p: any) => !isClientRole || p.entityId === auth.clientEntityId
+                ),
+                notifications: (ensureDatabase().notifications || []).filter(
+                  (n: any) =>
+                    !isClientRole ||
+                    n.recipientEntityId === auth.clientEntityId ||
+                    n.recipientRole === "ALL" ||
+                    (n.recipientRole === "CLIENT" && !n.recipientEntityId)
+                ),
                 lastUpdated: new Date().toISOString(),
               },
             });

@@ -10,8 +10,8 @@
 
 export interface MorningBriefingData {
   digestDate: string; // "20-Nov-2026"
-  firmName: string; // "Mehta & Associates, Chartered Accountants"
-  partnerName: string; // "CA Rajesh Mehta"
+  firmName: string; // "GPA & Co., Chartered Accountants"
+  partnerName: string; // "CA Gunjan Jain"
   dueDatesToday: {
     statutoryAct: string;
     description: string;
@@ -41,8 +41,8 @@ export class PartnerMorningDigestEngine {
    * Compiles the 8:00 AM WhatsApp briefing for managing partners
    */
   public static compileMorningBriefing(
-    firmName: string = 'Mehta & Associates, Chartered Accountants',
-    partnerName: string = 'CA Rajesh Mehta'
+    firmName: string = 'GPA & Co., Chartered Accountants',
+    partnerName: string = 'CA Gunjan Jain'
   ): MorningBriefingData {
     const todayStr = '20-Nov-2026';
 
@@ -50,27 +50,27 @@ export class PartnerMorningDigestEngine {
       {
         statutoryAct: 'GST (CGST Act)',
         description: 'Monthly GSTR-3B Filing for October 2026 (Regular Taxpayers)',
-        pendingClientCount: 8,
+        pendingClientCount: 1,
         severity: 'CRITICAL' as const
       },
       {
         statutoryAct: 'Income Tax',
         description: 'TDS/TCS Challan Book Adjustment (Form 24G)',
-        pendingClientCount: 3,
+        pendingClientCount: 1,
         severity: 'HIGH' as const
       },
       {
         statutoryAct: 'MCA V3',
         description: 'Annual Filing Form AOC-4 XBRL (Companies holding AGM on 30-Sep)',
-        pendingClientCount: 5,
+        pendingClientCount: 1,
         severity: 'HIGH' as const
       }
     ];
 
     const dscVaultAlerts = {
-      overdueTokensCount: 1,
-      expiringTokensCount: 1,
-      overdueTokenNames: ['Anil K. Agarwal (Agarwal Cold Rolled Steels)']
+      overdueTokensCount: 0,
+      expiringTokensCount: 0,
+      overdueTokenNames: []
     };
 
     const billingSnapshot = {
@@ -86,7 +86,7 @@ export class PartnerMorningDigestEngine {
         daysRemaining: 2
       },
       {
-        clientName: 'Apex Machinery Distributors Pvt Ltd',
+        clientName: 'Pratwi Solutions Private Limited',
         section: 'Section 148A(b) Faceless Reassessment Notice',
         daysRemaining: 4
       }

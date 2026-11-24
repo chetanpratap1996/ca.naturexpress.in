@@ -103,7 +103,7 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
     validTill: "2026-12-31",
     daysToExpiry: 405,
     expiryStatus: "ACTIVE",
-    currentCustodian: client.assignedArticle || "Rahul Sharma (Article Desk #02)",
+    currentCustodian: client.assignedArticle || "Kriti Jain (Article Desk)",
     vaultSlot: "Vault Drawer B-04"
   };
 

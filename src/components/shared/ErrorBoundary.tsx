@@ -65,6 +65,11 @@ function canAutoReload(): boolean {
 function triggerSilentChunkReload(): void {
   if (typeof window === "undefined") return;
   try {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((reg) => reg.unregister());
+      }).catch(() => {});
+    }
     if ("caches" in window) {
       caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).catch(() => {});
     }

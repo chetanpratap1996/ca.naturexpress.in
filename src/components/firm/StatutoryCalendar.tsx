@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { ComplianceTask, WorkflowStatus, ClientGroup, ClientEntity } from "@/lib/types";
-import { INITIAL_GROUPS } from "@/lib/data/mockData";
+import { INITIAL_GROUPS } from "@/lib/data/firmDefaults";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";

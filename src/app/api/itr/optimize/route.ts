@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const homeLoan = Number(searchParams.get("homeLoan") || "150000");
 
     const defaultParams: ItrIncomeParameters = {
-      taxpayerName: "Rajesh Sharma",
+      taxpayerName: "Chetan Pratap Singh",
       pan: "ABFPS1234E",
       category: "INDIVIDUAL",
       assessmentYear: "AY 2026-27",

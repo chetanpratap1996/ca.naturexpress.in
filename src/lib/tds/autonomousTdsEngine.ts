@@ -165,7 +165,7 @@ export function calculateSection234EFee(
 /**
  * Generate Sample Institutional TDS Assembly Profiles
  * Client 1: Pratwi Solutions (Clean profile, 100% matched, Form 26Q Q2 auto-dispatched)
- * Client 2: Apex Heavy Engineering (Dirty profile, 4 TRACES defaults requiring partner C1/C2 correction)
+ * Client 2: Pratwi Solutions (Dirty profile, 4 TRACES defaults requiring partner C1/C2 correction)
  */
 export function getSampleTdsProfiles(): TdsClientAssemblyProfile[] {
   // 1. Pratwi Solutions Private Limited (Clean Q2 Form 26Q)
@@ -265,7 +265,7 @@ export function getSampleTdsProfiles(): TdsClientAssemblyProfile[] {
   ];
 
   const pratwiProfile: TdsClientAssemblyProfile = {
-    clientId: "client-pratwi",
+    clientId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
     clientName: "Pratwi Solutions Private Limited",
     tan: "MUMP12345D",
     quarter: "Q2",
@@ -291,209 +291,11 @@ export function getSampleTdsProfiles(): TdsClientAssemblyProfile[] {
       "[11:04:00] Clean Profile detected. Dispatched automated client sign-off card on WhatsApp.",
     ],
     whatsappSignOffPayload: {
-      recipientMobile: "+91 98201 12345",
+      recipientMobile: "+91 80771 70715",
       messageText: "Hi Pratwi Solutions, your Form 26Q for Q2 (FY 2026-27) has been autonomously compiled and 100% reconciled against Challan 281. Total TDS deposited: ₹1,07,000. Review and sign off: https://firm.tax/sign/tds-pratwi-q2",
       quickActionUrl: "/client?tab=tds-approvals&doc=26q-q2-2026",
     },
-  };
-
-  // 2. Apex Heavy Engineering Ltd (Dirty Q2 Form 26Q with 4 TRACES defaults)
-  const apexChallans: Challan281Item[] = [
-    {
-      id: "CH-281-APEX-01",
-      bsrCode: "0210041",
-      challanNo: "01124",
-      tenderDate: "2026-08-07",
-      sectionCode: "194C",
-      minorHead: "200",
-      taxAmount: 75000,
-      surcharge: 0,
-      cess: 0,
-      interest: 0,
-      fee234E: 0,
-      totalAmount: 75000,
-      consumedAmount: 75000,
-      unconsumedBalance: 0,
-      oltasCin: "02100410708202601124",
-    },
-    {
-      id: "CH-281-APEX-02",
-      bsrCode: "0210041",
-      challanNo: "01890",
-      tenderDate: "2026-09-15", // Delayed deposit (due 7th Sep)
-      sectionCode: "194J",
-      minorHead: "200",
-      taxAmount: 90000,
-      surcharge: 0,
-      cess: 0,
-      interest: 0,
-      fee234E: 0,
-      totalAmount: 90000,
-      consumedAmount: 82000,
-      unconsumedBalance: 8000,
-      oltasCin: "02100411509202601890",
-    },
-  ];
-
-  const apexDeductees: TdsDeducteeRecord[] = [
-    {
-      id: "DED-APEX-01",
-      deducteePan: "AAACG4412M",
-      deducteeName: "Apex Fabricators & Welders",
-      sectionCode: "194C",
-      paymentDate: "2026-07-15",
-      amountPaid: 3750000,
-      tdsRate: 2,
-      tdsAmount: 75000,
-      panStatus: "VALID",
-      challanId: "CH-281-APEX-01",
-      matchStatus: "MATCHED",
-    },
-    {
-      id: "DED-APEX-02",
-      deducteePan: "PAN_NOT_FOUND",
-      deducteeName: "Karan Technical Engineering Services",
-      sectionCode: "194J",
-      paymentDate: "2026-08-10",
-      amountPaid: 150000,
-      tdsRate: 2, // Deducted at 2%, but no PAN provided! Sec 206AA mandates 20%!
-      tdsAmount: 3000, // Short deduction of ₹27,000!
-      panStatus: "INOPERATIVE_206AA",
-      challanId: "CH-281-APEX-02",
-      matchStatus: "SHORT_DEDUCTION",
-    },
-    {
-      id: "DED-APEX-03",
-      deducteePan: "AABCZ9941L",
-      deducteeName: "Zenith Software Systems",
-      sectionCode: "194J",
-      paymentDate: "2026-08-18",
-      amountPaid: 790000,
-      tdsRate: 10,
-      tdsAmount: 79000,
-      panStatus: "VALID",
-      challanId: "CH-281-APEX-02",
-      matchStatus: "MATCHED",
-    },
-  ];
-
-  const apexDefaults: TracesDefaultItem[] = [
-    {
-      id: "TRACES-DEF-01",
-      deducteePan: "PAN_NOT_FOUND",
-      deducteeName: "Karan Technical Engineering Services",
-      sectionCode: "194J",
-      defaultType: "SHORT_DEDUCTION",
-      taxDeductible: 30000, // 20% u/s 206AA
-      taxDeducted: 3000,
-      shortAmount: 27000,
-      interest201_1a: 810, // 1% per month for 3 months
-      delayMonths: 3,
-      status: "PENDING_CORRECTION",
-      recommendedCorrection: "C2_PAN_UPDATE",
-    },
-    {
-      id: "TRACES-DEF-02",
-      deducteePan: "AABCZ9941L",
-      deducteeName: "Zenith Software Systems",
-      sectionCode: "194J",
-      defaultType: "INTEREST_201_1A",
-      taxDeductible: 79000,
-      taxDeducted: 79000,
-      shortAmount: 0,
-      interest201_1a: 1185, // 1.5% for 1 month delay (deposited 15th Sep instead of 7th Sep)
-      delayMonths: 1,
-      status: "PENDING_CORRECTION",
-      recommendedCorrection: "C1_CHALLAN_UPDATE",
-    },
-    {
-      id: "TRACES-DEF-03",
-      deducteePan: "AAACS8812K",
-      deducteeName: "Sunrise Logistics Corporation",
-      sectionCode: "194C",
-      defaultType: "SHORT_PAYMENT",
-      taxDeductible: 12000,
-      taxDeducted: 12000,
-      shortAmount: 12000,
-      interest201_1a: 360,
-      delayMonths: 2,
-      status: "PENDING_CORRECTION",
-      recommendedCorrection: "C9_ADD_CHALLAN",
-    },
-    {
-      id: "TRACES-DEF-04",
-      deducteePan: "AAACG4412M",
-      deducteeName: "Apex Fabricators & Welders",
-      sectionCode: "194C",
-      defaultType: "LATE_FEE_234E",
-      taxDeductible: 75000,
-      taxDeducted: 75000,
-      shortAmount: 2400, // 12 days delay * ₹200/day
-      interest201_1a: 0,
-      delayMonths: 0,
-      status: "PENDING_CORRECTION",
-      recommendedCorrection: "C1_CHALLAN_UPDATE",
-    },
-  ];
-
-  const apexCertificates: Form16BatchItem[] = [
-    {
-      id: "CERT-APEX-01",
-      employeeOrVendorName: "Apex Fabricators & Welders",
-      pan: "AAACG4412M",
-      mobile: "+91 98200 44124",
-      email: "finance@apexfab.in",
-      formType: "16A",
-      quarter: "Q2",
-      grossAmount: 3750000,
-      tdsDeposited: 75000,
-      certificatePdfUrl: "/vault/certificates/16A-AAACG4412M-Q2-2026.pdf",
-      deliveryStatus: "READY_FOR_DISPATCH",
-    },
-    {
-      id: "CERT-APEX-02",
-      employeeOrVendorName: "Zenith Software Systems",
-      pan: "AABCZ9941L",
-      mobile: "+91 98200 99412",
-      email: "billing@zenithsoft.com",
-      formType: "16A",
-      quarter: "Q2",
-      grossAmount: 790000,
-      tdsDeposited: 79000,
-      certificatePdfUrl: "/vault/certificates/16A-AABCZ9941L-Q2-2026.pdf",
-      deliveryStatus: "READY_FOR_DISPATCH",
-    },
-  ];
-
-  const apexProfile: TdsClientAssemblyProfile = {
-    clientId: "client-apex",
-    clientName: "Apex Heavy Engineering Ltd",
-    tan: "MUMA99821K",
-    quarter: "Q2",
-    financialYear: "2026-27",
-    formType: "26Q",
-    isCleanProfile: false,
-    totalDeducteesCount: 3,
-    matchedDeducteesCount: 2,
-    exceptionsCount: 4,
-    totalTdsDeducted: 157000,
-    totalChallanDeposited: 165000,
-    pipelineStage: "CHALLAN_MATCH",
-    status: "NEEDS_PARTNER_TRIAGE",
-    challans: apexChallans,
-    deductees: apexDeductees,
-    tracesDefaults: apexDefaults,
-    form16Certificates: apexCertificates,
-    auditLog: [
-      "[09:15:10] Ingested Q2 vendor ledger & 2 bank Challan 281 receipts.",
-      "[09:16:30] Scanned TRACES Justification Report: Flagged 4 statutory defaults.",
-      "[09:17:00] Detected Section 206AA short deduction (₹27,000) on Karan Technical due to missing PAN.",
-      "[09:17:25] Computed Section 201(1A) penal interest (₹2,355) and Section 234E late fee (₹2,400).",
-      "[09:18:00] Routed to TRACES Default Triage Desk for 1-Click Online Correction Statement generation.",
-    ],
-  };
-
-  return [pratwiProfile, apexProfile];
+  };  return [pratwiProfile];
 }
 
 /**

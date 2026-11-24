@@ -530,7 +530,7 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type a command, tool, or client name (e.g. 'GSTR', 'CARO', 'Autopilot', 'Apex')..."
+            placeholder="Type a command, tool, or client name (e.g. 'GSTR', 'CARO', 'Autopilot', 'Pratwi')..."
             value={query}
             onChange={e => {
               setQuery(e.target.value);

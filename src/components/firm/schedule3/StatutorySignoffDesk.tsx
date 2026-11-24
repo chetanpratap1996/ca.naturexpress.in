@@ -92,7 +92,7 @@ export const StatutorySignoffDesk: React.FC<StatutorySignoffDeskProps> = ({ clie
       const debtEq = netWorth > 0 ? totalDebt / netWorth : 0.7;
 
       const prof: ClientAuditProfile = {
-        legalName: client.name || "Apex AutoTech Private Limited",
+        legalName: client.name || "Pratwi Solutions Private Limited",
         pan: client.pan || "AABCA8891D",
         gstin: "23" + (client.pan || "AABCA8891D") + "1Z4",
         cin: client.cin || "U74110MP2017PTC043716",
@@ -184,7 +184,7 @@ export const StatutorySignoffDesk: React.FC<StatutorySignoffDeskProps> = ({ clie
             tanOfAssessee: "BPLG02299C",
             sectionCode: "194C",
             natureOfPayment: "Factory Logistics & Freight",
-            payeeName: "Apex Express Logistics",
+            payeeName: "Pratwi Express Logistics",
             payeePan: "AAACX1029P",
             grossPaymentInr: 1500000,
             thresholdExemptionInr: 100000,

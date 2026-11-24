@@ -24,7 +24,7 @@ import {
   INITIAL_AUDIT_TRAIL,
   INITIAL_PAY_TO_RELEASE_CONFIGS,
   INITIAL_PORTAL_CREDENTIALS
-} from "@/lib/data/mockData";
+} from "@/lib/data/firmDefaults";
 import {
   SANDBOX_TASKS,
   SANDBOX_DOCUMENTS,
@@ -175,9 +175,9 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) {
       const newTask: ComplianceTask = {
         id: `TSK-${Date.now().toString().slice(-4)}`,
-        entityId: taskData.entityId || "CLI-APEX-01",
-        entityName: taskData.entityName || "Apex AutoTech Private Limited",
-        groupId: taskData.groupId || "GRP-APEX",
+        entityId: taskData.entityId || "ddd33056-b6dc-46ca-b145-cd111045aff7",
+        entityName: taskData.entityName || "Pratwi Solutions Private Limited",
+        groupId: taskData.groupId || "157e58d9-cc53-4e5d-9497-ec6d2ecbf59a",
         category: taskData.category || "GST",
         title: taskData.title || "Statutory Return Filing",
         period: taskData.period || "Current Month",
@@ -688,8 +688,8 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) {
       const mapped = items.map((item, idx) => ({
         id: `SANDBOX-BULK-${Date.now()}-${idx}`,
-        entityId: item.entityId || "CLI-APEX-01",
-        entityName: item.entityName || "Apex AutoTech Private Limited",
+        entityId: item.entityId || "ddd33056-b6dc-46ca-b145-cd111045aff7",
+        entityName: item.entityName || "Pratwi Solutions Private Limited",
         portalType: item.portalType || "OTHER",
         portalName: item.portalName || "Govt Portal",
         loginUrl: item.loginUrl,

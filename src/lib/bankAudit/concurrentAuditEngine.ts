@@ -232,7 +232,7 @@ export const SAMPLE_LOCKER_AUDIT_RECORDS: LockerOperationAuditItem[] = [
   },
   {
     lockerNumber: 'LK-118',
-    customerName: 'Dr. Anand Kumar Verma',
+    customerName: 'Chetan Pratap Singh',
     lastOperatedDate: '2026-09-24',
     daysSinceLastOperation: 57,
     isHighRiskInactive: false,

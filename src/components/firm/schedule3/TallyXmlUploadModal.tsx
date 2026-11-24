@@ -59,7 +59,7 @@ export const TallyXmlUploadModal: React.FC<TallyXmlUploadModalProps> = ({
   isOpen,
   onClose,
   onApplyTbData,
-  currentClientName = "Apex AutoTech Private Limited",
+  currentClientName = "Pratwi Solutions Private Limited",
   currentPan = "AABCA8891D"
 }) => {
   const [activeTab, setActiveTab] = useState<"PRESETS" | "UPLOAD" | "PASTE" | "TALLY_GUIDE">("PRESETS");
@@ -76,8 +76,8 @@ export const TallyXmlUploadModal: React.FC<TallyXmlUploadModalProps> = ({
   // Realistic Presets for CA Firm Audits
   const presets: TallyUploadPreset[] = [
     {
-      id: "apex_autotech",
-      clientName: "Apex AutoTech Private Limited",
+      id: "pratwi_solutions",
+      clientName: "Pratwi Solutions Private Limited",
       cin: "U29100MP2015PTC034120",
       pan: "AABCA8891D",
       industry: "Auto Components Manufacturing",
@@ -91,8 +91,8 @@ export const TallyXmlUploadModal: React.FC<TallyXmlUploadModalProps> = ({
       }
     },
     {
-      id: "apex_laboratories",
-      clientName: "Apex Laboratories Private Limited",
+      id: "pratwi_infotech",
+      clientName: "Pratwi Solutions Private Limited",
       cin: "U24231MP2018PTC045812",
       pan: "AABCA9182K",
       industry: "Pharmaceutical Formulations",

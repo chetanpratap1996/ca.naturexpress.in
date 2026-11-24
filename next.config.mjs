@@ -4,9 +4,7 @@ const isDev = process.env.NODE_ENV !== "production";
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  generateBuildId: async () => {
-    return `taxobrain-${Date.now()}`;
-  },
+  generateBuildId: async () => "taxobrain-prod",
 
   // ─── Webpack Customization ────────────────────────────────────────────────
   webpack: (config, { dev, isServer }) => {

@@ -287,8 +287,8 @@ export const SAMPLE_GATEKEEPER_DELIVERABLES: GatekeeperDeliverable[] = [
   },
   {
     id: "DELIV-AUDIT-01",
-    entityId: "CLI-APEX-01",
-    clientName: "Apex AutoTech Private Limited",
+    entityId: "ddd33056-b6dc-46ca-b145-cd111045aff7",
+    clientName: "Pratwi Solutions Private Limited",
     deliverableType: "FORM_3CD_TAX_AUDIT",
     title: "Tax Audit Report Form 3CA/3CD with Clause 44 & 43B(h) Verification",
     period: "FY 2025-26",

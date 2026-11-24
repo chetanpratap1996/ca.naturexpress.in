@@ -301,24 +301,25 @@ export async function POST(request: NextRequest) {
 
     // ACTION 6: INGEST NOTICE FROM PDF OCR
     if (action === "PARSE_NOTICE_PDF" && parsedNoticeData) {
+      const fallbackClient = db.clients?.[0];
       const newNotice: NoticeRecord = {
         id: `NOT-${Date.now().toString().slice(-4)}`,
-        entityId: parsedNoticeData.entityId || "CLI-OMNI-01",
-        entityName: parsedNoticeData.entityName || "OmniRetail Hypermarkets Private Limited",
-        groupId: parsedNoticeData.groupId || "GRP-OMNI",
+        entityId: parsedNoticeData.entityId || fallbackClient?.id || "CLI-001",
+        entityName: parsedNoticeData.entityName || fallbackClient?.name || "Client Entity",
+        groupId: parsedNoticeData.groupId || fallbackClient?.groupId || "GRP-DIRECT",
         authority: parsedNoticeData.authority || "INCOME_TAX",
         section: parsedNoticeData.section || "Section 148 Reassessment",
         dinNumber: parsedNoticeData.dinNumber || `ITD/AST/2026/${Date.now().toString().slice(-6)}`,
-        demandAmount: parsedNoticeData.demandAmount || 1500000,
+        demandAmount: parsedNoticeData.demandAmount || 0,
         issueDate: parsedNoticeData.issueDate || new Date().toISOString().split("T")[0],
         statutoryDeadline: parsedNoticeData.statutoryDeadline || new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
         daysRemaining: 15,
         status: "PENDING_TRIAGE",
         riskLevel: "CRITICAL",
         assignedPartner: "CA Gunjan Jain (FCA)",
-        assessmentYear: parsedNoticeData.assessmentYear || "AY 2021-22",
+        assessmentYear: parsedNoticeData.assessmentYear || "AY 2025-26",
         issuingOfficer: parsedNoticeData.issuingOfficer || "NFAC, Delhi",
-        pan: parsedNoticeData.pan || "AAFCO4492K",
+        pan: parsedNoticeData.pan || fallbackClient?.pan || "",
         summary: parsedNoticeData.summary || "Notice ingested via PDF Document Ingestion Desk."
       };
 

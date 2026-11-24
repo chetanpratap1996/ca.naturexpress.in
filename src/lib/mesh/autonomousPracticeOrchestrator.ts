@@ -190,8 +190,8 @@ export class AutonomousPracticeOrchestrator {
     );
 
     const briefing = PartnerMorningDigestEngine.compileMorningBriefing(
-      'Mehta & Associates, Chartered Accountants',
-      'CA Rajesh Mehta'
+      'GPA & Co., Chartered Accountants',
+      'CA Gunjan Jain'
     );
 
     return {

@@ -156,10 +156,10 @@ export const SAMPLE_DSC_TOKENS: DscTokenItem[] = [
   {
     id: 'DSC-01',
     tokenSerialNo: 'EP-2024-918204',
-    ownerName: 'Vikramaditya Singhania',
-    ownerDesignation: 'Managing Director',
-    entityName: 'Singhania Logistics Ltd',
-    entityPan: 'AALCS9182F',
+    ownerName: 'Chetan Pratap Singh',
+    ownerDesignation: 'Director',
+    entityName: 'Pratwi Solutions Private Limited',
+    entityPan: 'AANCP9915B',
     hardwareType: 'EPASS_2003_AUTO',
     vaultSlot: 'VAULT-A-SLOT-01',
     certificateExpiryDate: '2027-04-15',
@@ -169,56 +169,14 @@ export const SAMPLE_DSC_TOKENS: DscTokenItem[] = [
   {
     id: 'DSC-02',
     tokenSerialNo: 'WD-2023-881920',
-    ownerName: 'CA Rajesh Mehta',
-    ownerDesignation: 'Senior Partner',
-    entityName: 'Mehta & Associates, CAs',
-    entityPan: 'AABFM1920D',
+    ownerName: 'CA Gunjan Jain',
+    ownerDesignation: 'Managing Partner',
+    entityName: 'GPA & Co., Chartered Accountants',
+    entityPan: 'AANCP9915B',
     hardwareType: 'PROXKEY_WATCHDATA',
     vaultSlot: 'VAULT-A-SLOT-02',
     certificateExpiryDate: '2027-01-20',
     daysToExpiry: 425,
-    status: 'CHECKED_OUT_FOR_SIGNING',
-    currentCheckout: {
-      checkedOutBy: 'Rohit Sharma (Article)',
-      purpose: 'Income Tax Portal Form 3CD Digital Signing',
-      checkedOutTimestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-      maxReturnTimestamp: new Date(Date.now() + 75 * 60 * 1000).toISOString(),
-      otpVerified: true,
-      otpMobileNumberMasked: '+91 98200 **412'
-    }
-  },
-  {
-    id: 'DSC-03',
-    tokenSerialNo: 'MT-2022-441029',
-    ownerName: 'Priya Sundaram',
-    ownerDesignation: 'Director',
-    entityName: 'Sundaram Tech Innovations Pvt Ltd',
-    entityPan: 'AAECS4910M',
-    hardwareType: 'MTOKEN_CRYPTOID',
-    vaultSlot: 'VAULT-B-SLOT-05',
-    certificateExpiryDate: '2026-12-05',
-    daysToExpiry: 15, // Expiring soon (<30 days)
     status: 'IN_SAFE_VAULT'
-  },
-  {
-    id: 'DSC-04',
-    tokenSerialNo: 'EP-2023-110294',
-    ownerName: 'Anil K. Agarwal',
-    ownerDesignation: 'Whole-time Director',
-    entityName: 'Agarwal Cold Rolled Steels Pvt Ltd',
-    entityPan: 'AAACA5510Q',
-    hardwareType: 'EPASS_2003_AUTO',
-    vaultSlot: 'VAULT-B-SLOT-09',
-    certificateExpiryDate: '2027-09-30',
-    daysToExpiry: 678,
-    status: 'RETURN_OVERDUE',
-    currentCheckout: {
-      checkedOutBy: 'Vikram Joshi (Article)',
-      purpose: 'MCA V3 Form DIR-3 KYC Web Signing',
-      checkedOutTimestamp: new Date(Date.now() - 150 * 60 * 1000).toISOString(),
-      maxReturnTimestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins overdue!
-      otpVerified: true,
-      otpMobileNumberMasked: '+91 94250 **881'
-    }
   }
 ];

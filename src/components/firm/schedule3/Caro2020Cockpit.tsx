@@ -105,7 +105,7 @@ export const Caro2020Cockpit: React.FC<Caro2020CockpitProps> = ({ client }) => {
         return {
           ...c,
           partnerSignedOff: nextState,
-          signedOffBy: nextState ? "CA Rajesh Aggarwal (M.No 054891)" : undefined,
+          signedOffBy: nextState ? "CA Gunjan Jain (M.No 022998C)" : undefined,
           signedOffAt: nextState ? new Date().toISOString().split("T")[0] : undefined
         };
       }
@@ -122,7 +122,7 @@ export const Caro2020Cockpit: React.FC<Caro2020CockpitProps> = ({ client }) => {
         return {
           ...c,
           partnerSignedOff: true,
-          signedOffBy: "CA Rajesh Aggarwal (M.No 054891)",
+          signedOffBy: "CA Gunjan Jain (M.No 022998C)",
           signedOffAt: new Date().toISOString().split("T")[0]
         };
       }

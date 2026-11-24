@@ -32,50 +32,28 @@ interface DocumentMovementItem {
   locationBin: string;
 }
 
-const INITIAL_MOVEMENTS: DocumentMovementItem[] = [
-  {
-    id: "MOV-01",
-    type: "INWARD",
-    entityName: "Apex AutoTech Private Limited",
-    documentDescription: "Physical Share Certificate Books & Statutory Minute Books for Statutory Audit",
-    senderOrRecipient: "Rajesh Sharma (Managing Director)",
-    mode: "HAND_DELIVERY",
-    receivedOrHandledBy: "Kriti Jain (Article)",
-    date: "2026-10-24",
-    status: "IN_OFFICE_SAFE",
-    locationBin: "Cabinet A - Safe Locker 02"
-  },
-  {
-    id: "MOV-02",
-    type: "OUTWARD",
-    entityName: "Zenith SaaS Technologies Private Limited",
-    documentDescription: "Banker Loan Credit Appraisal Dossier with Green Seal & ICAI UDIN",
-    senderOrRecipient: "HDFC Bank Credit Dept, Y.N. Road, Indore",
-    mode: "COURIER",
-    courierTrackingNo: "BLUEDART-IND-9928194",
-    receivedOrHandledBy: "CA Gunjan Jain",
-    date: "2026-10-25",
-    status: "DISPATCHED",
-    locationBin: "Outward Dispatched"
-  },
-  {
-    id: "MOV-03",
-    type: "INWARD",
-    entityName: "OmniRetail Hypermarkets Private Limited",
-    documentDescription: "Original Land Title Deeds for Section 148 Cash Scrutiny Justification",
-    senderOrRecipient: "Aditya Singhal (Director)",
-    mode: "REGISTERED_POST",
-    courierTrackingNo: "SPEEDPOST-MP-4481029",
-    receivedOrHandledBy: "Aman Verma (Article)",
-    date: "2026-10-26",
-    status: "IN_OFFICE_SAFE",
-    locationBin: "Cabinet B - Vault Slot 07"
-  }
-];
+const STORAGE_KEY = "bt_inward_outward_movements";
 
 export const InwardOutwardRegister: React.FC = () => {
   const { clients } = useTaxoData();
-  const [movements, setMovements] = useState<DocumentMovementItem[]>(INITIAL_MOVEMENTS);
+  const [movements, setMovements] = useState<DocumentMovementItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return [];
+  });
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(movements));
+      } catch {}
+    }
+  }, [movements]);
+
   const [filterType, setFilterType] = useState<"ALL" | "INWARD" | "OUTWARD">("ALL");
   const [search, setSearch] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);

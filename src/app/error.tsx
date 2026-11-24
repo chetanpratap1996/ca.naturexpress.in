@@ -78,13 +78,19 @@ export default function Error({
           <button
             onClick={() => {
               try {
+                sessionStorage.clear();
+                if ("serviceWorker" in navigator) {
+                  navigator.serviceWorker.getRegistrations().then((regs) => {
+                    regs.forEach((reg) => reg.unregister());
+                  });
+                }
                 if ("caches" in window) {
                   caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
                 }
               } catch {}
               const url = new URL(window.location.href);
               url.searchParams.set("_v", String(Date.now()));
-              window.location.replace(url.toString());
+              window.location.href = url.toString();
             }}
             className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition flex items-center justify-center gap-2"
           >

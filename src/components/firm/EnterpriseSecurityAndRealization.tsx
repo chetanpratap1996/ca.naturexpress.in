@@ -26,35 +26,13 @@ import {
 const DEFAULT_PARTNER_METRICS: PartnerRealizationMetrics[] = [
   {
     partnerName: "CA Gunjan Jain (FCA)",
-    assignedClientsCount: 14,
+    assignedClientsCount: 1,
     billableHoursThisMonth: 142,
     unbilledWipAmount: 420000,
     billedThisMonth: 1850000,
     recoveredThisMonth: 1720000,
     realizationPercentage: 93.0,
-    agingAbove90DaysAmount: 45000,
-    atRiskPenaltyClients: 0
-  },
-  {
-    partnerName: "CA Rohit Sharma (ACA)",
-    assignedClientsCount: 22,
-    billableHoursThisMonth: 168,
-    unbilledWipAmount: 280000,
-    billedThisMonth: 1240000,
-    recoveredThisMonth: 1116000,
-    realizationPercentage: 90.0,
-    agingAbove90DaysAmount: 62000,
-    atRiskPenaltyClients: 1
-  },
-  {
-    partnerName: "CA Ankita Mehta (FCA)",
-    assignedClientsCount: 35,
-    billableHoursThisMonth: 155,
-    unbilledWipAmount: 310000,
-    billedThisMonth: 1400000,
-    recoveredThisMonth: 1316000,
-    realizationPercentage: 94.0,
-    agingAbove90DaysAmount: 38000,
+    agingAbove90DaysAmount: 0,
     atRiskPenaltyClients: 0
   }
 ];

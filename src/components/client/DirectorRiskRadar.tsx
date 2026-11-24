@@ -134,7 +134,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
         if (saved) return JSON.parse(saved);
       } catch {}
     }
-    // If client is demo Apex entity, keep sample flags, but for newly onboarded clients start with []
+    // Client statutory risk radar initialized
     if (client && client.id.startsWith("CLI-")) {
       return [];
     }

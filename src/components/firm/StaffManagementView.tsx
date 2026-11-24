@@ -29,13 +29,30 @@ import {
   ChevronRight,
   Send,
   RefreshCw,
-  Sliders
+  Sliders,
+  CalendarCheck2,
+  Receipt,
+  Calculator,
+  Scale,
+  WalletCards,
+  Building2,
+  Plus
 } from "lucide-react";
+import { getTeamMemberTools, setTeamMemberTools } from "@/lib/auth/session";
 
 interface StaffManagementViewProps {
   tasks: ComplianceTask[];
   onRefreshData?: () => Promise<void> | void;
 }
+
+export const PRACTICE_TOOLS = [
+  { id: "tasks", label: "Tasks & Deadlines", icon: CalendarCheck2 },
+  { id: "gst", label: "GST Suite", icon: Receipt },
+  { id: "tax-audit", label: "Income Tax & Audit", icon: Calculator },
+  { id: "notices-udin", label: "Notices & UDIN", icon: Scale },
+  { id: "billing-wip", label: "Billing & WIP", icon: WalletCards },
+  { id: "client-master", label: "Client Master & Desk", icon: Building2 },
+];
 
 const TIER_DESCRIPTIONS: Record<CompetencyTier, { label: string; badge: string; description: string }> = {
   1: {
@@ -76,6 +93,36 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
   const [tierFilter, setTierFilter] = useState<string>("ALL");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [isAutoAssigning, setIsAutoAssigning] = useState<boolean>(false);
+  const [permissionsMap, setPermissionsMap] = useState<Record<string, string[]>>({});
+
+  const getMemberAllowedTools = (memberId: string): string[] => {
+    return permissionsMap[memberId] || getTeamMemberTools(memberId);
+  };
+
+  const handleToggleTool = (memberId: string, memberName: string, toolId: string) => {
+    const current = getMemberAllowedTools(memberId);
+    const hasTool = current.includes(toolId);
+    let next: string[];
+    if (hasTool) {
+      if (current.length === 1) {
+        toast.warning("Minimum 1 Tool Required", "A team member must retain access to at least 1 practice tool.");
+        return;
+      }
+      next = current.filter(t => t !== toolId);
+    } else {
+      next = [...current, toolId];
+    }
+    setTeamMemberTools(memberId, next);
+    setPermissionsMap(prev => ({ ...prev, [memberId]: next }));
+    window.dispatchEvent(new CustomEvent("bt_permissions_changed", {
+      detail: { memberId, tools: next }
+    }));
+    const toolLabel = PRACTICE_TOOLS.find(t => t.id === toolId)?.label || toolId;
+    toast.success(
+      "Tool Access Updated",
+      hasTool ? `Revoked ${toolLabel} for ${memberName}` : `Granted ${toolLabel} for ${memberName}`
+    );
+  };
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -330,11 +377,11 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                 <Users className="w-5 h-5" />
               </span>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                Employees
+                Practice Team
               </h1>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Manage staff, competency ranking, and workload capacity.
+              Manage team members, practice tool access (6 tools), and statutory workload.
             </p>
           </div>
 
@@ -363,7 +410,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-btred-logo hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
             >
               <UserPlus className="w-4 h-4" />
-              Add Employee
+              Add Team Member
             </button>
           </div>
         </div>
@@ -372,7 +419,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-100">
           <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Total Employees
+              Team Members
             </span>
             <div className="mt-1">
               <span className="text-2xl font-black text-slate-900">{kpis.totalStaff}</span>
@@ -381,7 +428,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
 
           <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Articles
+              Team Associates
             </span>
             <div className="mt-1">
               <span className="text-2xl font-black text-blue-600">{kpis.activeArticles}</span>
@@ -494,7 +541,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                         ? "Managing Partner (FCA)"
                         : member.role === "PAID_CHARTERED_ACCOUNTANT"
                         ? "Qualified Paid CA"
-                        : "Article Trainee"}
+                        : "Team Associate"}
                       {member.icaiRegistrationNo && ` • ${member.icaiRegistrationNo}`}
                     </span>
                   </div>
@@ -567,6 +614,50 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                     <span className="font-mono text-slate-700 text-[10px] font-bold">
                       PIN: {member.tempPin || member.phone.slice(-4)}
                     </span>
+                  </div>
+                </div>
+
+                {/* CA Practice Tool Access Controls (6 Tools) */}
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-[11px] mb-2">
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-btred-logo" />
+                      Allowed Practice Tools
+                    </span>
+                    <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                      {getMemberAllowedTools(member.id).length} of 6 Tools Active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {PRACTICE_TOOLS.map((tool) => {
+                      const ToolIcon = tool.icon;
+                      const isAllowed = getMemberAllowedTools(member.id).includes(tool.id);
+                      return (
+                        <button
+                          key={tool.id}
+                          type="button"
+                          onClick={() => handleToggleTool(member.id, member.fullName, tool.id)}
+                          disabled={member.status === "DEACTIVATED"}
+                          title={`Click to ${isAllowed ? "remove" : "grant"} ${tool.label} for ${member.fullName}`}
+                          className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition border cursor-pointer ${
+                            isAllowed
+                              ? "bg-slate-900 text-white border-slate-900 shadow-2xs hover:bg-slate-800"
+                              : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <ToolIcon className={`w-3 h-3 shrink-0 ${isAllowed ? "text-red-400" : "text-slate-400"}`} />
+                            <span className="truncate">{tool.label}</span>
+                          </div>
+                          {isAllowed ? (
+                            <Check className="w-3 h-3 text-emerald-400 shrink-0 ml-1" />
+                          ) : (
+                            <Plus className="w-3 h-3 text-slate-400 shrink-0 ml-1" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

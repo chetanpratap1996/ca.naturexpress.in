@@ -119,7 +119,7 @@ export const DomainRail: React.FC<DomainRailProps> = ({
   return (
     <aside 
       aria-label="Practice Navigation"
-      className={`hidden lg:flex flex-col bg-white border-r border-slate-200 shrink-0 select-none py-3 transition-all duration-200 ease-in-out ${
+      className={`flex flex-col bg-white border-r border-slate-200 shrink-0 select-none py-3 transition-all duration-200 ease-in-out ${
         isCollapsed ? "w-16 px-2" : "w-56 xl:w-60 px-2.5"
       }`}
     >
@@ -246,8 +246,8 @@ export const DomainRail: React.FC<DomainRailProps> = ({
           );
         })}
 
-        {/* Directory (Positioned directly below the domains - no large blank space) */}
-        {onOpenDirectory && (
+        {/* Directory (Positioned directly below the domains - CA Partner only) */}
+        {!allowedDomains && onOpenDirectory && (
           <div className="pt-2 mt-1 border-t border-slate-100">
             <button
               type="button"
@@ -257,11 +257,11 @@ export const DomainRail: React.FC<DomainRailProps> = ({
                   ? "justify-center p-2.5" 
                   : "justify-between px-3 py-2"
               } ${
-                activeTab === "directory"
+                activeTab === "directory" || activeTab === "staff-master"
                   ? "bg-slate-900 text-white border-slate-900 font-bold"
                   : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900"
               }`}
-              title="All Modules & Tools Directory (⌘M)"
+              title="Practice Team & Directory (⌘M)"
             >
               <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 min-w-0"}`}>
                 <Grid className="w-4 h-4 text-btred-logo shrink-0" />

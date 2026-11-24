@@ -114,7 +114,8 @@ export function getTeamMemberTools(userId: string): string[] {
     const raw = localStorage.getItem(TEAM_PERMISSIONS_STORAGE_KEY);
     if (!raw) return ["tasks", "gst"];
     const map = JSON.parse(raw);
-    return map[userId] || ["tasks", "gst"];
+    const key = userId.replace(/^(USR-|STF-)/, "");
+    return map[userId] || map[`USR-${key}`] || map[`STF-${key}`] || ["tasks", "gst"];
   } catch {
     return ["tasks", "gst"];
   }
@@ -125,7 +126,10 @@ export function setTeamMemberTools(userId: string, tools: string[]): void {
   try {
     const raw = localStorage.getItem(TEAM_PERMISSIONS_STORAGE_KEY);
     const map = raw ? JSON.parse(raw) : {};
+    const key = userId.replace(/^(USR-|STF-)/, "");
     map[userId] = tools;
+    map[`USR-${key}`] = tools;
+    map[`STF-${key}`] = tools;
     localStorage.setItem(TEAM_PERMISSIONS_STORAGE_KEY, JSON.stringify(map));
   } catch {
     // fallback

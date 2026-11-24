@@ -68,7 +68,6 @@ import { StaffManagementView } from "@/components/firm/StaffManagementView";
 import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
 import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
 import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
-import { PracticeDirectory } from "@/components/firm/PracticeDirectory";
 import { AmbientClientContextBar } from "@/components/navigation/AmbientClientContextBar";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -459,6 +458,12 @@ export default function Home() {
     if (currentView === "client-pwa") {
       setActiveClientTab(tab as any);
     } else {
+      if (isTeamMember && (tab === "staff-master" || tab === "directory")) {
+        toast.warning("Restricted Access", "Team members do not have access to team administration.");
+        setActivePartnerTab("dashboard");
+        return;
+      }
+
       const targetDomain = TAB_TO_DOMAIN[tab];
       if (isTeamMember && targetDomain && !teamAllowedTools.includes(targetDomain)) {
         toast.warning("Restricted Access", "This practice tool is not enabled for your team profile by the CA.");
@@ -718,7 +723,7 @@ export default function Home() {
               activeTab={activePartnerTab}
               onSelectDomain={handleSelectDomain}
               onSelectTab={(tabId) => handleTabChange(tabId)}
-              onOpenDirectory={() => handleTabChange("directory")}
+              onOpenDirectory={() => handleTabChange("staff-master")}
               isCollapsed={isSidebarCollapsed}
               urgentTaskCount={tasks.filter(t => t.status !== "FILED_AND_COMPLETED").length}
               activeNoticeCount={notices.length}
@@ -776,11 +781,11 @@ export default function Home() {
                 )
               )}
 
-              {/* PRACTICE DIRECTORY (TEAM 6-TOOL CONTROLS & CLIENT ROSTER) */}
-              {activePartnerTab === "directory" && (
-                <PracticeDirectory
-                  clients={clients}
-                  onOpenClientMaster={() => setIsClientMasterOpen(true)}
+              {/* PRACTICE TEAM & TOOL MANAGEMENT (INTEGRATED INTO EXISTING VIEW) */}
+              {(activePartnerTab === "staff-master" || activePartnerTab === "directory") && (
+                <StaffManagementView
+                  tasks={tasks}
+                  onRefreshData={refreshData}
                 />
               )}
 
@@ -874,12 +879,6 @@ export default function Home() {
                 />
               )}
 
-              {activePartnerTab === "staff-master" && (
-                <StaffManagementView
-                  tasks={tasks}
-                  onRefreshData={refreshData}
-                />
-              )}
 
               {activePartnerTab === "vcfo" && (
                 <VirtualCfoCockpit clients={clients.length > 0 ? clients : INITIAL_CLIENTS} />

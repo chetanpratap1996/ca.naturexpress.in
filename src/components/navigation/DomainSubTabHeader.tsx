@@ -42,7 +42,7 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
     { id: "batch-dispatch", label: "Batch Dispatch", shortLabel: "Batch", icon: Sparkles },
     { id: "inward-outward", label: "Registers", shortLabel: "Registers", icon: Package },
     { id: "autonomous-orchestrator", label: "Automation & Rules", shortLabel: "Automation", icon: Sparkles },
-    { id: "staff-master", label: "Employees", shortLabel: "Employees", icon: Users }
+    { id: "staff-master", label: "Team", shortLabel: "Team", icon: Users }
   ],
   gst: [
     { id: "gst-filing", label: "Filing Desk", shortLabel: "Filing", icon: FileCheck },

@@ -9,7 +9,6 @@ const nextConfig = {
   // ─── Webpack Customization ────────────────────────────────────────────────
   webpack: (config, { dev, isServer }) => {
     if (!isServer) {
-      config.output.crossOriginLoading = "anonymous";
       // Allow 5 minutes for chunk loading in both dev and production to prevent timeouts during compilation
       config.output.chunkLoadTimeout = 300000;
     }
@@ -20,12 +19,16 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // 1. Immutable cache for content-hashed Next.js static assets
+        // 1. Immutable cache for content-hashed Next.js static assets with CORS allow
         source: "/_next/static/(.*)",
         headers: [
           {
             key: "Cache-Control",
             value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
           },
         ],
       },

@@ -250,8 +250,9 @@ export const DomainRail: React.FC<DomainRailProps> = ({
         {onOpenDirectory && (
           <div className="pt-2 mt-1 border-t border-slate-100">
             <button
+              type="button"
               onClick={onOpenDirectory}
-              className={`w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition font-medium text-xs group shadow-2xs flex items-center ${
+              className={`w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition font-medium text-xs group shadow-2xs flex items-center cursor-pointer ${
                 isCollapsed 
                   ? "justify-center p-2.5" 
                   : "justify-between px-3 py-2"

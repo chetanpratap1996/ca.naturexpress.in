@@ -70,22 +70,12 @@ export default function RootLayout({
                   }
                 }
 
-                // 1. Capture-phase resource error listener (<script> & <link> load failures)
+                // 1. Capture-phase resource error listener for explicit ChunkLoadErrors only
                 window.addEventListener('error', function(e) {
-                  var target = e.target || e.srcElement;
-                  if (target && target.tagName === 'LINK' && target.rel === 'stylesheet') {
-                    if (target.href && target.href.indexOf('/_next/static/') !== -1) {
-                      recoverFromChunkError('STYLESHEET_LOAD_FAILURE: ' + target.href);
-                    }
-                  } else if (target && target.tagName === 'SCRIPT') {
-                    if (target.src && target.src.indexOf('/_next/static/') !== -1) {
-                      recoverFromChunkError('SCRIPT_CHUNK_FAILURE: ' + target.src);
-                    }
-                  } else if (e.message) {
+                  if (e.message) {
                     var msg = e.message;
                     if (msg.indexOf('Loading chunk') !== -1 ||
-                        msg.indexOf('ChunkLoadError') !== -1 ||
-                        msg.indexOf('_next/static/chunks') !== -1) {
+                        msg.indexOf('ChunkLoadError') !== -1) {
                       recoverFromChunkError('CHUNK_RUNTIME_ERROR: ' + msg);
                     }
                   }

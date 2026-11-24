@@ -271,8 +271,9 @@ export const TopNav: React.FC<TopNavProps> = ({
             {/* User Profile Avatar & Dropdown */}
             <div className="relative shrink-0">
               <button
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-1.5 p-1 rounded-xl sm:rounded-2xl hover:bg-slate-100 border border-slate-200 transition focus:outline-none bg-white"
+                type="button"
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 p-1 rounded-xl sm:rounded-2xl hover:bg-slate-100 border border-slate-200 transition focus:outline-none bg-white cursor-pointer"
                 aria-label="User Profile"
               >
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-tr from-red-600 to-btred-logo text-white flex items-center justify-center font-black text-[11px] sm:text-xs shadow-sm shrink-0">

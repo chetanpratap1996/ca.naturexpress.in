@@ -36,8 +36,8 @@ export function AutonomousGovernanceWorkbench() {
 
   // DSC checkout modal
   const [selectedDsc, setSelectedDsc] = useState<any>(null);
-  const [custodianName, setCustodianName] = useState("Kriti Jain (Article Trainee)");
-  const [checkoutPurpose, setCheckoutPurpose] = useState("Tax Audit Form 3CD Digital Sign-off");
+  const [custodianName, setCustodianName] = useState("");
+  const [checkoutPurpose, setCheckoutPurpose] = useState("");
 
   const fetchData = async () => {
     try {
@@ -233,7 +233,7 @@ export function AutonomousGovernanceWorkbench() {
           }`}
         >
           <Award className="h-4 w-4" />
-          UDIN 60-Day Countdown Guardian
+          UDIN 60-Day Countdown Tracker
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 font-bold">ICAI</span>
         </button>
 
@@ -389,7 +389,7 @@ export function AutonomousGovernanceWorkbench() {
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/60">
               <div>
                 <h3 className="font-bold text-slate-900 text-sm md:text-base">
-                  UDIN 60-Day Countdown Guardian (ICAI Gazette Mandate)
+                  UDIN 60-Day Countdown Tracker (ICAI Gazette Mandate)
                 </h3>
                 <p className="text-xs text-slate-500">
                   Strict 60-day statutory timer from date of signature. Preempts disciplinary proceedings under ICAI Code of Ethics.

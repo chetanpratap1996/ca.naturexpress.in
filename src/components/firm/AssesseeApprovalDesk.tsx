@@ -30,6 +30,7 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 import { Sa580CertificateModal } from "./signoff/Sa580CertificateModal";
 import { SendSignRequestModal } from "./signoff/SendSignRequestModal";
 import { ClientSignoffModal } from "./signoff/ClientSignoffModal";
@@ -87,7 +88,18 @@ interface AssesseeApprovalDeskProps {
 
 export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clients = [] }) => {
   const { selectedClient, isFirmWideView } = useClientContext();
-  const [approvals, setApprovals] = useState<ApprovalRecord[]>(DEFAULT_REALISTIC_APPROVALS);
+  const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
+  React.useEffect(() => {
+    if (!selectedClient || isFirmWideView) { setApprovals([]); return; }
+    try {
+      const raw = localStorage.getItem(`bt_assessee_approvals_v1::${selectedClient.id}`);
+      setApprovals(raw ? JSON.parse(raw) : []);
+    } catch { setApprovals([]); }
+  }, [selectedClient, isFirmWideView]);
+  React.useEffect(() => {
+    if (!selectedClient || isFirmWideView) return;
+    try { localStorage.setItem(`bt_assessee_approvals_v1::${selectedClient.id}`, JSON.stringify(approvals)); } catch {}
+  }, [approvals, selectedClient, isFirmWideView]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
   const [copiedHashId, setCopiedHashId] = useState<string | null>(null);
@@ -106,7 +118,7 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
         (a.clientPan && a.clientPan.toLowerCase() === qPan) ||
         (a.clientName && a.clientName.toLowerCase().includes(qName))
       );
-      return matches.length > 0 ? matches : approvals;
+      return matches;
     }
     return approvals;
   }, [approvals, selectedClient, isFirmWideView]);
@@ -143,6 +155,28 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
 
   const handleSignComplete = (signedRecord: ApprovalRecord) => {
     setApprovals(prev => prev.map(a => a.id === signedRecord.id ? signedRecord : a));
+    if (selectedClient && (signedRecord.filingType === "TAX_AUDIT_3CD" || signedRecord.filingType === "BALANCE_SHEET_AUDIT")) {
+      try {
+        const key = `bt_udin_vault_v1::${selectedClient.id}`;
+        const existing = JSON.parse(localStorage.getItem(key) || "[]");
+        const nextUdin = {
+          id: `udin-${Date.now()}`,
+          udin: "PENDING_GENERATION",
+          documentTitle: signedRecord.documentTitle,
+          documentType: signedRecord.filingType === "TAX_AUDIT_3CD" ? "TAX_AUDIT_3CD" : "STATUTORY_AUDIT",
+          clientName: signedRecord.clientName,
+          clientPan: signedRecord.clientPan,
+          signingDate: new Date().toISOString().split("T")[0],
+          financialFigures: "Approved via SA 580",
+          partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
+          membershipNo: DEFAULT_FIRM_BRANDING.frn,
+          status: "PENDING_GENERATION",
+          daysRemainingForGeneration: 60
+        };
+        localStorage.setItem(key, JSON.stringify([nextUdin, ...existing]));
+        toast.info("UDIN Tracker Updated", "Added 60-day pending UDIN entry for " + signedRecord.clientName);
+      } catch {}
+    }
   };
 
   const handleExportRegister = () => {

@@ -1,331 +1,335 @@
-// ============================================================================
-// ENTERPRISE DATA API ROUTE
-// Multi-tenant data segregation, Supabase Cloud sync, resilient local persistence,
-// and role-based data shaping (Partner / Article Trainee / Corporate Client)
-// ============================================================================
-
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase } from "@/lib/server/db";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
-import { createServerClient } from "@supabase/ssr";
-import { SANDBOX_DATA } from "@/lib/data/sandboxData";
+import { getPostgresPool } from "@/lib/server/postgres";
+import { resolveFirmUuid, listWorkspaceRecords } from "@/lib/server/pgHelpers";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { NotificationItem, PayToReleaseConfig, PortalCredential } from "@/lib/types";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateServerRequest(request);
-    const isClientRole = auth.role === "CLIENT";
-    const isArticleRole = auth.role === "ARTICLE";
-
-    // 1. Sandbox Evaluation Mode
-    if (auth.isSandboxMode) {
-      const sandboxPayload = JSON.parse(JSON.stringify(SANDBOX_DATA));
-      if (isClientRole && (auth.clientGroupId || auth.clientEntityId)) {
-        sandboxPayload.clients = (sandboxPayload.clients || []).filter(
-          (c: any) => c.groupId === auth.clientGroupId || c.id === auth.clientEntityId
-        );
-        sandboxPayload.groups = (sandboxPayload.groups || []).filter((g: any) => g.id === auth.clientGroupId);
-        sandboxPayload.tasks = (sandboxPayload.tasks || []).filter(
-          (t: any) => t.groupId === auth.clientGroupId || t.entityId === auth.clientEntityId
-        );
-        sandboxPayload.invoices = (sandboxPayload.invoices || []).filter(
-          (i: any) => i.groupId === auth.clientGroupId || i.entityId === auth.clientEntityId
-        );
-        sandboxPayload.documents = (sandboxPayload.documents || []).filter((d: any) => d.entityId === auth.clientEntityId);
-        sandboxPayload.dscTokens = [];
-        sandboxPayload.portalCredentials = [];
-        sandboxPayload.notices = [];
-      }
-      return NextResponse.json({
-        success: true,
-        source: "SANDBOX_EVALUATION",
-        data: sandboxPayload,
-      });
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json(
+        { success: false, error: auth.error || "Authentication required." },
+        { status: 401 }
+      );
     }
 
-    // 2. Query Supabase Cloud if configured and tables are ready
-    if (isSupabaseConfigured()) {
-      try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL!;
-        const supabaseKey =
-          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-          process.env.SUPABASE_ANON_KEY!;
+    const isClientRole = auth.role === "CLIENT";
+    const isStaffSubRole = auth.role === "ARTICLE" || auth.role === "TEAM";
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
 
-        const scopedSupabase = createServerClient(supabaseUrl, supabaseKey, {
-          cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} },
+    if (isClientRole && !auth.clientEntityId && !auth.clientGroupId) {
+      return NextResponse.json(
+        { success: false, error: "Client account is missing entity or group scope." },
+        { status: 403 }
+      );
+    }
+
+    const [
+      { rows: firmRows },
+      { rows: groupRows },
+      { rows: entityRows },
+      { rows: taskRows },
+      { rows: staffUserRows },
+      { rows: invoiceRows },
+      { rows: dscRows },
+      { rows: docRows },
+      { rows: auditRows },
+      payCfgRecs,
+      credRecs,
+      notifRecs,
+      noticeRecs,
+      gstProfileRecs,
+      gstFilingMetaRecs,
+    ] = await Promise.all([
+      pool.query("SELECT * FROM public.firms WHERE id = $1 LIMIT 1", [firmId]),
+      pool.query("SELECT * FROM public.client_groups WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+      pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+      pool.query("SELECT * FROM public.compliance_tasks WHERE firm_id = $1 ORDER BY due_date ASC", [firmId]),
+      pool.query("SELECT id, full_name FROM public.users WHERE firm_id = $1", [firmId]),
+      pool.query("SELECT * FROM public.invoices WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+      isClientRole
+        ? Promise.resolve({ rows: [] })
+        : pool.query("SELECT * FROM public.dsc_vault WHERE firm_id = $1 ORDER BY valid_till ASC", [firmId]),
+      pool.query("SELECT * FROM public.documents WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+      isClientRole || isStaffSubRole
+        ? Promise.resolve({ rows: [] })
+        : pool.query("SELECT * FROM public.audit_logs WHERE firm_id = $1 ORDER BY created_at DESC LIMIT 200", [firmId]),
+      listWorkspaceRecords<PayToReleaseConfig>(firmId, "PAY_TO_RELEASE_CONFIG", isClientRole ? auth.clientEntityId || null : null),
+      isClientRole ? Promise.resolve([]) : listWorkspaceRecords<PortalCredential>(firmId, "PORTAL_CREDENTIAL"),
+      listWorkspaceRecords<NotificationItem>(firmId, "NOTIFICATION", isClientRole ? auth.clientEntityId || null : null),
+      isClientRole ? Promise.resolve([]) : listWorkspaceRecords<any>(firmId, "NOTICE_RECORD"),
+      listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE"),
+      isClientRole ? Promise.resolve([]) : listWorkspaceRecords<any>(firmId, "GST_FILING_METADATA"),
+    ]);
+
+    const gstProfileByEntity = new Map<string, any>();
+    for (const r of gstProfileRecs) {
+      const eid = r.entity_id || r.payload?.entityId;
+      if (eid) gstProfileByEntity.set(eid, r.payload);
+    }
+    const gstFilingMetaByTask = new Map<string, any>();
+    for (const r of gstFilingMetaRecs) {
+      if (r.payload?.taskId) gstFilingMetaByTask.set(r.payload.taskId, r.payload);
+    }
+
+    const firm = firmRows[0];
+
+    let mappedClients = entityRows.map((e: any) => {
+      const parentGroup = groupRows.find((g: any) => g.id === e.group_id);
+      const gstProf = gstProfileByEntity.get(e.id);
+      return {
+        id: e.id,
+        groupId: e.group_id,
+        groupName: parentGroup ? parentGroup.group_name : "Direct Practice Clients",
+        name: e.entity_name,
+        tradeName: gstProf?.tradeName || undefined,
+        type: e.type,
+        pan: e.pan,
+        gstin: e.gstin || undefined,
+        gstinRecords: Array.isArray(gstProf?.gstinRecords) ? gstProf.gstinRecords : undefined,
+        gstFilingFrequency: gstProf?.gstFilingFrequency || undefined,
+        onboardingMode: gstProf?.onboardingMode || undefined,
+        onboardingChecklist: gstProf?.onboardingChecklist || undefined,
+        gstHistory: Array.isArray(gstProf?.gstHistory) ? gstProf.gstHistory : undefined,
+        cin: e.cin || undefined,
+        tan: e.tan || undefined,
+        turnoverCr: Number(e.turnover_cr || 0),
+        partnerInCharge: DEFAULT_FIRM_BRANDING.managingPartner,
+        assignedArticle: "Practice Team",
+        incorporationYear: e.incorporation_year || 2024,
+        penaltyRiskAccrued: Number(e.penalty_risk_accrued || 0),
+        primaryContact: {
+          name: e.primary_contact_name || parentGroup?.promoter_name || "Authorized Signatory",
+          phone: e.primary_contact_phone || parentGroup?.promoter_phone || "",
+          email: e.primary_contact_email || parentGroup?.promoter_email || "",
+          designation: e.primary_contact_designation || "Director / Authorized Signatory",
+        },
+      };
+    });
+
+    if (isClientRole) {
+      mappedClients = mappedClients.filter(
+        (c: any) =>
+          (auth.clientEntityId && c.id === auth.clientEntityId) ||
+          (!auth.clientEntityId && auth.clientGroupId && c.groupId === auth.clientGroupId)
+      );
+    }
+
+    const allowedEntityIds = new Set(mappedClients.map((c: any) => c.id));
+    const allowedGroupIds = new Set(mappedClients.map((c: any) => c.groupId));
+
+    const mappedGroups = groupRows
+      .filter((g: any) => !isClientRole || allowedGroupIds.has(g.id))
+      .map((g: any) => ({
+        id: g.id,
+        name: g.group_name,
+        promoterName: g.promoter_name,
+        promoterPhone: g.promoter_phone,
+        promoterEmail: g.promoter_email,
+        totalEntities: mappedClients.filter((e: any) => e.groupId === g.id).length,
+        totalTurnoverCr: mappedClients
+          .filter((e: any) => e.groupId === g.id)
+          .reduce((acc: number, curr: any) => acc + Number(curr.turnoverCr || 0), 0),
+        unbilledWipTotal: isClientRole ? 0 : Number(g.unbilled_wip_total || 0),
+        overdueFeesTotal: Number(g.overdue_fees_total || 0),
+        entityIds: mappedClients.filter((e: any) => e.groupId === g.id).map((e: any) => e.id),
+      }));
+
+    const clientById = new Map(mappedClients.map((c: any) => [c.id, c]));
+    const staffNameById = new Map(staffUserRows.map((u: any) => [u.id, u.full_name]));
+
+    const mappedTasks = taskRows
+      .filter((t: any) => !isClientRole || allowedEntityIds.has(t.entity_id))
+      .map((t: any) => {
+        const ent: any = clientById.get(t.entity_id);
+        const meta = gstFilingMetaByTask.get(t.id);
+        return {
+          id: t.id,
+          entityId: t.entity_id,
+          entityName: ent ? ent.name : "Practice Client",
+          groupId: ent ? ent.groupId : "",
+          category: t.category,
+          title: t.title,
+          period: t.period,
+          dueDate: t.due_date ? new Date(t.due_date).toISOString().split("T")[0] : "2026-11-30",
+          status: t.status,
+          assignedTo: (t.assigned_to_id && staffNameById.get(t.assigned_to_id)) || "Unassigned",
+          assignedStaffId: t.assigned_to_id || undefined,
+          reviewedBy: (t.reviewed_by_id && staffNameById.get(t.reviewed_by_id)) || DEFAULT_FIRM_BRANDING.managingPartner,
+          priority: t.priority,
+          penaltyRisk: Number(t.penalty_risk || 0),
+          accruingDailyPenalty: Number(t.accruing_daily_penalty || 0),
+          missingDocumentsCount: Array.isArray(t.missing_docs_list) ? t.missing_docs_list.length : 0,
+          missingDocumentsList: Array.isArray(t.missing_docs_list) ? t.missing_docs_list : [],
+          chaseCount: t.chase_count || 0,
+          arnNumber: t.arn_number || undefined,
+          officialUdin: t.official_udin || undefined,
+          filingDate: t.filing_date ? new Date(t.filing_date).toISOString().split("T")[0] : undefined,
+          gstin: meta?.gstin || ent?.gstin || undefined,
+          challanCin: meta?.challanCin || undefined,
+          taxPayableAmount: meta?.taxPayableAmount !== undefined ? Number(meta.taxPayableAmount) : undefined,
+          section50Interest: meta?.section50Interest !== undefined ? Number(meta.section50Interest) : undefined,
+          lateFeeAmount: meta?.lateFeeAmount !== undefined ? Number(meta.lateFeeAmount) : undefined,
+          isNilReturn: meta?.isNilReturn || false,
+          outwardTaxBreakdown: meta?.outwardTaxBreakdown || undefined,
+          rcmTax: meta?.rcmTax !== undefined ? Number(meta.rcmTax) : undefined,
+          itcUtilized: meta?.itcUtilized || undefined,
+          cashPaid: meta?.cashPaid !== undefined ? Number(meta.cashPaid) : undefined,
+        };
+      });
+
+    const mappedInvoices = invoiceRows
+      .filter((inv: any) => !isClientRole || allowedEntityIds.has(inv.entity_id))
+      .map((inv: any) => {
+        const ent: any = clientById.get(inv.entity_id);
+        return {
+          id: inv.id,
+          invoiceNo: inv.invoice_no,
+          entityId: inv.entity_id,
+          entityName: ent ? ent.name : "Practice Client",
+          groupId: ent ? ent.groupId : "",
+          serviceDescription: inv.service_description,
+          sacCode: inv.sac_code || "998231",
+          taxableAmount: Number(inv.taxable_amount || 0),
+          gstRate: Number(inv.gst_rate || 18),
+          gstAmount: Number(inv.gst_amount || 0),
+          amount: Number(inv.total_amount || 0),
+          dueDate: inv.due_date ? new Date(inv.due_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          status: inv.status || "PENDING",
+          clientUtrNumber: inv.client_utr_number || undefined,
+          clientPaymentMode: inv.client_payment_mode || undefined,
+          clientPaymentDate: inv.client_payment_date ? new Date(inv.client_payment_date).toISOString().split("T")[0] : undefined,
+          clientPayerNote: inv.client_payer_note || undefined,
+          reconciledAt: inv.reconciled_at ? new Date(inv.reconciled_at).toISOString() : undefined,
+        };
+      });
+
+    const mappedDsc = isClientRole
+      ? []
+      : dscRows.map((d: any) => {
+          const ent: any = clientById.get(d.entity_id);
+          const validTill = d.valid_till ? new Date(d.valid_till).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+          const daysToExpiry = Math.ceil((new Date(validTill).getTime() - Date.now()) / 86400000);
+          return {
+            id: d.id,
+            entityId: d.entity_id,
+            entityName: ent ? ent.name : "Practice Client",
+            groupId: ent ? ent.groupId : "",
+            holderName: d.holder_name,
+            pan: d.holder_pan,
+            serialNumber: d.serial_number,
+            tokenType: d.token_type || "ePass2003",
+            validTill,
+            daysToExpiry,
+            expiryStatus: daysToExpiry <= 0 ? "EXPIRED" : daysToExpiry <= 30 ? "EXPIRING_SOON" : "ACTIVE",
+            currentCustodian: d.checked_out_at ? "Checked Out (Staff)" : "Firm Master Safe",
+            vaultSlot: d.vault_slot || "Slot A-01",
+            checkedOutAt: d.checked_out_at ? new Date(d.checked_out_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
+            checkedOutPurpose: d.checked_out_purpose || undefined,
+          };
         });
 
-        const results = await Promise.all([
-          scopedSupabase.from("firms").select("*").limit(1),
-          scopedSupabase.from("client_entities").select("*"),
-          scopedSupabase.from("client_groups").select("*"),
-          scopedSupabase.from("compliance_tasks").select("*"),
-          scopedSupabase.from("invoices").select("*"),
-          scopedSupabase.from("dsc_vault").select("*"),
-          scopedSupabase.from("documents").select("*"),
-        ]);
+    const mappedDocuments = docRows
+      .filter((doc: any) => !isClientRole || allowedEntityIds.has(doc.entity_id))
+      .map((doc: any) => {
+        const ent: any = clientById.get(doc.entity_id);
+        const bytes = Number(doc.file_size_bytes || 0);
+        return {
+          id: doc.id,
+          entityId: doc.entity_id,
+          entityName: ent ? ent.name : "Client Entity",
+          taskId: doc.task_id || undefined,
+          category: doc.category || "BANK_STATEMENT",
+          fileName: doc.file_name,
+          fileSize: bytes > 0 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : "500 KB",
+          storagePath: doc.storage_path || undefined,
+          uploadedAt: doc.created_at ? new Date(doc.created_at).toISOString() : new Date().toISOString(),
+          financialYear: doc.financial_year || "FY 2026-27",
+          uploadedBy: doc.uploaded_by_id ? "CLIENT_PWA" : "FIRM_STAFF",
+          isPasswordProtected: false,
+          isUnlocked: true,
+          reviewStatus: doc.review_status || "PENDING_REVIEW",
+          reviewNotes: doc.review_notes || undefined,
+          reviewedAt: doc.reviewed_at ? new Date(doc.reviewed_at).toISOString() : undefined,
+        };
+      });
 
-        const hasDbErrors = results.some((r) => r.error);
-        if (!hasDbErrors) {
-          const [firmsResult, entitiesResult, groupsResult, tasksResult, invoicesResult, dscResult, docsResult] = results;
-          const dbFirms = firmsResult.data || [];
-          const dbEntities = entitiesResult.data || [];
-          const dbGroups = groupsResult.data || [];
-          const dbTasks = tasksResult.data || [];
-          const dbInvoices = invoicesResult.data || [];
-          const dbDsc = dscResult.data || [];
-          const dbDocs = docsResult.data || [];
+    const mappedAuditTrail = auditRows.map((a: any) => ({
+      id: a.id,
+      timestamp: a.created_at,
+      actorName: a.actor_name,
+      actorRole: a.actor_role,
+      entityName: a.entity_name,
+      action: a.action,
+      details: a.details,
+      category: a.category,
+    }));
 
-          if (dbEntities.length > 0) {
-            const firm = dbFirms[0];
-            let mappedGroups = dbGroups.map((g: any) => ({
-              id: g.id,
-              name: g.group_name,
-              promoterName: g.promoter_name,
-              promoterPhone: g.promoter_phone,
-              promoterEmail: g.promoter_email,
-              totalEntities: dbEntities.filter((e: any) => e.group_id === g.id).length,
-              totalTurnoverCr: dbEntities
-                .filter((e: any) => e.group_id === g.id)
-                .reduce((acc: number, curr: any) => acc + Number(curr.turnover_cr || 0), 0),
-              unbilledWipTotal: Number(g.unbilled_wip_total || 0),
-              overdueFeesTotal: Number(g.overdue_fees_total || 0),
-              entityIds: dbEntities.filter((e: any) => e.group_id === g.id).map((e: any) => e.id),
-            }));
+    const mappedPayConfigs = payCfgRecs
+      .map((r) => r.payload)
+      .filter((p) => !isClientRole || allowedEntityIds.has(p.entityId));
 
-            let mappedClients = dbEntities.map((e: any) => {
-              const parentGroup = dbGroups.find((g: any) => g.id === e.group_id) || dbGroups[0];
-              return {
-                id: e.id,
-                groupId: e.group_id || parentGroup?.id || "GRP-001",
-                groupName: parentGroup ? parentGroup.group_name : "Practice Group",
-                name: e.entity_name,
-                type: e.type,
-                pan: e.pan,
-                gstin: e.gstin || undefined,
-                cin: e.cin || undefined,
-                turnoverCr: Number(e.turnover_cr || 0),
-                partnerInCharge: "CA Partner (In-Charge)",
-                assignedArticle: "Audit Trainee",
-                incorporationYear: e.incorporation_year || 2024,
-                penaltyRiskAccrued: Number(e.penalty_risk_accrued || 0),
-                primaryContact: {
-                  name: parentGroup ? parentGroup.promoter_name : "Authorized Signatory",
-                  phone: parentGroup ? parentGroup.promoter_phone : "+91 98000 00000",
-                  email: parentGroup ? parentGroup.promoter_email : "accounts@client.com",
-                  designation: "Director / CFO",
-                },
-              };
-            });
-
-            let mappedTasks = dbTasks.map((t: any) => {
-              const ent = mappedClients.find((c: any) => c.id === t.entity_id);
-              return {
-                id: t.id,
-                entityId: t.entity_id,
-                entityName: ent ? ent.name : "Practice Client",
-                groupId: ent ? ent.groupId : "GRP-001",
-                category: t.category,
-                title: t.title,
-                period: t.period,
-                dueDate: t.due_date ? new Date(t.due_date).toISOString().split("T")[0] : "2026-10-31",
-                status: t.status,
-                assignedTo: "Audit Senior",
-                reviewedBy: "CA Partner",
-                priority: t.priority,
-                penaltyRisk: Number(t.penalty_risk || 0),
-                accruingDailyPenalty: Number(t.accruing_daily_penalty || 0),
-                missingDocumentsCount: Number(t.missing_documents_count || 0),
-                chaseCount: t.chase_count || 0,
-              };
-            });
-
-            let mappedInvoices = dbInvoices.map((inv: any) => {
-              const ent = mappedClients.find((c: any) => c.id === inv.entity_id);
-              return {
-                id: inv.id,
-                invoiceNumber: inv.invoice_number,
-                entityId: inv.entity_id,
-                entityName: ent ? ent.name : "Practice Client",
-                groupId: ent ? ent.groupId : "GRP-001",
-                period: inv.period || "Q3 FY 2026-27",
-                issueDate: inv.issue_date || new Date().toISOString().split("T")[0],
-                dueDate: inv.due_date || new Date().toISOString().split("T")[0],
-                amount: Number(inv.amount || 0),
-                status: inv.status || "PENDING",
-                description: inv.description || "Professional CA Audit & Statutory Retainer",
-                utrNumber: inv.utr_number || undefined,
-                paymentMode: inv.payment_mode || undefined,
-              };
-            });
-
-            let mappedDsc = isClientRole
-              ? []
-              : dbDsc.map((d: any) => {
-                  const ent = mappedClients.find((c: any) => c.id === d.entity_id);
-                  const daysToExpiry = Math.ceil(
-                    (new Date(d.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                  );
-                  return {
-                    id: d.id,
-                    entityId: d.entity_id,
-                    entityName: ent ? ent.name : "Practice Client",
-                    groupId: ent ? ent.groupId : "GRP-001",
-                    signatoryName: d.signatory_name,
-                    signatoryPan: d.signatory_pan,
-                    signatoryDesignation: d.signatory_designation || "Director",
-                    provider: d.provider || "eMudhra Class 3",
-                    expiryDate: d.expiry_date,
-                    daysToExpiry,
-                    expiryStatus: daysToExpiry <= 0 ? "EXPIRED" : daysToExpiry <= 30 ? "EXPIRING_SOON" : "ACTIVE",
-                    currentCustodian: d.current_custodian || "Firm Master Safe",
-                    vaultSlot: d.vault_slot || "Slot A-01",
-                  };
-                });
-
-            let mappedDocuments = dbDocs.map((doc: any) => ({
-              id: doc.id,
-              entityId: doc.entity_id,
-              entityName: mappedClients.find((c: any) => c.id === doc.entity_id)?.name || "Client Entity",
-              category: doc.category || "BANK_STATEMENT",
-              fileName: doc.file_name,
-              fileSize: doc.file_size || "500 KB",
-              uploadedAt: doc.created_at || new Date().toISOString(),
-              financialYear: "FY 2026-27",
-              uploadedBy: doc.uploaded_by || "FIRM_STAFF",
-              isPasswordProtected: false,
-              isUnlocked: true,
-              reviewStatus: doc.review_status || "APPROVED",
-              reviewedBy: "CA Partner",
-            }));
-
-            // Multi-tenant segregation for Client users
-            if (isClientRole && (auth.clientGroupId || auth.clientEntityId)) {
-              mappedClients = mappedClients.filter(
-                (c: any) => c.groupId === auth.clientGroupId || c.id === auth.clientEntityId
-              );
-              mappedGroups = mappedGroups.filter((g: any) => g.id === auth.clientGroupId);
-              mappedTasks = mappedTasks.filter(
-                (t: any) => t.groupId === auth.clientGroupId || t.entityId === auth.clientEntityId
-              );
-              mappedInvoices = mappedInvoices.filter(
-                (i: any) => i.groupId === auth.clientGroupId || i.entityId === auth.clientEntityId
-              );
-              mappedDocuments = mappedDocuments.filter((d: any) => d.entityId === auth.clientEntityId);
-              mappedDsc = [];
-            }
-
-            return NextResponse.json({
-              success: true,
-              source: "SUPABASE_CLOUD_LIVE",
-              data: {
-                firmMetrics: {
-                  name: firm?.firm_name || "GPA & Co., Chartered Accountants",
-                  frn: firm?.frn || "022998C",
-                  totalClients: mappedClients.length,
-                  activeEntities: mappedClients.length,
-                  criticalDeadlinesNext72h: mappedTasks.filter(
-                    (t: any) => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED"
-                  ).length,
-                  complianceHealthScore: 100,
-                  pendingCollections: mappedInvoices
-                    .filter((i: any) => i.status !== "PAID")
-                    .reduce((sum: number, i: any) => sum + i.amount, 0),
-                },
-                groups: mappedGroups,
-                clients: mappedClients,
-                tasks: mappedTasks,
-                invoices: mappedInvoices,
-                dscTokens: mappedDsc,
-                portalCredentials: (ensureDatabase().portalCredentials || []).filter(
-                  (p: any) => !isClientRole || p.entityId === auth.clientEntityId
-                ),
-                documents: mappedDocuments,
-                notices: (ensureDatabase().notices || []).filter(
-                  (n: any) => !isClientRole || n.entityId === auth.clientEntityId
-                ),
-                auditTrail: isArticleRole || isClientRole ? [] : ensureDatabase().auditTrail || [],
-                payToReleaseConfigs: (ensureDatabase().payToReleaseConfigs || []).filter(
-                  (p: any) => !isClientRole || p.entityId === auth.clientEntityId
-                ),
-                notifications: (ensureDatabase().notifications || []).filter(
-                  (n: any) =>
-                    !isClientRole ||
-                    n.recipientEntityId === auth.clientEntityId ||
-                    n.recipientRole === "ALL" ||
-                    (n.recipientRole === "CLIENT" && !n.recipientEntityId)
-                ),
-                lastUpdated: new Date().toISOString(),
-              },
-            });
-          }
-        }
-      } catch (sbErr) {
-        console.warn("Supabase query fallback initiated:", sbErr);
-      }
-    }
-
-    // 3. Resilient Local Practice Store Fallback (Guarantees zero-downtime and offline resilience)
-    const rawData = ensureDatabase();
-    const localData = JSON.parse(JSON.stringify(rawData));
-
-    // Multi-tenant segregation for Client users
-    if (isClientRole && (auth.clientGroupId || auth.clientEntityId)) {
-      localData.clients = (localData.clients || []).filter(
-        (c: any) => c.groupId === auth.clientGroupId || c.id === auth.clientEntityId
+    const mappedNotifications = notifRecs
+      .map((r) => r.payload)
+      .filter(
+        (n) =>
+          !isClientRole ||
+          (n.recipientEntityId && allowedEntityIds.has(n.recipientEntityId)) ||
+          n.recipientRole === "ALL" ||
+          (n.recipientRole === "CLIENT" && !n.recipientEntityId)
       );
-      localData.groups = (localData.groups || []).filter((g: any) => g.id === auth.clientGroupId);
-      localData.tasks = (localData.tasks || []).filter(
-        (t: any) => t.groupId === auth.clientGroupId || t.entityId === auth.clientEntityId
-      );
-      localData.invoices = (localData.invoices || []).filter(
-        (i: any) => i.groupId === auth.clientGroupId || i.entityId === auth.clientEntityId
-      );
-      localData.documents = (localData.documents || []).filter((d: any) => d.entityId === auth.clientEntityId);
-      localData.dscTokens = [];
-      if (localData.portalCredentials) {
-        localData.portalCredentials = localData.portalCredentials.filter(
-          (p: any) => p.entityId === auth.clientEntityId
-        );
+
+    const firmMetrics: any = {
+      name: firm?.firm_name || DEFAULT_FIRM_BRANDING.firmName,
+      companyName: DEFAULT_FIRM_BRANDING.companyName,
+      frn: firm?.frn || DEFAULT_FIRM_BRANDING.frn,
+      totalClients: mappedClients.length,
+      activeEntities: mappedClients.length,
+      criticalDeadlinesNext72h: mappedTasks.filter(
+        (t: any) => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED"
+      ).length,
+      complianceHealthScore: 100,
+      firmUpiVpa: firm?.firm_upi_vpa || DEFAULT_FIRM_BRANDING.firmUpiVpa,
+    };
+
+    if (!isClientRole) {
+      firmMetrics.pendingCollections = mappedInvoices
+        .filter((i: any) => i.status !== "PAID")
+        .reduce((sum: number, i: any) => sum + i.amount, 0);
+      if (!isStaffSubRole) {
+        firmMetrics.unbilledWipAmount = mappedGroups.reduce((s: number, g: any) => s + g.unbilledWipTotal, 0);
       }
-      localData.notices = [];
-      localData.auditTrail = [];
-      if (localData.payToReleaseConfigs) {
-        localData.payToReleaseConfigs = localData.payToReleaseConfigs.filter(
-          (p: any) => p.entityId === auth.clientEntityId
-        );
-      }
-      if (localData.notifications) {
-        localData.notifications = localData.notifications.filter(
-          (n: any) => n.recipientEntityId === auth.clientEntityId || n.recipientRole === "ALL" || (n.recipientRole === "CLIENT" && !n.recipientEntityId)
-        );
-      }
-      localData.firmMetrics = {
-        name: "GPA & Co., Chartered Accountants",
-        totalClients: localData.clients.length,
-        activeEntities: localData.clients.length,
-        criticalDeadlinesNext72h: localData.tasks.filter(
-          (t: any) => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED"
-        ).length,
-        complianceHealthScore: 100,
-      };
-    } else if (isArticleRole) {
-      // Article Trainees should not see Partner Hourly realization rates or firm fee shares
-      if (localData.firmMetrics) {
-        delete localData.firmMetrics.unbilledWipAmount;
-        delete localData.firmMetrics.partnerRealizationPct;
-      }
-      localData.auditTrail = [];
     }
 
     return NextResponse.json({
       success: true,
-      source: "PERSISTENT_SYNC_DB",
-      data: localData,
+      source: "POSTGRES_LIVE",
+      data: {
+        firmMetrics,
+        groups: mappedGroups,
+        clients: mappedClients,
+        tasks: mappedTasks,
+        invoices: mappedInvoices,
+        dscTokens: mappedDsc,
+        portalCredentials: credRecs.map((r) => r.payload),
+        documents: mappedDocuments,
+        notices: noticeRecs.map((r) => r.payload),
+        auditTrail: mappedAuditTrail,
+        payToReleaseConfigs: mappedPayConfigs,
+        notifications: mappedNotifications,
+        lastUpdated: new Date().toISOString(),
+      },
     });
   } catch (error: any) {
-    console.error("Critical error in /api/data:", error);
-    return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
+    console.error("Critical error in GET /api/data:", error?.message || error);
+    return NextResponse.json(
+      { success: false, error: "Durable practice database is unavailable." },
+      { status: 503 }
+    );
   }
 }

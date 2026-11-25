@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { parseBankStatementPdfBuffer, parseBankStatementCsv } from "@/lib/parsers/bankStatementParser";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

@@ -41,17 +41,30 @@ import {
 import { toast } from '@/components/shared/ToastNotification';
 import { useClientContext } from '@/lib/context/ClientContext';
 import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
+import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
+import { readClientTaxBridge } from '@/lib/taxAudit/clientTaxBridge';
 
 export function PillarTwoDirectTaxWorkbench() {
-  const { selectedClient, isFirmWideView } = useClientContext();
+  const { selectedClient, isFirmWideView, selectedAy } = useClientContext();
   const [activeTab, setActiveTab] = useState<'CAPITAL_GAINS' | 'DEPRECIATION_SEC32' | 'FORM_10IEA' | 'FOREIGN_ASSETS_FA' | 'VDA_CRYPTO'>('CAPITAL_GAINS');
 
   // State
-  const [cgSummary] = useState<CapitalGainsAnnualSummary>(SAMPLE_CAPITAL_GAINS_SUMMARY);
-  const [depnBlocks] = useState<AssetBlockItem[]>(SAMPLE_DEPRECIATION_BLOCKS);
-  const [form10iea] = useState<Form10IeaRecord>(SAMPLE_FORM_10IEA);
-  const [foreignAssetsData] = useState(() => ForeignAssetFsiEngine.evaluateScheduleFaCompliance(SAMPLE_FOREIGN_ASSETS));
-  const [vdaSummary] = useState<VdaAnnualAuditReport>(SAMPLE_VDA_SUMMARY);
+  const bridge = selectedClient && !isFirmWideView ? readClientTaxBridge(selectedClient.id, selectedAy) : null;
+  const stcg = bridge?.aisStcg111A || 0;
+  const ltcg = bridge?.aisLtcg112A || 0;
+  const cgSummary: CapitalGainsAnnualSummary = { assessmentYear: selectedAy || '', stcg111A_20Percent: stcg, stcgNormalSlab: 0, ltcg112A_12_5Percent: ltcg, ltcg112AExemptionClaimed: Math.min(125000, ltcg), taxableLtcg112A: Math.max(0, ltcg - 125000), ltcg112Other_12_5Percent: 0, totalTaxPayableCapitalGains: Math.round(stcg * 0.2 + Math.max(0, ltcg - 125000) * 0.125), transactions: [] };
+  const [depnBlocks] = useState<AssetBlockItem[]>([]);
+  const form10iea: Form10IeaRecord = { ackNumber: '—', assesseePan: selectedClient?.pan || '', assesseeName: selectedClient?.tradeName || selectedClient?.name || '', assessmentYear: selectedAy || '', filingDate: '', hasPgbpIncome: false, actionType: 'OPT_OUT_TO_OLD', historicalOptOutYears: [], isEligibleToOptOut: true, statutoryLockoutActive: false, statutoryRuleSummary: 'No Form 10-IEA filed for this Assessment Year yet.' };
+  const [foreignAssetsData] = useState(() => ForeignAssetFsiEngine.evaluateScheduleFaCompliance([]));
+  const [vdaSummary] = useState<VdaAnnualAuditReport>({ assessmentYear: selectedAy || '', totalVdaSalesConsideration: 0, totalCostOfAcquisition: 0, totalGrossGains: 0, totalGrossLosses: 0, netTaxableVdaIncome: 0, totalTaxLiability30Percent: 0, totalTdsCreditSec194S: 0, netTaxPayableOrRefund: 0, statutoryRuleWarning: 'No VDA / Crypto transactions recorded for this Assessment Year.', transactions: [] });
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="Capital Gains, Depreciation & Statutory Tax Schedules"
+        description="Select a client entity above to compute their Capital Gains (111A/112A), Sec 32 Depreciation blocks, Form 10-IEA, Foreign Assets (FA), and VDA." />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -306,13 +319,13 @@ export function PillarTwoDirectTaxWorkbench() {
         </div>
       )}
 
-      {/* TAB 3: Form 10-IEA Lifetime Guardian */}
+      {/* TAB 3: Form 10-IEA Lifetime Tracker */}
       {activeTab === 'FORM_10IEA' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-                <span>Form 10-IEA Lifetime Regime Selection Guardian</span>
+                <span>Form 10-IEA Lifetime Regime Selection Tracker</span>
                 <span className="text-[10px] font-mono uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
                   Rule 21AGA Compliant
                 </span>

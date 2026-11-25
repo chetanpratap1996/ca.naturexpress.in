@@ -46,6 +46,8 @@ import {
 import { ClientEntity } from "@/lib/types";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
+import { writeClientTaxBridge } from "@/lib/taxAudit/clientTaxBridge";
 import { FinancialStatementView } from "./schedule3/FinancialStatementView";
 import { McaRatioDisclosures } from "./schedule3/McaRatioDisclosures";
 import { AuditLeadSchedules } from "./schedule3/AuditLeadSchedules";
@@ -65,14 +67,14 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   clients = [],
   onExportAuditDossier 
 }) => {
-  const { selectedClient, isFirmWideView } = useClientContext();
-  const [selectedClientId, setSelectedClientId] = useState<string>(() => clients[0]?.id || "CLI-PRATWI-01");
+  const { selectedClient, isFirmWideView, selectedAy } = useClientContext();
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [division, setDivision] = useState<Schedule3Division>("DIVISION_I");
   const [activeSubTab, setActiveSubTab] = useState<"mapping" | "financials" | "ratios-disclosures" | "lead-schedules" | "caro2020" | "bank-reconciliation" | "audit-realization">("mapping");
   
-  // TB Data State - preloaded with realistic production mock data
-  const [tbResult, setTbResult] = useState<TbParseResult>(() => getMockTrialBalanceResult());
-  const [ledgers, setLedgers] = useState<MappedTbLedger[]>(() => tbResult.ledgers);
+  // TB Data State - starts clean empty until client Trial Balance is uploaded
+  const [tbResult, setTbResult] = useState<TbParseResult | null>(null);
+  const [ledgers, setLedgers] = useState<MappedTbLedger[]>([]);
   
   // UI Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,11 +89,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
   const [isTallyUploadModalOpen, setIsTallyUploadModalOpen] = useState(false);
   const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
   const [isSa230ModalOpen, setIsSa230ModalOpen] = useState(false);
-  const [customClientMeta, setCustomClientMeta] = useState<{ name: string; pan: string; cin: string } | null>({
-    name: "Pratwi Solutions Private Limited",
-    pan: "AANCP9915B",
-    cin: "U72900UP2026PTC199821"
-  });
+  const [customClientMeta, setCustomClientMeta] = useState<{ name: string; pan: string; cin: string } | null>(null);
 
   // Paste TB Modal State
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
@@ -246,6 +244,11 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
         setTbResult(res);
         setLedgers(res.ledgers);
         persistTrialBalance(res, activeClient.id, activeClient.name);
+        const revOps = res.ledgers.filter(l => l.mappedHeadId === "revenue_from_operations").reduce((s, l) => s + l.closingBalance, 0);
+        const plInc = res.ledgers.filter(l => l.statement === "PROFIT_AND_LOSS" && l.balanceType === "CR").reduce((s, l) => s + l.closingBalance, 0);
+        const plExp = res.ledgers.filter(l => l.statement === "PROFIT_AND_LOSS" && l.balanceType === "DR").reduce((s, l) => s + l.closingBalance, 0);
+        const pen37 = res.ledgers.filter(l => l.anomalies.some(a => /penalty|fine|234e|late fee/i.test(a))).reduce((s, l) => s + l.closingBalance, 0);
+        writeClientTaxBridge(activeClient.id, selectedAy, { tbSyncedAt: new Date().toISOString(), tbLedgersCount: res.totalLedgers, revenueFromOperations: revOps, netProfitPerBooks: plInc - plExp, penaltyDisallowance37: pen37, negativeCashCount: res.anomaliesSummary.negativeCash });
         toast.success(
           "Trial Balance Ingested",
           `Extracted ${res.totalLedgers} ledgers. Status: ${res.isBalanced ? "Mathematical Balanced ✅" : "Unbalanced ⚠️"}`
@@ -360,6 +363,15 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
 
     toast.success("Reclassified", `Reclassified "${ledger.ledgerName}" to "${targetHead.title}"`);
   };
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="Schedule III Financial Statements & Audit Engine"
+        description="Select a client entity above to upload their Tally XML or Excel Trial Balance and generate Schedule III Financials, CARO 2020, and Ratios."
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -517,7 +529,7 @@ export const Schedule3AuditEngine: React.FC<Schedule3AuditEngineProps> = ({
         {/* ------------------------------------------------------------------ */}
         {/* 3. AUDIT SANITY & ANOMALY WATCHDOG ALERTS                         */}
         {/* ------------------------------------------------------------------ */}
-        {tbResult.anomaliesSummary && (
+        {tbResult?.anomaliesSummary && (
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-slate-600 flex items-center gap-1 mr-1">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />

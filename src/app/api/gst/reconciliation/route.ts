@@ -1,333 +1,171 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RecoMatcher, Gstr2bInvoice, BooksPurchaseInvoice } from "@/lib/gst/recoMatcher";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
+import {
+  RecoMatcher,
+  Gstr2bInvoice,
+  BooksPurchaseInvoice,
+  RecoManualOverride,
+  ReconciliationReport,
+} from "@/lib/gst/recoMatcher";
 import { ItcClassifier } from "@/lib/gst/itcClassifier";
-import { ensureDatabase, saveDatabase, ClientGstReconciliationItem, createNotification, logAuditEvent } from "@/lib/server/db";
-import { DocumentItem } from "@/lib/types";
-import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
+import { getPostgresPool } from "@/lib/server/postgres";
+import {
+  resolveFirmUuid,
+  appendPgAuditLog,
+  listWorkspaceRecords,
+  upsertWorkspaceRecord,
+} from "@/lib/server/pgHelpers";
+import { executePostgresAutopilotSweep } from "@/lib/automation/postgresAutopilot";
 
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const clientGstin = searchParams.get("clientGstin") || "23AANCP9915B1Z9";
-    const taxPeriod = searchParams.get("taxPeriod") || "September 2026";
-    const tolerance = parseFloat(searchParams.get("tolerance") || "5.0");
-
-    // Standard baseline fixtures for reconciliation demonstration
-    const sample2b: Gstr2bInvoice[] = [
-      {
-        id: "2b-1",
-        vendorGstin: "27AAACT2727Q1ZW",
-        vendorTradeName: "Tata Steel Limited",
-        invoiceNumber: "TSL/2026/0491",
-        invoiceDate: "2026-09-14",
-        invoiceType: "R",
-        placeOfSupply: "27-Maharashtra",
-        reverseCharge: false,
-        taxableValue: 480000,
-        igst: 86400,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 86400,
-        totalInvoiceValue: 566400,
-        gstr1FilingDate: "2026-10-10",
-        gstr1Period: "092026",
-        gstr3bFilingStatus: "FILED",
-        itcAvailable: true
-      },
-      {
-        id: "2b-2",
-        vendorGstin: "27AABCM1888G1ZQ",
-        vendorTradeName: "Mahindra & Mahindra Financial Services",
-        invoiceNumber: "MMFSL/MUM/8821",
-        invoiceDate: "2026-09-18",
-        invoiceType: "R",
-        placeOfSupply: "27-Maharashtra",
-        reverseCharge: false,
-        taxableValue: 1250000,
-        igst: 350000,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 350000,
-        totalInvoiceValue: 1600000,
-        gstr1FilingDate: "2026-10-09",
-        gstr1Period: "092026",
-        gstr3bFilingStatus: "FILED",
-        itcAvailable: true
-      },
-      {
-        id: "2b-3",
-        vendorGstin: "23AAGCR4421L1ZB",
-        vendorTradeName: "Radisson Blu Hospitality LLP",
-        invoiceNumber: "RBL/IND/773",
-        invoiceDate: "2026-09-22",
-        invoiceType: "R",
-        placeOfSupply: "23-Madhya Pradesh",
-        reverseCharge: false,
-        taxableValue: 65000,
-        igst: 0,
-        cgst: 1625,
-        sgst: 1625,
-        totalTax: 3250,
-        totalInvoiceValue: 68250,
-        gstr1FilingDate: "2026-10-11",
-        gstr1Period: "092026",
-        gstr3bFilingStatus: "FILED",
-        itcAvailable: true
-      },
-      {
-        id: "2b-4",
-        vendorGstin: "29AABCC9941H1Z4",
-        vendorTradeName: "Cloudbyte Technologies Pvt Ltd",
-        invoiceNumber: "CBT/2026/089",
-        invoiceDate: "2026-09-25",
-        invoiceType: "R",
-        placeOfSupply: "29-Karnataka",
-        reverseCharge: false,
-        taxableValue: 180000,
-        igst: 32400,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 32400,
-        totalInvoiceValue: 212400,
-        gstr1FilingDate: "2026-10-08",
-        gstr1Period: "092026",
-        gstr3bFilingStatus: "FILED",
-        itcAvailable: true
-      },
-      {
-        id: "2b-5",
-        vendorGstin: "29AAACD1029F1Z1",
-        vendorTradeName: "Dell India Private Limited",
-        invoiceNumber: "DEL/2026/99120",
-        invoiceDate: "2026-09-28",
-        invoiceType: "R",
-        placeOfSupply: "29-Karnataka",
-        reverseCharge: false,
-        taxableValue: 360000,
-        igst: 64800,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 64800,
-        totalInvoiceValue: 424800,
-        gstr1FilingDate: "2026-10-10",
-        gstr1Period: "092026",
-        gstr3bFilingStatus: "FILED",
-        itcAvailable: true
-      },
-      {
-        id: "2b-6",
-        vendorGstin: "06AAACJ5512E1Z2",
-        vendorTradeName: "Jindal Infra Projects Pvt Ltd",
-        invoiceNumber: "JIP/HR/1044",
-        invoiceDate: "2025-11-20",
-        invoiceType: "R",
-        placeOfSupply: "06-Haryana",
-        reverseCharge: false,
-        taxableValue: 560000,
-        igst: 100800,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 100800,
-        totalInvoiceValue: 660800,
-        gstr1FilingDate: "2026-10-10",
-        gstr1Period: "092026",
-        gstr3bFilingStatus: "NOT_FILED",
-        itcAvailable: true
-      }
-    ];
-
-    const sampleBooks: BooksPurchaseInvoice[] = [
-      {
-        id: "bk-1",
-        voucherNumber: "PUR-2026-011",
-        vendorGstin: "27AAACT2727Q1ZW",
-        vendorName: "Tata Steel Limited",
-        invoiceNumber: "TSL/2026/0491",
-        invoiceDate: "2026-09-14",
-        taxableValue: 480000,
-        igst: 86400,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 86400,
-        totalInvoiceValue: 566400,
-        hsnCode: "7208",
-        itemDescription: "Hot rolled flat steel coils for fabrication",
-        paymentStatus: "PAID"
-      },
-      {
-        id: "bk-2",
-        voucherNumber: "PUR-2026-012",
-        vendorGstin: "27AABCM1888G1ZQ",
-        vendorName: "Mahindra & Mahindra Financial Services",
-        invoiceNumber: "MMFSL/MUM/8821",
-        invoiceDate: "2026-09-18",
-        taxableValue: 1250000,
-        igst: 350000,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 350000,
-        totalInvoiceValue: 1600000,
-        hsnCode: "8703",
-        itemDescription: "Mahindra XUV700 company staff car",
-        paymentStatus: "PAID"
-      },
-      {
-        id: "bk-3",
-        voucherNumber: "PUR-2026-013",
-        vendorGstin: "23AAGCR4421L1ZB",
-        vendorName: "Radisson Blu Hospitality LLP",
-        invoiceNumber: "RBL/IND/773",
-        invoiceDate: "2026-09-22",
-        taxableValue: 65000,
-        igst: 0,
-        cgst: 1625,
-        sgst: 1625,
-        totalTax: 3250,
-        totalInvoiceValue: 68250,
-        hsnCode: "9963",
-        itemDescription: "Annual general meeting dinner buffet catering",
-        paymentStatus: "PAID"
-      },
-      {
-        id: "bk-4",
-        voucherNumber: "PUR-2026-014",
-        vendorGstin: "29AABCC9941H1Z4",
-        vendorName: "Cloudbyte Technologies Pvt Ltd",
-        invoiceNumber: "89", // Fuzzy variation of CBT/2026/089
-        invoiceDate: "2026-09-25",
-        taxableValue: 180000,
-        igst: 32400,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 32400,
-        totalInvoiceValue: 212400,
-        hsnCode: "9983",
-        itemDescription: "Cloud hosting and server infrastructure maintenance",
-        paymentStatus: "PAID"
-      },
-      {
-        id: "bk-5",
-        voucherNumber: "PUR-2026-015",
-        vendorGstin: "24AADCA1192M1ZN",
-        vendorName: "Pratwi Cloud Infrastructure Logistics",
-        invoiceNumber: "AIL/GJ/4402",
-        invoiceDate: "2026-09-02",
-        taxableValue: 240000,
-        igst: 43200,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 43200,
-        totalInvoiceValue: 283200,
-        hsnCode: "9965",
-        itemDescription: "Goods transport agency freight charges",
-        paymentStatus: "UNPAID",
-        daysOutstanding: 28
-      },
-      {
-        id: "bk-6",
-        voucherNumber: "PUR-2026-016",
-        vendorGstin: "06AAACJ5512E1Z2",
-        vendorName: "Jindal Infra Projects Pvt Ltd",
-        invoiceNumber: "JIP/HR/1044",
-        invoiceDate: "2025-11-20",
-        taxableValue: 560000,
-        igst: 100800,
-        cgst: 0,
-        sgst: 0,
-        totalTax: 100800,
-        totalInvoiceValue: 660800,
-        hsnCode: "9954",
-        itemDescription: "Warehouse structural civil works",
-        paymentStatus: "UNPAID",
-        daysOutstanding: 310
-      }
-    ];
-
-    const report = RecoMatcher.reconcile({
-      taxPeriod,
-      clientGstin,
-      gstr2bInvoices: sample2b,
-      booksInvoices: sampleBooks,
-      toleranceInr: tolerance
+function runFullClassificationAndSummary(
+  report: ReconciliationReport,
+  overrides?: Record<string, RecoManualOverride>
+): ReconciliationReport {
+  for (const record of report.records) {
+    if (overrides && overrides[record.id]) {
+      record.manualOverride = overrides[record.id];
+    }
+    const cls = ItcClassifier.classify({
+      hsnOrSacCode: record.hsnCode,
+      itemDescription: record.itemDescription,
+      vendorTradeName: record.vendorName,
     });
-
-    // Run Section 17(5) classifier on each record
-    for (const record of report.records) {
-      const cls = ItcClassifier.classify({
-        hsnOrSacCode: record.hsnCode,
-        itemDescription: record.itemDescription,
-        vendorTradeName: record.vendorName
-      });
-      if (cls.isBlocked) {
-        record.section17_5Blocked = true;
-        record.blockedCategory = cls.categoryTitle;
-        record.statutoryAuditTrail = `${record.statutoryAuditTrail} [BLOCKED CREDIT: ${cls.reason}]`;
+    if (cls.isBlocked) {
+      record.section17_5Blocked = true;
+      record.blockedCategory = cls.categoryTitle;
+      if (!record.statutoryAuditTrail.includes("[BLOCKED:")) {
+        record.statutoryAuditTrail = `${record.statutoryAuditTrail} [BLOCKED: ${cls.reason}]`;
+      }
+      if (record.manualOverride !== "ALLOW_EXCEPTION") {
         record.recommendedAction = cls.auditRecommendation;
-        report.summary.ineligibleSec17_5Itc += (record.gstr2bTotalTax || record.booksTotalTax);
       }
     }
+  }
+  return RecoMatcher.recomputeSummary(report);
+}
+
+export async function GET(req: NextRequest) {
+  const { auth, errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse || !auth) return errorResponse!;
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const clientGstin = (searchParams.get("clientGstin") || "").trim().toUpperCase();
+    const taxPeriod = (searchParams.get("taxPeriod") || "").trim();
+    const tolerance = parseFloat(searchParams.get("tolerance") || "5.0");
+
+    if (!clientGstin) {
+      return NextResponse.json({
+        success: true,
+        found: false,
+        report: null,
+        availablePeriods: [],
+      });
+    }
+
+    const firmId = await resolveFirmUuid(auth);
+    const recs = await listWorkspaceRecords<any>(firmId, "GST_RECONCILIATION");
+    const gstinRecs = recs.filter(
+      (r) => String(r.payload?.clientGstin || "").toUpperCase() === clientGstin
+    );
+    const availablePeriods = gstinRecs
+      .map((r) => r.payload?.period)
+      .filter(Boolean);
+
+    const idKey = `reco-${clientGstin}-${taxPeriod}`.replace(/\s+/g, "_");
+    const matched = taxPeriod
+      ? gstinRecs.find((r) => r.payload?.id === idKey)
+      : gstinRecs[0];
+
+    if (!matched) {
+      return NextResponse.json({
+        success: true,
+        found: false,
+        report: null,
+        availablePeriods,
+      });
+    }
+
+    const p = matched.payload;
+    const gstr2bInvoices: Gstr2bInvoice[] = Array.isArray(p.gstr2bInvoices) ? p.gstr2bInvoices : [];
+    const booksInvoices: BooksPurchaseInvoice[] = Array.isArray(p.booksInvoices) ? p.booksInvoices : [];
+    const overrides: Record<string, RecoManualOverride> = p.overrides || {};
+
+    const rawReport = RecoMatcher.reconcile({
+      taxPeriod: p.period || taxPeriod,
+      clientGstin,
+      gstr2bInvoices,
+      booksInvoices,
+      toleranceInr: p.toleranceInr ?? tolerance,
+      overrides,
+    });
+    const report = runFullClassificationAndSummary(rawReport, overrides);
 
     return NextResponse.json({
       success: true,
-      report
+      found: true,
+      report,
+      gstr2bInvoices,
+      booksInvoices,
+      overrides,
+      availablePeriods,
+      updatedAt: p.updatedAt,
     });
   } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to execute GSTR-2B reconciliation"
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to load GSTR-2B reconciliation" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
+  const { auth, errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse || !auth) return errorResponse!;
+
   try {
     const body = await req.json();
-    const { taxPeriod, clientGstin, gstr2bInvoices, booksInvoices, toleranceInr } = body;
+    const { taxPeriod, clientGstin, gstr2bInvoices, booksInvoices, toleranceInr, overrides } = body;
 
     if (!taxPeriod || !clientGstin || !Array.isArray(gstr2bInvoices) || !Array.isArray(booksInvoices)) {
-      return NextResponse.json({
-        success: false,
-        error: "Missing mandatory fields: taxPeriod, clientGstin, gstr2bInvoices, booksInvoices"
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing mandatory fields: taxPeriod, clientGstin, gstr2bInvoices, booksInvoices",
+        },
+        { status: 400 }
+      );
     }
 
-    const report = RecoMatcher.reconcile({
+    const cleanGstin = String(clientGstin).trim().toUpperCase();
+    const rawReport = RecoMatcher.reconcile({
       taxPeriod,
-      clientGstin,
+      clientGstin: cleanGstin,
       gstr2bInvoices,
       booksInvoices,
-      toleranceInr: toleranceInr || 5.0
+      toleranceInr: toleranceInr ?? 5.0,
+      overrides,
     });
+    const report = runFullClassificationAndSummary(rawReport, overrides);
 
-    // Run Section 17(5) classifier on each record
-    for (const record of report.records) {
-      const cls = ItcClassifier.classify({
-        hsnOrSacCode: record.hsnCode,
-        itemDescription: record.itemDescription,
-        vendorTradeName: record.vendorName
-      });
-      if (cls.isBlocked) {
-        record.section17_5Blocked = true;
-        record.blockedCategory = cls.categoryTitle;
-        record.statutoryAuditTrail = `${record.statutoryAuditTrail} [BLOCKED CREDIT: ${cls.reason}]`;
-        record.recommendedAction = cls.auditRecommendation;
-        report.summary.ineligibleSec17_5Itc += (record.gstr2bTotalTax || record.booksTotalTax);
-      }
-    }
-
-    // Persist real reconciliation state into Database
     try {
-      const db = ensureDatabase();
-      if (!db.clientGstReconciliations) db.clientGstReconciliations = [];
+      const firmId = await resolveFirmUuid(auth);
+      const pool = getPostgresPool();
+      const { rows: entRows } = await pool.query(
+        "SELECT id, entity_name FROM public.client_entities WHERE firm_id = $1 AND UPPER(gstin) = UPPER($2) LIMIT 1",
+        [firmId, cleanGstin]
+      );
+      const entity = entRows[0];
+      const entityId = entity?.id || null;
+      const clientName = entity?.entity_name || `GSTIN ${cleanGstin}`;
 
-      const client = db.clients.find(c => c.gstin?.toUpperCase() === clientGstin.toUpperCase());
-      const clientId = client?.id || `CLI-${clientGstin}`;
-
-      const item: ClientGstReconciliationItem = {
-        id: `reco-${clientGstin}-${Date.now()}`,
-        clientId,
-        clientGstin,
+      const item = {
+        id: `reco-${cleanGstin}-${taxPeriod}`.replace(/\s+/g, "_"),
+        clientId: entityId || `CLI-${cleanGstin}`,
+        clientName,
+        clientGstin: cleanGstin,
         period: taxPeriod,
+        toleranceInr: toleranceInr ?? 5.0,
         updatedAt: new Date().toISOString(),
         invoicesAudited: report.summary.totalRecords,
         totalTaxableInr: gstr2bInvoices.reduce((acc: number, i: any) => acc + (i.taxableValue || 0), 0),
@@ -335,75 +173,149 @@ export async function POST(req: NextRequest) {
         missingItcInr: report.summary.provisionalMissing2bItc || 0,
         eligibleItcInr: report.summary.matchedEligibleItc,
         ineligible17_5ItcInr: report.summary.ineligibleSec17_5Itc,
-        rule37aRiskCount: report.records.filter(r => r.rule37aRisk).length,
-        vendorNoticeCount: report.records.filter(r => r.matchStatus === "MISSING_IN_2B").length,
+        netItc4C: report.summary.netItc4C,
+        table4Summary: {
+          table4A1: report.summary.table4A1_ImportGoods,
+          table4A3: report.summary.table4A3_Rcm,
+          table4A4: report.summary.table4A4_Isd,
+          table4A5: report.summary.table4A5_AllOtherGross,
+          table4B1: report.summary.table4B1_PermanentReversal,
+          table4B2: report.summary.table4B2_TemporaryReversal,
+          netItc4C: report.summary.netItc4C,
+        },
+        rule37aRiskCount: report.records.filter((r) => r.rule37aRisk).length,
+        vendorNoticeCount: report.records.filter((r) => r.matchStatus === "MISSING_IN_2B").length,
         gstr2bInvoices,
-        booksInvoices
+        booksInvoices,
+        overrides: overrides || {},
       };
 
-      const existingIdx = db.clientGstReconciliations.findIndex(
-        r => r.clientGstin.toUpperCase() === clientGstin.toUpperCase() && r.period === taxPeriod
-      );
-      if (existingIdx !== -1) {
-        db.clientGstReconciliations[existingIdx] = item;
-      } else {
-        db.clientGstReconciliations.push(item);
-      }
-
-      // Autonomous Client Portal Notification
-      await createNotification({
-        title: `GSTR-2B Reco: ₹${report.summary.matchedEligibleItc.toLocaleString("en-IN")} Eligible ITC`,
-        message: report.summary.provisionalMissing2bItc > 0
-          ? `Reconciliation complete for ${taxPeriod}. Identified ₹${report.summary.provisionalMissing2bItc.toLocaleString("en-IN")} missing ITC across defaulting vendors. Recovery workpaper filed.`
-          : `Reconciliation complete for ${taxPeriod}. 100% books ITC matched with GSTR-2B portal data.`,
-        category: "COMPLIANCE",
-        priority: report.summary.provisionalMissing2bItc > 0 ? "HIGH" : "NORMAL",
-        targetTab: report.summary.provisionalMissing2bItc > 0 ? "vendor-hold" : "vault",
-        recipientRole: "CLIENT",
-        recipientEntityId: clientId,
-        metadata: { recoId: item.id, missingItc: report.summary.provisionalMissing2bItc }
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "GST_RECONCILIATION",
+        matchKey: "id",
+        matchValue: item.id,
+        payload: item,
       });
 
-      // Deposit GST reconciliation pack into Document Vault
-      const recoDoc: DocumentItem = {
-        id: `DOC-GST-RECO-${Date.now()}`,
-        entityId: clientId,
-        entityName: client?.name || `GSTIN ${clientGstin}`,
-        category: "GST_INVOICES",
-        fileName: `GSTR2B_vs_Books_Reco_${taxPeriod.replace(/\s+/g, "_")}_${clientGstin}.pdf`,
-        fileSize: "365 KB",
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: "FIRM_STAFF",
-        isPasswordProtected: false,
-        isUnlocked: true,
-        financialYear: "FY 2026-27",
-        reviewStatus: "APPROVED",
-      };
-      db.documents = [recoDoc, ...(db.documents || [])];
+      if (entityId) {
+        await upsertWorkspaceRecord({
+          firmId,
+          entityId,
+          recordType: "NOTIFICATION",
+          matchKey: "idKey",
+          matchValue: `gst-reco-${item.id}-${new Date().toISOString().split("T")[0]}`,
+          payload: {
+            id: `NOTIF-GST-${Date.now()}`,
+            idKey: `gst-reco-${item.id}-${new Date().toISOString().split("T")[0]}`,
+            title: `GSTR-2B Reco: ₹${report.summary.netItc4C.total.toLocaleString("en-IN")} Net Eligible ITC`,
+            message:
+              report.summary.provisionalMissing2bItc > 0
+                ? `Reconciliation complete for ${taxPeriod}. Identified ₹${report.summary.provisionalMissing2bItc.toLocaleString("en-IN")} missing in GSTR-2B.`
+                : `Reconciliation complete for ${taxPeriod}. Books ITC matched with GSTR-2B portal data.`,
+            category: "COMPLIANCE",
+            priority: report.summary.provisionalMissing2bItc > 0 ? "HIGH" : "NORMAL",
+            targetTab: report.summary.provisionalMissing2bItc > 0 ? "vendor-hold" : "vault",
+            recipientRole: "CLIENT",
+            recipientEntityId: entityId,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
 
-      await logAuditEvent(
-        "Autonomous GST Engine",
-        "SYSTEM",
-        client?.name || clientGstin,
-        "GST_RECONCILIATION_COMPLETED",
-        `GSTR-2B reconciliation completed for ${taxPeriod} (${clientGstin}). ${item.invoicesAudited} invoices audited. ₹${item.eligibleItcInr.toLocaleString("en-IN")} eligible ITC, ₹${item.missingItcInr.toLocaleString("en-IN")} missing ITC.`,
-        "COMPLIANCE"
-      );
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || "Practice Staff",
+        actorRole: auth.role || "PARTNER",
+        entityId,
+        entityName: clientName,
+        action: "GST_RECONCILIATION_COMPLETED",
+        details: `GSTR-2B reconciliation saved for ${taxPeriod} (${cleanGstin}). Net ITC 4(C): ₹${report.summary.netItc4C.total.toLocaleString("en-IN")}, Sec 17(5) Blocked: ₹${report.summary.ineligibleSec17_5Itc.toLocaleString("en-IN")}.`,
+        category: "COMPLIANCE",
+      });
 
-      await saveDatabase(db);
-      executePracticeAutopilotSweep(db, "GSTR-2B Reconciliation").catch(() => {});
+      executePostgresAutopilotSweep(firmId, "GSTR-2B Reconciliation").catch(() => null);
     } catch (saveErr) {
-      console.warn("Could not persist GST reconciliation to DB:", saveErr);
+      console.warn("Could not persist GST reconciliation to Postgres:", saveErr);
     }
 
     return NextResponse.json({
       success: true,
-      report
+      report,
+      overrides: overrides || {},
     });
   } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to process GSTR-2B reconciliation request"
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to process GSTR-2B reconciliation request" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const { auth, errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse || !auth) return errorResponse!;
+
+  try {
+    const body = await req.json();
+    const cleanGstin = String(body.clientGstin || "").trim().toUpperCase();
+    const taxPeriod = String(body.taxPeriod || "").trim();
+    const overrides: Record<string, RecoManualOverride> = body.overrides || {};
+
+    if (!cleanGstin || !taxPeriod) {
+      return NextResponse.json({ success: false, error: "clientGstin and taxPeriod are required." }, { status: 400 });
+    }
+
+    const firmId = await resolveFirmUuid(auth);
+    const idKey = `reco-${cleanGstin}-${taxPeriod}`.replace(/\s+/g, "_");
+    const recs = await listWorkspaceRecords<any>(firmId, "GST_RECONCILIATION");
+    const existing = recs.find((r) => r.payload?.id === idKey);
+
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "No saved reconciliation found for this GSTIN & period." }, { status: 404 });
+    }
+
+    const p = existing.payload;
+    const rawReport = RecoMatcher.reconcile({
+      taxPeriod,
+      clientGstin: cleanGstin,
+      gstr2bInvoices: p.gstr2bInvoices || [],
+      booksInvoices: p.booksInvoices || [],
+      toleranceInr: p.toleranceInr ?? 5.0,
+      overrides,
+    });
+    const report = runFullClassificationAndSummary(rawReport, overrides);
+
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: existing.entity_id,
+      recordType: "GST_RECONCILIATION",
+      matchKey: "id",
+      matchValue: idKey,
+      payload: {
+        ...p,
+        overrides,
+        eligibleItcInr: report.summary.matchedEligibleItc,
+        ineligible17_5ItcInr: report.summary.ineligibleSec17_5Itc,
+        netItc4C: report.summary.netItc4C,
+        table4Summary: {
+          table4A1: report.summary.table4A1_ImportGoods,
+          table4A3: report.summary.table4A3_Rcm,
+          table4A4: report.summary.table4A4_Isd,
+          table4A5: report.summary.table4A5_AllOtherGross,
+          table4B1: report.summary.table4B1_PermanentReversal,
+          table4B2: report.summary.table4B2_TemporaryReversal,
+          netItc4C: report.summary.netItc4C,
+        },
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+    return NextResponse.json({ success: true, report, overrides });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message || "Failed to update overrides" }, { status: 500 });
   }
 }

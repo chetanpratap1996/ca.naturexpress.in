@@ -1,14 +1,11 @@
 /**
- * Brains & Taxes — Enterprise GST Vendor Risk Classifier & Compliance Engine
- * 
- * Statutory Authority:
- * - Section 16(2)(c) of CGST Act, 2017: Subject to Section 41, tax charged must actually be paid to Government
- * - Rule 37 of CGST Rules, 2017: Reversal of ITC in case of non-payment of consideration within 180 days with 18% interest
- * - Rule 37A of CGST Rules, 2017: Reversal of ITC where supplier fails to file GSTR-3B by 30th November
- * - Section 29 of CGST Act: Cancellation or suspension of registration
+ * GST Vendor Risk Classifier & Compliance Engine
+ *
+ * Evaluates vendor compliance strictly from observed reconciliation records,
+ * verified GSTN filing history (when fetched), and Purchase Register payment ageing.
  */
 
-export type VendorGstnStatus = "ACTIVE" | "SUSPENDED" | "CANCELLED" | "INACTIVE";
+export type VendorGstnStatus = "ACTIVE" | "SUSPENDED" | "CANCELLED" | "INACTIVE" | "UNVERIFIED";
 
 export type VendorRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -19,42 +16,41 @@ export interface VendorComplianceProfile {
   pan: string;
   state: string;
   gstnStatus: VendorGstnStatus;
-  dateOfRegistration: string;
+  verifiedViaGstn: boolean;
+  dateOfRegistration?: string;
   cancellationDate?: string;
-  
-  // Filing History (past 6 months)
-  gstr1FilingRatePercentage: number;  // e.g. 100% or 66%
-  gstr3bFilingRatePercentage: number; // e.g. 83% or 50%
-  pendingGstr1Periods: string[];
-  pendingGstr3bPeriods: string[];
-  
-  // Exposure with Client
+
+  gstr1FilingRatePercentage: number | null;
+  gstr3bFilingRatePercentage: number | null;
+
   totalInvoicesCount: number;
   totalTaxableValueInr: number;
   totalItcAtRiskInr: number;
   unpaidBeyond180DaysInr: number;
   unpaidInvoicesCount: number;
-  
-  // Scoring
-  compositeRiskScore: number; // 0 to 100 (0 = pristine, 100 = toxic)
+
+  compositeRiskScore: number;
   riskLevel: VendorRiskLevel;
   statutoryViolations: string[];
   recommendedAction: string;
 }
 
 export class VendorRiskEngine {
-  /**
-   * Evaluates vendor risk score based on statutory compliance parameters
-   */
   public static evaluateRisk(params: {
     vendorGstin: string;
     tradeName: string;
     legalName?: string;
     gstnStatus: VendorGstnStatus;
-    gstr1FiledCount: number;
-    gstr1TotalCount: number;
-    gstr3bFiledCount: number;
-    gstr3bTotalCount: number;
+    verifiedViaGstn?: boolean;
+    dateOfRegistration?: string;
+    cancellationDate?: string;
+    totalInvoicesCount: number;
+    gstr1FiledCount?: number;
+    gstr1TotalCount?: number;
+    gstr3bFiledCount?: number;
+    gstr3bTotalCount?: number;
+    missingIn2bCount?: number;
+    unfiled3bIn2bCount?: number;
     totalTaxableValueInr: number;
     totalItcInr: number;
     invoicesOver180DaysUnpaid?: {
@@ -67,38 +63,48 @@ export class VendorRiskEngine {
     let score = 0;
     const violations: string[] = [];
 
-    // 1. Status Factor
     if (params.gstnStatus === "CANCELLED") {
       score += 55;
-      violations.push("CRITICAL: Vendor GSTIN is CANCELLED. Any ITC claimed after cancellation date is illegal under Section 16(2)(c).");
+      violations.push("Vendor GSTIN is CANCELLED. ITC claimed post-cancellation is invalid u/s 16(2)(c).");
     } else if (params.gstnStatus === "SUSPENDED") {
       score += 40;
-      violations.push("HIGH ALERT: Vendor GSTIN is SUSPENDED by GST authorities under Rule 21A for non-compliance or fraud.");
+      violations.push("Vendor GSTIN is SUSPENDED under Rule 21A.");
     }
 
-    // 2. GSTR-1 Non-filing Factor
-    const gstr1Rate = params.gstr1TotalCount > 0 
-      ? Math.round((params.gstr1FiledCount / params.gstr1TotalCount) * 100) 
-      : 100;
-    if (gstr1Rate < 100) {
-      const missingCount = params.gstr1TotalCount - params.gstr1FiledCount;
-      const penalty = Math.min(30, missingCount * 10);
-      score += penalty;
-      violations.push(`GSTR-1 Default: Supplier missed ${missingCount} GSTR-1 return(s). Causes Section 16(2)(aa) invoice-matching blocks in buyer's GSTR-2B.`);
+    const gstr1Rate =
+      params.gstr1TotalCount && params.gstr1TotalCount > 0 && params.gstr1FiledCount !== undefined
+        ? Math.round((params.gstr1FiledCount / params.gstr1TotalCount) * 100)
+        : null;
+
+    const gstr3bRate =
+      params.gstr3bTotalCount && params.gstr3bTotalCount > 0 && params.gstr3bFiledCount !== undefined
+        ? Math.round((params.gstr3bFiledCount / params.gstr3bTotalCount) * 100)
+        : null;
+
+    if ((params.missingIn2bCount || 0) > 0) {
+      score += Math.min(30, (params.missingIn2bCount || 0) * 15);
+      violations.push(
+        `Sec 16(2)(aa): ${params.missingIn2bCount} invoice(s) booked in Purchase Register are missing in GSTR-2B.`
+      );
     }
 
-    // 3. GSTR-3B Non-filing Factor (Rule 37A trigger)
-    const gstr3bRate = params.gstr3bTotalCount > 0 
-      ? Math.round((params.gstr3bFiledCount / params.gstr3bTotalCount) * 100) 
-      : 100;
-    if (gstr3bRate < 100) {
-      const missing3b = params.gstr3bTotalCount - params.gstr3bFiledCount;
-      const penalty = Math.min(35, missing3b * 12);
-      score += penalty;
-      violations.push(`Rule 37A Exposure: Supplier has not furnished ${missing3b} GSTR-3B return(s). If not filed by 30th November, buyer must mandatorily reverse ITC with interest.`);
+    if (gstr1Rate !== null && gstr1Rate < 100) {
+      score += Math.min(20, Math.round((100 - gstr1Rate) * 0.4));
+      violations.push(`Verified GSTN GSTR-1 filing rate: ${gstr1Rate}%.`);
     }
 
-    // 4. Rule 37 180-Day Payment Factor
+    if ((params.unfiled3bIn2bCount || 0) > 0) {
+      score += Math.min(35, (params.unfiled3bIn2bCount || 0) * 18);
+      violations.push(
+        `Rule 37A: ${params.unfiled3bIn2bCount} invoice(s) reflect supplier GSTR-3B as unfiled.`
+      );
+    }
+
+    if (gstr3bRate !== null && gstr3bRate < 100) {
+      score += Math.min(25, Math.round((100 - gstr3bRate) * 0.4));
+      violations.push(`Verified GSTN GSTR-3B filing rate: ${gstr3bRate}%.`);
+    }
+
     let unpaid180Sum = 0;
     let unpaid180Count = 0;
     if (params.invoicesOver180DaysUnpaid && params.invoicesOver180DaysUnpaid.length > 0) {
@@ -108,25 +114,25 @@ export class VendorRiskEngine {
       }
       if (unpaid180Sum > 0) {
         score += 20;
-        violations.push(`Rule 37 Payment Clock: ${unpaid180Count} invoice(s) with ITC of INR ${unpaid180Sum.toLocaleString('en-IN')} remain unpaid beyond 180 days. Mandatory reversal under Second Proviso to Section 16(2) with 18% interest.`);
+        violations.push(
+          `Rule 37: ${unpaid180Count} invoice(s) (ITC ₹${unpaid180Sum.toLocaleString("en-IN")}) unpaid > 180 days.`
+        );
       }
     }
 
-    // Cap score at 100
     const finalScore = Math.min(100, score);
-
     let riskLevel: VendorRiskLevel = "LOW";
     if (finalScore >= 70) riskLevel = "CRITICAL";
     else if (finalScore >= 45) riskLevel = "HIGH";
     else if (finalScore >= 20) riskLevel = "MEDIUM";
 
-    let recommendedAction = "Vendor is compliant. Proceed with standard credit claims.";
+    let recommendedAction = "Compliant in current reconciliation.";
     if (riskLevel === "CRITICAL") {
-      recommendedAction = "FREEZE PAYMENTS IMMEDIATELY: Withhold GST portion from pending disbursements. Issue Section 16(2)(c) recovery notice.";
+      recommendedAction = "Withhold GST payment until GSTN status & returns are regularized.";
     } else if (riskLevel === "HIGH") {
-      recommendedAction = "RULE 37A WARNING: Send automated statutory WhatsApp reminder to file pending GSTR-3B before 30th November.";
+      recommendedAction = "Issue Rule 37A / Sec 16(2)(aa) vendor notice and monitor before 30 Nov.";
     } else if (riskLevel === "MEDIUM") {
-      recommendedAction = "CHASE GSTR-1: Request vendor to upload missing invoice in next GSTR-1 / IFF filing.";
+      recommendedAction = "Follow up with vendor for missing GSTR-1 / value mismatch.";
     }
 
     const pan = params.vendorGstin.length >= 12 ? params.vendorGstin.substring(2, 12) : "";
@@ -139,12 +145,12 @@ export class VendorRiskEngine {
       pan,
       state: stateCode,
       gstnStatus: params.gstnStatus,
-      dateOfRegistration: "2018-07-01",
+      verifiedViaGstn: Boolean(params.verifiedViaGstn),
+      dateOfRegistration: params.dateOfRegistration,
+      cancellationDate: params.cancellationDate,
       gstr1FilingRatePercentage: gstr1Rate,
       gstr3bFilingRatePercentage: gstr3bRate,
-      pendingGstr1Periods: gstr1Rate < 100 ? ["August 2026", "September 2026"] : [],
-      pendingGstr3bPeriods: gstr3bRate < 100 ? ["September 2026"] : [],
-      totalInvoicesCount: 1,
+      totalInvoicesCount: params.totalInvoicesCount,
       totalTaxableValueInr: params.totalTaxableValueInr,
       totalItcAtRiskInr: params.totalItcInr,
       unpaidBeyond180DaysInr: unpaid180Sum,
@@ -152,7 +158,7 @@ export class VendorRiskEngine {
       compositeRiskScore: finalScore,
       riskLevel,
       statutoryViolations: violations,
-      recommendedAction
+      recommendedAction,
     };
   }
 }

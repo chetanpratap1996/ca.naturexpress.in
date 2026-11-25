@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { InsightNoticeForecaster, AisPortalFeedbackPayload } from "@/lib/ais/insightNoticeForecaster";
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const { pan, taxpayerName, financialYear, assessmentYear, discrepantItems, unexplainedCashAmountInr, totalUnreportedIncomeInr } = body;

@@ -161,11 +161,8 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
     const pollAutonomousUpdates = async () => {
       try {
-        // Trigger silent background sweep
-        fetch("/api/cron/practice-sweep").catch(() => {});
-
-        // Fetch notifications
-        const res = await fetch(`/api/notifications?${params.toString()}`);
+        // Fetch live notifications persisted by server cron & partner workflows
+        const res = await fetch(`/api/notifications?${params.toString()}`, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           if (data?.unreadCount !== undefined) {
@@ -400,21 +397,36 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
   };
 
   const handleInstantUpiUnlock = async () => {
+    const clientInv = clientInvoices.find((i) => i.status !== "PAID") || clientInvoices[0];
+    if (clientInv) {
+      setSelectedInvoiceForUtr(clientInv);
+      setPayLockModalDoc(null);
+      toast.info(
+        "Submit UPI / Bank UTR",
+        "After scanning the QR or completing transfer, enter your 12-digit UTR reference for partner bank verification."
+      );
+      return;
+    }
+
+    const enteredUtr = typeof window !== "undefined"
+      ? window.prompt("Enter your 12-digit UPI / IMPS UTR Reference Number after payment:")
+      : "";
+    if (!enteredUtr || !enteredUtr.trim()) return;
+
     setIsInstantPaying(true);
     try {
-      await instantUpiUnlock(selectedEntityId, currentPayConfig.totalOutstandingAmount);
+      await instantUpiUnlock(selectedEntityId, enteredUtr.trim(), currentPayConfig.totalOutstandingAmount);
       toast.success(
-        "Deliverables Unlocked",
-        "Payment verified! Official statutory documents released and available for download."
+        "UTR Submitted for Verification",
+        "Your payment reference has been sent to the CA partner for bank reconciliation. Deliverables will unlock once verified."
       );
-      setUnlockSuccessMsg("Payment verified! Official deliverable unlocked and released.");
+      setUnlockSuccessMsg("UTR submitted! Partner bank verification is in progress.");
       setTimeout(() => {
         setPayLockModalDoc(null);
         setUnlockSuccessMsg("");
-      }, 1500);
-    } catch (e) {
-      toast.error("Unlock Failed", "Failed to process release payment.");
-      console.error(e);
+      }, 1800);
+    } catch (e: any) {
+      toast.error("Submission Failed", e?.message || "Failed to submit UTR reference.");
     } finally {
       setIsInstantPaying(false);
     }
@@ -458,6 +470,7 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
         try {
           const parseRes = await fetch("/api/litigation/notice-parse", {
             method: "POST",
+            credentials: "include",
             body: formData
           });
           const parseData = await parseRes.json();
@@ -1572,10 +1585,10 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl transition text-xs shadow-md flex items-center justify-center gap-2"
               >
                 {isInstantPaying ? (
-                  <span>Verifying Payment with NPCI...</span>
+                  <span>Submitting UTR for Verification...</span>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" /> Settle ₹{currentPayConfig.totalOutstandingAmount.toLocaleString("en-IN")} &amp; Download Instantly
+                    <Sparkles className="w-4 h-4" /> Paid ₹{currentPayConfig.totalOutstandingAmount.toLocaleString("en-IN")}? Submit UPI UTR Reference
                   </>
                 )}
               </button>

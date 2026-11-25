@@ -15,7 +15,11 @@ export const createClient = async (request: NextRequest) => {
     },
   });
 
-  if (!supabaseUrl || !supabaseKey) {
+  const cookies = request.cookies.getAll();
+  const hasSupabaseSession = cookies.some((c) => c.name.startsWith("sb-"));
+
+  // Fast-path: Skip remote Supabase auth.getUser() HTTPS round-trip when no sb-* cookie exists
+  if (!supabaseUrl || !supabaseKey || !hasSupabaseSession) {
     return supabaseResponse;
   }
 

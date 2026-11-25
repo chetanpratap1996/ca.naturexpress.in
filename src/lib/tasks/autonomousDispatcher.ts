@@ -1,5 +1,6 @@
 import { ComplianceTask, StaffMember, CompetencyTier, StaffSpecialization } from "@/lib/types";
-import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
+import { getPostgresPool } from "@/lib/server/postgres";
+import { appendPgAuditLog, listWorkspaceRecords } from "@/lib/server/pgHelpers";
 
 export interface AutonomousDispatchResult {
   success: boolean;
@@ -17,9 +18,6 @@ export interface AutonomousDispatchResult {
   timestamp: string;
 }
 
-/**
- * Map task statutory nature to corresponding CA Practice Tool
- */
 export function getRequiredToolForTask(task: ComplianceTask): string {
   const title = (task.title || "").toLowerCase();
   const category = (task.category || "").toUpperCase();
@@ -54,19 +52,13 @@ export function getRequiredToolForTask(task: ComplianceTask): string {
   return "tasks";
 }
 
-/**
- * Determine required competency seniority level based on task category and statutory priority
- */
 export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
   const title = (task.title || "").toLowerCase();
   const category = task.category || "";
 
-  // Level 4: Scrutiny, Appeals, High Court, Partner Review
   if (title.includes("scrutiny") || title.includes("148") || title.includes("appeal") || (task.priority === "CRITICAL" && category === "TAX_AUDIT")) {
     return 4;
   }
-
-  // Level 3: Senior Associate (Tax Audit Form 3CD, Corporate ITR-6, MCA AOC-4/MGT-7)
   if (
     category === "TAX_AUDIT" ||
     title.includes("form 3cd") ||
@@ -77,8 +69,6 @@ export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
   ) {
     return 3;
   }
-
-  // Level 2: Senior Associate (GSTR-3B, TDS 26Q Quarterly, ITR-1 to 4)
   if (
     (category === "GST" && title.includes("3b")) ||
     (category === "TDS" && title.includes("26q")) ||
@@ -87,14 +77,9 @@ export function getRequiredTierForTask(task: ComplianceTask): CompetencyTier {
   ) {
     return 2;
   }
-
-  // Level 1: Associate Routine (DIR-3 KYC, GSTR-1 Outward, Challan 281, Bank OCR, Bookkeeping)
   return 1;
 }
 
-/**
- * Map compliance category to staff specialization tag
- */
 export function mapCategoryToSpecialization(category: string): StaffSpecialization {
   switch (category) {
     case "GST":
@@ -112,25 +97,20 @@ export function mapCategoryToSpecialization(category: string): StaffSpecializati
   }
 }
 
-/**
- * In-Memory Auto-Assigner for Tasks
- * Reusable directly inside Autopilot sweeps and background crons without extra DB writes
- */
 export function autoAssignTasksInMemory(
   tasks: ComplianceTask[],
   staffList: StaffMember[]
 ): {
   tasksEvaluated: number;
   tasksReassigned: number;
-  breakdownByStaff: Record<string, { total: number; critical: number; tier: number }>;
+  breakdownByStaff: AutonomousDispatchResult["breakdownByStaff"];
   auditLog: AutonomousDispatchResult["auditLog"];
 } {
-  const activeStaff = staffList.filter((s) => s.status === "ACTIVE");
+  const activeStaff = (staffList || []).filter((s) => s.status === "ACTIVE");
   if (activeStaff.length === 0) {
     return { tasksEvaluated: 0, tasksReassigned: 0, breakdownByStaff: {}, auditLog: [] };
   }
 
-  // Active workload map to prevent overloading
   const assignedCounts = new Map<string, number>();
   const criticalCounts = new Map<string, number>();
   activeStaff.forEach((s) => {
@@ -138,87 +118,57 @@ export function autoAssignTasksInMemory(
     criticalCounts.set(s.id, 0);
   });
 
-  // Client continuity map: Client Entity ID -> Previous Staff Name
   const clientAffinityMap = new Map<string, string>();
   tasks.forEach((t) => {
-    if (t.status === "FILED_AND_COMPLETED" && t.assignedTo) {
+    if (t.entityId && t.assignedTo && t.assignedTo !== "Unassigned") {
       clientAffinityMap.set(t.entityId, t.assignedTo);
     }
   });
 
+  const openTasks = tasks
+    .filter((t) => t.status !== "FILED_AND_COMPLETED")
+    .sort((a, b) => {
+      const pWeight: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+      const diff = (pWeight[b.priority] || 0) - (pWeight[a.priority] || 0);
+      if (diff !== 0) return diff;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+
   const auditLog: AutonomousDispatchResult["auditLog"] = [];
   let tasksReassigned = 0;
-  let tasksEvaluated = 0;
+  const tasksEvaluated = openTasks.length;
 
-  // Filter tasks ready for execution (exclude already filed tasks)
-  const candidateTasks = tasks.filter((t) => t.status !== "FILED_AND_COMPLETED");
-
-  // Sort candidate tasks by Statutory Urgency (Critical first, then Due Date)
-  candidateTasks.sort((a, b) => {
-    if (a.priority === "CRITICAL" && b.priority !== "CRITICAL") return -1;
-    if (b.priority === "CRITICAL" && a.priority !== "CRITICAL") return 1;
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-  });
-
-  for (const task of candidateTasks) {
-    tasksEvaluated++;
+  for (const task of openTasks) {
     const requiredTier = getRequiredTierForTask(task);
-    const requiredTool = getRequiredToolForTask(task);
     const requiredSkill = mapCategoryToSpecialization(task.category);
+    const requiredTool = getRequiredToolForTask(task);
 
     let bestStaff: StaffMember | null = null;
-    let highestScore = -Infinity;
+    let highestScore = -1;
     let matchReason = "";
 
     for (const staff of activeStaff) {
+      const staffTools = staff.allowedTools || ["tasks", "gst"];
+      if (staff.role !== "MANAGING_PARTNER" && !staffTools.includes(requiredTool)) continue;
+
+      const capacity = staff.maxDailyTaskCapacity || 12;
       const currentLoad = assignedCounts.get(staff.id) || 0;
-      const capacity = staff.maxDailyTaskCapacity || 10;
-
-      // 1. Hard Gatekeeper: Do not exceed max capacity
-      if (currentLoad >= capacity) {
-        continue;
-      }
-
-      // 2. Practice Tool Gatekeeper: Must have CA permission for this practice tool
-      if (
-        requiredTool &&
-        requiredTool !== "tasks" &&
-        Array.isArray(staff.allowedTools) &&
-        staff.allowedTools.length > 0 &&
-        !staff.allowedTools.includes(requiredTool)
-      ) {
-        continue;
-      }
+      if (currentLoad >= capacity) continue;
 
       let score = 0;
-
-      // Domain Skill Match (Weight: 40 points)
       const hasSkill = staff.specializations && staff.specializations.includes(requiredSkill);
-      if (hasSkill) {
-        score += 40;
-      } else {
-        score += 10; // Can still perform with supervision
-      }
+      score += hasSkill ? 40 : 10;
 
-      // Seniority Level Alignment (Weight: 30 points)
       const tierDiff = staff.competencyTier - requiredTier;
-      if (tierDiff === 0) {
-        score += 30; // Perfect match
-      } else if (tierDiff > 0) {
-        score += Math.max(10, 30 - tierDiff * 10); // Over-qualified
-      } else {
-        score += Math.max(0, 30 - Math.abs(tierDiff) * 20); // Under-qualified penalty
-      }
+      if (tierDiff === 0) score += 30;
+      else if (tierDiff > 0) score += Math.max(10, 30 - tierDiff * 10);
+      else score += Math.max(0, 30 - Math.abs(tierDiff) * 20);
 
-      // Available Capacity Headroom (Weight: 20 points)
       const headroomRatio = (capacity - currentLoad) / capacity;
       score += Math.round(headroomRatio * 20);
 
-      // Client Continuity (Weight: 10 points)
       const prevHandler = clientAffinityMap.get(task.entityId);
-      if (prevHandler && prevHandler.includes(staff.fullName.split(" ")[0])) {
-        score += 10;
-      }
+      if (prevHandler && prevHandler.includes(staff.fullName.split(" ")[0])) score += 10;
 
       if (score > highestScore) {
         highestScore = score;
@@ -247,7 +197,6 @@ export function autoAssignTasksInMemory(
       const newAssignedFormatted = `${bestStaff.fullName} (${roleLabel})`;
       const prevAssigned = task.assignedTo || "Unassigned";
 
-      // If unassigned or needs re-allocation
       if (!prevAssigned || prevAssigned === "Unassigned" || !prevAssigned.includes(bestStaff.fullName.split(" ")[0])) {
         auditLog.push({
           taskId: task.id,
@@ -263,21 +212,14 @@ export function autoAssignTasksInMemory(
       }
 
       assignedCounts.set(bestStaff.id, (assignedCounts.get(bestStaff.id) || 0) + 1);
-      if (task.priority === "CRITICAL") {
-        criticalCounts.set(bestStaff.id, (criticalCounts.get(bestStaff.id) || 0) + 1);
-      }
+      if (task.priority === "CRITICAL") criticalCounts.set(bestStaff.id, (criticalCounts.get(bestStaff.id) || 0) + 1);
     }
   }
 
-  // Compute breakdown by staff and update staff active task counts
   const breakdownByStaff: AutonomousDispatchResult["breakdownByStaff"] = {};
   activeStaff.forEach((s) => {
     const total = assignedCounts.get(s.id) || 0;
-    breakdownByStaff[s.fullName] = {
-      total,
-      critical: criticalCounts.get(s.id) || 0,
-      tier: s.competencyTier,
-    };
+    breakdownByStaff[s.fullName] = { total, critical: criticalCounts.get(s.id) || 0, tier: s.competencyTier };
     s.activeOpenTasksCount = total;
   });
 
@@ -285,31 +227,110 @@ export function autoAssignTasksInMemory(
 }
 
 /**
- * Autonomous Work Allocation Engine
- * Linear scoring algorithm O(T * S) balancing Competency, Skills, Capacity Headroom, and Client Continuity
+ * PostgreSQL-backed Autonomous Work Allocation Engine
  */
-export async function executeAutonomousWorkDispatcher(firmId = "FRM-024310C"): Promise<AutonomousDispatchResult> {
-  const db = ensureDatabase();
-  const tasks = db.tasks || [];
-  const staffList = (db.staff || []).filter((s) => s.status === "ACTIVE");
+export async function executeAutonomousWorkDispatcher(
+  firmId: string,
+  actorId?: string,
+  actorName = "Managing Partner"
+): Promise<AutonomousDispatchResult> {
+  const pool = getPostgresPool();
+  const [{ rows: userRows }, { rows: taskRows }, { rows: entRows }, metaRecs] = await Promise.all([
+    pool.query(
+      `SELECT id, firm_id, email, phone, full_name, role, is_active
+       FROM public.users
+       WHERE firm_id = $1 AND is_active = TRUE AND role IN ('SUPER_ADMIN', 'PARTNER', 'PAID_CA_MANAGER', 'ARTICLE_TRAINEE')`,
+      [firmId]
+    ),
+    pool.query("SELECT * FROM public.compliance_tasks WHERE firm_id = $1", [firmId]),
+    pool.query("SELECT id, entity_name, group_id FROM public.client_entities WHERE firm_id = $1", [firmId]),
+    listWorkspaceRecords<Partial<StaffMember>>(firmId, "STAFF_PROFILE"),
+  ]);
+
+  const metaById = new Map<string, Partial<StaffMember>>();
+  for (const r of metaRecs) {
+    if (r.payload?.id) metaById.set(r.payload.id, r.payload);
+  }
+
+  const staffList: StaffMember[] = userRows.map((u: any) => {
+    const meta = metaById.get(u.id) || {};
+    const role =
+      u.role === "PARTNER" || u.role === "SUPER_ADMIN"
+        ? "MANAGING_PARTNER"
+        : u.role === "PAID_CA_MANAGER"
+        ? "PAID_CHARTERED_ACCOUNTANT"
+        : "ARTICLE_TRAINEE";
+    return {
+      id: u.id,
+      firmId: u.firm_id,
+      fullName: u.full_name,
+      email: u.email,
+      phone: u.phone || "",
+      role,
+      competencyTier: meta.competencyTier || (role === "MANAGING_PARTNER" ? 4 : 2),
+      specializations: meta.specializations || ["GST", "INCOME_TAX", "TAX_AUDIT", "TDS", "MCA_ROC"],
+      allowedTools: meta.allowedTools || ["tasks", "gst", "tax-audit", "notices-udin", "billing-wip", "client-master"],
+      maxDailyTaskCapacity: meta.maxDailyTaskCapacity || 16,
+      status: "ACTIVE",
+      joinedDate: new Date().toISOString().split("T")[0],
+      activeOpenTasksCount: 0,
+      completedTasksThisMonth: 0,
+      averageVelocityMinutes: 60,
+    };
+  });
 
   if (staffList.length === 0) {
     throw new Error("No active staff members available in firm registry to allocate work.");
   }
 
+  const entMap = new Map(entRows.map((e: any) => [e.id, e]));
+  const staffById = new Map(staffList.map((s) => [s.id, s]));
+
+  const tasks: ComplianceTask[] = taskRows.map((t: any) => {
+    const ent: any = entMap.get(t.entity_id);
+    const assignedStaff = t.assigned_to_id ? staffById.get(t.assigned_to_id) : undefined;
+    return {
+      id: t.id,
+      entityId: t.entity_id,
+      entityName: ent?.entity_name || "Practice Client",
+      groupId: ent?.group_id || "",
+      category: t.category,
+      title: t.title,
+      period: t.period,
+      dueDate: t.due_date ? new Date(t.due_date).toISOString().split("T")[0] : "2026-11-30",
+      status: t.status,
+      assignedTo: assignedStaff ? assignedStaff.fullName : "Unassigned",
+      assignedStaffId: t.assigned_to_id || undefined,
+      reviewedBy: actorName,
+      priority: t.priority,
+      penaltyRisk: Number(t.penalty_risk || 0),
+      accruingDailyPenalty: Number(t.accruing_daily_penalty || 0),
+      missingDocumentsCount: 0,
+      chaseCount: t.chase_count || 0,
+    };
+  });
+
   const result = autoAssignTasksInMemory(tasks, staffList);
 
-  // Update tasks and staff in database
-  await saveDatabase(db);
+  for (const t of tasks) {
+    if (t.assignedStaffId) {
+      await pool.query(
+        "UPDATE public.compliance_tasks SET assigned_to_id = $1, updated_at = now() WHERE id = $2 AND firm_id = $3",
+        [t.assignedStaffId, t.id, firmId]
+      );
+    }
+  }
 
-  await logAuditEvent(
-    "Managing Partner",
-    "PARTNER",
-    "Firm Operations",
-    "Autonomous Task Allocation Executed",
-    `Evaluated ${result.tasksEvaluated} tasks, auto-assigned ${result.tasksReassigned} tasks across ${staffList.length} staff members.`,
-    "COMPLIANCE"
-  );
+  await appendPgAuditLog({
+    firmId,
+    actorId,
+    actorName,
+    actorRole: "PARTNER",
+    entityName: "Firm Operations",
+    action: "Autonomous Task Allocation Executed",
+    details: `Evaluated ${result.tasksEvaluated} tasks, assigned ${result.tasksReassigned} tasks across ${staffList.length} staff members.`,
+    category: "COMPLIANCE",
+  });
 
   return {
     success: true,

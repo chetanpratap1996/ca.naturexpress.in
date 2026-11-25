@@ -101,15 +101,28 @@ export const UniversalCommandPalette: React.FC<UniversalCommandPaletteProps> = (
       }
     },
     {
-      id: "cmd-gst-assembly",
-      title: "GST Monthly Return Assembly",
-      subtitle: "Automated GSTR-3B reconciliation & exceptions review desk",
+      id: "cmd-gst-filing",
+      title: "GST Filing & Return Desk",
+      subtitle: "GSTR-1, GSTR-3B set-off, challan & ARN acknowledgements",
       category: "AUTOPILOT",
       icon: Sparkles,
-      shortcut: "G A",
+      shortcut: "G F",
       badge: "GST",
       action: () => {
-        onNavigateTab("gst-assembly");
+        onNavigateTab("gst-filing");
+        onClose();
+      }
+    },
+    {
+      id: "cmd-gstr1-outward",
+      title: "GSTR-1 Outward Workbench",
+      subtitle: "Sales Register, B2B/B2CL/B2CS/CDNR, Table 12 HSN & GSTN JSON",
+      category: "AUTOPILOT",
+      icon: Sparkles,
+      shortcut: "F8",
+      badge: "GSTR-1",
+      action: () => {
+        onNavigateTab("gstr1");
         onClose();
       }
     },

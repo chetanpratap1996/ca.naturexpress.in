@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/practice-sweep",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/growth/cron",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}

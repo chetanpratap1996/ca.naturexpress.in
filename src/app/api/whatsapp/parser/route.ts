@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabase, saveDatabase, logAuditEvent } from "@/lib/server/db";
 import { ParsedBankStatement, BankTransactionItem } from "@/lib/types";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const db = ensureDatabase();
     const searchParams = request.nextUrl.searchParams;
@@ -27,6 +30,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const db = ensureDatabase();
     const body = await request.json();

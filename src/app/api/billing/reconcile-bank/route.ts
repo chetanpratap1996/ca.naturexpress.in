@@ -1,27 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { reconcileFirmBankStatement } from "@/lib/billing/bankReceiptReconciler";
 import { parseBankStatementPdfBuffer } from "@/lib/parsers/bankStatementParser";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
-import { DocumentItem } from "@/lib/types";
-import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
+import { getPostgresPool } from "@/lib/server/postgres";
+import {
+  resolveFirmUuid,
+  appendPgAuditLog,
+  upsertWorkspaceRecord,
+} from "@/lib/server/pgHelpers";
+import { InvoiceItem, ClientEntity, PayToReleaseConfig } from "@/lib/types";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);
-    if (!auth.isAuthenticated || (auth.role !== "PARTNER" && auth.role !== "ARTICLE")) {
-      return NextResponse.json({ success: false, error: "Access denied. Partner or staff authentication required." }, { status: 403 });
+    if (!auth.isAuthenticated || auth.role !== "PARTNER") {
+      return NextResponse.json(
+        { success: false, error: "Partner authorization required for bank reconciliation." },
+        { status: auth.isAuthenticated ? 403 : 401 }
+      );
     }
+
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
+    const actorName = auth.userName || DEFAULT_FIRM_BRANDING.managingPartner;
+    const actorUuid = auth.user?.id && UUID_REGEX.test(auth.user.id) ? auth.user.id : null;
 
     const contentType = req.headers.get("content-type") || "";
     let csvContent = "";
     let autoApply = true;
-    let actorName = auth.user?.name || "CA Gunjan Jain (Partner)";
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
-      const file = formData.get("file") as File | null || formData.get("statement") as File | null;
+      const file = (formData.get("file") as File | null) || (formData.get("statement") as File | null);
       if (!file) {
         return NextResponse.json({ success: false, error: "No bank statement file uploaded." }, { status: 400 });
       }
@@ -29,10 +42,14 @@ export async function POST(req: NextRequest) {
         const arrBuf = await file.arrayBuffer();
         const pdfParsed = await parseBankStatementPdfBuffer(Buffer.from(arrBuf));
         if (pdfParsed.success && pdfParsed.transactions.length > 0) {
-          csvContent = "Date,Narration,ChqRefNo,Withdrawal,Deposit,Balance\n" + 
-            pdfParsed.transactions.map(t => 
-              `"${t.date}","${t.narration.replace(/"/g, '""')}","${t.chqRefNo || ''}",${t.withdrawal},${t.deposit},${t.balance}`
-            ).join("\n");
+          csvContent =
+            "Date,Narration,ChqRefNo,Withdrawal,Deposit,Balance\n" +
+            pdfParsed.transactions
+              .map(
+                (t) =>
+                  `"${t.date}","${t.narration.replace(/"/g, '""')}","${t.chqRefNo || ""}",${t.withdrawal},${t.deposit},${t.balance}`
+              )
+              .join("\n");
         } else {
           csvContent = await file.text();
         }
@@ -40,124 +57,138 @@ export async function POST(req: NextRequest) {
         csvContent = await file.text();
       }
       const autoApplyVal = formData.get("autoApply");
-      if (autoApplyVal !== null) {
-        autoApply = autoApplyVal === "true";
-      }
-      const actorVal = formData.get("actorName");
-      if (actorVal) actorName = String(actorVal);
+      if (autoApplyVal !== null) autoApply = autoApplyVal === "true";
     } else {
       const body = await req.json();
       csvContent = body.csvContent || body.content || "";
       if (body.autoApply !== undefined) autoApply = Boolean(body.autoApply);
-      if (body.actorName) actorName = body.actorName;
     }
 
     if (!csvContent || csvContent.trim().length === 0) {
       return NextResponse.json({ success: false, error: "Empty bank statement content." }, { status: 400 });
     }
 
-    const db = ensureDatabase();
-    const report = reconcileFirmBankStatement(csvContent, db.invoices, db.clients);
+    const [{ rows: entRows }, { rows: invRows }] = await Promise.all([
+      pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1", [firmId]),
+      pool.query("SELECT * FROM public.invoices WHERE firm_id = $1", [firmId]),
+    ]);
+
+    const entMap = new Map(entRows.map((e: any) => [e.id, e]));
+    const clients: ClientEntity[] = entRows.map((e: any) => ({
+      id: e.id,
+      groupId: e.group_id,
+      groupName: "",
+      name: e.entity_name,
+      type: e.type,
+      pan: e.pan,
+      gstin: e.gstin || undefined,
+      turnoverCr: Number(e.turnover_cr || 0),
+      incorporationYear: e.incorporation_year || 2024,
+      penaltyRiskAccrued: 0,
+      partnerInCharge: actorName,
+      assignedArticle: "Practice Team",
+      primaryContact: {
+        name: e.primary_contact_name || "",
+        phone: e.primary_contact_phone || "",
+        email: e.primary_contact_email || "",
+        designation: e.primary_contact_designation || "Director",
+      },
+    }));
+
+    const invoices: InvoiceItem[] = invRows.map((inv: any) => {
+      const e: any = entMap.get(inv.entity_id);
+      return {
+        id: inv.id,
+        invoiceNo: inv.invoice_no,
+        entityId: inv.entity_id,
+        entityName: e?.entity_name || "Client Entity",
+        groupId: e?.group_id || "",
+        serviceDescription: inv.service_description,
+        taxableAmount: Number(inv.taxable_amount || 0),
+        gstRate: Number(inv.gst_rate || 18),
+        gstAmount: Number(inv.gst_amount || 0),
+        amount: Number(inv.total_amount || 0),
+        dueDate: inv.due_date ? new Date(inv.due_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+        status: inv.status,
+        sacCode: inv.sac_code || "998231",
+        clientUtrNumber: inv.client_utr_number || undefined,
+      };
+    });
+
+    const report = reconcileFirmBankStatement(csvContent, invoices, clients);
 
     if (autoApply && report.reconciledInvoices.length > 0) {
       for (const match of report.reconciledInvoices) {
-        const invIndex = db.invoices.findIndex((i) => i.id === match.invoiceId || i.invoiceNo === match.invoiceNo);
-        if (invIndex !== -1) {
-          const inv = db.invoices[invIndex];
-          inv.status = "PAID";
-          inv.clientUtrNumber = match.utrNumber;
-          inv.clientPaymentMode = match.paymentMode as any;
-          inv.clientPaymentDate = match.settlementDate;
-          inv.reconciledBy = `${actorName} (Auto-Bank Statement)`;
-          inv.reconciledAt = new Date().toISOString();
-          db.invoices[invIndex] = inv;
+        const mode = ["NEFT_RTGS", "UPI", "IMPS", "CHEQUE"].includes(match.paymentMode) ? match.paymentMode : "NEFT_RTGS";
+        await pool.query(
+          `UPDATE public.invoices
+           SET status = 'PAID',
+               client_utr_number = $1,
+               client_payment_mode = $2::payment_mode,
+               client_payment_date = CURRENT_DATE,
+               reconciled_by_id = $3,
+               reconciled_at = now()
+           WHERE id = $4 AND firm_id = $5`,
+          [match.utrNumber, mode, actorUuid, match.invoiceId, firmId]
+        );
 
-          // Audit trail log
-          await logAuditEvent(
-            actorName,
-            auth.role,
-            match.entityName,
-            "Bank UTR Auto-Reconciled",
-            `Auto-cleared invoice #${match.invoiceNo} against bank credit of ₹${match.matchedAmount.toLocaleString("en-IN")}. UTR: ${match.utrNumber}. Score: ${match.confidenceScore}%.`,
-            "INVOICE"
-          );
+        await appendPgAuditLog({
+          firmId,
+          actorId: auth.user?.id,
+          actorName,
+          actorRole: "PARTNER",
+          entityId: match.entityId,
+          entityName: match.entityName,
+          action: "Bank UTR Reconciled",
+          details: `Verified bank credit of ₹${match.matchedAmount.toLocaleString("en-IN")} for Invoice #${match.invoiceNo} (UTR: ${match.utrNumber}).`,
+          category: "INVOICE",
+        });
 
-          // Real-time in-app notification for Staff
-          await createNotification({
-            title: `Fee Realized: ${match.invoiceNo}`,
-            message: `Bank credit of ₹${match.matchedAmount.toLocaleString("en-IN")} matched with ${match.entityName} (UTR: ${match.utrNumber}). 0% Gateway commission.`,
-            category: "BILLING",
-            priority: "HIGH",
-            targetRoles: ["SUPER_ADMIN", "PARTNER", "STAFF"],
-            entityId: match.entityId,
-            link: "/admin",
-            actionLabel: "View Receipt",
-            metadata: { invoiceId: match.invoiceId, utr: match.utrNumber, amount: match.matchedAmount }
-          });
-
-          // Autonomous Client Notification on Client Portal
-          await createNotification({
+        await upsertWorkspaceRecord({
+          firmId,
+          entityId: match.entityId,
+          recordType: "NOTIFICATION",
+          payload: {
+            id: `NOTIF-BANK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             title: `Fee Payment Reconciled: ₹${match.matchedAmount.toLocaleString("en-IN")}`,
-            message: `Bank credit reconciled for Invoice #${match.invoiceNo} (UTR: ${match.utrNumber}). All statutory deliverables unlocked. Certified receipt deposited in your Vault.`,
+            message: `Bank credit reconciled for Invoice #${match.invoiceNo} (UTR: ${match.utrNumber}). Deliverables unlocked.`,
             category: "BILLING",
             priority: "HIGH",
-            targetTab: "vault",
             recipientRole: "CLIENT",
             recipientEntityId: match.entityId,
-            metadata: { invoiceId: match.invoiceId, utr: match.utrNumber }
-          });
+            targetTab: "vault",
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          },
+        });
 
-          // Check if all dues for this entity are settled
-          const entityRemainingUnpaid = (db.invoices || []).filter(
-            (i) => i.entityId === match.entityId && i.id !== inv.id && i.status !== "PAID"
-          );
-
-          if (entityRemainingUnpaid.length === 0 && db.payToReleaseConfigs) {
-            db.payToReleaseConfigs = db.payToReleaseConfigs.map((cfg) => {
-              if (cfg.entityId === match.entityId) {
-                return { ...cfg, isLocked: false, overrideReason: `Auto Bank Reconcile UTR ${match.utrNumber}` };
-              }
-              return cfg;
-            });
-          }
-
-          // Deposit certified payment receipt into documents vault
-          const receiptDoc: DocumentItem = {
-            id: `DOC-RCP-${Date.now()}-${match.invoiceNo}`,
+        const remRes = await pool.query(
+          "SELECT COALESCE(SUM(total_amount), 0)::numeric as remaining FROM public.invoices WHERE firm_id = $1 AND entity_id = $2 AND status <> 'PAID'",
+          [firmId, match.entityId]
+        );
+        const remaining = Number(remRes.rows[0]?.remaining || 0);
+        if (remaining === 0) {
+          const cfgPayload: PayToReleaseConfig = {
             entityId: match.entityId,
-            entityName: match.entityName,
-            category: "TAX_COMPUTATION",
-            fileName: `Fee_Receipt_Inv_${match.invoiceNo}_${match.utrNumber}.pdf`,
-            fileSize: "138 KB",
-            uploadedAt: new Date().toISOString(),
-            uploadedBy: "FIRM_STAFF",
-            isPasswordProtected: false,
-            isUnlocked: true,
-            financialYear: "FY 2026-27",
-            reviewStatus: "APPROVED",
+            isLocked: false,
+            totalOutstandingAmount: 0,
+            oldestInvoiceDays: 0,
+            gracePeriodDays: 30,
+            blockedDeliverables: [],
+            instantUpiVpa: DEFAULT_FIRM_BRANDING.firmUpiVpa,
+            merchantName: DEFAULT_FIRM_BRANDING.firmName,
+            lockReason: `Cleared via Bank Statement UTR ${match.utrNumber}.`,
           };
-          db.documents = [receiptDoc, ...(db.documents || [])];
-
-          // Bi-directional Supabase cloud sync if configured
-          if (isSupabaseConfigured()) {
-            try {
-              await supabase
-                .from("invoices")
-                .update({
-                  status: "PAID",
-                  client_utr_number: match.utrNumber,
-                  reconciled_at: new Date().toISOString()
-                })
-                .or(`id.eq.${match.invoiceId},invoice_no.eq.${match.invoiceNo}`);
-            } catch (sbErr) {
-              console.warn("Supabase auto-reconcile update warning:", sbErr);
-            }
-          }
+          await upsertWorkspaceRecord({
+            firmId,
+            entityId: match.entityId,
+            recordType: "PAY_TO_RELEASE_CONFIG",
+            matchKey: "entityId",
+            matchValue: match.entityId,
+            payload: cfgPayload,
+          });
         }
       }
-
-      await saveDatabase(db);
-      executePracticeAutopilotSweep(db, "Bank Statement Auto-Reconcile").catch(() => {});
     }
 
     return NextResponse.json({
@@ -165,10 +196,10 @@ export async function POST(req: NextRequest) {
       report,
       clearedCount: report.reconciledInvoices.length,
       realizedInr: report.totalRealizedInr,
-      gatewayFeesSavedInr: report.totalGatewayFeesSavedInr
+      gatewayFeesSavedInr: report.totalGatewayFeesSavedInr,
     });
   } catch (error: any) {
     console.error("Bank statement reconciliation API error:", error);
-    return NextResponse.json({ success: false, error: error.message || "Failed to process bank statement" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to process bank statement." }, { status: 500 });
   }
 }

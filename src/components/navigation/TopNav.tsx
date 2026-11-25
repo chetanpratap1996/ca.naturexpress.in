@@ -1,34 +1,39 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { BtLogo } from "@/components/shared/BtLogo";
-import { AuthUser, DEMO_USERS } from "@/lib/auth/session";
+import { AuthUser } from "@/lib/auth/session";
+import { useClientContext } from "@/lib/context/ClientContext";
+import type {
+  ClientEntity,
+  ComplianceTask,
+  NoticeRecord,
+  DscRecord,
+  PortalCredential,
+  InvoiceItem,
+  DocumentItem,
+} from "@/lib/types";
 import { 
   Building2, 
   ShieldCheck, 
   Search, 
-  Download, 
   LogOut, 
-  User, 
-  CheckCircle2, 
-  Lock, 
-  ArrowRight, 
-  Smartphone, 
+  Check,
   Sparkles, 
   Users, 
-  Briefcase, 
-  HelpCircle, 
-  FileSpreadsheet, 
-  Layers, 
+  Smartphone, 
   ChevronDown, 
   RefreshCw, 
   X,
-  Bell
+  Bell,
+  Calendar,
+  Scale
 } from "lucide-react";
-import { CommandPaletteModal } from "@/components/shared/CommandPaletteModal";
-import { InstallAppModal } from "@/components/shared/InstallAppModal";
-import { NotificationCenterModal } from "@/components/notifications/NotificationCenterModal";
+const CommandPaletteModal = dynamic(() => import("@/components/shared/CommandPaletteModal").then(m => m.CommandPaletteModal), { ssr: false });
+const InstallAppModal = dynamic(() => import("@/components/shared/InstallAppModal").then(m => m.InstallAppModal), { ssr: false });
+const NotificationCenterModal = dynamic(() => import("@/components/notifications/NotificationCenterModal").then(m => m.NotificationCenterModal), { ssr: false });
 import { usePwaInstall } from "@/components/shared/usePwaInstall";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
@@ -51,7 +56,13 @@ interface TopNavProps {
   activeClientEntityId?: string;
   activeClientName?: string;
   isClientMode?: boolean;
-  clients?: any[];
+  clients?: ClientEntity[];
+  tasks?: ComplianceTask[];
+  notices?: NoticeRecord[];
+  dscTokens?: DscRecord[];
+  portalCredentials?: PortalCredential[];
+  invoices?: InvoiceItem[];
+  documents?: DocumentItem[];
   groups?: any[];
   onSelectClient?: (clientId: string) => void;
   selectedGstin?: string;
@@ -69,16 +80,41 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenFirmHub,
   onOpenClientBroadcaster,
   onExitSandbox,
-  isSandbox = true,
+  isSandbox = false,
+  clients = [],
+  tasks = [],
+  notices = [],
+  dscTokens = [],
+  portalCredentials = [],
+  invoices = [],
+  documents = [],
 }) => {
-  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const {
+    selectedClient,
+    selectedGstin,
+    selectedFy,
+    availableFys,
+    isFirmWideView,
+    availableGstins,
+    selectGstin,
+    selectFy,
+    clearClientContext,
+    isCommandOpen,
+    commandInitialFilter,
+    openCommandPalette,
+    closeCommandPalette,
+  } = useClientContext();
+
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isFyMenuOpen, setIsFyMenuOpen] = useState(false);
+  const [isGstinMenuOpen, setIsGstinMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    fetch("/api/notifications")
-      .then((res) => res.json())
+    if (!currentUser?.id) return;
+    fetch("/api/notifications", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.unreadCount !== undefined) {
           setUnreadCount(data.unreadCount);
@@ -91,19 +127,22 @@ export const TopNav: React.FC<TopNavProps> = ({
     };
     window.addEventListener("bt_notification_received", handler);
     return () => window.removeEventListener("bt_notification_received", handler);
-  }, []);
+  }, [currentUser?.id]);
 
-  // Global keyboard shortcut to open Universal Search (Cmd+K / Ctrl+K)
+  // Single Global Keyboard Shortcut (⌘K / Ctrl+K) -> Opens Unified Command & Client Switcher
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setIsCommandOpen((prev) => !prev);
+        if (isCommandOpen) closeCommandPalette();
+        else openCommandPalette("ALL");
+      } else if (e.key === "Escape" && isCommandOpen) {
+        closeCommandPalette();
       }
     };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isCommandOpen, openCommandPalette, closeCommandPalette]);
 
   const {
     isInstalled,
@@ -166,15 +205,119 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           )}
 
-          {/* RIGHT: Quick Tools & Profile Cluster (Consistent h-9 Enterprise Grid) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Quick Search Bar (Desktop) - Only for Staff/Partners */}
-            {!isClientMode && (
+          {/* CENTER: Unified Client Context + FY + Search Bar (Only for Staff/Partners) */}
+          {!isClientMode && (
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 justify-center max-w-3xl min-w-0">
+              {/* Active Client Context Switcher Pill */}
+              <div className="flex items-center h-9 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-2.5 gap-1.5 min-w-0 transition shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => openCommandPalette("CLIENTS")}
+                  className="flex items-center gap-1.5 text-left min-w-0"
+                  title="Select or switch active client"
+                >
+                  <Building2 className={`w-3.5 h-3.5 shrink-0 ${selectedClient && !isFirmWideView ? "text-btred-logo" : "text-slate-500"}`} />
+                  <span className="text-xs font-bold text-slate-900 truncate max-w-[110px] sm:max-w-[170px] lg:max-w-[210px]">
+                    {selectedClient && !isFirmWideView
+                      ? selectedClient.tradeName || selectedClient.name
+                      : "All Clients"}
+                  </span>
+                  {selectedClient && !isFirmWideView && (selectedGstin || selectedClient.gstin) && (
+                    <span className="hidden 2xl:inline font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 shrink-0">
+                      {selectedGstin || selectedClient.gstin}
+                    </span>
+                  )}
+                  <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+                </button>
+
+                {availableGstins.length > 1 && selectedClient && !isFirmWideView && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsGstinMenuOpen((o) => !o)}
+                      className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-md hidden sm:inline-flex items-center gap-0.5"
+                    >
+                      <span>{availableGstins.length} GSTINs</span>
+                      <ChevronDown className="w-2.5 h-2.5" />
+                    </button>
+                    {isGstinMenuOpen && (
+                      <div className="absolute top-full left-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 z-50">
+                        {availableGstins.map((g) => (
+                          <button
+                            key={g.gstin}
+                            type="button"
+                            onClick={() => {
+                              selectGstin(g.gstin);
+                              setIsGstinMenuOpen(false);
+                            }}
+                            className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between hover:bg-slate-50 ${
+                              selectedGstin === g.gstin ? "bg-blue-50 font-bold" : ""
+                            }`}
+                          >
+                            <div>
+                              <div className="font-mono text-slate-900">{g.gstin}</div>
+                              <div className="text-[10px] text-slate-500">{g.stateName}</div>
+                            </div>
+                            {selectedGstin === g.gstin && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedClient && !isFirmWideView && (
+                  <button
+                    type="button"
+                    onClick={() => clearClientContext()}
+                    className="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 shrink-0"
+                    title="Clear client filter (Show All Clients)"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Financial Year Pill */}
+              <div className="relative hidden sm:block shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsFyMenuOpen((o) => !o)}
+                  className="h-9 inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 rounded-xl text-xs font-bold text-slate-700 transition shadow-2xs"
+                  title="Switch Financial Year"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>FY {selectedFy}</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+                {isFyMenuOpen && (
+                  <div className="absolute top-full left-0 mt-1.5 w-32 bg-white border border-slate-200 rounded-xl shadow-xl p-1 z-50">
+                    {availableFys.map((fy) => (
+                      <button
+                        key={fy}
+                        type="button"
+                        onClick={() => {
+                          selectFy(fy);
+                          setIsFyMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between ${
+                          fy === selectedFy ? "bg-red-50 text-btred-logo" : "hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        <span>FY {fy}</span>
+                        {fy === selectedFy && <Check className="w-3 h-3 text-btred-logo" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Unified Search Trigger (Desktop) */}
               <button
                 type="button"
-                onClick={() => setIsCommandOpen(true)}
-                className="hidden md:flex items-center justify-between h-9 w-44 lg:w-56 xl:w-64 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-500 hover:text-slate-800 text-xs transition-colors shadow-2xs"
-                title="Quick Search (⌘K)"
+                onClick={() => openCommandPalette("ALL")}
+                className="hidden md:flex items-center justify-between h-9 w-44 lg:w-56 xl:w-64 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-500 hover:text-slate-800 text-xs transition-colors shadow-2xs shrink-0"
+                title="Search clients, filings & tools (⌘K)"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -184,19 +327,21 @@ export const TopNav: React.FC<TopNavProps> = ({
                   ⌘K
                 </kbd>
               </button>
-            )}
 
-            {/* Mobile Search Icon Button - Only for Staff/Partners */}
-            {!isClientMode && (
+              {/* Mobile Search Icon Button */}
               <button
                 type="button"
-                onClick={() => setIsCommandOpen(true)}
+                onClick={() => openCommandPalette("ALL")}
                 className="md:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors shadow-2xs shrink-0"
                 title="Search"
               >
                 <Search className="w-4 h-4 text-slate-600" />
               </button>
-            )}
+            </div>
+          )}
+
+          {/* RIGHT: Quick Tools & Profile Cluster (Consistent h-9 Enterprise Grid) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
             {/* Client Master Quick Launcher (Icon only) */}
             {onOpenClientMaster && !isClientMode && (
@@ -211,16 +356,16 @@ export const TopNav: React.FC<TopNavProps> = ({
               </button>
             )}
 
-            {/* Firm Hub Instant Launcher */}
+            {/* Compact Quick Desk Launcher */}
             {onOpenFirmHub && !isClientMode && (
               <button
                 type="button"
                 onClick={onOpenFirmHub}
-                className="h-9 px-3 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-btred-logo font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-2xs"
-                title="Open CA Firm Action Hub"
+                className="h-9 w-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-btred-logo transition-colors flex items-center justify-center shrink-0 shadow-2xs"
+                title="Quick Desk & Statutory Calculators"
+                aria-label="Quick Desk & Calculators"
               >
-                <Sparkles className="w-3.5 h-3.5 text-btred-logo" />
-                <span className="hidden sm:inline">Firm Hub</span>
+                <Scale className="w-4 h-4 text-btred-logo" />
               </button>
             )}
 
@@ -357,8 +502,8 @@ export const TopNav: React.FC<TopNavProps> = ({
                       }}
                       className="w-full text-left p-2.5 rounded-xl hover:bg-red-50 flex items-center gap-2 text-btred-logo font-bold transition text-xs border border-transparent hover:border-red-200"
                     >
-                      <Sparkles className="w-4 h-4 text-btred-logo" />
-                      <span>Launch CA Firm Action Hub</span>
+                      <Scale className="w-4 h-4 text-btred-logo" />
+                      <span>Open Quick Desk &amp; Calculators</span>
                     </button>
                   )}
 
@@ -407,13 +552,21 @@ export const TopNav: React.FC<TopNavProps> = ({
         </div>
       </header>
 
-      {/* Global Command Palette Trigger */}
+      {/* Global Command & Client Switcher Modal */}
       <CommandPaletteModal
         isOpen={isCommandOpen}
-        onClose={() => setIsCommandOpen(false)}
+        onClose={closeCommandPalette}
+        initialCategory={commandInitialFilter}
+        clients={clients}
+        tasks={tasks}
+        notices={notices}
+        dscTokens={dscTokens}
+        portalCredentials={portalCredentials}
+        invoices={invoices}
+        documents={documents}
         onNavigate={(tab) => {
           if (onNavigateTab) onNavigateTab(tab);
-          setIsCommandOpen(false);
+          closeCommandPalette();
         }}
       />
 

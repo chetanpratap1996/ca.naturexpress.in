@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { SwarmCoordinator } from "@/lib/knowledge/swarm/swarmOrchestrator";
 
 // Singleton SwarmCoordinator instance for governance sessions
@@ -54,6 +55,8 @@ coordinator.submitMakerWorkpaper(session1.sessionId, {
 coordinator.runCheckerReview(session1.sessionId);
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const session = coordinator.getSession(session1.sessionId);
 
@@ -157,6 +160,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await request.json();
     const { action, sessionId, dscId, staffName, purpose } = body;

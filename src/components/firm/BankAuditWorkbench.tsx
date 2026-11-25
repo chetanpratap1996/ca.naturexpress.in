@@ -59,6 +59,7 @@ import {
 import { toast } from '@/components/shared/ToastNotification';
 import { useClientContext } from '@/lib/context/ClientContext';
 import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
+import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
 
 export function BankAuditWorkbench() {
   const { selectedClient, isFirmWideView } = useClientContext();
@@ -67,25 +68,25 @@ export function BankAuditWorkbench() {
   >('IRAC_MOC');
 
   // Sub-Engine States
-  const [advances, setAdvances] = useState<BankAdvanceAccount[]>(SAMPLE_BANK_ADVANCES);
-  const [dpData, setDpData] = useState<DrawingPowerComputation>(SAMPLE_DP_COMPUTATION);
-  const [selectedMocAccount, setSelectedMocAccount] = useState<BankAdvanceAccount | null>(SAMPLE_BANK_ADVANCES[0]);
+  const [advances, setAdvances] = useState<BankAdvanceAccount[]>([]);
+  const [dpData, setDpData] = useState<DrawingPowerComputation>({ accountNumber: '', borrowerName: '', statementDate: '', rawMaterial: 0, workInProgress: 0, finishedGoods: 0, storesAndSpares: 0, grossStock: 0, sundryCreditorsForPurchases: 0, obsoleteOrNonMovingStock: 0, netEligibleStock: 0, stockMarginPercent: 25, eligibleStockForDp: 0, totalDebtors: 0, debtorsOver90Days: 0, debtorsWithin90Days: 0, debtorsMarginPercent: 40, eligibleDebtorsForDp: 0, totalCalculatedDrawingPower: 0, sanctionedLimit: 0, effectiveDrawingPower: 0, currentOutstanding: 0, excessDrawings: 0, isOverdrawn: false, penalInterestExposure: 0 });
+  const [selectedMocAccount, setSelectedMocAccount] = useState<BankAdvanceAccount | null>(null);
   
   // LFAR State
   const [lfarQuestions, setLfarQuestions] = useState<LfarQuestionItem[]>(LfarMasterEngine.getMandatedLfarQuestions());
   const [lfarCategoryFilter, setLfarCategoryFilter] = useState<string>('ALL');
 
   // Concurrent State
-  const [highValueTxns, setHighValueTxns] = useState<HighValueTransactionItem[]>(SAMPLE_HIGH_VALUE_TRANSACTIONS);
-  const [cashRetention, setCashRetention] = useState<CashRetentionAuditItem[]>(SAMPLE_CASH_RETENTION_RECORDS);
-  const [lockerRecords, setLockerRecords] = useState<LockerOperationAuditItem[]>(SAMPLE_LOCKER_AUDIT_RECORDS);
+  const [highValueTxns, setHighValueTxns] = useState<HighValueTransactionItem[]>([]);
+  const [cashRetention, setCashRetention] = useState<CashRetentionAuditItem[]>([]);
+  const [lockerRecords, setLockerRecords] = useState<LockerOperationAuditItem[]>([]);
 
   // Ghosh / Jilani / EWS State
   const [ghoshJilaniItems, setGhoshJilaniItems] = useState<GhoshJilaniControlItem[]>(GhoshJilaniEwsEngine.getGhoshJilaniChecklist());
-  const [ewsItems, setEwsItems] = useState<EarlyWarningSignalItem[]>(GhoshJilaniEwsEngine.scanEarlyWarningSignals());
+  const [ewsItems, setEwsItems] = useState<EarlyWarningSignalItem[]>([]);
 
   // Revenue Leakage State
-  const [pricingAuditRecords, setPricingAuditRecords] = useState<LoanPricingAuditItem[]>(SAMPLE_PRICING_AUDIT_DATA);
+  const [pricingAuditRecords, setPricingAuditRecords] = useState<LoanPricingAuditItem[]>([]);
 
   // Telemetry Calculations
   const totalAdvances = advances.reduce((sum, a) => sum + a.outstandingBalance, 0);

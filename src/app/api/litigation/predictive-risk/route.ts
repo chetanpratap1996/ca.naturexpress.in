@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase } from "@/lib/server/db";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
+import { getPostgresPool } from "@/lib/server/postgres";
+import { resolveFirmUuid } from "@/lib/server/pgHelpers";
 
 export interface PredictiveNoticeRisk {
   id: string;
@@ -18,9 +20,20 @@ export interface PredictiveNoticeRisk {
 }
 
 export async function GET(req: NextRequest) {
+  const { auth, errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
-    const db = ensureDatabase();
-    const clients = db.clients || [];
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
+    const { rows } = await pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1", [firmId]);
+    const clients = rows.map((e: any) => ({
+      id: e.id,
+      name: e.entity_name,
+      pan: e.pan,
+      gstin: e.gstin,
+      type: e.type,
+      turnoverCr: Number(e.turnover_cr || 0),
+    }));
     const risks: PredictiveNoticeRisk[] = [];
 
     // Analyze each client against statutory thresholds

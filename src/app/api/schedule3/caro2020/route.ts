@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { Caro2020Engine, DEFAULT_CARO_2020_CLAUSES } from "@/lib/schedule3/caro2020Engine";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
     const clientName = searchParams.get("clientName") || "Pratwi Solutions Private Limited";
@@ -40,6 +43,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const {

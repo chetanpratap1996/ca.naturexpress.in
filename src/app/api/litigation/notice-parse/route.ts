@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, createNotification, logAuditEvent } from "@/lib/server/db";
 import { decryptAndExtractNoticePdf, extractStatutoryNoticeMetadata } from "@/lib/litigation/noticeDecryptor";
-import { assembleStatutoryLegalReply, identifyNoticeSection } from "@/lib/litigation/statutoryLegalEngine";
+import { assembleStatutoryLegalReply } from "@/lib/litigation/statutoryLegalEngine";
 import { NoticeDocketItem, validateNoticeDin } from "@/lib/litigation/autonomousNoticeEngine";
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+import { getPostgresPool } from "@/lib/server/postgres";
+import { resolveFirmUuid, appendPgAuditLog, upsertWorkspaceRecord } from "@/lib/server/pgHelpers";
 
 export async function POST(req: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
+    const { rows: clientRows } = await pool.query(
+      "SELECT id, entity_name, pan, gstin, incorporation_year FROM public.client_entities WHERE firm_id = $1",
+      [firmId]
+    );
+    const clients = clientRows.map((c: any) => ({
+      id: c.id,
+      name: c.entity_name,
+      pan: c.pan,
+      gstin: c.gstin || "",
+      incorporationYear: c.incorporation_year || 2024,
+    }));
     let text = "";
     let fileName = "Notice.pdf";
     let clientId = "";
@@ -27,8 +45,8 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(arrayBuffer);
 
         // Find client in database to retrieve PAN and incorporation details for auto-decryption
-        const matchedClient = (db.clients || []).find(
-          (c) => c.id === clientId || (c.pan && fileName.toUpperCase().includes(c.pan.toUpperCase()))
+        const matchedClient = clients.find(
+          (c: any) => c.id === clientId || (c.pan && fileName.toUpperCase().includes(c.pan.toUpperCase()))
         );
 
         const decryptResult = await decryptAndExtractNoticePdf(buffer, {
@@ -68,13 +86,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Match client
-    const client = (db.clients || []).find((c) => c.id === clientId) || db.clients?.[0] || {
-      id: "CLI-DEFAULT",
-      name: "Pratwi Solutions Private Limited",
-      pan: "AABCA8891D",
-      gstin: "23AABCA8891D1Z4"
-    };
+    // Match client strictly within firm scope (clients can only target their own entity)
+    const targetClientId = auth.role === "CLIENT" ? auth.clientEntityId : clientId;
+    const client = clients.find((c: any) => c.id === targetClientId) || (auth.role !== "CLIENT" ? clients[0] : null);
+    if (!client) {
+      return NextResponse.json({ success: false, error: "Client entity not found in your scope." }, { status: 404 });
+    }
 
     // 1. Extract statutory notice metadata
     const metadata = extractStatutoryNoticeMetadata(text, fileName);
@@ -134,51 +151,59 @@ export async function POST(req: NextRequest) {
       ]
     };
 
-    if (!db.noticeDockets) db.noticeDockets = [];
-    db.noticeDockets.unshift(newDocket);
-
-    // 4. Save document record
-    if (!db.documents) db.documents = [];
-    db.documents.unshift({
-      id: `DOC-NOTICE-${Date.now()}`,
+    await upsertWorkspaceRecord({
+      firmId,
       entityId: client.id,
-      entityName: client.name,
-      category: "NOTICE_REPLY",
-      fileName: fileName,
-      fileSize: "245 KB",
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: "CLIENT_PWA",
-      isPasswordProtected: false,
-      isUnlocked: true,
-      financialYear: metadata.assessmentYearOrPeriod,
-      reviewStatus: "PENDING_REVIEW",
-      reviewNotes: `Notice under ${legalReply.noticeDefinition.sectionCode}. DIN: ${metadata.dinOrRef}. Due: ${metadata.replyDeadline}`
+      recordType: "NOTICE_DOCKET",
+      matchKey: "id",
+      matchValue: docketId,
+      payload: newDocket,
     });
 
-    // 5. Notify CA Firm Partner and Article Trainees
-    await createNotification({
-      title: `🚨 Statutory Notice: ${legalReply.noticeDefinition.sectionCode} (${client.name})`,
-      message: `DIN: ${metadata.dinOrRef}. Alleged Demand: ${metadata.demandAmount}. Hearing/Limitation Due Date: ${metadata.replyDeadline}. Court-ready legal defense drafted.`,
-      category: "NOTICE",
-      priority: "CRITICAL",
-      targetTab: "litigation",
-      targetRoles: ["SUPER_ADMIN", "PARTNER", "STAFF"],
-      entityId: client.id,
-      link: "/admin",
-      actionLabel: "Review Legal Defense",
-      metadata: { docketId, din: metadata.dinOrRef, demand: metadata.demandAmount }
-    });
-
-    await logAuditEvent(
-      "Notice Intelligence Engine",
-      "SYSTEM",
-      client.name,
-      "Statutory Notice Ingested & Parsed",
-      `Ingested notice under ${legalReply.noticeDefinition.sectionCode} with DIN ${metadata.dinOrRef}. Defense docket ${docketId} initialized.`,
-      "COMPLIANCE"
+    // 4. Save document record in PostgreSQL
+    await pool.query(
+      `INSERT INTO public.documents (
+        firm_id, entity_id, category, file_name, file_size_bytes, financial_year, review_status, review_notes
+      ) VALUES ($1, $2, 'NOTICE_REPLY', $3, 250880, $4, 'PENDING_REVIEW', $5)`,
+      [
+        firmId,
+        client.id,
+        fileName.slice(0, 255),
+        metadata.assessmentYearOrPeriod || "FY 2026-27",
+        `Notice under ${legalReply.noticeDefinition.sectionCode}. DIN: ${metadata.dinOrRef}. Due: ${metadata.replyDeadline}`,
+      ]
     );
 
-    await saveDatabase(db);
+    // 5. Notify Firm Staff
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: client.id,
+      recordType: "NOTIFICATION",
+      payload: {
+        id: `NOTIF-NOTICE-${Date.now()}`,
+        title: `Statutory Notice: ${legalReply.noticeDefinition.sectionCode} (${client.name})`,
+        message: `DIN: ${metadata.dinOrRef}. Demand: ${metadata.demandAmount}. Due: ${metadata.replyDeadline}.`,
+        category: "NOTICE",
+        priority: "CRITICAL",
+        recipientRole: "PARTNER",
+        recipientEntityId: client.id,
+        targetTab: "litigation",
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    await appendPgAuditLog({
+      firmId,
+      actorId: auth.user?.id,
+      actorName: auth.userName || "Notice Intelligence Engine",
+      actorRole: auth.role,
+      entityId: client.id,
+      entityName: client.name,
+      action: "Statutory Notice Ingested & Parsed",
+      details: `Ingested notice under ${legalReply.noticeDefinition.sectionCode} (DIN: ${metadata.dinOrRef}). Docket ${docketId} created.`,
+      category: "COMPLIANCE",
+    });
 
     return NextResponse.json({
       success: true,

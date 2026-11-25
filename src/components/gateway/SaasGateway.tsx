@@ -38,7 +38,7 @@ import {
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 interface SaasGatewayProps {
-  onEnterSandbox: (role: "partner" | "article" | "client") => void;
+  onEnterSandbox?: (role: "partner" | "article" | "client") => void;
   onOpenLogin: (role?: "partner" | "article" | "client") => void;
   onPracticeRegistered?: (user: any) => void;
 }
@@ -209,13 +209,13 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
               <span>Register Practice / Sign Up</span>
             </button>
 
-            {/* Pitch Preview Action */}
+            {/* Practice Login Action */}
             <button
-              onClick={() => onEnterSandbox("partner")}
+              onClick={() => onOpenLogin("article")}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 sm:py-3.5 rounded-2xl text-xs font-bold transition active:scale-95"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>Interactive Sandbox</span>
+              <Users className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+              <span>Team / Staff Sign In</span>
             </button>
           </div>
 
@@ -288,10 +288,10 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
             </div>
             
             <button
-              onClick={() => onEnterSandbox("partner")}
+              onClick={() => onOpenLogin("partner")}
               className="self-start md:self-auto bg-white hover:bg-slate-100 text-slate-800 font-bold px-3.5 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-200 shadow-sm"
             >
-              <span>Open in Sandbox</span>
+              <span>Sign In to Practice</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
             </button>
           </div>
@@ -762,7 +762,7 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
           </div>
           <div className="flex items-center gap-4 text-slate-600">
             <button onClick={() => onOpenLogin()} className="hover:text-btred-logo font-bold transition">Sign In</button>
-            <button onClick={() => onEnterSandbox("partner")} className="hover:text-slate-900 transition">Pitch Preview</button>
+            <button onClick={() => onOpenLogin("client")} className="hover:text-slate-900 transition">Client Portal</button>
           </div>
         </div>
       </footer>
@@ -778,11 +778,11 @@ export const SaasGateway: React.FC<SaasGatewayProps> = ({
         </button>
 
         <button
-          onClick={() => onEnterSandbox("partner")}
+          onClick={() => onOpenLogin("client")}
           className="bg-slate-100 border border-slate-200 text-slate-700 py-3 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 active:scale-95 shrink-0"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-          <span>Pitch Preview</span>
+          <Smartphone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>Client Portal</span>
         </button>
       </div>
 

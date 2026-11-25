@@ -9,6 +9,7 @@ import {
 } from "@/lib/types";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 import { 
   ShieldCheck, 
   Award, 
@@ -124,6 +125,15 @@ export function PeerReviewManager({
       setIsSigningOff(false);
     }
   };
+
+  if (!contextClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="ICAI Peer Review & SQC-1 Desk"
+        description="Select a client entity above to inspect their MSME 43B(h), Section 40A(2)(b), and SQC-1 workpaper dossier."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

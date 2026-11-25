@@ -1,202 +1,209 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
-import { PayToReleaseConfig, PaymentReleaseReceipt, UtrReconciliationRecord } from "@/lib/types";
+import { PayToReleaseConfig, UtrReconciliationRecord } from "@/lib/types";
 import {
   evaluateClientRelationshipTier,
   computeTds194jSettlement,
-  formatTieredGatekeeperWhatsAppMessage,
-  SAMPLE_GATEKEEPER_DELIVERABLES,
   GatekeeperDeliverable,
-  ClientRelationshipTier
 } from "@/lib/billing/tieredGatekeeper";
-import { generateNpciDynamicUpiUri, generateUpiQrDataUrl } from "@/lib/billing/npciUpiEngine";
+import { getPostgresPool } from "@/lib/server/postgres";
+import {
+  resolveFirmUuid,
+  appendPgAuditLog,
+  listWorkspaceRecords,
+  upsertWorkspaceRecord,
+} from "@/lib/server/pgHelpers";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const auth = await authenticateServerRequest(request);
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
     const searchParams = request.nextUrl.searchParams;
-    const entityId = searchParams.get("entityId");
+    const requestedEntityId = searchParams.get("entityId");
     const tierFilter = searchParams.get("tier");
 
-    const firmVpa = db.firmMetrics?.firmUpiVpa || "BRAINSANDTAXES@icici";
-    const firmName = db.firmMetrics?.name || "GPA & Co., Chartered Accountants";
+    const effectiveEntityId =
+      auth.role === "CLIENT" ? auth.clientEntityId || requestedEntityId : requestedEntityId;
 
-    // Build enriched deliverables catalog
-    const deliverables: GatekeeperDeliverable[] = await Promise.all(
-      SAMPLE_GATEKEEPER_DELIVERABLES.map(async (d) => {
-        const config = db.payToReleaseConfigs?.find((c) => c.entityId === d.entityId);
-        const client = db.clients?.find((c) => c.id === d.entityId) || { id: d.entityId, name: d.clientName };
-        const clientInvoices = db.invoices?.filter((i) => i.entityId === d.entityId) || [];
+    if (auth.role === "CLIENT" && requestedEntityId && auth.clientEntityId && requestedEntityId !== auth.clientEntityId) {
+      return NextResponse.json({ success: false, error: "Forbidden for requested entity." }, { status: 403 });
+    }
 
-        // Dynamic tier evaluation
-        const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
+    const [{ rows: firmRows }, { rows: clientRows }, { rows: invRows }, configRecs] = await Promise.all([
+      pool.query("SELECT firm_name, firm_upi_vpa FROM public.firms WHERE id = $1 LIMIT 1", [firmId]),
+      auth.role === "CLIENT" && auth.clientEntityId && UUID_REGEX.test(auth.clientEntityId)
+        ? pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1 AND id = $2", [firmId, auth.clientEntityId])
+        : pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1", [firmId]),
+      auth.role === "CLIENT" && auth.clientEntityId && UUID_REGEX.test(auth.clientEntityId)
+        ? pool.query("SELECT * FROM public.invoices WHERE firm_id = $1 AND entity_id = $2", [firmId, auth.clientEntityId])
+        : pool.query("SELECT * FROM public.invoices WHERE firm_id = $1", [firmId]),
+      listWorkspaceRecords<PayToReleaseConfig>(firmId, "PAY_TO_RELEASE_CONFIG", auth.role === "CLIENT" ? auth.clientEntityId : null),
+    ]);
 
-        // Check if partner override is currently active
-        const isOverrideActive = config?.partnerOverrideUntil 
-          ? new Date(config.partnerOverrideUntil).getTime() > Date.now() 
+    const firm = firmRows[0];
+    const firmVpa = firm?.firm_upi_vpa || DEFAULT_FIRM_BRANDING.firmUpiVpa;
+    const firmName = firm?.firm_name || DEFAULT_FIRM_BRANDING.firmName;
+    const configs: PayToReleaseConfig[] = configRecs.map((r) => r.payload);
+
+    const deliverables: GatekeeperDeliverable[] = [];
+    for (const c of clientRows) {
+      const clientInvoices = invRows.filter((i: any) => i.entity_id === c.id);
+      const config = configs.find((cfg) => cfg.entityId === c.id);
+      const clientObj = { id: c.id, name: c.entity_name, type: c.type, turnoverCr: Number(c.turnover_cr || 0) };
+      const mappedInvs = clientInvoices.map((inv: any) => ({
+        id: inv.id,
+        invoiceNo: inv.invoice_no,
+        entityId: inv.entity_id,
+        amount: Number(inv.total_amount || 0),
+        status: inv.status,
+        dueDate: inv.due_date,
+        serviceDescription: inv.service_description,
+      }));
+      const tierEval = evaluateClientRelationshipTier(clientObj as any, mappedInvs as any, config);
+
+      for (const inv of mappedInvs) {
+        const isOverrideActive = config?.partnerOverrideUntil
+          ? new Date(config.partnerOverrideUntil).getTime() > Date.now()
           : false;
+        const isPaid = inv.status === "PAID";
+        const isLocked = isOverrideActive ? false : config ? config.isLocked : !isPaid && tierEval.recommendedPolicy !== "SOFT_NUDGE";
+        const appliedTdsRate = config?.appliedTdsRate ?? 10;
+        const netPayable = appliedTdsRate > 0 ? computeTds194jSettlement(inv.amount, appliedTdsRate).netPayableAmount : inv.amount;
 
-        const isLocked = isOverrideActive 
-          ? false 
-          : (config ? config.isLocked : d.isLocked);
-
-        const appliedTdsRate = config?.appliedTdsRate ?? d.appliedTdsRate;
-        const netPayable = appliedTdsRate > 0 
-          ? computeTds194jSettlement(d.feeAmount, appliedTdsRate).netPayableAmount 
-          : d.feeAmount;
-
-        return {
-          ...d,
-          isLocked,
-          clientTier: tierEval.tier,
-          gatePolicy: tierEval.recommendedPolicy,
+        deliverables.push({
+          id: `DELIV-${inv.id}`,
+          entityId: c.id,
+          clientName: c.entity_name,
+          deliverableType: inv.serviceDescription?.toLowerCase().includes("audit")
+            ? "FORM_3CD_TAX_AUDIT"
+            : inv.serviceDescription?.toLowerCase().includes("gst")
+            ? "GST_ANNUAL_GSTR9C"
+            : ("STATUTORY_COMPLIANCE_PACKAGE" as any),
+          title: inv.serviceDescription || `Statutory Package (${inv.invoiceNo})`,
+          period: "FY 2025-26",
+          invoiceId: inv.id,
+          invoiceNo: inv.invoiceNo,
+          feeAmount: inv.amount,
+          tdsApplicable: true,
           appliedTdsRate,
           netPayableAmount: netPayable,
-          maskedUdin: isLocked ? `${d.realUdin.slice(0, 8)}XXXXXXX (Unlocks on Clearance)` : d.realUdin,
-          watermarkText: isLocked 
-            ? (d.watermarkText || "CONFIDENTIAL DRAFT - PENDING PROFESSIONAL CLEARANCE") 
-            : "",
+          realUdin: `PENDING_ISSUANCE_${inv.invoiceNo.slice(-4)}`,
+          maskedUdin: isLocked ? "UNLOCKS ON VERIFIED CLEARANCE" : `ISSUED_${inv.invoiceNo.slice(-4)}`,
+          watermarkText: isLocked ? "CONFIDENTIAL DRAFT - PENDING PROFESSIONAL CLEARANCE" : "",
+          isLocked,
+          statutoryDeadline: inv.dueDate ? new Date(inv.dueDate).toISOString().split("T")[0] : "2026-11-30",
+          urgencyLevel: isLocked ? "HIGH" : "STANDARD",
+          clientTier: tierEval.tier,
+          gatePolicy: tierEval.recommendedPolicy,
           partnerOverrideUntil: config?.partnerOverrideUntil || null,
           partnerOverrideBy: config?.partnerOverrideBy || null,
-          partnerOverrideReason: config?.partnerOverrideReason || null
-        };
-      })
-    );
-
-    // Ensure all real clients with invoices in db.clients are represented
-    const realClientDeliverables: GatekeeperDeliverable[] = [];
-    for (const client of (db.clients || [])) {
-      const clientInvoices = (db.invoices || []).filter((i) => i.entityId === client.id);
-      for (const inv of clientInvoices) {
-        if (!deliverables.some((d) => d.invoiceNo === inv.invoiceNo || d.invoiceId === inv.id)) {
-          const config = db.payToReleaseConfigs?.find((c) => c.entityId === client.id);
-          const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
-          const isPaid = inv.status === "PAID";
-          const isLocked = !isPaid && tierEval.recommendedPolicy !== "SOFT_NUDGE";
-          const appliedTdsRate = (config?.appliedTdsRate ?? 10);
-          const netPayable = appliedTdsRate > 0 
-            ? computeTds194jSettlement(inv.amount, appliedTdsRate).netPayableAmount 
-            : inv.amount;
-          const realUdin = `26034912${inv.invoiceNo.replace(/[^0-9A-Z]/g, "").slice(-8).padEnd(8, "0")}11`;
-
-          realClientDeliverables.push({
-            id: `DELIV-${inv.id}`,
-            entityId: client.id,
-            clientName: client.name,
-            deliverableType: (inv.serviceDescription?.toLowerCase().includes("audit") 
-              ? "FORM_3CD_TAX_AUDIT" 
-              : inv.serviceDescription?.toLowerCase().includes("gst") 
-              ? "GST_ANNUAL_GSTR9C" 
-              : "STATUTORY_COMPLIANCE_PACKAGE") as any,
-            title: inv.serviceDescription || `Statutory Certification Package (${inv.invoiceNo})`,
-            period: "FY 2025-26",
-            invoiceId: inv.id,
-            invoiceNo: inv.invoiceNo,
-            feeAmount: inv.amount,
-            tdsApplicable: true,
-            appliedTdsRate,
-            netPayableAmount: netPayable,
-            realUdin,
-            maskedUdin: isLocked ? `${realUdin.slice(0, 8)}XXXXXXX (Unlocks on Clearance)` : realUdin,
-            watermarkText: isLocked ? "CONFIDENTIAL DRAFT - PENDING PROFESSIONAL CLEARANCE" : "",
-            isLocked,
-            statutoryDeadline: inv.dueDate || "2026-11-30",
-            urgencyLevel: isLocked ? "HIGH" : "STANDARD",
-            clientTier: tierEval.tier,
-            gatePolicy: tierEval.recommendedPolicy,
-            summaryPreview: {
-              heading: `Statutory Certified Package for ${client.name}`,
-              keyHighlights: [
-                `Certified by ${firmName} under ICAI Standards`,
-                `Linked Tax Invoice #${inv.invoiceNo} (₹${inv.amount.toLocaleString("en-IN")})`,
-                `ICAI UDIN verification enabled for client download`
-              ],
-              confidentialNotice: isLocked 
-                ? "Draft copy for verification. Signed copy with UDIN will release immediately upon fee settlement."
-                : "Certified copy unlocked under partnership protocol."
-            }
-          });
-        }
+          partnerOverrideReason: config?.partnerOverrideReason || null,
+          summaryPreview: {
+            heading: `Statutory Package for ${c.entity_name}`,
+            keyHighlights: [
+              `Prepared by ${firmName}`,
+              `Linked Tax Invoice #${inv.invoiceNo} (₹${inv.amount.toLocaleString("en-IN")})`,
+            ],
+            confidentialNotice: isLocked
+              ? "Draft copy for verification. Signed copy unlocks after partner-verified fee settlement."
+              : "Certified copy unlocked.",
+          },
+        });
       }
     }
 
-    const allDeliverables = [...deliverables, ...realClientDeliverables];
-
-    // If specific entity requested
-    if (entityId) {
-      const config = db.payToReleaseConfigs?.find((c) => c.entityId === entityId) || {
-        entityId,
+    if (effectiveEntityId) {
+      const entityConfig: PayToReleaseConfig = configs.find((c) => c.entityId === effectiveEntityId) || {
+        entityId: effectiveEntityId,
         isLocked: false,
-        totalOutstandingAmount: 0,
+        totalOutstandingAmount: invRows
+          .filter((i: any) => i.entity_id === effectiveEntityId && i.status !== "PAID")
+          .reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
         oldestInvoiceDays: 0,
         gracePeriodDays: 30,
-        blockedDeliverables: [],
+        blockedDeliverables: ["FORM_3CD_PDF", "BALANCE_SHEET_SIGNED", "ITR_ACKNOWLEDGMENT"],
         instantUpiVpa: firmVpa,
         merchantName: firmName,
-        lockReason: "Account in good standing."
+        lockReason: "Account status verified.",
       };
-
-      const entityDeliverables = allDeliverables.filter((d) => d.entityId === entityId);
-      const client = db.clients?.find((c) => c.id === entityId) || { id: entityId, name: entityId };
-      const clientInvoices = db.invoices?.filter((i) => i.entityId === entityId) || [];
-      const tierEval = evaluateClientRelationshipTier(client, clientInvoices, config);
-
+      const entityDeliverables = deliverables.filter((d) => d.entityId === effectiveEntityId);
+      const clientRow = clientRows.find((c: any) => c.id === effectiveEntityId);
+      const clientInvs = invRows.filter((i: any) => i.entity_id === effectiveEntityId);
+      const tierEval = evaluateClientRelationshipTier(
+        { id: effectiveEntityId, name: clientRow?.entity_name || effectiveEntityId } as any,
+        clientInvs.map((i: any) => ({ ...i, amount: Number(i.total_amount || 0) })) as any,
+        entityConfig
+      );
       return NextResponse.json({
         success: true,
-        config,
+        config: entityConfig,
         tierEvaluation: tierEval,
-        deliverables: entityDeliverables
+        deliverables: entityDeliverables,
       });
     }
 
-    // Extract pending UTR submissions for maker-checker reconciliation
-    const pendingUtrs: UtrReconciliationRecord[] = (db.invoices || [])
-      .filter((inv) => inv.status === "UTR_SUBMITTED")
-      .map((inv) => ({
-        id: `UTR-REC-${inv.id}`,
-        entityId: inv.entityId,
-        clientName: inv.entityName,
-        invoiceId: inv.id,
-        invoiceNo: inv.invoiceNo,
-        amount: inv.amount,
-        clientUtrNumber: inv.clientUtrNumber || "N/A",
-        clientPaymentMode: inv.clientPaymentMode || "NEFT_RTGS",
-        clientPaymentDate: inv.clientPaymentDate || new Date().toISOString().split("T")[0],
-        clientPayerNote: inv.clientPayerNote,
-        status: "PENDING",
-        submittedAt: inv.clientPaymentDate || new Date().toISOString()
-      }));
+    if (auth.role === "CLIENT") {
+      return NextResponse.json({ success: false, error: "Client entity scope required." }, { status: 403 });
+    }
 
-    // Filter deliverables by tier if query param provided
+    const pendingUtrs: UtrReconciliationRecord[] = invRows
+      .filter((inv: any) => inv.status === "UTR_SUBMITTED")
+      .map((inv: any) => {
+        const clientRow = clientRows.find((c: any) => c.id === inv.entity_id);
+        return {
+          id: `UTR-REC-${inv.id}`,
+          entityId: inv.entity_id,
+          clientName: clientRow?.entity_name || "Client Entity",
+          invoiceId: inv.id,
+          invoiceNo: inv.invoice_no,
+          amount: Number(inv.total_amount || 0),
+          clientUtrNumber: inv.client_utr_number || "N/A",
+          clientPaymentMode: inv.client_payment_mode || "NEFT_RTGS",
+          clientPaymentDate: inv.client_payment_date ? new Date(inv.client_payment_date).toISOString().split("T")[0] : "",
+          clientPayerNote: inv.client_payer_note || undefined,
+          status: "PENDING",
+          submittedAt: inv.client_payment_date ? new Date(inv.client_payment_date).toISOString() : new Date().toISOString(),
+        };
+      });
+
     const filteredDeliverables = tierFilter
-      ? allDeliverables.filter((d) => d.clientTier === tierFilter)
-      : allDeliverables;
+      ? deliverables.filter((d) => d.clientTier === tierFilter)
+      : deliverables;
 
     return NextResponse.json({
       success: true,
       deliverables: filteredDeliverables,
-      configs: db.payToReleaseConfigs || [],
+      configs,
       pendingUtrs,
-      firmMetrics: db.firmMetrics
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("GET /api/pay-to-release error:", error);
+    return NextResponse.json({ success: false, error: "Failed to load Pay-to-Release state." }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateServerRequest(request);
-    const db = ensureDatabase();
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
     const body = await request.json();
     const {
       action,
       entityId,
-      deliverableId,
       invoiceId,
-      partnerName,
       utrRef,
       amountPaid,
       paymentMode,
@@ -205,399 +212,329 @@ export async function POST(request: NextRequest) {
       tdsRate,
       gracePeriodDays,
       note,
-      tierOverride
     } = body;
 
     if (!entityId && action !== "UPDATE_POLICY") {
-      return NextResponse.json({ success: false, error: "entityId is required" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "entityId is required." }, { status: 400 });
     }
 
-    // Role-based verification: Clients can only trigger payment or UTR submission for their own entity
-    if (auth.isAuthenticated && auth.role === "CLIENT") {
-      if (auth.clientEntityId && auth.clientEntityId !== entityId) {
-        return NextResponse.json({ success: false, error: "Forbidden: You cannot modify gate status for other client entities." }, { status: 403 });
+    // Strict client restrictions: clients may ONLY submit a UTR reference for their own entity
+    if (auth.role === "CLIENT") {
+      if (!auth.clientEntityId || auth.clientEntityId !== entityId) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden: You cannot modify gate status for other client entities." },
+          { status: 403 }
+        );
       }
-      if (action !== "INSTANT_PAYMENT_RELEASE" && action !== "SUBMIT_CLIENT_UTR") {
-        return NextResponse.json({ success: false, error: "Clients can only submit payments or UTR references." }, { status: 403 });
+      if (action === "INSTANT_PAYMENT_RELEASE") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Automated UPI webhook verification is not configured. Please submit your 12-digit UTR reference for partner bank verification.",
+            code: "PAYMENT_GATEWAY_WEBHOOK_REQUIRED",
+          },
+          { status: 403 }
+        );
       }
-    }
-
-    const client = db.clients.find((c) => c.id === entityId);
-    const clientName = client ? client.name : entityId;
-
-    if (!db.payToReleaseConfigs) {
-      db.payToReleaseConfigs = [];
-    }
-
-    let configIndex = db.payToReleaseConfigs.findIndex((c) => c.entityId === entityId);
-    if (configIndex === -1 && entityId) {
-      db.payToReleaseConfigs.push({
-        entityId,
-        isLocked: false,
-        totalOutstandingAmount: 0,
-        oldestInvoiceDays: 0,
-        gracePeriodDays: 30,
-        blockedDeliverables: ["FORM_3CD_PDF", "BALANCE_SHEET_SIGNED", "ITR_ACKNOWLEDGMENT"],
-        instantUpiVpa: db.firmMetrics.firmUpiVpa,
-        merchantName: db.firmMetrics.name,
-        lockReason: "Initial default configuration"
-      });
-      configIndex = db.payToReleaseConfigs.length - 1;
-    }
-
-    // ACTION 1: INSTANT PAYMENT RELEASE (Dynamic UPI / NPCI Webhook in 0.8s)
-    if (action === "INSTANT_PAYMENT_RELEASE") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      const clearedAmount = amountPaid || currentConfig.totalOutstandingAmount;
-
-      // Mark matching invoices as PAID
-      if (db.invoices) {
-        db.invoices = db.invoices.map((inv) => {
-          if (inv.entityId === entityId && inv.status !== "PAID") {
-            return {
-              ...inv,
-              status: "PAID",
-              clientUtrNumber: utrRef || `UPI-${Date.now().toString().slice(-8)}`,
-              clientPaymentDate: new Date().toISOString(),
-              clientPaymentMode: paymentMode || "UPI",
-              reconciledBy: "AUTOPAY_GATEKEEPER",
-              reconciledAt: new Date().toISOString()
-            };
-          }
-          return inv;
-        });
+      if (action !== "SUBMIT_CLIENT_UTR") {
+        return NextResponse.json(
+          { success: false, error: "Clients may only submit payment UTR references." },
+          { status: 403 }
+        );
       }
-
-      // Unlock entity deliverables
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        isLocked: false,
-        totalOutstandingAmount: Math.max(0, currentConfig.totalOutstandingAmount - clearedAmount),
-        partnerOverrideUntil: null, // Clear override as fee is now legally cleared
-        lockReason: `Fee of ₹${clearedAmount.toLocaleString("en-IN")} cleared on ${new Date().toLocaleDateString("en-IN")}. Deliverables unlocked.`
-      };
-
-      // Create payment receipt
-      const receipt: PaymentReleaseReceipt = {
-        transactionId: `TXN-${Date.now().toString().slice(-6)}`,
-        invoiceIds: db.invoices.filter((i) => i.entityId === entityId).map((i) => i.id),
-        amountPaid: clearedAmount,
-        paymentMode: (paymentMode as any) || "UPI_DYNAMIC",
-        utrRef: utrRef || `UPI-${Date.now().toString().slice(-8)}`,
-        releasedAt: new Date().toISOString(),
-        releasedDeliverables: currentConfig.blockedDeliverables as string[],
-        autoReceiptPdfUrl: `/api/billing/receipt?txn=${Date.now()}`
-      };
-
-      await logAuditEvent(
-        auth.userName || "Client Auto-Release Bot",
-        auth.role || "SYSTEM",
-        clientName,
-        "Pay-to-Release Fee Clearance",
-        `Cleared ₹${clearedAmount.toLocaleString("en-IN")} via ${paymentMode || "UPI"}. Deliverables instantly unlocked for client download.`,
-        "PAY_RELEASE"
+    } else if (auth.role !== "PARTNER") {
+      return NextResponse.json(
+        { success: false, error: "Managing Partner privileges required for Pay-to-Release operations." },
+        { status: 403 }
       );
+    }
 
-      await createNotification({
-        title: `Deliverables Unlocked: ${clientName}`,
-        message: `₹${clearedAmount.toLocaleString("en-IN")} received via ${paymentMode || "UPI"}. Deliverables (Audit Reports, Form 3CD, ITR) are now unlocked for download.`,
-        category: "BILLING",
-        priority: "HIGH",
-        targetRoles: ["SUPER_ADMIN", "PARTNER", "CLIENT"],
-        entityId: entityId,
-        link: "/client",
-        actionLabel: "View Deliverables",
-        metadata: { utr: utrRef, clearedAmount }
-      });
-
-      await saveDatabase(db);
-
-      if (isSupabaseConfigured()) {
-        try {
-          await supabase
-            .from("invoices")
-            .update({
-              status: "PAID",
-              client_utr_number: utrRef || `UPI-${Date.now().toString().slice(-8)}`,
-              client_payment_mode: paymentMode || "UPI",
-              client_payment_date: new Date().toISOString().split("T")[0],
-              reconciled_at: new Date().toISOString()
-            })
-            .eq("entity_id", entityId)
-            .neq("status", "PAID");
-        } catch (sbErr) {
-          console.warn("Supabase pay-to-release invoice sync warning:", sbErr);
-        }
+    let clientName = "Firmwide Practice";
+    if (entityId) {
+      if (!UUID_REGEX.test(String(entityId))) {
+        return NextResponse.json({ success: false, error: "Invalid entityId." }, { status: 400 });
       }
-
-      return NextResponse.json({
-        success: true,
-        message: "Payment processed and deliverables released instantly (0.8s).",
-        receipt,
-        config: db.payToReleaseConfigs[configIndex]
-      });
-    }
-
-    // ACTION 2: TIME-BOUND PARTNER EMERGENCY OVERRIDE (ICAI SA 210 Protocol)
-    if (action === "PARTNER_OVERRIDE_UNLOCK") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      const hours = durationHours || 48; // Default 48h emergency window
-      const expiryDate = new Date(Date.now() + hours * 3600 * 1000).toISOString();
-
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        isLocked: false,
-        partnerOverrideUntil: expiryDate,
-        partnerOverrideReason: reason || "Emergency partner authorization for board meeting / bank loan pack",
-        partnerOverrideBy: partnerName || auth.userName || "CA Gunjan Jain",
-        lockReason: `Partner Override by ${partnerName || "CA Gunjan Jain"} active until ${new Date(expiryDate).toLocaleString("en-IN")}. Reason: ${reason || "Temporary exception authorized"}`
-      };
-
-      await logAuditEvent(
-        partnerName || auth.userName || "CA Gunjan Jain",
-        "PARTNER",
-        clientName,
-        "Partner Lock Override (ICAI SA 210)",
-        `Partner authorized ${hours}h emergency unlock. Expiry: ${new Date(expiryDate).toLocaleString("en-IN")}. Justification: ${reason || "Urgent statutory deadline"}`,
-        "PAY_RELEASE"
+      const entRes = await pool.query(
+        "SELECT id, entity_name FROM public.client_entities WHERE id = $1 AND firm_id = $2 LIMIT 1",
+        [entityId, firmId]
       );
-
-      await createNotification({
-        title: `Partner Override Active: ${clientName}`,
-        message: `Emergency download access authorized for ${hours} hours under ICAI SA 210 protocol.`,
-        category: "BILLING",
-        priority: "MEDIUM",
-        targetRoles: ["SUPER_ADMIN", "PARTNER"],
-        entityId: entityId,
-        link: "/admin?tab=pay-to-release"
-      });
-
-      await saveDatabase(db);
-      return NextResponse.json({
-        success: true,
-        message: `Partner override active for ${hours} hours. Promissory notice queued for client.`,
-        config: db.payToReleaseConfigs[configIndex]
-      });
+      if (entRes.rows.length === 0) {
+        return NextResponse.json({ success: false, error: "Client entity not found in your firm." }, { status: 404 });
+      }
+      clientName = entRes.rows[0].entity_name;
     }
 
-    // ACTION 3: SECTION 194J TDS SETTLEMENT (10% or 2% TDS Calculation)
-    if (action === "APPLY_TDS_SETTLEMENT") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      const rate = typeof tdsRate === "number" ? tdsRate : 10;
-      const fullAmount = amountPaid || currentConfig.totalOutstandingAmount;
-      const settlement = computeTds194jSettlement(fullAmount, rate);
+    const existingRecs = entityId
+      ? await listWorkspaceRecords<PayToReleaseConfig>(firmId, "PAY_TO_RELEASE_CONFIG", entityId)
+      : [];
+    let currentConfig: PayToReleaseConfig = existingRecs[0]?.payload || {
+      entityId: entityId || "",
+      isLocked: false,
+      totalOutstandingAmount: 0,
+      oldestInvoiceDays: 0,
+      gracePeriodDays: 30,
+      blockedDeliverables: ["FORM_3CD_PDF", "BALANCE_SHEET_SIGNED", "ITR_ACKNOWLEDGMENT"],
+      instantUpiVpa: DEFAULT_FIRM_BRANDING.firmUpiVpa,
+      merchantName: DEFAULT_FIRM_BRANDING.firmName,
+      lockReason: "Default configuration",
+    };
 
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        appliedTdsRate: rate,
-        netPayableAmount: settlement.netPayableAmount,
-        lockReason: `Gross: ₹${fullAmount.toLocaleString("en-IN")} | TDS @${rate}% u/s 194J: ₹${settlement.tdsAmount.toLocaleString("en-IN")} | Net Payable: ₹${settlement.netPayableAmount.toLocaleString("en-IN")}`
-      };
-
-      await saveDatabase(db);
-      return NextResponse.json({
-        success: true,
-        message: `TDS @ ${rate}% calculated. Net payable: ₹${settlement.netPayableAmount.toLocaleString("en-IN")}`,
-        settlement,
-        config: db.payToReleaseConfigs[configIndex]
-      });
-    }
-
-    // ACTION 4: CLIENT SUBMIT UTR (RTGS / NEFT / IMPS)
+    // ACTION: CLIENT SUBMIT UTR (Always awaits Partner verification; NEVER marks PAID)
     if (action === "SUBMIT_CLIENT_UTR") {
-      if (!utrRef) {
-        return NextResponse.json({ success: false, error: "12-digit UTR Reference Number is required" }, { status: 400 });
+      const cleanUtr = typeof utrRef === "string" ? utrRef.trim() : "";
+      if (!/^[A-Za-z0-9-]{6,40}$/.test(cleanUtr)) {
+        return NextResponse.json({ success: false, error: "A valid 6-40 character UTR Reference Number is required." }, { status: 400 });
       }
 
-      let targetInvoiceNo = "";
-      if (db.invoices) {
-        db.invoices = db.invoices.map((inv) => {
-          if (inv.entityId === entityId && (invoiceId ? inv.id === invoiceId : inv.status !== "PAID")) {
-            targetInvoiceNo = inv.invoiceNo;
-            return {
-              ...inv,
-              status: "UTR_SUBMITTED",
-              clientUtrNumber: utrRef,
-              clientPaymentMode: paymentMode || "NEFT_RTGS",
-              clientPaymentDate: new Date().toISOString(),
-              clientPayerNote: note || "Client reported bank transfer. Pending CA firm reconciliation."
-            };
-          }
-          return inv;
-        });
+      const mode = ["NEFT_RTGS", "UPI", "IMPS", "CHEQUE"].includes(paymentMode) ? paymentMode : "UPI";
+      const upd = invoiceId && UUID_REGEX.test(String(invoiceId))
+        ? await pool.query(
+            `UPDATE public.invoices
+             SET status = 'UTR_SUBMITTED', client_utr_number = $1, client_payment_mode = $2::payment_mode,
+                 client_payment_date = CURRENT_DATE, client_payer_note = $3
+             WHERE id = $4 AND firm_id = $5 AND entity_id = $6 AND status IN ('PENDING', 'OVERDUE', 'UTR_SUBMITTED')
+             RETURNING invoice_no`,
+            [cleanUtr, mode, (note || "Submitted by client; awaiting bank reconciliation.").slice(0, 500), invoiceId, firmId, entityId]
+          )
+        : await pool.query(
+            `UPDATE public.invoices
+             SET status = 'UTR_SUBMITTED', client_utr_number = $1, client_payment_mode = $2::payment_mode,
+                 client_payment_date = CURRENT_DATE, client_payer_note = $3
+             WHERE firm_id = $4 AND entity_id = $5 AND status IN ('PENDING', 'OVERDUE')
+             RETURNING invoice_no`,
+            [cleanUtr, mode, (note || "Submitted by client; awaiting bank reconciliation.").slice(0, 500), firmId, entityId]
+          );
+
+      if (upd.rows.length === 0) {
+        return NextResponse.json({ success: false, error: "No pending/overdue invoice found to attach UTR." }, { status: 400 });
       }
 
-      await logAuditEvent(
-        auth.userName || clientName,
-        "CLIENT",
-        clientName,
-        "Client Payment UTR Submitted",
-        `Submitted UTR: ${utrRef} for invoice ${targetInvoiceNo || "overdue balance"}. Pending bank verification.`,
-        "PAY_RELEASE"
-      );
-
-      await createNotification({
-        title: `Payment UTR Submitted: ${clientName}`,
-        message: `${clientName} reported transfer of ₹${amountPaid || "overdue balance"} via ${paymentMode || "RTGS"} (UTR: ${utrRef}). Please verify against bank statement.`,
-        category: "BILLING",
-        priority: "HIGH",
-        targetRoles: ["SUPER_ADMIN", "PARTNER", "ARTICLE"],
-        entityId: entityId,
-        link: "/admin?tab=pay-to-release",
-        actionLabel: "Reconcile UTR",
-        metadata: { utr: utrRef, entityId }
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || clientName,
+        actorRole: auth.role,
+        entityId,
+        entityName: clientName,
+        action: "Client Payment UTR Submitted",
+        details: `Submitted UTR ${cleanUtr} (${mode}) for ${upd.rows.map((r: any) => r.invoice_no).join(", ")}. Pending bank verification.`,
+        category: "PAY_RELEASE",
       });
 
-      await saveDatabase(db);
-      return NextResponse.json({ success: true, message: "UTR submitted successfully. CA firm desk notified for verification." });
-    }
-
-    // ACTION 5: RECONCILE UTR (Maker-Checker Verification by Partner/Staff)
-    if (action === "RECONCILE_UTR") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
-      let reconciledSum = 0;
-
-      if (db.invoices) {
-        db.invoices = db.invoices.map((inv) => {
-          if (inv.entityId === entityId && (invoiceId ? inv.id === invoiceId : inv.status === "UTR_SUBMITTED")) {
-            reconciledSum += inv.amount;
-            return {
-              ...inv,
-              status: "PAID",
-              reconciledBy: partnerName || auth.userName || "CA Gunjan Jain",
-              reconciledAt: new Date().toISOString()
-            };
-          }
-          return inv;
-        });
-      }
-
-      // Unlock entity deliverables
-      db.payToReleaseConfigs[configIndex] = {
-        ...currentConfig,
-        isLocked: false,
-        totalOutstandingAmount: Math.max(0, currentConfig.totalOutstandingAmount - reconciledSum),
-        lockReason: `Bank credit verified for UTR ${utrRef || "RTGS"}. Deliverables released.`
-      };
-
-      await logAuditEvent(
-        partnerName || auth.userName || "CA Gunjan Jain",
-        "PARTNER",
-        clientName,
-        "UTR Bank Credit Reconciled",
-        `Verified bank credit for UTR ${utrRef}. ₹${reconciledSum.toLocaleString("en-IN")} cleared. Deliverables released.`,
-        "PAY_RELEASE"
-      );
-
-      await createNotification({
-        title: `Deliverables Released: ${clientName}`,
-        message: `Your payment via UTR ${utrRef} has been verified by the partner. All statutory audit deliverables are now available for download.`,
-        category: "BILLING",
-        priority: "HIGH",
-        targetRoles: ["CLIENT"],
-        entityId: entityId,
-        link: "/client",
-        actionLabel: "Download Documents"
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "NOTIFICATION",
+        payload: {
+          id: `NOTIF-UTR-${Date.now()}`,
+          title: `Payment UTR Submitted: ${clientName}`,
+          message: `${clientName} submitted UTR ${cleanUtr} via ${mode}. Please verify against firm bank statement before releasing deliverables.`,
+          category: "BILLING",
+          priority: "HIGH",
+          recipientRole: "PARTNER",
+          recipientEntityId: entityId,
+          targetTab: "pay-to-release",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        },
       });
 
-      await saveDatabase(db);
       return NextResponse.json({
         success: true,
-        message: "UTR reconciled and deliverables released",
-        config: db.payToReleaseConfigs[configIndex]
+        status: "UTR_SUBMITTED",
+        message: "UTR submitted successfully. Partner bank verification required before deliverables unlock.",
       });
     }
 
-    // ACTION 6: REJECT UTR (If bogus or not credited)
-    if (action === "REJECT_UTR") {
-      if (db.invoices) {
-        db.invoices = db.invoices.map((inv) => {
-          if (inv.entityId === entityId && (invoiceId ? inv.id === invoiceId : inv.status === "UTR_SUBMITTED")) {
-            return {
-              ...inv,
-              status: "OVERDUE",
-              clientPayerNote: `UTR Rejected: ${reason || "Credit not reflected in firm ICICI Bank account"}`
-            };
-          }
-          return inv;
-        });
-      }
+    // PARTNER-ONLY ACTIONS BELOW
+    if (action === "RECONCILE_UTR" || action === "INSTANT_PAYMENT_RELEASE") {
+      const actorUuid = auth.user?.id && UUID_REGEX.test(auth.user.id) ? auth.user.id : null;
+      const cleanUtr = typeof utrRef === "string" && utrRef.trim() ? utrRef.trim() : null;
+      const upd = invoiceId && UUID_REGEX.test(String(invoiceId))
+        ? await pool.query(
+            `UPDATE public.invoices
+             SET status = 'PAID',
+                 client_utr_number = COALESCE($1, client_utr_number),
+                 reconciled_by_id = $2,
+                 reconciled_at = now()
+             WHERE id = $3 AND firm_id = $4 AND entity_id = $5
+             RETURNING total_amount`,
+            [cleanUtr, actorUuid, invoiceId, firmId, entityId]
+          )
+        : await pool.query(
+            `UPDATE public.invoices
+             SET status = 'PAID',
+                 client_utr_number = COALESCE($1, client_utr_number),
+                 reconciled_by_id = $2,
+                 reconciled_at = now()
+             WHERE firm_id = $3 AND entity_id = $4 AND status IN ('UTR_SUBMITTED', 'PENDING', 'OVERDUE')
+             RETURNING total_amount`,
+            [cleanUtr, actorUuid, firmId, entityId]
+          );
 
-      await logAuditEvent(
-        partnerName || auth.userName || "CA Gunjan Jain",
-        "PARTNER",
-        clientName,
-        "UTR Reconciliation Rejected",
-        `Rejected UTR ${utrRef}. Reason: ${reason || "Bank credit mismatch"}. Deliverable lock maintained.`,
-        "PAY_RELEASE"
+      const reconciledSum = upd.rows.reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
+      const remRes = await pool.query(
+        "SELECT COALESCE(SUM(total_amount), 0)::numeric as remaining FROM public.invoices WHERE firm_id = $1 AND entity_id = $2 AND status <> 'PAID'",
+        [firmId, entityId]
       );
+      const remaining = Number(remRes.rows[0]?.remaining || 0);
 
-      await createNotification({
-        title: `Payment Verification Unsuccessful: ${clientName}`,
-        message: `The submitted UTR ${utrRef} could not be verified in the firm bank account. Reason: ${reason || "Credit mismatch"}. Deliverables remain gated.`,
-        category: "BILLING",
-        priority: "HIGH",
-        targetRoles: ["CLIENT"],
-        entityId: entityId,
-        link: "/client",
-        actionLabel: "View Bill"
+      currentConfig = {
+        ...currentConfig,
+        isLocked: remaining > 0 ? currentConfig.isLocked : false,
+        totalOutstandingAmount: remaining,
+        partnerOverrideUntil: null,
+        lockReason: `Verified settlement of ₹${reconciledSum.toLocaleString("en-IN")} by ${auth.userName || "Partner"}.`,
+      };
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "PAY_TO_RELEASE_CONFIG",
+        matchKey: "entityId",
+        matchValue: entityId,
+        payload: currentConfig,
       });
 
-      await saveDatabase(db);
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || "Firm Partner",
+        actorRole: "PARTNER",
+        entityId,
+        entityName: clientName,
+        action: "UTR Bank Credit Reconciled",
+        details: `Verified bank credit (₹${reconciledSum.toLocaleString("en-IN")}${cleanUtr ? `, UTR: ${cleanUtr}` : ""}). Deliverables released.`,
+        category: "PAY_RELEASE",
+      });
+
+      return NextResponse.json({ success: true, message: "Settlement verified and deliverables released.", config: currentConfig });
+    }
+
+    if (action === "REJECT_UTR") {
+      await pool.query(
+        `UPDATE public.invoices
+         SET status = 'OVERDUE',
+             client_payer_note = $1
+         WHERE firm_id = $2 AND entity_id = $3 AND status = 'UTR_SUBMITTED'`,
+        [`UTR Rejected: ${reason || "Credit not reflected in firm bank account"}`, firmId, entityId]
+      );
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || "Firm Partner",
+        actorRole: "PARTNER",
+        entityId,
+        entityName: clientName,
+        action: "UTR Reconciliation Rejected",
+        details: `Rejected UTR ${utrRef || ""}. Reason: ${reason || "Bank credit mismatch"}.`,
+        category: "PAY_RELEASE",
+      });
       return NextResponse.json({ success: true, message: "UTR rejected and client notified." });
     }
 
-    // ACTION 7: MANUAL TOGGLE LOCK
+    if (action === "PARTNER_OVERRIDE_UNLOCK") {
+      const hours = Number(durationHours) || 48;
+      const expiryDate = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+      currentConfig = {
+        ...currentConfig,
+        isLocked: false,
+        partnerOverrideUntil: expiryDate,
+        partnerOverrideReason: reason || "Emergency partner authorization",
+        partnerOverrideBy: auth.userName || "Managing Partner",
+        lockReason: `Partner Override by ${auth.userName || "Partner"} active until ${new Date(expiryDate).toLocaleString("en-IN")}.`,
+      };
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "PAY_TO_RELEASE_CONFIG",
+        matchKey: "entityId",
+        matchValue: entityId,
+        payload: currentConfig,
+      });
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || "Managing Partner",
+        actorRole: "PARTNER",
+        entityId,
+        entityName: clientName,
+        action: "Partner Lock Override (ICAI SA 210)",
+        details: `Authorized ${hours}h temporary unlock. Reason: ${reason || "Urgent deadline"}.`,
+        category: "PAY_RELEASE",
+      });
+      return NextResponse.json({ success: true, message: `Partner override active for ${hours} hours.`, config: currentConfig });
+    }
+
+    if (action === "APPLY_TDS_SETTLEMENT") {
+      const rate = typeof tdsRate === "number" ? tdsRate : 10;
+      const fullAmount = Number(amountPaid) || currentConfig.totalOutstandingAmount;
+      const settlement = computeTds194jSettlement(fullAmount, rate);
+      currentConfig = {
+        ...currentConfig,
+        appliedTdsRate: rate,
+        netPayableAmount: settlement.netPayableAmount,
+        lockReason: `Gross: ₹${fullAmount.toLocaleString("en-IN")} | TDS @${rate}% u/s 194J: ₹${settlement.tdsAmount.toLocaleString("en-IN")} | Net Payable: ₹${settlement.netPayableAmount.toLocaleString("en-IN")}`,
+      };
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "PAY_TO_RELEASE_CONFIG",
+        matchKey: "entityId",
+        matchValue: entityId,
+        payload: currentConfig,
+      });
+      return NextResponse.json({ success: true, settlement, config: currentConfig });
+    }
+
     if (action === "TOGGLE_LOCK") {
-      const currentConfig = db.payToReleaseConfigs[configIndex];
       const willLock = !currentConfig.isLocked;
-      db.payToReleaseConfigs[configIndex] = {
+      currentConfig = {
         ...currentConfig,
         isLocked: willLock,
         partnerOverrideUntil: null,
-        lockReason: willLock
-          ? `Manually locked by ${partnerName || "Partner"} pending fee settlement`
-          : "Unlocked by Partner"
+        lockReason: willLock ? `Manually locked by ${auth.userName || "Partner"}` : "Unlocked by Partner",
       };
-
-      await logAuditEvent(
-        partnerName || auth.userName || "CA Partner",
-        "PARTNER",
-        clientName,
-        willLock ? "Pay-to-Release Lock Enabled" : "Pay-to-Release Lock Disabled",
-        `Deliverables lock status toggled to: ${willLock ? "LOCKED" : "UNLOCKED"}`,
-        "PAY_RELEASE"
-      );
-
-      await saveDatabase(db);
-      return NextResponse.json({ success: true, config: db.payToReleaseConfigs[configIndex] });
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "PAY_TO_RELEASE_CONFIG",
+        matchKey: "entityId",
+        matchValue: entityId,
+        payload: currentConfig,
+      });
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || "Firm Partner",
+        actorRole: "PARTNER",
+        entityId,
+        entityName: clientName,
+        action: willLock ? "Pay-to-Release Lock Enabled" : "Pay-to-Release Lock Disabled",
+        details: `Deliverables lock status toggled to ${willLock ? "LOCKED" : "UNLOCKED"}.`,
+        category: "PAY_RELEASE",
+      });
+      return NextResponse.json({ success: true, config: currentConfig });
     }
 
-    // ACTION 8: UPDATE POLICY
     if (action === "UPDATE_POLICY") {
-      const days = gracePeriodDays || 30;
-      if (db.payToReleaseConfigs) {
-        db.payToReleaseConfigs = db.payToReleaseConfigs.map((c) => ({
-          ...c,
-          gracePeriodDays: days
-        }));
+      const days = Number(gracePeriodDays) || 30;
+      const allConfigs = await listWorkspaceRecords<PayToReleaseConfig>(firmId, "PAY_TO_RELEASE_CONFIG");
+      for (const rec of allConfigs) {
+        await upsertWorkspaceRecord({
+          firmId,
+          entityId: rec.entity_id,
+          recordType: "PAY_TO_RELEASE_CONFIG",
+          matchKey: "entityId",
+          matchValue: rec.payload.entityId,
+          payload: { ...rec.payload, gracePeriodDays: days },
+        });
       }
-
-      await logAuditEvent(
-        partnerName || auth.userName || "CA Gunjan Jain",
-        "PARTNER",
-        "Firmwide Practice",
-        "Lock Policy Threshold Updated",
-        `Grace period updated to ${days} days across practice.`,
-        "PAY_RELEASE"
-      );
-
-      await saveDatabase(db);
-      return NextResponse.json({ success: true, message: `Grace period policy updated to ${days} days` });
+      return NextResponse.json({ success: true, message: `Grace period policy updated to ${days} days.` });
     }
 
-    return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Invalid action." }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("POST /api/pay-to-release error:", error);
+    return NextResponse.json({ success: false, error: error.message || "Pay-to-Release operation failed." }, { status: 500 });
   }
 }

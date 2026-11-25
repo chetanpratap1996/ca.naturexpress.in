@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import { 
   PartnerRealizationMetrics, 
-  StaffDataSecurityAudit 
+  StaffDataSecurityAudit, 
+  InvoiceItem, 
+  ClientEntity 
 } from "@/lib/types";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import { 
@@ -42,20 +45,49 @@ const DEFAULT_PARTNER_METRICS: PartnerRealizationMetrics[] = [
 interface EnterpriseSecurityAndRealizationProps {
   partnerMetrics?: PartnerRealizationMetrics[];
   securityLogs?: StaffDataSecurityAudit[];
+  invoices?: InvoiceItem[];
+  clients?: ClientEntity[];
 }
 
 export function EnterpriseSecurityAndRealization({
   partnerMetrics = [],
   securityLogs = [],
+  invoices = [],
+  clients = [],
 }: EnterpriseSecurityAndRealizationProps) {
   const { selectedClient, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<"realization" | "security" | "dpdp">("realization");
   const [logs, setLogs] = useState<StaffDataSecurityAudit[]>(securityLogs);
 
-  const activeMetrics = partnerMetrics.length > 0 ? partnerMetrics : DEFAULT_PARTNER_METRICS;
+  const derivedFromInvoices: PartnerRealizationMetrics[] = React.useMemo(() => {
+    if (partnerMetrics.length > 0) return partnerMetrics;
+    const scopedInvoices = selectedClient && !isFirmWideView ? invoices.filter(i => i.entityId === selectedClient.id) : invoices;
+    const scopedClients = selectedClient && !isFirmWideView ? [selectedClient] : clients;
+    if (scopedInvoices.length === 0 && scopedClients.length === 0) return [];
+    const byPartner = new Map<string, PartnerRealizationMetrics>();
+    scopedClients.forEach(c => {
+      const p = c.partnerInCharge || "Managing Partner";
+      if (!byPartner.has(p)) byPartner.set(p, { partnerName: p, assignedClientsCount: 0, billableHoursThisMonth: 0, unbilledWipAmount: 0, billedThisMonth: 0, recoveredThisMonth: 0, realizationPercentage: 0, agingAbove90DaysAmount: 0, atRiskPenaltyClients: 0 });
+      const m = byPartner.get(p)!;
+      m.assignedClientsCount += 1;
+      if (c.penaltyRiskAccrued > 0) m.atRiskPenaltyClients += 1;
+    });
+    scopedInvoices.forEach(inv => {
+      const cl = clients.find(c => c.id === inv.entityId);
+      const p = cl?.partnerInCharge || "Managing Partner";
+      if (!byPartner.has(p)) byPartner.set(p, { partnerName: p, assignedClientsCount: 0, billableHoursThisMonth: 0, unbilledWipAmount: 0, billedThisMonth: 0, recoveredThisMonth: 0, realizationPercentage: 0, agingAbove90DaysAmount: 0, atRiskPenaltyClients: 0 });
+      const m = byPartner.get(p)!;
+      m.billedThisMonth += inv.amount;
+      if (inv.status === "PAID") m.recoveredThisMonth += inv.amount;
+      else m.unbilledWipAmount += inv.amount;
+    });
+    byPartner.forEach(m => { m.realizationPercentage = m.billedThisMonth > 0 ? Number(((m.recoveredThisMonth / m.billedThisMonth) * 100).toFixed(1)) : 0; });
+    return Array.from(byPartner.values());
+  }, [partnerMetrics, invoices, clients, selectedClient, isFirmWideView]);
+  const activeMetrics = derivedFromInvoices;
   const totalBilled = activeMetrics.reduce((sum, p) => sum + p.billedThisMonth, 0);
   const totalRecovered = activeMetrics.reduce((sum, p) => sum + p.recoveredThisMonth, 0);
-  const firmRealizationRate = totalBilled > 0 ? ((totalRecovered / totalBilled) * 100).toFixed(1) : "90.0";
+  const firmRealizationRate = totalBilled > 0 ? ((totalRecovered / totalBilled) * 100).toFixed(1) : "0.0";
   const totalWipFirm = activeMetrics.reduce((sum, p) => sum + p.unbilledWipAmount, 0);
 
   const handleExportAuditLog = () => {

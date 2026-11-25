@@ -216,7 +216,8 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
     try {
       await fetch("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           title: `Document Request: ${task.title} (${task.period})`,
           message: `Pending documents for ${task.entityName}: ${(task.missingDocumentsList || []).join(", ") || "Financial ledgers & vouchers"}. Statutory filing deadline is ${formatDate(task.dueDate)}. Please upload via portal.`,
@@ -266,7 +267,8 @@ export const StatutoryCalendar: React.FC<StatutoryCalendarProps> = ({
       try {
         await fetch("/api/notifications", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             title: `Statutory Reminder: ${t.title} Due on ${formatDate(t.dueDate)}`,
             message: `Urgent: ${t.missingDocumentsCount} document(s) pending for ${t.entityName} (${(t.missingDocumentsList || []).join(", ") || "financial vouchers"}). Please upload to Client Portal to ensure timely filing and avoid statutory penalty.`,

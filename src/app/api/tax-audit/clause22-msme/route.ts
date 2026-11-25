@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { Clause22MsmeEngine, MsmeCreditorInvoiceItem } from "@/lib/taxAudit/clause22MsmeEngine";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
     const pan = searchParams.get("pan") || "AABCA8891D";
@@ -90,6 +93,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const { assesseeName, pan, financialYear, assessmentYear, invoices, rbiBankRatePcnt } = body;

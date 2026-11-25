@@ -58,12 +58,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   onStatusChange,
   isSandbox = false
 }) => {
-  // Use realistic demo fallback if arrays are empty, ensuring the dashboard is never a blank zero-state
-  const effectiveTasks = useMemo(() => tasks.length > 0 ? tasks : SANDBOX_TASKS, [tasks]);
-  const effectiveInvoices = useMemo(() => invoices.length > 0 ? invoices : SANDBOX_INVOICES, [invoices]);
-  const effectiveNotices = useMemo(() => notices.length > 0 ? notices : SANDBOX_NOTICES, [notices]);
-  const effectiveClients = useMemo(() => clients.length > 0 ? clients : SANDBOX_CLIENTS, [clients]);
-  const effectiveGroups = useMemo(() => groups.length > 0 ? groups : SANDBOX_GROUPS, [groups]);
+  // Only use SANDBOX fallback data when explicitly in sandbox mode; live mode shows real counts
+  const effectiveTasks = useMemo(() => (isSandbox && tasks.length === 0 ? SANDBOX_TASKS : tasks), [isSandbox, tasks]);
+  const effectiveInvoices = useMemo(() => (isSandbox && invoices.length === 0 ? SANDBOX_INVOICES : invoices), [isSandbox, invoices]);
+  const effectiveNotices = useMemo(() => (isSandbox && notices.length === 0 ? SANDBOX_NOTICES : notices), [isSandbox, notices]);
+  const effectiveClients = useMemo(() => (isSandbox && clients.length === 0 ? SANDBOX_CLIENTS : clients), [isSandbox, clients]);
+  const effectiveGroups = useMemo(() => (isSandbox && groups.length === 0 ? SANDBOX_GROUPS : groups), [isSandbox, groups]);
 
   // Filters for operational lists
   const [noticeFilter, setNoticeFilter] = useState<"ALL" | "INCOME_TAX" | "GST">("ALL");

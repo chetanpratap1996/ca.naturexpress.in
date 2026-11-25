@@ -26,10 +26,10 @@ import {
 import { playSoftClick, playSuccessChime } from "@/lib/audio/soundEffects";
 import { toast } from "@/components/shared/ToastNotification";
 import {
+  EMPTY_HEARTBEAT_STATE,
   PracticeHeartbeatState,
   PracticeExceptionItem,
-  getPracticeHeartbeatState
-} from "@/lib/autopilot/practiceHeartbeatEngine";
+} from "@/lib/automation/autopilotTypes";
 
 interface AutonomousPracticeCockpitProps {
   onNavigateTab?: (tabId: string) => void;
@@ -44,15 +44,16 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
 
   const fetchHeartbeat = async () => {
     try {
-      const res = await fetch("/api/practice/heartbeat");
-      const json = await res.json();
-      if (json.success) {
+      const res = await fetch("/api/practice/heartbeat", { credentials: "include" });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success && json.data) {
         setState(json.data);
       } else {
-        setState(getPracticeHeartbeatState());
+        setState(EMPTY_HEARTBEAT_STATE);
+        toast.error("Heartbeat Unavailable", json.error || `HTTP ${res.status}`);
       }
     } catch {
-      setState(getPracticeHeartbeatState());
+      setState(EMPTY_HEARTBEAT_STATE);
     } finally {
       setLoading(false);
     }
@@ -69,16 +70,19 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
       const res = await fetch("/api/practice/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "RUN_GLOBAL_SWEEP" }),
       });
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success && json.data?.state) {
         setState(json.data.state);
         playSuccessChime();
-        toast.success("Global Autonomous Practice Sweep executed across all 15 modules!");
+        toast.success(json.data.message || "PostgreSQL Autonomous Practice Sweep executed!");
+      } else {
+        toast.error("Sweep Denied", json.error || `HTTP ${res.status}`);
       }
     } catch {
-      toast.error("Sweep failed. Retrying...");
+      toast.error("Sweep failed. Please check connection.");
     } finally {
       setIsSweeping(false);
     }
@@ -91,13 +95,17 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
       const res = await fetch("/api/practice/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "BATCH_APPROVE_CLEAN" }),
       });
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
+        if (json.data?.state) setState(json.data.state);
+        else await fetchHeartbeat();
         playSuccessChime();
-        toast.success(`1-Click Batch Approved: ${json.data.approvalResult.approvedCount} clean returns dispatched to clients via WhatsApp!`);
-        fetchHeartbeat();
+        toast.success(json.data?.message || `Approved ${json.data?.approvalResult?.approvedCount || 0} clean returns.`);
+      } else {
+        toast.error("Batch Approval Denied", json.error || `HTTP ${res.status}`);
       }
     } catch {
       toast.error("Batch approval failed");
@@ -113,16 +121,19 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
       const res = await fetch("/api/practice/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "RESOLVE_EXCEPTION",
           exceptionId: exception.id,
         }),
       });
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
         playSuccessChime();
-        toast.success(`Resolved ${exception.title}: Action dispatched automatically!`);
-        if (state) {
+        toast.success(json.data?.message || `Resolved ${exception.title}`);
+        if (json.data?.state) {
+          setState(json.data.state);
+        } else if (state) {
           setState({
             ...state,
             exceptions: state.exceptions.map((e) =>
@@ -130,6 +141,8 @@ export function AutonomousPracticeCockpit({ onNavigateTab }: AutonomousPracticeC
             ),
           });
         }
+      } else {
+        toast.error("Resolution Failed", json.error || `HTTP ${res.status}`);
       }
     } catch {
       toast.error("Failed to resolve exception");

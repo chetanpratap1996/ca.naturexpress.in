@@ -83,7 +83,15 @@ export async function lookupGstin(rawGstin: string): Promise<GstLookupResponse> 
   }
 
   // Step 3: Call Live API
-  const apiKey = process.env.GSTIN_API_KEY || "gak_a23317e2eb7b4ba4a0fae0b6f6c8b618";
+  const apiKey = process.env.GSTIN_API_KEY;
+  if (!apiKey) {
+    return {
+      success: false,
+      validation,
+      error: "GSTIN_API_KEY is not configured on the server. Offline Mod-36 checksum validation passed.",
+      offlineOnly: true
+    };
+  }
   const baseUrl = process.env.GSTIN_API_BASE_URL || "https://www.gstinapi.in/v1";
 
   try {
@@ -170,9 +178,12 @@ export async function lookupGstReturns(rawGstin: string, fy?: string) {
     return { success: false, error: validation.error };
   }
 
-  const apiKey = process.env.GSTIN_API_KEY || "gak_a23317e2eb7b4ba4a0fae0b6f6c8b618";
+  const apiKey = process.env.GSTIN_API_KEY;
+  if (!apiKey) {
+    return { success: false, error: "GSTIN_API_KEY is not configured on the server." };
+  }
   const baseUrl = process.env.GSTIN_API_BASE_URL || "https://www.gstinapi.in/v1";
-  const targetFy = fy || "2024-25";
+  const targetFy = fy || "2025-26";
 
   try {
     const res = await fetch(`${baseUrl}/gstin/${validation.cleanGstin}/returns?fy=${targetFy}`, {
@@ -199,7 +210,10 @@ export async function fetchGstr2bFromApi(params: {
     return { success: false, error: validation.error };
   }
 
-  const apiKey = process.env.GSTIN_API_KEY || "gak_a23317e2eb7b4ba4a0fae0b6f6c8b618";
+  const apiKey = process.env.GSTIN_API_KEY;
+  if (!apiKey) {
+    return { success: false, error: "GSTIN_API_KEY is not configured on the server." };
+  }
   const baseUrl = process.env.GSTIN_API_BASE_URL || "https://www.gstinapi.in/v1";
 
   try {

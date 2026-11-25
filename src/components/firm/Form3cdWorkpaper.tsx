@@ -5,6 +5,8 @@ import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 import { Form3cdUploadModal, ExtractedTaxAuditData } from "./Form3cdUploadModal";
 import { Form3caReportModal } from "./Form3caReportModal";
 import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
@@ -414,7 +416,8 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
   clients = [],
   onPushToItr
 }) => {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7");
+  const { selectedClient, isFirmWideView, selectedFy, selectedAy } = useClientContext();
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [activeSuite, setActiveSuite] = useState<"clauses_master" | "clause44_engine" | "clause22_msme" | "clause34_tds">("clauses_master");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [search, setSearch] = useState("");
@@ -451,7 +454,7 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
       pan: activeProfile.pan,
       financialYear: activeProfile.financialYear,
       assessmentYear: activeProfile.assessmentYear,
-      ledgers: INITIAL_CLAUSE44_LEDGERS
+      ledgers: []
     });
   }, [activeProfile]);
 
@@ -462,7 +465,7 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
       pan: activeProfile.pan,
       financialYear: activeProfile.financialYear,
       assessmentYear: activeProfile.assessmentYear,
-      invoices: INITIAL_MSME_INVOICES
+      invoices: []
     });
   }, [activeProfile]);
 
@@ -470,10 +473,10 @@ export const Form3cdWorkpaper: React.FC<Form3cdWorkpaperProps> = ({
   const clause34Report = useMemo<Clause34Report>(() => {
     return Clause34TdsEngine.auditTdsCompliance({
       assesseeName: activeProfile.clientName,
-      tan: "BPLR01492E",
+      tan: currentEntity?.tan || "",
       financialYear: activeProfile.financialYear,
       assessmentYear: activeProfile.assessmentYear,
-      transactions: INITIAL_TDS_TRANSACTIONS
+      transactions: []
     });
   }, [activeProfile]);
 

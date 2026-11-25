@@ -44,34 +44,34 @@ import {
 import { 
   Ben2SboDetectorEngine, 
   ShareholderTierNode, 
-  SignificantBeneficialOwnerItem, 
-  SAMPLE_SHAREHOLDERS_REGISTER 
+  SignificantBeneficialOwnerItem
 } from '@/lib/mca/ben2SboDetectorEngine';
 import { toast } from '@/components/shared/ToastNotification';
 import { useClientContext } from '@/lib/context/ClientContext';
 import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
+import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
 
 export function PillarSixMcaEnterpriseWorkbench() {
   const { selectedClient, selectedFy, isFirmWideView } = useClientContext();
 
-  const activeCompanyName = selectedClient && !isFirmWideView ? selectedClient.name : 'Pratwi Solutions Private Limited';
-  const activeCin = selectedClient && !isFirmWideView && selectedClient.cin ? selectedClient.cin : 'U72200MP2020PTC051234';
+  const activeCompanyName = selectedClient && !isFirmWideView ? (selectedClient.tradeName || selectedClient.name) : '';
+  const activeCin = selectedClient && !isFirmWideView && selectedClient.cin ? selectedClient.cin : '';
 
   const [activeTab, setActiveTab] = useState<
     'DPT_3_DEPOSITS' | 'MSME_1_RETURN' | 'DIR3_KYC_GUARDIAN' | 'MINUTE_BOOK_AGM' | 'BEN2_SBO_DETECTOR'
   >('DPT_3_DEPOSITS');
 
   // Sub-Engine 1: Form DPT-3 State
-  const [dpt3Items, setDpt3Items] = useState<Dpt3LiabilityItem[]>(SAMPLE_DPT3_LIABILITIES);
+  const [dpt3Items, setDpt3Items] = useState<Dpt3LiabilityItem[]>([]);
   const dpt3Summary: Dpt3FilingSummary = Dpt3DepositEngine.evaluateDpt3Liabilities(dpt3Items, {
     cin: activeCin,
     companyName: activeCompanyName,
     financialYear: selectedFy || '2025-26',
-    netWorth: 85000000 // ₹8.5 Cr net worth
+    netWorth: 0
   });
 
   // Sub-Engine 2: Form MSME-1 State
-  const [msme1Items, setMsme1Items] = useState<Msme1SupplierDueRecord[]>(SAMPLE_MSME1_RECORDS);
+  const [msme1Items, setMsme1Items] = useState<Msme1SupplierDueRecord[]>([]);
   const msme1Summary: Msme1FilingSummary = Msme1HalfYearlyEngine.compileMsme1Return(msme1Items, {
     cin: activeCin,
     companyName: activeCompanyName,
@@ -80,15 +80,15 @@ export function PillarSixMcaEnterpriseWorkbench() {
   });
 
   // Sub-Engine 3: Director KYC State
-  const [directors, setDirectors] = useState<DirectorKycItem[]>(SAMPLE_DIRECTOR_KYC_DATA);
+  const [directors, setDirectors] = useState<DirectorKycItem[]>([]);
   const kycTelemetry = Dir3KycGuardianEngine.evaluateDirectorKyc(directors, '2026-11-20');
 
   // Sub-Engine 4: Secretarial Minutes & SS-1/SS-2 State
-  const [meetings, setMeetings] = useState<MinuteBookMeetingItem[]>(SAMPLE_MEETINGS_DATA);
-  const [selectedMeeting, setSelectedMeeting] = useState<MinuteBookMeetingItem>(SAMPLE_MEETINGS_DATA[0]);
+  const [meetings, setMeetings] = useState<MinuteBookMeetingItem[]>([]);
+  const [selectedMeeting, setSelectedMeeting] = useState<MinuteBookMeetingItem | null>(null);
 
   // Sub-Engine 5: Form BEN-2 SBO State
-  const [shareholders, setShareholders] = useState<ShareholderTierNode[]>(SAMPLE_SHAREHOLDERS_REGISTER);
+  const [shareholders, setShareholders] = useState<ShareholderTierNode[]>([]);
   const detectedSbos: SignificantBeneficialOwnerItem[] = Ben2SboDetectorEngine.detectSignificantBeneficialOwners(shareholders);
 
   // Handlers
@@ -532,13 +532,13 @@ export function PillarSixMcaEnterpriseWorkbench() {
         </div>
       )}
 
-      {/* TAB 3: Director KYC (DIR-3 KYC) Guardian */}
+      {/* TAB 3: Director KYC (DIR-3 KYC) Tracker */}
       {activeTab === 'DIR3_KYC_GUARDIAN' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <span>Director KYC (DIR-3 KYC &amp; Web KYC) Annual 30th Sep Guardian</span>
+                <span>Director KYC (DIR-3 KYC &amp; Web KYC) Annual 30th Sep Tracker</span>
               </h3>
               <p className="text-xs text-slate-500">
                 Monitors annual statutory deadline, flags deactivation risk under Rule 12A, and dispatches 1-click magic links.

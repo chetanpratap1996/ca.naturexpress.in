@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CorporateScraperEngine } from "@/lib/intelligence/scraper/corporateScraper";
 import { LeadStore } from "@/lib/intelligence/store/leadStore";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
@@ -32,6 +35,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const { cin, gstin, legalName, stateCode, city, directors, phone, email, website, autoCommit } = body;

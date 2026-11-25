@@ -1,21 +1,23 @@
 /**
- * GST IMS (Invoice Management System) & Rule 37A Reversal Engine
- * 
+ * GST IMS (Invoice Management System) & Rule 37 / 37A Reversal Engine
+ *
  * Statutory Authority:
- * - GSTN Advisory on Invoice Management System (IMS) w.e.f. October 2024 / 2025
- * - Section 16(2)(c) read with Rule 37A of CGST Rules (ITC reversal for vendor GSTR-3B non-filing)
- * - Section 50(1) interest exemption upon statutory Rule 37A re-claim
+ * - GSTN IMS Advisory (Accept / Reject / Pending / Deemed Accepted on 14th cutoff)
+ * - Section 16(2)(c) & Rule 37A (ITC reversal where supplier GSTR-3B unfiled past 30th Nov)
+ * - Second Proviso to Section 16(2) & Rule 37 (ITC reversal if supplier unpaid > 180 days)
  */
 
-export type ImsActionType = 'ACCEPT' | 'REJECT' | 'PENDING' | 'NO_ACTION';
-export type InvoiceType = 'B2B' | 'B2BA' | 'CDNR' | 'CDNRA';
+import { getRule37aDeadlineForFy } from "@/lib/gst/gstClientFetch";
+
+export type ImsActionType = "ACCEPT" | "REJECT" | "PENDING" | "NO_ACTION";
+export type InvoiceType = "B2B" | "B2BA" | "CDNR" | "CDNRA" | "ISD" | "ISDA";
 
 export interface ImsInvoiceItem {
   id: string;
   supplierGstin: string;
   supplierTradeName: string;
   invoiceNumber: string;
-  originalInvoiceNumber?: string; // For amendment (B2BA / CDNRA)
+  originalInvoiceNumber?: string;
   invoiceType: InvoiceType;
   invoiceDate: string;
   taxableValue: number;
@@ -25,16 +27,14 @@ export interface ImsInvoiceItem {
   cess: number;
   totalTax: number;
   posStateCode: string;
-  itcEligibility: 'ELIGIBLE' | 'INELIGIBLE_17_5' | 'POS_MISMATCH';
-  
-  // Purchase Register Cross-Match Status
-  matchingStatus: 'EXACT_MATCH' | 'VALUE_MISMATCH' | 'NOT_IN_BOOKS' | 'DUPLICATE_IN_PORTAL';
+  itcEligibility: "ELIGIBLE" | "INELIGIBLE_17_5" | "POS_MISMATCH";
+
+  matchingStatus: "EXACT_MATCH" | "VALUE_MISMATCH" | "NOT_IN_BOOKS" | "DUPLICATE_IN_PORTAL";
   bookInvoiceNumber?: string;
   bookTaxableValue?: number;
   bookTotalTax?: number;
   varianceAmount?: number;
 
-  // IMS State
   currentAction: ImsActionType;
   recommendedAction: ImsActionType;
   recommendationReason: string;
@@ -44,6 +44,7 @@ export interface ImsInvoiceItem {
 
 export interface Rule37ARecord {
   id: string;
+  ruleType?: "RULE_37A" | "RULE_37_180D";
   supplierGstin: string;
   supplierName: string;
   invoiceNumber: string;
@@ -51,12 +52,12 @@ export interface Rule37ARecord {
   invoiceDate: string;
   itcClaimedAmount: number;
   supplierGstr1FiledDate: string;
-  supplierGstr3bStatus: 'FILED' | 'NOT_FILED';
-  reversalDeadline: string; // 30th November of subsequent FY
-  reversalStatus: 'PENDING_REVERSAL' | 'REVERSED_TABLE_4B2' | 'RE_CLAIMED_TABLE_4A5';
+  supplierGstr3bStatus: "FILED" | "NOT_FILED";
+  reversalDeadline: string; // 30th November of subsequent FY (or 180 days from invoice)
+  reversalStatus: "PENDING_REVERSAL" | "REVERSED_TABLE_4B2" | "RE_CLAIMED_TABLE_4A5";
   reversalDate?: string;
   reClaimDate?: string;
-  interestExposure: number; // ₹0 if reversed on or before 30th Nov; 18% p.a. u/s 50 if delayed
+  interestExposure: number;
   vendorNotified: boolean;
   vendorLastReminderDate?: string;
 }
@@ -70,259 +71,285 @@ export interface ImsSummaryStats {
   pendingCount: number;
   pendingItc: number;
   noActionCount: number;
+  noActionItc: number;
+  deemed2bItc: number; // Accepted + No Action (Deemed Accepted)
   rule37aAtRiskCount: number;
   rule37aAtRiskAmount: number;
 }
 
 export class GstImsEngine {
   /**
-   * Evaluates IMS recommended action based on purchase register comparison
+   * Returns allowed GSTN IMS actions and advisory note per document type.
    */
-  public static evaluateRecommendation(inv: Partial<ImsInvoiceItem>): { action: ImsActionType; reason: string } {
-    if (inv.matchingStatus === 'EXACT_MATCH' && inv.itcEligibility === 'ELIGIBLE') {
+  public static getActionConstraint(invoiceType: InvoiceType): {
+    allowPending: boolean;
+    warning?: string;
+  } {
+    if (invoiceType === "ISD" || invoiceType === "ISDA") {
       return {
-        action: 'ACCEPT',
-        reason: 'Exact match with Books of Accounts and verified supplier status. Safe to accept for GSTR-2B ITC inclusion.'
+        allowPending: false,
+        warning: "ISD credits cannot be kept Pending in IMS (Accept or Reject only).",
       };
     }
-
-    if (inv.matchingStatus === 'NOT_IN_BOOKS') {
+    if (invoiceType === "CDNR") {
       return {
-        action: 'PENDING',
-        reason: 'Invoice not found in Purchase Register. Keep PENDING until verified by store/procurement team to prevent undue liability.'
+        allowPending: false,
+        warning: "Original Credit Notes cannot be kept Pending if ITC was already claimed; Reject increases supplier liability.",
       };
     }
+    return { allowPending: true };
+  }
 
-    if (inv.matchingStatus === 'VALUE_MISMATCH' && Math.abs(inv.varianceAmount || 0) > 5) {
+  public static evaluateRecommendation(inv: Partial<ImsInvoiceItem>): {
+    action: ImsActionType;
+    reason: string;
+  } {
+    if (inv.matchingStatus === "EXACT_MATCH" && inv.itcEligibility === "ELIGIBLE") {
       return {
-        action: 'REJECT',
-        reason: `Value variance of ₹${Math.abs(inv.varianceAmount || 0).toFixed(2)} exceeds threshold. Reject so supplier issues amendment in GSTR-1.`
+        action: "ACCEPT",
+        reason: "Exact match with Purchase Register. Safe to accept into GSTR-2B.",
       };
     }
-
-    if (inv.itcEligibility === 'INELIGIBLE_17_5') {
+    if (inv.matchingStatus === "NOT_IN_BOOKS") {
+      const constraint = this.getActionConstraint((inv.invoiceType as InvoiceType) || "B2B");
+      if (!constraint.allowPending) {
+        return {
+          action: "REJECT",
+          reason: `Not in Books and ${inv.invoiceType} cannot be kept Pending under GSTN IMS rules.`,
+        };
+      }
       return {
-        action: 'ACCEPT',
-        reason: 'Invoice is valid but blocked u/s 17(5). Accept to account in 3B, then reverse in Table 4(B)(1) to maintain audit trail.'
+        action: "PENDING",
+        reason: "Not in Purchase Register. Keep Pending to defer ITC until receipt/verification.",
       };
     }
-
+    if (inv.matchingStatus === "VALUE_MISMATCH" && Math.abs(inv.varianceAmount || 0) > 5) {
+      return {
+        action: "REJECT",
+        reason: `Variance of ₹${Math.abs(inv.varianceAmount || 0).toFixed(2)} exceeds tolerance. Reject for supplier amendment.`,
+      };
+    }
+    if (inv.itcEligibility === "INELIGIBLE_17_5") {
+      return {
+        action: "ACCEPT",
+        reason: "Valid invoice blocked u/s 17(5). Accept in IMS and reverse in GSTR-3B Table 4(B)(1).",
+      };
+    }
     return {
-      action: 'PENDING',
-      reason: 'Under review by tax article.'
+      action: "NO_ACTION",
+      reason: "Review before 14th cutoff; No Action is Deemed Accepted by GSTN.",
     };
   }
 
-  /**
-   * Rule 37A Checker
-   * Validates if ITC claimed in FY 2024-25 needs reversal due to supplier not filing GSTR-3B by 30th Nov 2025
-   */
-  public static evaluateRule37A(records: Rule37ARecord[], currentDate: string = '2026-11-20'): Rule37ARecord[] {
+  public static evaluateRule37A(
+    records: Rule37ARecord[],
+    currentDate: string = new Date().toISOString().split("T")[0]
+  ): Rule37ARecord[] {
     const curr = new Date(currentDate);
 
-    return records.map(rec => {
-      const deadline = new Date(rec.reversalDeadline);
+    return records.map((rec) => {
+      const computedDeadline =
+        rec.reversalDeadline ||
+        (rec.ruleType === "RULE_37_180D" && rec.invoiceDate
+          ? new Date(new Date(rec.invoiceDate).getTime() + 180 * 86400000).toISOString().split("T")[0]
+          : getRule37aDeadlineForFy(rec.financialYear));
+
+      const deadline = new Date(computedDeadline);
       let interest = 0;
 
-      if (rec.supplierGstr3bStatus === 'NOT_FILED') {
-        if (curr > deadline && rec.reversalStatus === 'PENDING_REVERSAL') {
-          // Delayed beyond 30th November: interest @ 18% p.a. runs from 1st December until reversal
-          const daysLate = Math.floor((curr.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
-          interest = Math.round((rec.itcClaimedAmount * 0.18 * daysLate) / 365);
-        }
+      const isActiveDefault =
+        rec.ruleType === "RULE_37_180D"
+          ? rec.reversalStatus === "PENDING_REVERSAL"
+          : rec.supplierGstr3bStatus === "NOT_FILED" && rec.reversalStatus === "PENDING_REVERSAL";
+
+      if (isActiveDefault && !isNaN(deadline.getTime()) && curr > deadline) {
+        const daysLate = Math.floor((curr.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
+        interest = Math.round((rec.itcClaimedAmount * 0.18 * daysLate) / 365);
       }
 
       return {
         ...rec,
-        interestExposure: interest
+        reversalDeadline: computedDeadline,
+        interestExposure: interest,
       };
     });
   }
 
-  /**
-   * Computes IMS Summary Statistics
-   */
-  public static computeSummary(invoices: ImsInvoiceItem[], rule37aRecords: Rule37ARecord[]): ImsSummaryStats {
+  public static computeSummary(
+    invoices: ImsInvoiceItem[],
+    rule37aRecords: Rule37ARecord[]
+  ): ImsSummaryStats {
     let acceptedItc = 0;
     let rejectedItc = 0;
     let pendingItc = 0;
+    let noActionItc = 0;
     let acceptedCount = 0;
     let rejectedCount = 0;
     let pendingCount = 0;
     let noActionCount = 0;
 
     for (const inv of invoices) {
-      if (inv.currentAction === 'ACCEPT') {
+      const sign = inv.invoiceType === "CDNR" ? -1 : 1;
+      const amt = inv.totalTax * sign;
+      if (inv.currentAction === "ACCEPT") {
         acceptedCount++;
-        acceptedItc += inv.totalTax;
-      } else if (inv.currentAction === 'REJECT') {
+        acceptedItc += amt;
+      } else if (inv.currentAction === "REJECT") {
         rejectedCount++;
-        rejectedItc += inv.totalTax;
-      } else if (inv.currentAction === 'PENDING') {
+        rejectedItc += amt;
+      } else if (inv.currentAction === "PENDING") {
         pendingCount++;
-        pendingItc += inv.totalTax;
+        pendingItc += amt;
       } else {
         noActionCount++;
+        noActionItc += amt;
       }
     }
 
-    const atRisk37a = rule37aRecords.filter(r => r.supplierGstr3bStatus === 'NOT_FILED');
-    const atRiskAmount = atRisk37a.reduce((sum, r) => sum + r.itcClaimedAmount, 0);
+    const atRisk = rule37aRecords.filter(
+      (r) => r.reversalStatus === "PENDING_REVERSAL" && (r.supplierGstr3bStatus === "NOT_FILED" || r.ruleType === "RULE_37_180D")
+    );
+    const atRiskAmount = atRisk.reduce((sum, r) => sum + r.itcClaimedAmount, 0);
 
     return {
       totalInvoices: invoices.length,
       acceptedCount,
-      acceptedItc,
+      acceptedItc: Math.round(acceptedItc * 100) / 100,
       rejectedCount,
-      rejectedItc,
+      rejectedItc: Math.round(rejectedItc * 100) / 100,
       pendingCount,
-      pendingItc,
+      pendingItc: Math.round(pendingItc * 100) / 100,
       noActionCount,
-      rule37aAtRiskCount: atRisk37a.length,
-      rule37aAtRiskAmount: atRiskAmount
+      noActionItc: Math.round(noActionItc * 100) / 100,
+      deemed2bItc: Math.round((acceptedItc + noActionItc) * 100) / 100,
+      rule37aAtRiskCount: atRisk.length,
+      rule37aAtRiskAmount: Math.round(atRiskAmount * 100) / 100,
+    };
+  }
+
+  /**
+   * Parses GSTN IMS JSON export (supports b2b, b2ba, cdnr, cdnra, or normalized array).
+   */
+  public static parseImsJson(rawText: string): ImsInvoiceItem[] {
+    const parsed = JSON.parse(rawText);
+    const items: ImsInvoiceItem[] = [];
+    const root = parsed?.data || parsed;
+
+    const pushItem = (raw: any, docType: InvoiceType, idx: number, ctin?: string, trdnm?: string) => {
+      const igst = Number(raw.igst ?? raw.iamt ?? 0);
+      const cgst = Number(raw.cgst ?? raw.camt ?? 0);
+      const sgst = Number(raw.sgst ?? raw.samt ?? 0);
+      const cess = Number(raw.cess ?? raw.csamt ?? 0);
+      const totalTax = Math.round((igst + cgst + sgst + cess) * 100) / 100;
+      const actionMap: Record<string, ImsActionType> = {
+        A: "ACCEPT",
+        ACCEPT: "ACCEPT",
+        R: "REJECT",
+        REJECT: "REJECT",
+        P: "PENDING",
+        PENDING: "PENDING",
+        N: "NO_ACTION",
+        NO_ACTION: "NO_ACTION",
+      };
+      const curAction = actionMap[String(raw.action || raw.ims_action || "N").toUpperCase()] || "NO_ACTION";
+      const rec = this.evaluateRecommendation({
+        invoiceType: docType,
+        matchingStatus: raw.matchingStatus || "NOT_IN_BOOKS",
+        itcEligibility: raw.itcEligibility || "ELIGIBLE",
+        varianceAmount: raw.varianceAmount || 0,
+      });
+
+      items.push({
+        id: raw.id || `IMS-${docType}-${idx}`,
+        supplierGstin: (raw.supplierGstin || raw.ctin || ctin || "").toUpperCase(),
+        supplierTradeName: raw.supplierTradeName || raw.trdnm || trdnm || ctin || "Supplier",
+        invoiceNumber: String(raw.invoiceNumber || raw.inum || raw.ntnum || `INV-${idx}`),
+        invoiceType: docType,
+        invoiceDate: raw.invoiceDate || raw.dt || "",
+        taxableValue: Number(raw.taxableValue ?? raw.txval ?? 0),
+        igst,
+        cgst,
+        sgst,
+        cess,
+        totalTax,
+        posStateCode: String(raw.posStateCode || raw.pos || ""),
+        itcEligibility: raw.itcEligibility || "ELIGIBLE",
+        matchingStatus: raw.matchingStatus || "NOT_IN_BOOKS",
+        bookTaxableValue: raw.bookTaxableValue,
+        bookTotalTax: raw.bookTotalTax,
+        varianceAmount: raw.varianceAmount,
+        currentAction: curAction,
+        recommendedAction: rec.action,
+        recommendationReason: rec.reason,
+      });
+    };
+
+    if (Array.isArray(root)) {
+      root.forEach((r, idx) => pushItem(r, r.invoiceType || "B2B", idx + 1));
+      return items;
+    }
+
+    let idx = 1;
+    const sections: Array<[string, InvoiceType]> = [
+      ["b2b", "B2B"],
+      ["b2ba", "B2BA"],
+      ["cdnr", "CDNR"],
+      ["cdnra", "CDNRA"],
+      ["isd", "ISD"],
+    ];
+    for (const [key, docType] of sections) {
+      const list = root[key];
+      if (!Array.isArray(list)) continue;
+      for (const entry of list) {
+        if (Array.isArray(entry.inv)) {
+          for (const inv of entry.inv) pushItem(inv, docType, idx++, entry.ctin, entry.trdnm);
+        } else if (Array.isArray(entry.nt)) {
+          for (const nt of entry.nt) pushItem(nt, docType, idx++, entry.ctin, entry.trdnm);
+        } else {
+          pushItem(entry, docType, idx++, entry.ctin, entry.trdnm);
+        }
+      }
+    }
+    return items;
+  }
+
+  /**
+   * Generates GSTN IMS Action Upload JSON payload.
+   */
+  public static buildGstnActionUploadPayload(
+    gstin: string,
+    returnPeriod: string,
+    invoices: ImsInvoiceItem[]
+  ) {
+    const codeMap: Record<ImsActionType, string> = {
+      ACCEPT: "A",
+      REJECT: "R",
+      PENDING: "P",
+      NO_ACTION: "N",
+    };
+
+    const grouped: Record<string, any[]> = { b2b: [], b2ba: [], cdnr: [], cdnra: [], isd: [] };
+    for (const inv of invoices) {
+      const key = inv.invoiceType.toLowerCase();
+      const bucket = grouped[key] || grouped.b2b;
+      bucket.push({
+        ctin: inv.supplierGstin,
+        inum: inv.invoiceNumber,
+        idt: inv.invoiceDate,
+        txval: inv.taxableValue,
+        iamt: inv.igst,
+        camt: inv.cgst,
+        samt: inv.sgst,
+        csamt: inv.cess,
+        action: codeMap[inv.currentAction],
+      });
+    }
+
+    return {
+      gstin,
+      rtnprd: returnPeriod,
+      generatedAt: new Date().toISOString(),
+      imsActions: grouped,
     };
   }
 }
-
-/**
- * High-Value Production Mock Data for Institutional Testing
- */
-export const SAMPLE_IMS_INVOICES: ImsInvoiceItem[] = [
-  {
-    id: 'IMS-2026-001',
-    supplierGstin: '27AABCT1234D1Z8',
-    supplierTradeName: 'Tata Steel Processing & Distribution Ltd',
-    invoiceNumber: 'TSP/2026/OCT/0491',
-    invoiceType: 'B2B',
-    invoiceDate: '2026-10-14',
-    taxableValue: 1850000,
-    igst: 333000,
-    cgst: 0,
-    sgst: 0,
-    cess: 0,
-    totalTax: 333000,
-    posStateCode: '23',
-    itcEligibility: 'ELIGIBLE',
-    matchingStatus: 'EXACT_MATCH',
-    bookInvoiceNumber: 'TSP/2026/OCT/0491',
-    bookTaxableValue: 1850000,
-    bookTotalTax: 333000,
-    varianceAmount: 0,
-    currentAction: 'ACCEPT',
-    recommendedAction: 'ACCEPT',
-    recommendationReason: 'Exact match with Books of Accounts and verified supplier status. Safe to accept for GSTR-2B ITC inclusion.',
-    actionTimestamp: '2026-11-10T11:42:00Z',
-    actionBy: 'CA Gunjan Jain (Partner)'
-  },
-  {
-    id: 'IMS-2026-002',
-    supplierGstin: '23AAACL8892K1Z3',
-    supplierTradeName: 'Larsen & Toubro Electrical Solutions',
-    invoiceNumber: 'LT/IND/24-25/892',
-    invoiceType: 'B2B',
-    invoiceDate: '2026-10-22',
-    taxableValue: 620000,
-    igst: 0,
-    cgst: 55800,
-    sgst: 55800,
-    cess: 0,
-    totalTax: 111600,
-    posStateCode: '23',
-    itcEligibility: 'ELIGIBLE',
-    matchingStatus: 'VALUE_MISMATCH',
-    bookInvoiceNumber: 'LT/IND/24-25/892',
-    bookTaxableValue: 580000,
-    bookTotalTax: 104400,
-    varianceAmount: 40000,
-    currentAction: 'REJECT',
-    recommendedAction: 'REJECT',
-    recommendationReason: 'Value variance of ₹40,000.00 exceeds threshold. Supplier billed extra freight not in PO. Reject for credit note.',
-    actionTimestamp: '2026-11-11T15:10:00Z',
-    actionBy: 'Kriti Jain (Article Trainee)'
-  },
-  {
-    id: 'IMS-2026-003',
-    supplierGstin: '29AABCS9912M1Z0',
-    supplierTradeName: 'Schneider Electric IT Business India',
-    invoiceNumber: 'SE/BLR/26/1029',
-    invoiceType: 'B2B',
-    invoiceDate: '2026-10-28',
-    taxableValue: 940000,
-    igst: 169200,
-    cgst: 0,
-    sgst: 0,
-    cess: 0,
-    totalTax: 169200,
-    posStateCode: '23',
-    itcEligibility: 'ELIGIBLE',
-    matchingStatus: 'NOT_IN_BOOKS',
-    varianceAmount: 940000,
-    currentAction: 'PENDING',
-    recommendedAction: 'PENDING',
-    recommendationReason: 'Invoice not found in Purchase Register. Goods may be in transit. Keep PENDING so ITC is not claimed prematurely.',
-    actionTimestamp: '2026-11-12T09:30:00Z',
-    actionBy: 'Amit Joshi (Senior Article)'
-  },
-  {
-    id: 'IMS-2026-004',
-    supplierGstin: '23AABCM4512J1Z6',
-    supplierTradeName: 'Maruti Suzuki Commercial Vehicles',
-    invoiceNumber: 'MSIL/IND/9901',
-    invoiceType: 'B2B',
-    invoiceDate: '2026-10-18',
-    taxableValue: 1250000,
-    igst: 0,
-    cgst: 175000,
-    sgst: 175000,
-    cess: 0,
-    totalTax: 350000,
-    posStateCode: '23',
-    itcEligibility: 'INELIGIBLE_17_5',
-    matchingStatus: 'EXACT_MATCH',
-    bookInvoiceNumber: 'MSIL/IND/9901',
-    bookTaxableValue: 1250000,
-    bookTotalTax: 350000,
-    varianceAmount: 0,
-    currentAction: 'ACCEPT',
-    recommendedAction: 'ACCEPT',
-    recommendationReason: 'Staff transport car > 13 seater exempt, but passenger car is blocked u/s 17(5)(a). Accept and flag for auto-reversal in 4(B)(1).',
-    actionTimestamp: '2026-11-10T14:20:00Z',
-    actionBy: 'CA Gunjan Jain (Partner)'
-  }
-];
-
-export const SAMPLE_RULE_37A_RECORDS: Rule37ARecord[] = [
-  {
-    id: 'R37A-01',
-    supplierGstin: '27AAACS4512P1ZL',
-    supplierName: 'Shree Balaji Polymers Ltd',
-    invoiceNumber: 'SBP/23-24/1109',
-    financialYear: 'FY 2024-25',
-    invoiceDate: '2024-11-15',
-    itcClaimedAmount: 245000,
-    supplierGstr1FiledDate: '2024-12-10',
-    supplierGstr3bStatus: 'NOT_FILED',
-    reversalDeadline: '2025-11-30',
-    reversalStatus: 'PENDING_REVERSAL',
-    interestExposure: 42350,
-    vendorNotified: true,
-    vendorLastReminderDate: '2026-11-05'
-  },
-  {
-    id: 'R37A-02',
-    supplierGstin: '23AABCG1234N1ZT',
-    supplierName: 'Gujarat Infotech Components',
-    invoiceNumber: 'GIC/24/099',
-    financialYear: 'FY 2024-25',
-    invoiceDate: '2025-01-20',
-    itcClaimedAmount: 180000,
-    supplierGstr1FiledDate: '2025-02-11',
-    supplierGstr3bStatus: 'FILED',
-    reversalDeadline: '2025-11-30',
-    reversalStatus: 'RE_CLAIMED_TABLE_4A5',
-    reversalDate: '2025-11-20',
-    reClaimDate: '2026-03-20',
-    interestExposure: 0,
-    vendorNotified: false
-  }
-];

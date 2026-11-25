@@ -77,6 +77,7 @@ export default function AdminPage() {
     invoices,
     notices,
     dscTokens,
+    portalCredentials,
     clients,
     groups,
     payConfigs,
@@ -403,13 +404,20 @@ export default function AdminPage() {
         onSelectTab={(tab) => handleTabChange(tab)}
       />
 
-      {/* Firm Action Hub Modal */}
+      {/* Quick Desk Modal */}
       <FirmHubActionModal
         isOpen={isFirmHubOpen}
         onClose={() => setIsFirmHubOpen(false)}
         onOpenClientMaster={() => setIsClientMasterOpen(true)}
         onOpenNewTask={() => handleTabChange("calendar")}
         onNavigateTab={(tab) => handleTabChange(tab)}
+        onRefreshData={refreshData}
+        clients={clients}
+        tasks={tasks}
+        invoices={invoices}
+        notices={notices}
+        dscTokens={dscTokens}
+        isPartner={currentUser?.role === "PARTNER"}
       />
 
         {/* Client Master Modal */}
@@ -418,16 +426,25 @@ export default function AdminPage() {
           onClose={() => setIsClientMasterOpen(false)}
           clients={clients}
           groups={groups}
+          portalCredentials={portalCredentials}
+          dscTokens={dscTokens}
+          notices={notices}
+          onRefreshData={refreshData}
           onAddClient={async (newClient) => {
-            await createClient(newClient);
+            const created = await createClient(newClient);
             await refreshData();
+            return created;
           }}
           onUpdateClient={async (id, data) => {
-            await updateClient(id, data);
+            const updated = await updateClient(id, data);
             await refreshData();
+            return updated;
           }}
           onDeleteClient={async (id) => {
             await deleteClient(id);
+            await refreshData();
+          }}
+          onBatchImported={async () => {
             await refreshData();
           }}
         />

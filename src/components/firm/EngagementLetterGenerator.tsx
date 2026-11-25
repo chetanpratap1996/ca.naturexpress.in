@@ -30,6 +30,7 @@ import { ClientAcceptanceModal, EngagementRecord } from "./engagement/ClientAcce
 import { NewEngagementModal } from "./engagement/NewEngagementModal";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 
 const DEFAULT_REALISTIC_ENGAGEMENTS: EngagementRecord[] = [
   {
@@ -98,39 +99,54 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
   clients = [],
   initialClient = null,
 }) => {
-  const { selectedClient, isFirmWideView } = useClientContext();
-  const [engagements, setEngagements] = useState<EngagementRecord[]>(DEFAULT_REALISTIC_ENGAGEMENTS);
+  const { selectedClient, isFirmWideView, selectedFy, selectedAy } = useClientContext();
+  const [engagements, setEngagements] = useState<EngagementRecord[]>([]);
   const [activeTab, setActiveTab] = useState<"PREVIEW" | "REGISTER">("PREVIEW");
-  const [selectedEngagementId, setSelectedEngagementId] = useState<string>("eng-1");
+  const [selectedEngagementId, setSelectedEngagementId] = useState<string>("");
 
   // Modals
   const [acceptanceRecord, setAcceptanceRecord] = useState<EngagementRecord | null>(null);
   const [isNewEngagementOpen, setIsNewEngagementOpen] = useState(false);
 
-  // Active Selected Engagement adapted to active client context
+  const clientEngagements = useMemo(() => {
+    if (!selectedClient || isFirmWideView) return [];
+    return engagements.filter((e) => e.clientId === selectedClient.id);
+  }, [engagements, selectedClient, isFirmWideView]);
+
+  // Active Selected Engagement built from real selectedClient
   const activeEngagement = useMemo<EngagementRecord>(() => {
-    const base = engagements.find((e) => e.id === selectedEngagementId) || engagements[0];
-    if (selectedClient && !isFirmWideView) {
-      return {
-        ...base,
-        clientId: selectedClient.id,
-        clientName: selectedClient.tradeName || selectedClient.name,
-        clientPan: selectedClient.pan,
-        clientGstin: selectedClient.gstin || selectedClient.gstinRecords?.[0]?.gstin || base.clientGstin,
-        groupName: selectedClient.groupName || base.groupName,
-        signatoryName: selectedClient.primaryContact?.name || "Managing Director"
-      };
-    }
-    return base;
-  }, [engagements, selectedEngagementId, selectedClient, isFirmWideView]);
+    const found = clientEngagements.find((e) => e.id === selectedEngagementId) || clientEngagements[0];
+    if (found) return found;
+    return {
+      id: `draft-${selectedClient?.id || "none"}`,
+      refNo: `DRAFT/${selectedAy}`,
+      clientId: selectedClient?.id || "",
+      clientName: selectedClient?.tradeName || selectedClient?.name || "",
+      clientPan: selectedClient?.pan || "",
+      clientGstin: selectedClient?.gstin || selectedClient?.gstinRecords?.[0]?.gstin || "",
+      groupName: selectedClient?.groupName || "",
+      scopeType: "TAX_AUDIT_44AB",
+      scopeTitle: "Tax Audit under Section 44AB of the Income Tax Act, 1961 (Form 3CA/3CB and Form 3CD)",
+      financialYear: `FY ${selectedFy} (AY ${selectedAy})`,
+      professionalFee: 0,
+      status: "AWAITING_CLIENT_ACCEPTANCE",
+      issueDate: new Date().toISOString().split("T")[0],
+      signatoryName: selectedClient?.primaryContact?.name || "Authorized Signatory",
+      signatoryDesignation: selectedClient?.primaryContact?.designation || "Director / Proprietor",
+    };
+  }, [clientEngagements, selectedEngagementId, selectedClient, selectedFy, selectedAy]);
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleWhatsAppDispatch = () => {
-    const rawPhone = "9820044101";
+    const rawPhone = selectedClient?.primaryContact?.phone || "";
     const cleanPhone = rawPhone.replace(/\D/g, "");
+    if (!cleanPhone) {
+      toast.error("Phone Missing", "No primary contact phone number found for this client.");
+      return;
+    }
     const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
 
     const text = encodeURIComponent(
@@ -175,6 +191,15 @@ export const EngagementLetterGenerator: React.FC<EngagementLetterGeneratorProps>
 
   const gstAmount = Math.round(activeEngagement.professionalFee * 0.18);
   const totalAmount = activeEngagement.professionalFee + gstAmount;
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="ICAI SA 210 Engagement Letters"
+        description="Select a client entity above to draft, issue, or review their real SA 210 engagement letters."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

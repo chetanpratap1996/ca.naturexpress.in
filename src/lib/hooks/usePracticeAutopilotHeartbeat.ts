@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { AutopilotExecutionSummary } from "@/lib/automation/practiceAutopilot";
+import { AutopilotExecutionSummary } from "@/lib/automation/autopilotTypes";
 import { practiceSound } from "@/lib/audio/soundEffects";
 import { toast } from "@/components/shared/ToastNotification";
 
@@ -43,26 +43,37 @@ export function usePracticeAutopilotHeartbeat(
       const res = await fetch("/api/firm-autopilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ triggerSource: isManual ? "MANUAL_PULSE" : "BACKGROUND_HEARTBEAT" }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-      if (data.success && data.summary) {
+      if (res.ok && data.success && data.summary) {
         setLastSweepSummary(data.summary);
         setSecondsToNextSweep(AUTOPILOT_CYCLE_INTERVAL_SECONDS);
 
-        // If tasks spawned or documents unlocked, play audio chime and notify
-        if (data.summary.tasksSpawned > 0 || data.summary.vaultDocsAutoUnlocked > 0) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
+        }
+
+        // If tasks spawned or documents advanced or invoices drafted, play audio chime and notify
+        if (
+          data.summary.tasksSpawned > 0 ||
+          data.summary.tasksAutoAdvanced > 0 ||
+          data.summary.autoInvoicesDrafted > 0
+        ) {
           practiceSound.playSuccessChime();
           toast.info(
             "Practice Autopilot Update",
-            `Spawned ${data.summary.tasksSpawned} returns • Unlocked ${data.summary.vaultDocsAutoUnlocked} statements.`
+            `Spawned ${data.summary.tasksSpawned} returns • Advanced ${data.summary.tasksAutoAdvanced} tasks • Drafted ${data.summary.autoInvoicesDrafted} invoices.`
           );
         }
 
         if (onTasksOrInvoicesUpdated) {
           onTasksOrInvoicesUpdated();
         }
+      } else if (isManual) {
+        toast.error("Autopilot Sweep Denied", data.error || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.warn("Background autopilot heartbeat skipped:", e);

@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { SftEngine } from "@/lib/ais/sftEngine";
 import { AisCrossReconciler, AisRecordInput, BooksIncomeSourceItem } from "@/lib/ais/aisCrossReconciler";
 import { InsightNoticeForecaster } from "@/lib/ais/insightNoticeForecaster";
-import { ensureDatabase, saveDatabase, ClientAisDataItem, createNotification, logAuditEvent } from "@/lib/server/db";
-import { DocumentItem } from "@/lib/types";
-import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
+import { getPostgresPool } from "@/lib/server/postgres";
+import { resolveFirmUuid, appendPgAuditLog, upsertWorkspaceRecord } from "@/lib/server/pgHelpers";
+import { executePostgresAutopilotSweep } from "@/lib/automation/postgresAutopilot";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
     const pan = searchParams.get("pan") || "ABFPS1234E";
@@ -151,6 +154,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { auth, errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse || !auth) return errorResponse!;
   try {
     const body = await req.json();
     const { pan, assessmentYear, financialYear, isSeniorCitizen, aisRecords, booksItems, clientAnnualTurnoverInr } = body;
@@ -172,78 +177,98 @@ export async function POST(req: NextRequest) {
       clientAnnualTurnoverInr: clientAnnualTurnoverInr || 0
     });
 
-    // Persist real AIS state into Database
+    // Persist AIS reconciliation state directly into PostgreSQL
     try {
-      const db = ensureDatabase();
-      if (!db.clientAisData) db.clientAisData = [];
+      const firmId = await resolveFirmUuid(auth);
+      const pool = getPostgresPool();
+      const { rows: entRows } = await pool.query(
+        "SELECT id, entity_name FROM public.client_entities WHERE firm_id = $1 AND UPPER(pan) = UPPER($2) LIMIT 1",
+        [firmId, pan]
+      );
+      const entity = entRows[0];
+      const entityId = entity?.id || null;
+      const clientName = entity?.entity_name || `Client ${pan}`;
 
-      const client = db.clients.find(c => c.pan?.toUpperCase() === pan.toUpperCase());
-      const clientId = client?.id || `CLI-${pan}`;
+      const totalSft = aisRecords
+        .filter((r: any) => r.sourceType === "SFT_HIGH_VALUE")
+        .reduce((acc: number, r: any) => acc + (r.reportedAmount || 0), 0);
+      const totalTds = aisRecords
+        .filter((r: any) => r.sourceType === "TDS_26AS")
+        .reduce((acc: number, r: any) => acc + (r.taxDeducted || 0), 0);
 
-      const totalSft = aisRecords.filter((r: any) => r.sourceType === "SFT_HIGH_VALUE").reduce((acc: number, r: any) => acc + (r.reportedAmount || 0), 0);
-      const totalTds = aisRecords.filter((r: any) => r.sourceType === "TDS_26AS").reduce((acc: number, r: any) => acc + (r.taxDeducted || 0), 0);
+      const ayValue = assessmentYear || "AY 2026-27";
+      const sftCount = aisRecords.filter((r: any) => r.sourceType === "SFT_HIGH_VALUE").length;
+      const discrepancyRiskCount = report.reconciledItems.filter((i) => i.recoStatus !== "MATCHED_IN_ITR").length;
 
-      const item: ClientAisDataItem = {
-        id: `ais-${pan}-${Date.now()}`,
-        clientId,
+      const aisItem = {
+        id: `ais-${pan}-${ayValue}`.replace(/\s+/g, "_"),
+        clientId: entityId || `CLI-${pan}`,
+        clientName,
         pan,
-        assessmentYear: assessmentYear || "AY 2026-27",
+        assessmentYear: ayValue,
         updatedAt: new Date().toISOString(),
         totalSftAmount: totalSft,
-        sftItemCount: aisRecords.filter((r: any) => r.sourceType === "SFT_HIGH_VALUE").length,
+        sftItemCount: sftCount,
         totalTdsAmount: totalTds,
-        discrepancyRiskCount: report.reconciledItems.filter(i => i.recoStatus !== "MATCHED_IN_ITR").length,
-        records: aisRecords
+        discrepancyRiskCount,
+        records: aisRecords,
       };
 
-      const existingIdx = db.clientAisData.findIndex(a => a.pan.toUpperCase() === pan.toUpperCase() && a.assessmentYear === item.assessmentYear);
-      if (existingIdx !== -1) {
-        db.clientAisData[existingIdx] = item;
-      } else {
-        db.clientAisData.push(item);
-      }
-
-      // Autonomous Client Notification & Vault Workpaper Deposit
-      await createNotification({
-        title: `AIS & 26AS Forensic Analysis Completed`,
-        message: `Analyzed ${item.sftItemCount} SFT high-value transactions (₹${totalSft.toLocaleString("en-IN")}) and TDS credits for ${item.assessmentYear}. Workpaper filed.`,
-        category: "COMPLIANCE",
-        priority: "NORMAL",
-        targetTab: "vault",
-        recipientRole: "CLIENT",
-        recipientEntityId: clientId,
-        metadata: { aisId: item.id, discrepancies: item.discrepancyRiskCount }
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "AIS_RECONCILIATION",
+        matchKey: "id",
+        matchValue: aisItem.id,
+        payload: aisItem,
       });
 
-      const aisDoc: DocumentItem = {
-        id: `DOC-AIS-${Date.now()}`,
-        entityId: clientId,
-        entityName: client?.name || `Client ${pan}`,
-        category: "TAX_COMPUTATION",
-        fileName: `AIS_26AS_Forensic_Report_${pan}_${item.assessmentYear.replace(/\s+/g, "_")}.pdf`,
-        fileSize: "410 KB",
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: "FIRM_STAFF",
-        isPasswordProtected: false,
-        isUnlocked: true,
-        financialYear: financialYear || "FY 2025-26",
-        reviewStatus: "APPROVED",
-      };
-      db.documents = [aisDoc, ...(db.documents || [])];
+      if (entityId) {
+        const docName = `AIS_26AS_Forensic_Report_${pan}_${ayValue.replace(/\s+/g, "_")}.pdf`;
+        await pool.query(
+          `INSERT INTO public.documents (
+            firm_id, entity_id, category, file_name, file_size_bytes, financial_year, review_status, reviewed_at
+          ) VALUES ($1, $2, 'TAX_COMPUTATION', $3, 419840, $4, 'APPROVED', now())`,
+          [firmId, entityId, docName, financialYear || "FY 2025-26"]
+        );
 
-      await logAuditEvent(
-        "Autonomous AIS Engine",
-        "SYSTEM",
-        client?.name || pan,
-        "AIS_RECONCILIATION_COMPLETED",
-        `Forensic reconciliation finished for PAN ${pan} (${item.assessmentYear}). ${item.sftItemCount} SFT entries, ₹${totalTds.toLocaleString("en-IN")} TDS. Flagged ${item.discrepancyRiskCount} discrepancies.`,
-        "COMPLIANCE"
-      );
+        await upsertWorkspaceRecord({
+          firmId,
+          entityId,
+          recordType: "NOTIFICATION",
+          matchKey: "idKey",
+          matchValue: `ais-reco-${aisItem.id}-${new Date().toISOString().split("T")[0]}`,
+          payload: {
+            id: `NOTIF-AIS-${Date.now()}`,
+            idKey: `ais-reco-${aisItem.id}-${new Date().toISOString().split("T")[0]}`,
+            title: "AIS & 26AS Forensic Analysis Completed",
+            message: `Analyzed ${sftCount} SFT transactions (₹${totalSft.toLocaleString("en-IN")}) and TDS credits for ${ayValue}.`,
+            category: "COMPLIANCE",
+            priority: discrepancyRiskCount > 0 ? "HIGH" : "NORMAL",
+            recipientRole: "CLIENT",
+            recipientEntityId: entityId,
+            targetTab: "vault",
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
 
-      await saveDatabase(db);
-      executePracticeAutopilotSweep(db, "AIS Forensic Reconciliation").catch(() => {});
+      await appendPgAuditLog({
+        firmId,
+        actorId: auth.user?.id,
+        actorName: auth.userName || "Autonomous AIS Engine",
+        actorRole: auth.role || "PARTNER",
+        entityId,
+        entityName: clientName,
+        action: "AIS_RECONCILIATION_COMPLETED",
+        details: `Forensic reconciliation finished for PAN ${pan} (${ayValue}). ${sftCount} SFT entries, ₹${totalTds.toLocaleString("en-IN")} TDS, ${discrepancyRiskCount} discrepancies.`,
+        category: "COMPLIANCE",
+      });
+
+      executePostgresAutopilotSweep(firmId, "AIS Forensic Reconciliation").catch(() => null);
     } catch (saveErr) {
-      console.warn("Could not persist AIS data to DB:", saveErr);
+      console.warn("Could not persist AIS data to Postgres:", saveErr);
     }
 
     return NextResponse.json({

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { LegacySoftwareMigrator, MigrationSummaryReport } from '@/lib/migration/legacySoftwareMigrator';
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const { software, rawContent, fileName } = body;
@@ -39,7 +42,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   // Returns simulated ready-to-test legacy packages
   const defaultReport = LegacySoftwareMigrator.parseWinmanBackup('', 'sample_winman_firm_backup.xml');
   return NextResponse.json({

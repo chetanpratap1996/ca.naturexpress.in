@@ -1,17 +1,17 @@
 // ============================================================================
 // ENTERPRISE LOGIN API ROUTE
-// Multi-factor rate-limiting, PBKDF2 PIN verification, Supabase SSR auth,
-// and cryptographically signed tamper-proof session token generation
+// Rate-limited authentication against PostgreSQL (users & client_entities)
+// and cryptographically signed HMAC-SHA256 HttpOnly session cookies
 // ============================================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  authenticateClientEntity, 
-  authenticateStaffUser, 
-  checkRateLimit 
+import {
+  authenticateClientEntity,
+  authenticateStaffUser,
+  checkRateLimit,
 } from "@/lib/auth/enterpriseAuth";
-import { signSessionToken } from "@/lib/auth/serverAuth";
-import { DEMO_USERS, AuthUser } from "@/lib/auth/session";
+import { signSessionTokenAsync } from "@/lib/auth/serverAuth";
+import { AuthUser } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,119 +21,85 @@ export async function POST(req: NextRequest) {
     const secret = typeof body.secret === "string" ? body.secret.trim() : "";
     const membershipNo = typeof body.membershipNo === "string" ? body.membershipNo.trim() : undefined;
 
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
     const userAgent = req.headers.get("user-agent") || "Web Browser";
 
     if (!identifier || !secret) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: portalMode === "client" 
-            ? "Please enter your registered Mobile Number / PAN and 4-Digit Access PIN." 
-            : "Please enter your registered Email / Phone and Password.", 
-          code: "MISSING_CREDENTIALS" 
+        {
+          success: false,
+          error:
+            portalMode === "client"
+              ? "Please enter your registered Mobile Number / PAN and 4-Digit Access PIN."
+              : "Please enter your registered Email / Phone and Password.",
+          code: "MISSING_CREDENTIALS",
         },
         { status: 400 }
       );
     }
 
-    // 1. Rate Limiting Check
-    const rateCheck = checkRateLimit(`${portalMode}:${identifier}`);
-    if (rateCheck.isBlocked) {
+    // 1. Rate Limiting Check (by identifier and IP)
+    const idRateCheck = checkRateLimit(`${portalMode}:${identifier.toLowerCase()}`);
+    const ipRateCheck = checkRateLimit(`${portalMode}:ip:${ip}`);
+    if (idRateCheck.isBlocked || ipRateCheck.isBlocked) {
+      const waitSec = Math.max(idRateCheck.retryAfterSec || 0, ipRateCheck.retryAfterSec || 0);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Too many failed login attempts. Please wait ${rateCheck.retryAfterSec} seconds before retrying.`,
-          code: "RATE_LIMITED"
+        {
+          success: false,
+          error: `Too many failed login attempts. Please wait ${waitSec} seconds before retrying.`,
+          code: "RATE_LIMITED",
         },
         { status: 429 }
       );
     }
 
-    // 2. Demo Evaluator Sandbox Check
-    if (
-      identifier.toLowerCase() === "evaluator@ca-practice.com" ||
-      identifier.toLowerCase() === "demo" ||
-      (secret === "sandbox" && (identifier === "partner" || identifier === "client" || identifier === "article"))
-    ) {
-      const demoKey = identifier === "client" ? "client" : identifier === "article" ? "article" : "partner";
-      const baseDemo = DEMO_USERS[demoKey] || DEMO_USERS.partner;
-      const signedToken = signSessionToken({
-        id: baseDemo.id,
-        name: baseDemo.name,
-        email: baseDemo.email,
-        phone: baseDemo.phone,
-        role: baseDemo.role,
-        designation: baseDemo.designation,
-        firmId: baseDemo.firmId,
-        firmName: baseDemo.firmName,
-        firmFrn: baseDemo.firmFrn,
-        clientGroupId: baseDemo.clientGroupId,
-        clientEntityId: baseDemo.clientEntityId,
-        isSandbox: true,
-      });
-
-      const user: AuthUser = {
-        ...baseDemo,
-        token: signedToken,
-        expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
-      };
-
-      const response = NextResponse.json({ success: true, user, isSandbox: true });
-      response.cookies.set("bt_session_token", signedToken, {
-        path: "/",
-        maxAge: 30 * 86400,
-        sameSite: "lax",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-      });
-      return response;
-    }
-
-    // 3. Authenticate against Enterprise Auth Engine (PostgreSQL / Supabase + resilient local store)
-    let result;
-    if (portalMode === "client") {
-      result = await authenticateClientEntity(identifier, secret, ip, userAgent);
-    } else {
-      result = await authenticateStaffUser(identifier, secret, membershipNo, ip, userAgent);
-    }
+    // 2. Authenticate against PostgreSQL
+    const result =
+      portalMode === "client"
+        ? await authenticateClientEntity(identifier, secret, ip, userAgent)
+        : await authenticateStaffUser(identifier, secret, membershipNo, ip, userAgent);
 
     if (!result.success || !result.user) {
       return NextResponse.json(
-        { success: false, error: result.error || "Authentication failed.", code: result.code || "AUTH_FAILED" },
+        {
+          success: false,
+          error: result.error || "Invalid credentials.",
+          code: result.code || "AUTH_FAILED",
+        },
         { status: 401 }
       );
     }
 
-    // 4. Ensure Token is Cryptographically Signed
-    let finalToken = result.user.token;
-    if (!finalToken || !finalToken.startsWith("bt_v5_")) {
-      finalToken = signSessionToken({
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email,
-        phone: result.user.phone,
-        role: result.user.role,
-        designation: result.user.designation,
-        firmId: result.user.firmId,
-        firmName: result.user.firmName,
-        firmFrn: result.user.firmFrn,
-        clientGroupId: result.user.clientGroupId,
-        clientEntityId: result.user.clientEntityId,
-        isSandbox: false,
-      });
-      result.user.token = finalToken;
-    }
-
-    // 5. Construct Secure Response with HttpOnly Cookie
-    const response = NextResponse.json({
-      success: true,
-      user: result.user,
+    // 3. Mint HMAC-SHA256 signed session token
+    const signedToken = await signSessionTokenAsync({
+      id: result.user.id,
+      name: result.user.name,
+      email: result.user.email,
+      phone: result.user.phone,
+      role: result.user.role,
+      designation: result.user.designation,
+      firmId: result.user.firmId,
+      firmName: result.user.firmName,
+      firmFrn: result.user.firmFrn,
+      clientGroupId: result.user.clientGroupId,
+      clientEntityId: result.user.clientEntityId,
     });
 
-    response.cookies.set("bt_session_token", finalToken, {
+    const expiresInSec = result.user.role === "CLIENT" ? 7 * 86400 : 86400;
+    const safeUser: AuthUser = {
+      ...result.user,
+      token: "httpOnly-session",
+      expiresAt: new Date(Date.now() + expiresInSec * 1000).toISOString(),
+    };
+
+    const response = NextResponse.json({
+      success: true,
+      user: safeUser,
+    });
+
+    response.cookies.set("bt_session_token", signedToken, {
       path: "/",
-      maxAge: 30 * 86400,
+      maxAge: expiresInSec,
       sameSite: "lax",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -141,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (err: any) {
-    console.error("Auth login API critical error:", err);
+    console.error("Auth login API critical error:", err?.message || err);
     return NextResponse.json(
       { success: false, error: "Internal server authentication error.", code: "INTERNAL_ERROR" },
       { status: 500 }

@@ -1,101 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase } from "@/lib/server/db";
-import { 
-  SAMPLE_VALUE_SUMMARIES, 
-  computeValueDeliveredSummary, 
+import {
+  computeValueDeliveredSummary,
   generateWhatsAppValueCard,
-  ClientValueDeliveredSummary
+  ClientValueDeliveredSummary,
 } from "@/lib/billing/valueDeliveredEngine";
-import { generateNpciUpiDeepLinks, generateUpiQrDataUrl } from "@/lib/billing/npciUpiEngine";
+import { generateNpciDynamicUpiUri, generateNpciUpiDeepLinks, generateUpiQrDataUrl } from "@/lib/billing/npciUpiEngine";
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+import { getPostgresPool } from "@/lib/server/postgres";
+import { resolveFirmUuid } from "@/lib/server/pgHelpers";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 export async function GET(req: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
     const { searchParams } = new URL(req.url);
-    const clientId = searchParams.get("clientId");
-    const firmVpa = db.firmMetrics?.firmUpiVpa || "ca.gunjan@icici";
-    const merchantName = db.firmMetrics?.name || "GPA & Co., Chartered Accountants";
+    const clientId = auth.role === "CLIENT" ? auth.clientEntityId || null : searchParams.get("clientId");
 
-    const dbClients = db.clients || [];
-    const dbInvoices = db.invoices || [];
-
-    // Map all registered clients in db.clients into Value Delivered Summaries
-    const combinedSummaries: ClientValueDeliveredSummary[] = [];
-
-    // First include sample summaries with mapped client IDs
-    for (const sample of SAMPLE_VALUE_SUMMARIES) {
-      combinedSummaries.push(sample);
+    if (auth.role === "CLIENT" && !clientId) {
+      return NextResponse.json({ success: false, error: "Client entity scope required." }, { status: 403 });
     }
 
-    // Now for every real client in db.clients, ensure they have a real value statement
-    for (const client of dbClients) {
-      const alreadyHasSummary = combinedSummaries.some(
-        (s) => s.clientId === client.id || s.clientName.toLowerCase() === client.name.toLowerCase() || (client.pan && s.clientPan === client.pan)
-      );
+    const [{ rows: firmRows }, { rows: clientRows }, { rows: invRows }] = await Promise.all([
+      pool.query("SELECT firm_name, firm_upi_vpa FROM public.firms WHERE id = $1 LIMIT 1", [firmId]),
+      clientId
+        ? pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1 AND id::text = $2", [firmId, clientId])
+        : pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1", [firmId]),
+      clientId
+        ? pool.query("SELECT * FROM public.invoices WHERE firm_id = $1 AND entity_id::text = $2", [firmId, clientId])
+        : pool.query("SELECT * FROM public.invoices WHERE firm_id = $1", [firmId]),
+    ]);
 
-      if (!alreadyHasSummary) {
-        const clientInvoice = dbInvoices.find((i) => i.entityId === client.id) || dbInvoices[0];
-        const fee = clientInvoice?.amount || 5000;
-        const pureAgent = Math.round(fee * 0.4);
+    const firm = firmRows[0];
+    const firmVpa = firm?.firm_upi_vpa || DEFAULT_FIRM_BRANDING.firmUpiVpa;
+    const merchantName = firm?.firm_name || DEFAULT_FIRM_BRANDING.firmName;
 
-        const synthetic = computeValueDeliveredSummary({
-          clientId: client.id,
-          clientName: client.name,
-          clientPan: client.pan,
-          clientGstin: client.gstin,
-          clientPhone: client.primaryContact?.phone,
-          billingPeriod: "Current Period",
-          invoiceNo: clientInvoice?.invoiceNo || `GPA/2026-27/${client.id.slice(-3)}`,
-          invoiceDate: clientInvoice?.dueDate || new Date().toISOString().split("T")[0],
-          pureAgentGovtFeesInr: pureAgent,
-          caProfessionalFeeInr: fee,
-          benefits: [
-            {
-              id: `BEN-${client.id}-01`,
-              category: "ITC_RECONCILED",
-              title: "Input Tax Credit 2B Matching & Ineligible Credit Shield",
-              description: "Audited monthly purchase ledgers against portal GSTR-2B, reconciling supplier tax credits under Section 16(2).",
-              statutoryReference: "Section 16(2) CGST Act & Rule 88D",
-              financialBenefitInr: Math.round(fee * 12),
-              badgeLabel: "ITC Protected"
-            },
-            {
-              id: `BEN-${client.id}-02`,
-              category: "PENALTY_SAVED",
-              title: "Statutory Midnight Deadline Protection",
-              description: "Completed compliance cycle prior to statutory cutoff, shielding entity from Section 47 & 234E late fee penalties.",
-              statutoryReference: "Section 47 CGST & Section 234E Income Tax",
-              financialBenefitInr: 5000,
-              badgeLabel: "Penalties Saved"
-            },
-            {
-              id: `BEN-${client.id}-03`,
-              category: "TAX_OPTIMIZATION",
-              title: "Section 43B(h) MSME Vendor Payment Realignment",
-              description: "Audited trade creditor ledgers to ensure payment compliance within 45-day statutory window, preventing income tax disallowances.",
-              statutoryReference: "Section 43B(h) Income-tax Act, 1961",
-              financialBenefitInr: Math.round(fee * 4.5),
-              badgeLabel: "Tax Disallowance Shield"
-            }
-          ]
-        });
+    const summaries: ClientValueDeliveredSummary[] = clientRows.map((client: any) => {
+      const clientInvoice = invRows.find((i: any) => i.entity_id === client.id && i.status !== "PAID") || invRows.find((i: any) => i.entity_id === client.id);
+      const fee = Number(clientInvoice?.total_amount || 5000);
+      const pureAgent = Math.round(fee * 0.4);
+      return computeValueDeliveredSummary({
+        clientId: client.id,
+        clientName: client.entity_name,
+        clientPan: client.pan,
+        clientGstin: client.gstin || undefined,
+        clientPhone: client.primary_contact_phone || undefined,
+        billingPeriod: "Current Period",
+        invoiceNo: clientInvoice?.invoice_no || `BT/2026-27/${String(client.id).slice(-4).toUpperCase()}`,
+        invoiceDate: clientInvoice?.due_date
+          ? new Date(clientInvoice.due_date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        pureAgentGovtFeesInr: pureAgent,
+        caProfessionalFeeInr: fee,
+        benefits: [
+          {
+            id: `BEN-${client.id}-01`,
+            category: "ITC_RECONCILED",
+            title: "Input Tax Credit 2B Matching & Ineligible Credit Shield",
+            description: "Purchase ledger audit against portal GSTR-2B under Section 16(2).",
+            statutoryReference: "Section 16(2) CGST Act & Rule 88D",
+            financialBenefitInr: Math.round(fee * 12),
+            badgeLabel: "ITC Protected",
+          },
+          {
+            id: `BEN-${client.id}-02`,
+            category: "PENALTY_SAVED",
+            title: "Statutory Deadline Protection",
+            description: "Compliance tracking prior to statutory cutoffs under CGST & Income-tax Act.",
+            statutoryReference: "Section 47 CGST & Section 234E Income Tax",
+            financialBenefitInr: 5000,
+            badgeLabel: "Penalties Saved",
+          },
+        ],
+      });
+    });
 
-        combinedSummaries.push(synthetic);
-      }
-    }
-
-    let summaries = combinedSummaries;
-
-    if (clientId) {
-      summaries = summaries.filter(
-        (s) => s.clientId === clientId || (dbClients.find((c) => c.id === clientId)?.pan === s.clientPan)
-      );
-      if (summaries.length === 0) {
-        summaries = combinedSummaries;
-      }
-    }
-
-    // Enrich each summary with dynamic NPCI UPI links and offline QR code
     const enrichedSummaries = await Promise.all(
       summaries.map(async (item) => {
         const upiLinks = generateNpciUpiDeepLinks({
@@ -103,20 +87,11 @@ export async function GET(req: NextRequest) {
           merchantName,
           amount: item.netTotalPayableInr,
           invoiceNo: item.invoiceNo,
-          clientName: item.clientName
+          clientName: item.clientName,
         });
-
         const qrDataUrl = await generateUpiQrDataUrl(upiLinks.universalUri, { width: 240 });
         const whatsAppCopy = generateWhatsAppValueCard(item, upiLinks, merchantName);
-
-        return {
-          ...item,
-          firmVpa,
-          merchantName,
-          upiLinks,
-          qrDataUrl,
-          whatsAppCopy
-        };
+        return { ...item, firmVpa, merchantName, upiLinks, qrDataUrl, whatsAppCopy };
       })
     );
 
@@ -125,64 +100,37 @@ export async function GET(req: NextRequest) {
       count: enrichedSummaries.length,
       firmVpa,
       merchantName,
-      summaries: enrichedSummaries
+      summaries: enrichedSummaries,
     });
   } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: `Failed to load value statements: ${err.message || String(err)}` },
-      { status: 500 }
-    );
+    console.error("GET /api/billing/value-statement error:", err);
+    return NextResponse.json({ success: false, error: "Failed to load value statements." }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const db = ensureDatabase();
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !["PARTNER", "ARTICLE", "TEAM"].includes(auth.role || "")) {
+      return NextResponse.json(
+        { success: false, error: "Firm staff authorization required." },
+        { status: auth.isAuthenticated ? 403 : 401 }
+      );
+    }
+
     const body = await req.json();
-
-    const firmVpa = body.firmVpa || db.firmMetrics?.firmUpiVpa || "ca.gunjan@icici";
-    const merchantName = body.merchantName || db.firmMetrics?.name || "GPA & Co., Chartered Accountants";
-
-    const summary = computeValueDeliveredSummary({
-      clientId: body.clientId || `CLI-${Date.now()}`,
-      clientName: body.clientName || "Valued Client",
-      clientPan: body.clientPan || "AABCA8891D",
-      clientGstin: body.clientGstin,
-      clientPhone: body.clientPhone,
-      billingPeriod: body.billingPeriod || "Current Month",
-      invoiceNo: body.invoiceNo || `INV/${Date.now().toString().slice(-6)}`,
-      invoiceDate: body.invoiceDate || new Date().toISOString().split("T")[0],
-      pureAgentGovtFeesInr: Number(body.pureAgentGovtFeesInr || 0),
-      caProfessionalFeeInr: Number(body.caProfessionalFeeInr || 3500),
-      benefits: body.benefits || []
+    const { firmVpa, merchantName, amount, invoiceNo, clientName } = body;
+    const upiUri = generateNpciDynamicUpiUri({
+      vpa: firmVpa || DEFAULT_FIRM_BRANDING.firmUpiVpa,
+      payeeName: merchantName || DEFAULT_FIRM_BRANDING.firmName,
+      amount: Number(amount) || 0,
+      invoiceNo: invoiceNo || "INV-2026",
+      note: `Fee ${clientName || "Client"}`,
     });
-
-    const upiLinks = generateNpciUpiDeepLinks({
-      firmVpa,
-      merchantName,
-      amount: summary.netTotalPayableInr,
-      invoiceNo: summary.invoiceNo,
-      clientName: summary.clientName
-    });
-
-    const qrDataUrl = await generateUpiQrDataUrl(upiLinks.universalUri, { width: 260 });
-    const whatsAppCopy = generateWhatsAppValueCard(summary, upiLinks, merchantName);
-
-    return NextResponse.json({
-      success: true,
-      summary: {
-        ...summary,
-        firmVpa,
-        merchantName,
-        upiLinks,
-        qrDataUrl,
-        whatsAppCopy
-      }
-    });
+    const qrDataUrl = await generateUpiQrDataUrl(upiUri, { width: 280 });
+    return NextResponse.json({ success: true, upiUri, qrDataUrl });
   } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: `Failed to generate value statement: ${err.message || String(err)}` },
-      { status: 500 }
-    );
+    console.error("POST /api/billing/value-statement error:", err);
+    return NextResponse.json({ success: false, error: "Failed to generate value statement QR." }, { status: 500 });
   }
 }

@@ -5,6 +5,9 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   generateBuildId: async () => "taxobrain-prod",
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
 
   // ─── Webpack Customization ────────────────────────────────────────────────
   webpack: (config, { dev, isServer }) => {

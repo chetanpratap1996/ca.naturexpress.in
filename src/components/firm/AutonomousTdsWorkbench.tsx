@@ -35,20 +35,42 @@ import { playSuccessChime, playSoftClick } from "@/lib/audio/soundEffects";
 import {
   TdsClientAssemblyProfile,
   TracesDefaultItem,
-  getSampleTdsProfiles,
   resolveTdsDefault
 } from "@/lib/tds/autonomousTdsEngine";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 
 export const AutonomousTdsWorkbench: React.FC = () => {
-  const [profiles, setProfiles] = useState<TdsClientAssemblyProfile[]>(() => getSampleTdsProfiles());
-  const [selectedClientId, setSelectedClientId] = useState<string>("client-pratwi");
+  const { selectedClient, isFirmWideView, selectedFy } = useClientContext();
+  const [profiles, setProfiles] = useState<TdsClientAssemblyProfile[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"pipeline" | "triage" | "certificates">("triage");
   const [triageFilter, setTriageFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDispatchingCertificates, setIsDispatchingCertificates] = useState<boolean>(false);
   const [isSimulatingSignOff, setIsSimulatingSignOff] = useState<boolean>(false);
 
-  const activeProfile = profiles.find((p) => p.clientId === selectedClientId) || profiles[0];
+  const activeProfile: TdsClientAssemblyProfile = profiles.find((p) => p.clientId === (selectedClient?.id || selectedClientId)) || {
+    clientId: selectedClient?.id || "",
+    clientName: selectedClient?.tradeName || selectedClient?.name || "",
+    tan: selectedClient?.tan || "TAN Not Updated",
+    quarter: "Q4",
+    financialYear: `FY ${selectedFy}`,
+    formType: "26Q",
+    isCleanProfile: true,
+    totalDeducteesCount: 0,
+    matchedDeducteesCount: 0,
+    exceptionsCount: 0,
+    totalTdsDeducted: 0,
+    totalChallanDeposited: 0,
+    pipelineStage: "PAYROLL_INGEST",
+    status: "NEEDS_PARTNER_TRIAGE",
+    challans: [],
+    deductees: [],
+    tracesDefaults: [],
+    form16Certificates: [],
+    auditLog: [],
+  };
 
   const handleResolveDefault = (
     defaultId: string,
@@ -156,6 +178,15 @@ export const AutonomousTdsWorkbench: React.FC = () => {
 
   const totalDefaultsPendingAll = profiles.reduce((acc, p) => acc + p.exceptionsCount, 0);
 
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="TDS & TRACES Compliance Workbench"
+        description="Select a client entity above to inspect their real TAN, Form 24Q/26Q/27Q defaults, and Form 16/16A certificates."
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* 1. INSTITUTIONAL HEADER & CLIENT PICKER */}
@@ -203,8 +234,8 @@ export const AutonomousTdsWorkbench: React.FC = () => {
 
             <button
               onClick={() => {
-                setProfiles(getSampleTdsProfiles());
-                toast.info("Reset TDS Profiles", "TDS pipeline reset to institutional baseline.");
+                setProfiles([]);
+                toast.info("Cleared", "TDS & TRACES workspace cleared for active client.");
                 playSoftClick();
               }}
               className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"

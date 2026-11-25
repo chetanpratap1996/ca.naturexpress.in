@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseCinStrict } from "@/lib/intelligence/registry/mcaEngine";
 import { validateGstinStrict } from "@/lib/intelligence/registry/gstValidator";
 import { StatutoryPenaltyCalculator } from "@/lib/intelligence/engine/penaltyEngine";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const { 

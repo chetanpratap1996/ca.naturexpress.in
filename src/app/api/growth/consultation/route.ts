@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { LeadStore } from "@/lib/intelligence/store/leadStore";
 
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
+
 export const dynamic = "force-dynamic";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
@@ -38,6 +40,13 @@ function writeConsultations(list: any[]) {
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await authenticateServerRequest(req);
+    if (!auth.isAuthenticated || !["PARTNER", "ARTICLE", "TEAM"].includes(auth.role || "")) {
+      return NextResponse.json(
+        { success: false, error: "Firm staff authorization required." },
+        { status: auth.isAuthenticated ? 403 : 401 }
+      );
+    }
     const consultations = readConsultations();
     return NextResponse.json({
       success: true,

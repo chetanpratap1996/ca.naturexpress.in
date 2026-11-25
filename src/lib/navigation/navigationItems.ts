@@ -199,6 +199,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
   },
   {
+    id: "gstr1",
+    label: "GSTR-1 Outward Return",
+    shortLabel: "GSTR-1",
+    categoryId: "gst",
+    description: "Sales register import, B2B/B2CL/B2CS/CDNR, HSN Table 12 & GSTN JSON",
+    icon: TrendingUp,
+    iconColor: "text-purple-600",
+    badge: "Outward",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+  },
+  {
     id: "gstr2b",
     label: "GSTR-2B vs Books Matcher",
     shortLabel: "2B Matcher",

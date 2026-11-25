@@ -98,7 +98,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
           </button>
         )}
 
-        {/* ===================== CENTER CA PRACTICE DESK BUTTON ===================== */}
+        {/* ===================== CENTER QUICK DESK BUTTON ===================== */}
         <button
           onClick={() => {
             if (onQuickAction) {
@@ -110,8 +110,8 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             }
           }}
           className="flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation group"
-          title={isClient ? "Client Action Hub" : "CA Practice Command Hub"}
-          aria-label={isClient ? "Client Action Hub" : "CA Practice Command Hub"}
+          title={isClient ? "Client Action Hub" : "Quick Actions & Calculators"}
+          aria-label={isClient ? "Client Action Hub" : "Quick Desk"}
         >
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#800000] to-btred-logo text-white flex items-center justify-center shadow-md shadow-red-900/25 group-hover:scale-105 group-active:scale-95 transition-transform border border-red-700/50">
             {isClient ? (
@@ -121,7 +121,7 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
             )}
           </div>
           <span className="text-[10px] tracking-tight font-bold text-slate-800">
-            {isClient ? "Client Hub" : "CA Desk"}
+            {isClient ? "Client Hub" : "Quick Desk"}
           </span>
         </button>
 
@@ -140,14 +140,14 @@ export const FloatingBottomNav: React.FC<FloatingBottomNavProps> = ({
           </button>
         ) : (
           <button
-            onClick={() => onTabChange("billing")}
+            onClick={() => onTabChange("billing-matrix")}
             className={`flex flex-col items-center justify-center gap-1 transition-colors px-2 py-1 min-w-[56px] min-h-[44px] touch-manipulation ${
-              activeTab === "billing" || activeTab === "pay-to-release"
+              activeTab === "billing" || activeTab === "billing-matrix" || activeTab === "pay-to-release"
                 ? "text-btred-logo font-black"
                 : "text-slate-500 hover:text-slate-900 font-medium"
             }`}
           >
-            <CreditCard className={`w-5 h-5 ${activeTab === "billing" || activeTab === "pay-to-release" ? "stroke-[2.5]" : ""}`} />
+            <CreditCard className={`w-5 h-5 ${activeTab === "billing" || activeTab === "billing-matrix" || activeTab === "pay-to-release" ? "stroke-[2.5]" : ""}`} />
             <span className="text-[10px] tracking-tight">Billing</span>
           </button>
         )}

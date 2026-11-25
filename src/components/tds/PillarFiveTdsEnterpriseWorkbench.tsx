@@ -54,9 +54,11 @@ import {
 import { toast } from '@/components/shared/ToastNotification';
 import { useClientContext } from '@/lib/context/ClientContext';
 import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
+import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
+import { writeClientTaxBridge } from '@/lib/taxAudit/clientTaxBridge';
 
 export function PillarFiveTdsEnterpriseWorkbench() {
-  const { selectedClient, isFirmWideView } = useClientContext();
+  const { selectedClient, isFirmWideView, selectedFy, selectedAy } = useClientContext();
   const [activeTab, setActiveTab] = useState<
     'QUARTERLY_RETURN' | 'TRACES_JUSTIFICATION' | 'SEC_197_GUARDIAN' | 'FORM_15CA_15CB' | 'FORM_16_SIGNER'
   >('QUARTERLY_RETURN');
@@ -64,30 +66,30 @@ export function PillarFiveTdsEnterpriseWorkbench() {
   // Sub-Engine 1: Quarterly Return & CSI Matching
   const [selectedForm, setSelectedForm] = useState<'24Q' | '26Q' | '27Q' | '27EQ'>('26Q');
   const [selectedQuarter, setSelectedQuarter] = useState<'Q1' | 'Q2' | 'Q3' | 'Q4'>('Q2');
-  const [challans, setChallans] = useState<FvuChallanItem[]>(SAMPLE_FVU_CHALLANS);
-  const [deductees, setDeductees] = useState<FvuDeducteeItem[]>(SAMPLE_FVU_DEDUCTEES);
+  const [challans, setChallans] = useState<FvuChallanItem[]>([]);
+  const [deductees, setDeductees] = useState<FvuDeducteeItem[]>([]);
   const [csiMatches, setCsiMatches] = useState<CsiChallanRecord[]>([]);
-  const [isCsiMatched, setIsCsiMatched] = useState<boolean>(true);
+  const [isCsiMatched, setIsCsiMatched] = useState<boolean>(false);
 
   // Sub-Engine 2: TRACES Justification Defaults
-  const [tracesDefaults, setTracesDefaults] = useState<TracesDefaultRecord[]>(SAMPLE_TRACES_DEFAULTS);
+  const [tracesDefaults, setTracesDefaults] = useState<TracesDefaultRecord[]>([]);
   const tracesSummary: TracesJustificationSummary = TracesJustificationEngine.summarizeJustification(tracesDefaults, {
-    tan: 'BPLP01928K',
-    financialYear: '2026-27',
+    tan: selectedClient?.tan || '',
+    financialYear: selectedFy,
     quarter: 'Q2',
     formType: '26Q'
   });
 
   // Sub-Engine 3: Section 197 Certificates
-  const [certificates197, setCertificates197] = useState<LowerTdsCertificateItem[]>(SAMPLE_197_CERTIFICATES);
+  const [certificates197, setCertificates197] = useState<LowerTdsCertificateItem[]>([]);
   const [testInvoiceAmount, setTestInvoiceAmount] = useState<number>(1500000);
   const [simulatedSplitResult, setSimulatedSplitResult] = useState<any>(null);
 
   // Sub-Engine 4: Form 15CA & 15CB
-  const [remittances, setRemittances] = useState<ForeignRemittanceRequest[]>(SAMPLE_FOREIGN_REMITTANCES);
+  const [remittances, setRemittances] = useState<ForeignRemittanceRequest[]>([]);
 
   // Sub-Engine 5: Form 16 / 16A Bulk Signer
-  const [form16Batch, setForm16Batch] = useState<Form16EmployeeCertificate[]>(SAMPLE_FORM16_CERTIFICATES);
+  const [form16Batch, setForm16Batch] = useState<Form16EmployeeCertificate[]>([]);
 
   // Handlers
   const handleDownloadFvu = () => {
@@ -97,10 +99,10 @@ export function PillarFiveTdsEnterpriseWorkbench() {
       totalDeducteesCount: deductees.length,
       totalTaxDeducted: deductees.reduce((sum, d) => sum + d.tdsDeducted, 0),
       totalTaxDeposited: challans.reduce((sum, c) => sum + c.totalDeposit, 0),
-      tan: 'BPLP01928K',
-      panOfEmployer: 'AABCP9182K',
-      financialYear: '2026-27',
-      assessmentYear: '2027-28',
+      tan: selectedClient?.tan || '',
+      panOfEmployer: selectedClient?.pan || '',
+      financialYear: selectedFy,
+      assessmentYear: selectedAy,
       quarter: selectedQuarter,
       formType: selectedForm,
       deductorType: 'COMPANY'
@@ -146,6 +148,14 @@ export function PillarFiveTdsEnterpriseWorkbench() {
     setForm16Batch(signed);
     toast.success('Form 16 Part A & B merged, DSC digitally signed, and dispatched to Email + WhatsApp!');
   };
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="Quarterly TDS Returns & TRACES Compliance"
+        description="Select a client entity above to inspect their real TAN, Form 24Q/26Q/27Q challans, TRACES defaults, and Form 16/16A certificates." />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -472,13 +482,13 @@ export function PillarFiveTdsEnterpriseWorkbench() {
         </div>
       )}
 
-      {/* TAB 3: Section 197 Lower Rate Guardian */}
+      {/* TAB 3: Section 197 Lower Rate Tracker */}
       {activeTab === 'SEC_197_GUARDIAN' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <span>Section 197 Lower / Nil Deduction Certificate Guardian</span>
+                <span>Section 197 Lower / Nil Deduction Certificate Tracker</span>
               </h3>
               <p className="text-xs text-slate-500">
                 Monitors certificate validity dates, approved section codes, and real-time threshold limit consumption.

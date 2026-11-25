@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { sanitizeIndianPhoneNumber } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { ClientEntity } from "@/lib/types";
-import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
+import { useClientContext } from "@/lib/context/ClientContext";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
+import { readClientTaxBridge, syncClientTaxBridgeFromServer, TAX_BRIDGE_EVENT } from "@/lib/taxAudit/clientTaxBridge";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { TaxAdvisoryDossierModal, DossierComputationData } from "./TaxAdvisoryDossierModal";
 import { Form16AisUploadModal, ExtractedTaxData } from "./Form16AisUploadModal";
@@ -155,14 +157,14 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
 
   // Income Inputs
   // 1. Salary
-  const [salaryGross, setSalaryGross] = useState<number>(1250000);
+  const [salaryGross, setSalaryGross] = useState<number>(0);
   const [salaryExemptions, setSalaryExemptions] = useState<number>(0); // e.g. HRA, LTA u/s 10 in old regime
-  const [professionalTax, setProfessionalTax] = useState<number>(2500); // Sec 16(iii)
+  const [professionalTax, setProfessionalTax] = useState<number>(0); // Sec 16(iii)
   
   // 2. House Property
   const [annualRentReceived, setAnnualRentReceived] = useState<number>(0);
   const [municipalTaxesPaid, setMunicipalTaxesPaid] = useState<number>(0);
-  const [homeLoanInterestSelfOccupied, setHomeLoanInterestSelfOccupied] = useState<number>(150000); // Sec 24(b)
+  const [homeLoanInterestSelfOccupied, setHomeLoanInterestSelfOccupied] = useState<number>(0); // Sec 24(b)
 
   // 3. Business & Profession (PGBP)
   const [isPresumptive, setIsPresumptive] = useState<boolean>(false);
@@ -176,21 +178,21 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
   const [otherLtcg112, setOtherLtcg112] = useState<number>(0); // 12.5%
 
   // 5. Other Sources
-  const [savingsInterest, setSavingsInterest] = useState<number>(18000);
-  const [fdInterestAndDividends, setFdInterestAndDividends] = useState<number>(32000);
+  const [savingsInterest, setSavingsInterest] = useState<number>(0);
+  const [fdInterestAndDividends, setFdInterestAndDividends] = useState<number>(0);
 
   // Chapter VI-A Deductions (Old Regime)
-  const [sec80C, setSec80C] = useState<number>(150000); // Max 1.5L
-  const [sec80D_Self, setSec80D_Self] = useState<number>(25000); // Self/Family
-  const [sec80D_ParentsSenior, setSec80D_ParentsSenior] = useState<number>(50000); // Senior parents
-  const [sec80D_Checkup, setSec80D_Checkup] = useState<number>(5000); // Preventive checkup
-  const [sec80CCD_1B, setSec80CCD_1B] = useState<number>(50000); // NPS Extra
+  const [sec80C, setSec80C] = useState<number>(0); // Max 1.5L
+  const [sec80D_Self, setSec80D_Self] = useState<number>(0); // Self/Family
+  const [sec80D_ParentsSenior, setSec80D_ParentsSenior] = useState<number>(0); // Senior parents
+  const [sec80D_Checkup, setSec80D_Checkup] = useState<number>(0); // Preventive checkup
+  const [sec80CCD_1B, setSec80CCD_1B] = useState<number>(0); // NPS Extra
   const [sec80CCD_2_Employer, setSec80CCD_2_Employer] = useState<number>(0); // Allowed in New & Old
   const [sec80E_EduLoan, setSec80E_EduLoan] = useState<number>(0); // Higher education loan interest
   const [sec80G_Donations, setSec80G_Donations] = useState<number>(0);
 
   // Taxes already paid (TDS / Advance Tax)
-  const [tdsPaid, setTdsPaid] = useState<number>(65000);
+  const [tdsPaid, setTdsPaid] = useState<number>(0);
   const [advanceTaxPaid, setAdvanceTaxPaid] = useState<number>(0);
 
   // Modals
@@ -213,7 +215,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
     const list: Array<{ id: string; name: string; pan: string; type: string; isFirmClient: boolean; phone: string }> = [];
 
     // Real firm clients from props or fallback to SANDBOX_CLIENTS
-    const sourceClients = clients.length > 0 ? clients : SANDBOX_CLIENTS;
+    const sourceClients = clients;
     sourceClients.forEach((c) => {
       list.push({
         id: c.id,
@@ -226,7 +228,7 @@ export const ItrComputationEngine: React.FC<ItrComputationEngineProps> = ({
     });
 
     // Preset Profiles
-    PRESET_TAXPAYER_PROFILES.forEach((p) => {
+    ([] as TaxpayerProfilePreset[]).forEach((p) => {
       if (!list.some(item => item.id === p.id)) {
         list.push({
           id: p.id,

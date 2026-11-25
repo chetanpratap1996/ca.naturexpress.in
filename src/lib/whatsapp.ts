@@ -18,7 +18,8 @@ export type WhatsAppTemplate =
   | "CLIENT_CREDENTIALS"
   | "STAFF_CREDENTIALS"
   | "VENDOR_ITC_HOLD"
-  | "MSME_43BH_ALERT";
+  | "MSME_43BH_ALERT"
+  | "ONBOARDING_HANDOVER_KIT";
 
 export interface WhatsAppTemplateParams {
   clientName: string;
@@ -41,6 +42,9 @@ export interface WhatsAppTemplateParams {
   vendorName?: string;
   overdueAmount?: number;
   daysRemaining?: number;
+  entityTypeLabel?: string;
+  isTakeover?: boolean;
+  missingPortals?: string[];
 }
 
 /**
@@ -250,6 +254,39 @@ Your staff desk access is active on the GPA & Co. Practice Management System.
         `⚠️ *Tax Consequence:* Under *Section 43B(h) of the Income Tax Act*, if this payment is not settled within 45 days, the full expense will be *disallowed and taxed at 31.2%* in the current financial year.\n\n` +
         `Please process this payment immediately via NetBanking/RTGS to protect business deduction.\n\n` +
         `Regards,\n*Audit & Compliance Team*\n${firm}`;
+    }
+
+    case "ONBOARDING_HANDOVER_KIT": {
+      const clientPortalUrl = params.portalUrl || "https://ca.naturexpress.in/?portal=client";
+      const pin = params.loginPassword || "Last 4 digits of your phone";
+      const oneTapUrl = clientPortalUrl.includes("?")
+        ? `${clientPortalUrl}&pin=${pin}`
+        : `${clientPortalUrl}?portal=client&pin=${pin}`;
+      const checklistLines =
+        params.missingDocs && params.missingDocs.length > 0
+          ? params.missingDocs.map((d, i) => `  ${i + 1}. ${d}`).join("\n")
+          : "  1. PAN, GSTIN & Last Filed Return Copies\n  2. Current Year Bank Statements + PDF Passwords\n  3. Any Pending Tax / GST Notices";
+      const portalAccessLine =
+        params.missingPortals && params.missingPortals.length > 0
+          ? `\n🔑 *Portal Credentials Needed for Baseline Sync:*\n  • ${params.missingPortals.join(", ")} (or 1-time OTP consent on call)\n`
+          : "";
+      const takeoverNote = params.isTakeover
+        ? `\n📂 *Smooth Previous-CA Transition:*\nPlease share your last filed ITR/Audit JSONs & any open notices so we can audit past compliance health on Day 1.\n`
+        : "";
+
+      return `*WELCOME ONBOARD — ${firm.toUpperCase()}*\n` +
+        `_(${params.entityTypeLabel || "Corporate & Tax Compliance Desk"})_\n\n` +
+        `Dear ${params.clientName},\n\n` +
+        `Your dedicated Compliance & Financial Vault is now live.\n\n` +
+        `🔐 *1-Tap Client Portal Access:*\n` +
+        `• *Portal Link:* ${oneTapUrl}\n` +
+        `• *User ID:* ${params.loginId || params.clientName}\n` +
+        `• *4-Digit PIN:* ${pin}\n` +
+        portalAccessLine +
+        `\n📋 *Day-1 Onboarding Checklist (Upload via Portal):*\n${checklistLines}\n` +
+        takeoverNote +
+        `\n⚡ *Upload directly from WhatsApp/Mobile:* ${oneTapUrl}\n\n` +
+        `Warm regards,\n*Onboarding & Audit Desk*\n*${firm}*`;
     }
   }
 }

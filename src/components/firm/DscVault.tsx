@@ -125,7 +125,8 @@ export const DscVault: React.FC<DscVaultProps> = ({ tokens }) => {
     try {
       await fetch("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-sandbox-mode": "true" },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           title: `Action Required: Class 3 DSC Renewal for ${token.holderName}`,
           message: `Your Class 3 Digital Signature Certificate (Token: ${token.serialNumber}) for ${token.entityName} is expiring on ${formatDate(token.validTill)}. An invoice of ₹2,500 has been raised. Please authorize renewal to avoid MCA V3 / GST / Income Tax filing blocks.`,

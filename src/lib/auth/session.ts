@@ -1,9 +1,10 @@
 /**
  * Brains & Taxes Enterprise Authentication & Session Manager
- * Multi-Tenant Role-Based Access Control (RBAC) with secure session state
+ * Multi-Tenant Role-Based Access Control (RBAC) with HttpOnly server-verified sessions
  */
 
 import { ClientEntity } from "@/lib/types";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 export type UserRole = "PARTNER" | "TEAM" | "ARTICLE" | "CLIENT";
 
@@ -23,7 +24,7 @@ export interface AuthUser {
   clientEntityId?: string;
   token: string;
   expiresAt: string;
-  allowedTools?: string[]; // Practice domain IDs enabled for this team member by CA
+  allowedTools?: string[];
 }
 
 export function normalizePhone10(rawPhone: string): string {
@@ -42,67 +43,49 @@ export function generateDeterministicPassword(nameOrCompany: string, phone: stri
   return `${firstWord}@${last4}`;
 }
 
-// Enterprise Verified Personas for Testing and Evaluation
+// Placeholder structure kept for type/UI compatibility only — never accepted for authentication
 export const DEMO_USERS: Record<string, AuthUser> = {
   partner: {
-    id: "USR-PARTNER-01",
-    name: "CA Gunjan Jain",
-    email: "partner@brainsandtaxes.com",
-    phone: "+91 98000 00001",
+    id: "",
+    name: DEFAULT_FIRM_BRANDING.managingPartner,
+    email: DEFAULT_FIRM_BRANDING.email,
+    phone: DEFAULT_FIRM_BRANDING.partnerPhone,
     role: "PARTNER",
     designation: "Managing Partner (FCA)",
-    firmId: "FRM-024310C",
-    firmName: "GPA & Co., Chartered Accountants",
-    firmFrn: "024310C",
-    membershipNo: "024310C",
-    token: "tok_partner_secure_session_2026",
-    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    firmId: "",
+    firmName: DEFAULT_FIRM_BRANDING.firmName,
+    firmFrn: DEFAULT_FIRM_BRANDING.frn,
+    token: "",
+    expiresAt: "",
     allowedTools: ["tasks", "gst", "tax-audit", "notices-udin", "billing-wip", "client-master"],
   },
   team: {
-    id: "USR-ARTICLE-01",
-    name: "Kriti Jain",
+    id: "",
+    name: "Practice Team Member",
     email: "audit.trainee@brainsandtaxes.com",
-    phone: "+91 98000 00002",
+    phone: DEFAULT_FIRM_BRANDING.supportPhone,
     role: "TEAM",
-    designation: "Team Associate (Year 2)",
-    firmId: "FRM-024310C",
-    firmName: "GPA & Co., Chartered Accountants",
-    firmFrn: "024310C",
-    articleshipRegNo: "CRO022998",
-    token: "tok_team_secure_session_2026",
-    expiresAt: new Date(Date.now() + 86400000).toISOString(),
-    allowedTools: ["tasks", "gst"], // Default CA preset for Kriti
-  },
-  article: {
-    id: "USR-ARTICLE-01",
-    name: "Kriti Jain",
-    email: "audit.trainee@brainsandtaxes.com",
-    phone: "+91 98000 00002",
-    role: "TEAM",
-    designation: "Team Associate (Year 2)",
-    firmId: "FRM-024310C",
-    firmName: "GPA & Co., Chartered Accountants",
-    firmFrn: "024310C",
-    articleshipRegNo: "CRO022998",
-    token: "tok_article_secure_session_2026",
-    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    designation: "Team Associate",
+    firmId: "",
+    firmName: DEFAULT_FIRM_BRANDING.firmName,
+    firmFrn: DEFAULT_FIRM_BRANDING.frn,
+    token: "",
+    expiresAt: "",
     allowedTools: ["tasks", "gst"],
   },
-  client: {
-    id: "USR-CLIENT-01",
-    name: "Chetan Pratap Singh",
-    email: "chetanpratap1996@gmail.com",
-    phone: "+91 80771 70715",
-    role: "CLIENT",
-    designation: "Director (Pratwi Solutions Private Limited)",
-    firmId: "FRM-024310C",
-    firmName: "GPA & Co., Chartered Accountants",
-    firmFrn: "024310C",
-    clientGroupId: "GRP-PRATWI",
-    clientEntityId: "CLI-PRATWI-01",
-    token: "tok_client_secure_session_2026",
-    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+  article: {
+    id: "",
+    name: "Practice Team Member",
+    email: "audit.trainee@brainsandtaxes.com",
+    phone: DEFAULT_FIRM_BRANDING.supportPhone,
+    role: "ARTICLE",
+    designation: "Article Assistant",
+    firmId: "",
+    firmName: DEFAULT_FIRM_BRANDING.firmName,
+    firmFrn: DEFAULT_FIRM_BRANDING.frn,
+    token: "",
+    expiresAt: "",
+    allowedTools: ["tasks", "gst"],
   },
 };
 
@@ -144,7 +127,11 @@ export function getActiveSession(): AuthUser | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const user = JSON.parse(raw) as AuthUser;
-    if (!user || !user.token) return null;
+    if (!user || !user.id || !user.role) return null;
+    if (user.expiresAt && new Date(user.expiresAt).getTime() < Date.now()) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     return user;
   } catch {
     return null;
@@ -153,10 +140,9 @@ export function getActiveSession(): AuthUser | null {
 
 export function setActiveSession(user: AuthUser): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  if (user.token) {
-    document.cookie = `bt_session_token=${user.token}; path=/; max-age=86400; SameSite=Lax`;
-  }
+  // Store display profile only; authoritative session credential lives in HttpOnly cookie
+  const safeCache: AuthUser = { ...user, token: "" };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(safeCache));
   window.dispatchEvent(new Event("taxobrain_auth_state_change"));
 }
 
@@ -164,7 +150,6 @@ export function clearSession(): void {
   if (typeof window === "undefined") return;
   void fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
   localStorage.removeItem(STORAGE_KEY);
-  document.cookie = "bt_session_token=; path=/; max-age=0; SameSite=Lax";
   window.dispatchEvent(new Event("taxobrain_auth_state_change"));
 }
 
@@ -177,7 +162,7 @@ export function canReconcileInvoices(user: AuthUser | null): boolean {
 }
 
 export function canReviewDocuments(user: AuthUser | null): boolean {
-  return user?.role === "PARTNER" || user?.role === "ARTICLE";
+  return user?.role === "PARTNER" || user?.role === "ARTICLE" || user?.role === "TEAM";
 }
 
 export function isClientUser(user: AuthUser | null): boolean {
@@ -191,134 +176,16 @@ export interface AuthResult {
 }
 
 /**
- * Production-Safe Authentication Resolver
- * Validates credentials without leaking password formats or expected hints
+ * Client-side credential fallback removed for production security.
+ * All authentication must succeed against /api/auth/login.
  */
 export function authenticateUser(
-  identifier: string,
-  rawPassword: string,
-  clientRegistry: ClientEntity[] = []
+  _identifier: string,
+  _rawPassword: string,
+  _clientRegistry: ClientEntity[] = []
 ): AuthResult {
-  const cleanId = (identifier || "").trim();
-  const cleanPass = (rawPassword || "").trim();
-
-  if (!cleanId || !cleanPass) {
-    return {
-      success: false,
-      error: "Please enter your User ID and Security Password.",
-    };
-  }
-
-  const cleanPhone10 = normalizePhone10(cleanId);
-  const cleanUpper = cleanId.toUpperCase();
-  const cleanLower = cleanId.toLowerCase();
-
-  // 1. Partner Authentication
-  const partnerUser = DEMO_USERS.partner;
-  const partnerPhone10 = normalizePhone10(partnerUser.phone);
-  if (
-    cleanLower === partnerUser.email.toLowerCase() ||
-    (cleanPhone10 && cleanPhone10 === partnerPhone10) ||
-    cleanUpper === "PARTNER"
-  ) {
-    // Standard secure test password, PIN, or production pass
-    if (cleanPass === "Partner@2026" || cleanPass === "Gunjan@3639" || cleanPass === "0001" || cleanPass === "1234") {
-      return { success: true, user: partnerUser };
-    }
-    return {
-      success: false,
-      error: "Invalid credentials. Please verify your User ID and password/PIN.",
-    };
-  }
-
-  // 2. Article Authentication
-  const articleUser = DEMO_USERS.article;
-  const articlePhone10 = normalizePhone10(articleUser.phone);
-  if (
-    cleanLower === articleUser.email.toLowerCase() ||
-    (cleanPhone10 && cleanPhone10 === articlePhone10) ||
-    cleanUpper === "ARTICLE" ||
-    cleanUpper === (articleUser.articleshipRegNo || "").toUpperCase()
-  ) {
-    if (cleanPass === "Article@2026" || cleanPass === "Kriti@5897" || cleanPass === "0002" || cleanPass === "1234") {
-      return { success: true, user: articleUser };
-    }
-    return {
-      success: false,
-      error: "Invalid credentials. Please verify your User ID and password/PIN.",
-    };
-  }
-
-  // 3. Client Authentication (by PAN or Phone)
-  const allClients = [...clientRegistry];
-  if (allClients.length === 0 && DEMO_USERS.client) {
-    allClients.push({
-      id: DEMO_USERS.client.clientEntityId || "ddd33056-b6dc-46ca-b145-cd111045aff7",
-      groupId: DEMO_USERS.client.clientGroupId || "157e58d9-cc53-4e5d-9497-ec6d2ecbf59a",
-      groupName: "Direct Practice Clients",
-      name: "Pratwi Solutions Private Limited",
-      type: "PVT_LTD",
-      pan: "AANCP9915B",
-      gstin: "09AANCP9915B1Z4",
-      cin: "U72900UP2026PTC199821",
-      turnoverCr: 1.2,
-      incorporationYear: 2026,
-      penaltyRiskAccrued: 0,
-      partnerInCharge: "CA Gunjan Jain",
-      assignedArticle: "Kriti Jain (Article)",
-      primaryContact: {
-        name: DEMO_USERS.client.name,
-        phone: DEMO_USERS.client.phone,
-        email: DEMO_USERS.client.email,
-        designation: DEMO_USERS.client.designation,
-      },
-    });
-  }
-
-  const matchedClient = allClients.find((c) => {
-    const panMatch = c.pan && c.pan.toUpperCase() === cleanUpper;
-    const phoneMatch = c.primaryContact?.phone && normalizePhone10(c.primaryContact.phone) === cleanPhone10;
-    const emailMatch = c.primaryContact?.email && c.primaryContact.email.toLowerCase() === cleanLower;
-    return panMatch || phoneMatch || emailMatch;
-  });
-
-  if (matchedClient) {
-    const contactPhone = matchedClient.primaryContact?.phone || "";
-    const phone10 = normalizePhone10(contactPhone);
-    const expectedDefaultPin = phone10.length >= 4 ? phone10.slice(-4) : "0715";
-
-    // In sandbox/evaluation: accept 4-digit PIN, default PIN, or Client@2026
-    if (
-      cleanPass === expectedDefaultPin ||
-      cleanPass === "0715" ||
-      cleanPass === "Client@2026" || 
-      cleanPass === "Chetan@0715"
-    ) {
-      const clientUser: AuthUser = {
-        id: `USR-${matchedClient.id}`,
-        name: matchedClient.primaryContact?.name || matchedClient.name,
-        email: matchedClient.primaryContact?.email || "director@client-portal.in",
-        phone: matchedClient.primaryContact?.phone || "+91 98000 00003",
-        role: "CLIENT",
-        designation: `${matchedClient.primaryContact?.designation || "Director"} (${matchedClient.name})`,
-        firmId: "FRM-024310C",
-        firmName: "GPA & Co., Chartered Accountants",
-        firmFrn: "024310C",
-        clientGroupId: matchedClient.groupId,
-        clientEntityId: matchedClient.id,
-        token: `tok_client_${matchedClient.id}`,
-        expiresAt: new Date(Date.now() + 86400000).toISOString(),
-      };
-      return { success: true, user: clientUser };
-    }
-    return {
-      success: false,
-      error: `Invalid credentials. Hint: Default PIN is the last 4 digits of your phone (${expectedDefaultPin}).`,
-    };
-  }
-
   return {
     success: false,
-    error: "Account not found. Please contact GPA & Co. Practice Helpdesk.",
+    error: "Server authentication is required. Please verify your internet connection and try again.",
   };
 }

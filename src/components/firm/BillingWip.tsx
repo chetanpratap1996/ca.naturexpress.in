@@ -95,7 +95,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
   const [payerNote, setPayerNote] = useState("");
 
   // New Invoice Form State (SAC 9982, PoS & TDS u/s 194J)
-  const [newEntityName, setNewEntityName] = useState(() => clients[0]?.name || "Pratwi Solutions Private Limited");
+  const [newEntityName, setNewEntityName] = useState(() => clients[0]?.name || "");
   const [selectedSacCode, setSelectedSacCode] = useState("998221");
   const [newServiceDesc, setNewServiceDesc] = useState("Statutory & Tax Audit (Sec 44AB / Companies Act)");
   const [newAmount, setNewAmount] = useState("75000");
@@ -146,7 +146,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
       return { badge: "PAID_SETTLED", text: "Settled u/s 43B(h)", color: "bg-emerald-50 text-emerald-800 border-emerald-200" };
     }
     const due = new Date(inv.dueDate).getTime();
-    const now = new Date("2026-10-30").getTime();
+    const now = Date.now();
     const daysDiff = Math.floor((now - due) / (1000 * 60 * 60 * 24));
     
     if (daysDiff <= 0) {
@@ -184,6 +184,7 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
       const res = await fetch("/api/invoices", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           invoiceId: reconcileModalInvoice.id,
           action: "RECONCILE",
@@ -193,6 +194,11 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           reconciledBy: `${DEFAULT_FIRM_BRANDING.managingPartner} (Partner)`,
         }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error("Reconciliation Failed", data.error || "Partner authorization or valid invoice required.");
+        return;
+      }
 
       setInvoiceList((prev) =>
         prev.map((inv) =>
@@ -229,15 +235,21 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
   const handleDirectReconcileUtr = async (inv: InvoiceItem) => {
     if (!inv.clientUtrNumber) return;
     try {
-      await fetch("/api/invoices", {
+      const res = await fetch("/api/invoices", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           invoiceId: inv.id,
           action: "RECONCILE",
           reconciledBy: `${DEFAULT_FIRM_BRANDING.managingPartner} (Partner)`,
         }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error("Verification Failed", data.error || "Partner authorization required.");
+        return;
+      }
 
       setInvoiceList((prev) =>
         prev.map((i) =>
@@ -270,14 +282,19 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
     if (!amountVal) return;
 
     const matchedClient = clients.find(c => c.name === newEntityName) || clients[0];
-    const finalEntityName = newEntityName.trim() || matchedClient?.name || "Client Entity";
-    const finalEntityId = matchedClient?.id || "CLI-001";
-    const finalGroupId = matchedClient?.groupId || "GRP-001";
+    if (!matchedClient) {
+      toast.error("Client Required", "Please onboard or select a client entity before raising an invoice.");
+      return;
+    }
+    const finalEntityName = matchedClient.name;
+    const finalEntityId = matchedClient.id;
+    const finalGroupId = matchedClient.groupId;
 
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           entityId: finalEntityId,
           entityName: finalEntityName,
@@ -288,11 +305,14 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
           gstAmount: computedBreakdown.totalGstAmount,
           amount: computedBreakdown.grossInvoiceAmount,
           dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          actorName: DEFAULT_FIRM_BRANDING.managingPartner,
         }),
       });
       const data = await res.json();
-      if (data.success && data.invoice) {
+      if (!res.ok || !data.success) {
+        toast.error("Invoice Creation Failed", data.error || "Could not create tax invoice.");
+        return;
+      }
+      if (data.invoice) {
         setInvoiceList([data.invoice, ...invoiceList]);
         setIsAddInvoiceOpen(false);
         toast.success(
@@ -312,9 +332,13 @@ export const BillingWip: React.FC<BillingWipProps> = ({ invoices, clients = [], 
     const matchedClient = clients.find(
       (c) => c.name.toLowerCase() === inv.entityName.toLowerCase() || c.id === inv.entityId
     );
-    const rawPhone = matchedClient?.primaryContact?.phone || "9820044101";
+    const rawPhone = matchedClient?.primaryContact?.phone || "";
     const cleanPhone = rawPhone.replace(/\D/g, "");
-    const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+    if (cleanPhone.length < 10) {
+      toast.warning("Missing Client Phone", `No mobile number recorded for ${inv.entityName}. Update Client Master first.`);
+      return;
+    }
+    const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone.slice(-10)}`;
 
     openWhatsAppPreset(
       formattedPhone,

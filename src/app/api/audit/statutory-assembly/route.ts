@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { 
   StatutoryAuditAssemblyLine, 
   Phase3AssemblyInput, 
@@ -7,6 +8,8 @@ import {
 } from "@/lib/audit/statutoryAuditAssemblyLine";
 
 export async function POST(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await request.json().catch(() => ({}));
 

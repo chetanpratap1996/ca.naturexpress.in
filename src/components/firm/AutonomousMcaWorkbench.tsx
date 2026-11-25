@@ -130,7 +130,7 @@ export const AutonomousMcaWorkbench: React.FC = () => {
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Autonomous Corporate MCA/ROC Assembly &amp; Secretarial Sentinel
+              Corporate MCA/ROC Assembly &amp; Secretarial Monitor
             </h1>
             <p className="text-xs sm:text-sm text-slate-500">
               Clean corporate profiles compile and file annual ROC dockets automatically. Partners review only DPT-3 loan defaults, MSME-1 overdue dues, and DIN risks.
@@ -237,7 +237,7 @@ export const AutonomousMcaWorkbench: React.FC = () => {
           }`}
         >
           <ShieldAlert className="w-4 h-4" />
-          Secretarial Sentinel &amp; Exception Desk
+          Secretarial Monitor &amp; Exception Desk
           {activeProfile.exceptionsCount > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">
               {activeProfile.exceptionsCount}
@@ -328,7 +328,7 @@ export const AutonomousMcaWorkbench: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-purple-600" /> Form DPT-3 Loan &amp; Deposit Sentinel (Due 30th June)
+                  <DollarSign className="w-4 h-4 text-purple-600" /> Form DPT-3 Loan &amp; Deposit Monitor (Due 30th June)
                 </h3>
                 <p className="text-xs text-slate-500">
                   Rule 16 of Acceptance of Deposits Rules: Verifies whether director loans and inter-corporate deposits qualify as exempted borrowings.
@@ -481,7 +481,7 @@ export const AutonomousMcaWorkbench: React.FC = () => {
                   time: "10:31 AM",
                 },
                 {
-                  stage: "3. DIN & KYC Sentinel",
+                  stage: "3. DIN & KYC Monitor",
                   desc: `${activeProfile.directors.length} Directors validated`,
                   status: activeProfile.directors.some((d) => d.kycStatus !== "KYC_VERIFIED") ? "ATTENTION_REQUIRED" : "COMPLETED",
                   time: "10:32 AM",
@@ -532,7 +532,7 @@ export const AutonomousMcaWorkbench: React.FC = () => {
             <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center justify-between">
               <span>Director Board Registry &amp; DIR-3 KYC Status</span>
               <span className="text-xs font-bold text-purple-700">
-                Section 164(2) Sentinel: Active
+                Section 164(2) Monitor: Active
               </span>
             </h4>
 

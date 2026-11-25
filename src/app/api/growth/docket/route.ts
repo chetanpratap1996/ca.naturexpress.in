@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { LeadStore } from "@/lib/intelligence/store/leadStore";
 import { generateAdvisoryDocket } from "@/lib/intelligence/engine/advisoryGenerator";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
     const leadId = searchParams.get("leadId");

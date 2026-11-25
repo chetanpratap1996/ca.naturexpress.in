@@ -21,6 +21,7 @@ import {
   Check
 } from "lucide-react";
 import { ComplianceTask, ClientEntity, WorkflowStatus } from "@/lib/types";
+import { useClientContext } from "@/lib/context/ClientContext";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 
@@ -39,17 +40,21 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
   onRefreshData,
   onNavigateTab,
 }) => {
+  const { selectedClient, isFirmWideView } = useClientContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<"ALL" | "CRITICAL" | "HIGH" | "DOCS_AWAITED">("ALL");
   const [reassignModalTask, setReassignModalTask] = useState<ComplianceTask | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<string>("Kriti Jain (Article)");
+  const [selectedStaff, setSelectedStaff] = useState<string>("");
   const [isAutoAssigning, setIsAutoAssigning] = useState<boolean>(false);
   const [dynamicStaffList, setDynamicStaffList] = useState<{ name: string; tier: number; role: string }[]>([]);
 
   // Load real staff list from API
   useEffect(() => {
-    fetch("/api/staff")
-      .then((res) => res.json())
+    fetch("/api/staff", { credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data.success && Array.isArray(data.staff)) {
           const active = data.staff
@@ -68,19 +73,17 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
       .catch((err) => console.warn("Staff fetch error:", err));
   }, []);
 
-  const defaultStaffMembers = [
-    { name: "CA Gunjan Jain (Partner)", tier: 4, role: "MANAGING_PARTNER" },
-    { name: "Kriti Jain (Article)", tier: 3, role: "ARTICLE_TRAINEE" },
-  ];
-
-  const activeStaff = dynamicStaffList.length > 0 ? dynamicStaffList : defaultStaffMembers;
+  const activeStaff = dynamicStaffList;
 
   const handleTriggerAutopilot = async () => {
     setIsAutoAssigning(true);
     try {
-      const res = await fetch("/api/tasks/auto-assign", { method: "POST" });
+      const res = await fetch("/api/tasks/auto-assign", {
+        method: "POST",
+        credentials: "include",
+      });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         toast.success(
           "Autopilot Workload Balanced",
           `Reassigned ${data.tasksReassigned} tasks across ${Object.keys(data.breakdownByStaff || {}).length} staff.`
@@ -96,23 +99,30 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
     }
   };
 
+  const scopedTasks = useMemo(() => {
+    if (selectedClient && !isFirmWideView) {
+      return tasks.filter((t) => t.entityId === selectedClient.id);
+    }
+    return tasks;
+  }, [tasks, selectedClient, isFirmWideView]);
+
   // Critical tasks due in 72 hours
   const criticalTasks = useMemo(() => {
-    return tasks.filter((t) => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED");
-  }, [tasks]);
+    return scopedTasks.filter((t) => t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED");
+  }, [scopedTasks]);
 
   // Clients with missing documents
   const documentChaserList = useMemo(() => {
-    return tasks.filter((t) => (t.missingDocumentsCount || 0) > 0 && t.status !== "FILED_AND_COMPLETED");
-  }, [tasks]);
+    return scopedTasks.filter((t) => (t.missingDocumentsCount || 0) > 0 && t.status !== "FILED_AND_COMPLETED");
+  }, [scopedTasks]);
 
   // Staff Workload Breakdown
   const staffWorkload = useMemo(() => {
     const map = new Map<string, { total: number; critical: number; completed: number; tier: number }>();
     activeStaff.forEach((s) => map.set(s.name, { total: 0, critical: 0, completed: 0, tier: s.tier }));
 
-    tasks.forEach((t) => {
-      const assigned = t.assignedTo || "Kriti Jain (Article)";
+    scopedTasks.forEach((t) => {
+      const assigned = t.assignedTo || "Unassigned";
       // Match by full name or first name
       let matchedKey = Array.from(map.keys()).find((k) => k === assigned || k.includes(assigned.split(" ")[0]));
       if (!matchedKey) {
@@ -132,11 +142,11 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
     });
 
     return Array.from(map.entries()).map(([name, data]) => ({ name, ...data }));
-  }, [tasks, activeStaff]);
+  }, [scopedTasks, activeStaff]);
 
   // Filtered tasks
   const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
+    return scopedTasks.filter((t) => {
       const matchesSearch =
         !searchQuery ||
         t.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -154,7 +164,7 @@ export const TasksCommandCenter: React.FC<TasksCommandCenterProps> = ({
 
       return matchesSearch && matchesPriority;
     });
-  }, [tasks, searchQuery, priorityFilter]);
+  }, [scopedTasks, searchQuery, priorityFilter]);
 
   const handleChaseWhatsApp = (task: ComplianceTask) => {
     const client = clients.find((c) => c.id === task.entityId);

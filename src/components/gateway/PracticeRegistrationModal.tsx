@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { BtLogo } from "@/components/shared/BtLogo";
-import { AuthUser, setActiveSession } from "@/lib/auth/session";
+import type { AuthUser } from "@/lib/auth/session";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
   Building2, 
@@ -38,7 +38,7 @@ export const PracticeRegistrationModal: React.FC<PracticeRegistrationModalProps>
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firmName || !partnerName || !email || !phone) {
       toast.warning("Missing Fields", "Please fill in all mandatory practice details.");
@@ -46,43 +46,34 @@ export const PracticeRegistrationModal: React.FC<PracticeRegistrationModalProps>
     }
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      const cleanPhone = phone.replace(/\D/g, "");
-      const cleanFrn = (frn || "022998C").toUpperCase();
-      const firmId = `FRM-${cleanFrn}`;
-
-      const newPartner: AuthUser = {
-        id: `USR-PRT-${Date.now()}`,
-        name: partnerName.startsWith("CA ") ? partnerName : `CA ${partnerName}`,
-        email: email.trim().toLowerCase(),
-        phone: cleanPhone.length === 10 ? `+91 ${cleanPhone}` : phone,
-        role: "PARTNER",
-        designation: "Managing Partner",
-        firmId: firmId,
-        firmName: firmName.trim(),
-        firmFrn: cleanFrn,
-        token: `tok_live_${Date.now()}`,
-        expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
-      };
-
-      setActiveSession(newPartner);
-      setIsSubmitting(false);
+    try {
+      const res = await fetch("/api/growth/consultation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: partnerName.trim(),
+          companyName: `${firmName.trim()} (FRN: ${frn.trim() || "Pending"})`,
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          service: "CA Practice Workspace Provisioning",
+          notes: `City: ${city.trim() || "India"} | FRN: ${frn.trim() || "N/A"}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error("Request Failed", data.error || "Could not submit practice provisioning request.");
+        return;
+      }
       toast.success(
-        "Practice Workspace Initialized",
-        `Welcome ${newPartner.name}! Practice registered for ${firmName}.`
+        "Practice Onboarding Request Submitted",
+        `Thank you, ${partnerName}. Our enterprise provisioning desk will activate ${firmName} and send verified login credentials.`
       );
-      onRegistered(newPartner);
-    }, 600);
-  };
-
-  const handleFillDemo = () => {
-    setFirmName("GPA & Co., Chartered Accountants");
-    setFrn("022998C");
-    setPartnerName("CA Gunjan Jain");
-    setEmail("partner@gpa.in");
-    setPhone("9893723639");
-    setCity("Indore");
+      onClose();
+    } catch {
+      toast.error("Network Error", "Could not reach onboarding server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,13 +112,6 @@ export const PracticeRegistrationModal: React.FC<PracticeRegistrationModalProps>
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between text-xs pb-1">
             <span className="font-bold text-slate-700">Practice Details</span>
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="text-btred-logo font-bold hover:underline text-[11px]"
-            >
-              Fill Sample Firm (GPA &amp; Co.)
-            </button>
           </div>
 
           {/* Firm Name & FRN */}

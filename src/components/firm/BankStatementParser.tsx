@@ -43,7 +43,9 @@ import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { toast } from "@/components/shared/ToastNotification";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
-import { SANDBOX_CLIENTS } from "@/lib/data/sandboxData";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
+import { writeClientTaxBridge } from "@/lib/taxAudit/clientTaxBridge";
+
 import { validateAndExtractBankStatement } from "@/lib/fileIntelligence/documentValidator";
 import { TOP_15_INDIAN_BANKS, resolveClientBankPasswords, BankDefinition } from "@/lib/bankOcr/bankProfiles";
 import { dissectNarration, STATUTORY_CHART_OF_ACCOUNTS } from "@/lib/bankOcr/narrationEngine";
@@ -213,9 +215,9 @@ export interface BankStatementParserProps {
 
 export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initialEntityId, initialBank }) => {
   const { clients: hookClients } = useTaxoData();
-  const { selectedClient, isFirmWideView } = useClientContext();
+  const { selectedClient, isFirmWideView, selectedAy } = useClientContext();
   const clients = useMemo(() => {
-    return (hookClients && hookClients.length > 0) ? hookClients : SANDBOX_CLIENTS;
+    return hookClients || [];
   }, [hookClients]);
 
   const [selectedEntityId, setSelectedEntityId] = useState<string>(initialEntityId || (clients[0]?.id || "CLI-PRATWI-01"));
@@ -283,29 +285,25 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     if (selectedClient && !isFirmWideView) {
       return selectedClient;
     }
-    if (!clients || clients.length === 0) return SANDBOX_CLIENTS[0];
+    if (!clients || clients.length === 0) return null;
     if (selectedEntityId) {
       return clients.find(c => c.id === selectedEntityId) || clients[0];
     }
     return clients[0];
   }, [clients, selectedEntityId, selectedClient, isFirmWideView]);
 
-  // Client Bank Account Profile
+  // Client Bank Account Profile (clean empty until statement uploaded)
   const activeProfile = useMemo<BankAccountProfile>(() => {
     const entityId = currentEntity?.id || "CLI-PRATWI-01";
-    if (CLIENT_BANK_PROFILES[entityId]) {
-      return CLIENT_BANK_PROFILES[entityId];
-    }
-    // Dynamic fallback for any other client
     return {
-      bankKey: "HDFC_BANK",
-      bankName: "HDFC Bank Ltd",
-      accountNumber: "50200099881122",
-      ifsc: "HDFC0000128",
-      branch: "Main Commercial Branch",
-      openingBalance: 1250000,
-      statementPeriod: "01 Oct 2026 – 31 Oct 2026",
-      defaultTransactions: CLIENT_BANK_PROFILES["CLI-PRATWI-01"].defaultTransactions
+      bankKey: selectedBank || "HDFC_BANK",
+      bankName: "Selected Bank Account",
+      accountNumber: "",
+      ifsc: "",
+      branch: "",
+      openingBalance: 0,
+      statementPeriod: "Current Period",
+      defaultTransactions: []
     };
   }, [currentEntity]);
 
@@ -544,6 +542,11 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
       });
 
       setTransactions(extractedTxns);
+      if (selectedClient && !isFirmWideView && extractedTxns.length > 0) {
+        const cash40a3 = extractedTxns.filter((t: ParsedTransaction) => t.withdrawal >= 10000 && /cash|atm|self|withdrawal/i.test(t.narration || "")).reduce((s: number, t: ParsedTransaction) => s + t.withdrawal, 0);
+        const cash269 = extractedTxns.filter((t: ParsedTransaction) => (t.withdrawal >= 20000 || t.deposit >= 20000) && /loan|deposit|advance/i.test(t.narration || "") && /cash/i.test(t.narration || "")).reduce((s: number, t: ParsedTransaction) => s + (t.withdrawal || t.deposit), 0);
+        writeClientTaxBridge(selectedClient.id, selectedAy, { bankSyncedAt: new Date().toISOString(), bankCashOver10k40A3: cash40a3, bankCashLoans269SS_T: cash269 });
+      }
       setIsUploadModalOpen(false);
       setIsProcessing(false);
 
@@ -715,6 +718,15 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
       setIsReconcilingFees(false);
     }
   };
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="Bank Statement Parser & Tally XML"
+        description="Select a client entity above to upload their bank statement PDF/CSV/Excel and generate TallyPrime XML vouchers."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">

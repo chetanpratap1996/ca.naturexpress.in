@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LeadStore } from "@/lib/intelligence/store/leadStore";
 import { LeadFilterCriteria, LeadStage, ServiceTrack, StatutorySeverity } from "@/lib/intelligence/types";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
 
@@ -45,6 +48,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
 
@@ -117,6 +122,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await req.json();
     const { id, stage, outreachNotes, followUpDate, dealValueEstimatedInr, phone, email, activity } = body;
@@ -159,6 +166,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

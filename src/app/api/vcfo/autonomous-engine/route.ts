@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import {
   getCorporateVcfoProfiles,
   getPracticeIntelligenceSummary,
@@ -10,6 +11,8 @@ import {
 } from "@/lib/vcfo/autonomousVcfoEngine";
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const vcfoProfiles = getCorporateVcfoProfiles();
     const practiceSummary = getPracticeIntelligenceSummary();
@@ -32,6 +35,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await request.json();
     const { action, clientId, stressParams } = body;

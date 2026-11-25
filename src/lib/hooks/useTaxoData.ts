@@ -41,6 +41,7 @@ import { toast } from "@/components/shared/ToastNotification";
 import { generateStatutoryTasksForClient } from "@/lib/statutoryTasks";
 
 const OFFLINE_QUEUE_KEY = "bt_offline_mutation_queue";
+const SWR_CACHE_KEY = "bt_taxodata_swr_v1";
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -82,17 +83,30 @@ export function useTaxoData(isSandbox: boolean = false) {
 
       toast.info("Offline Sync", `Reconnecting: Syncing ${queue.length} pending mutations...`);
 
+      const remainingQueue: Array<{ url: string; method: string; body: any }> = [];
+      let syncedCount = 0;
       for (const item of queue) {
-        await fetch(item.url, {
-          method: item.method,
-          headers: getAuthHeaders(),
-          credentials: "include",
-          body: JSON.stringify(item.body),
-        }).catch(() => {});
+        try {
+          const res = await fetch(item.url, {
+            method: item.method,
+            headers: getAuthHeaders(),
+            credentials: "include",
+            body: JSON.stringify(item.body),
+          });
+          if (res.ok) syncedCount++;
+          else remainingQueue.push(item);
+        } catch {
+          remainingQueue.push(item);
+        }
       }
 
-      localStorage.removeItem(OFFLINE_QUEUE_KEY);
-      toast.success("Synchronized", "All offline changes have been saved to practice database.");
+      if (remainingQueue.length === 0) {
+        localStorage.removeItem(OFFLINE_QUEUE_KEY);
+        toast.success("Synchronized", `All ${syncedCount} offline changes saved to practice database.`);
+      } else {
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue));
+        toast.warning("Partial Sync", `Synced ${syncedCount} items; ${remainingQueue.length} failed and remain queued.`);
+      }
       refreshData();
     } catch (e) {
       console.warn("Error flushing offline queue:", e);
@@ -123,21 +137,37 @@ export function useTaxoData(isSandbox: boolean = false) {
         headers: getAuthHeaders(),
         credentials: "include"
       });
+      if (res.status === 401) {
+        setTasks([]);
+        setDocuments([]);
+        setInvoices([]);
+        setNotices([]);
+        setDscTokens([]);
+        setPortalCredentials([]);
+        setClients([]);
+        setGroups([]);
+        setAuditTrail([]);
+        setPayConfigs([]);
+        return;
+      }
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
-          setTasks(json.data.tasks || INITIAL_TASKS);
-          setDocuments(json.data.documents || INITIAL_DOCUMENTS);
-          setInvoices(json.data.invoices || INITIAL_INVOICES);
-          setNotices(json.data.notices || INITIAL_NOTICES);
-          setDscTokens(json.data.dscTokens || INITIAL_DSC_TOKENS);
-          setPortalCredentials(json.data.portalCredentials || INITIAL_PORTAL_CREDENTIALS);
-          setClients(json.data.clients || INITIAL_CLIENTS);
-          setGroups(json.data.groups || INITIAL_GROUPS);
-          setAuditTrail(json.data.auditTrail || INITIAL_AUDIT_TRAIL);
-          if (json.data.payToReleaseConfigs) {
-            setPayConfigs(json.data.payToReleaseConfigs);
-          }
+          setTasks(json.data.tasks || []);
+          setDocuments(json.data.documents || []);
+          setInvoices(json.data.invoices || []);
+          setNotices(json.data.notices || []);
+          setDscTokens(json.data.dscTokens || []);
+          setPortalCredentials(json.data.portalCredentials || []);
+          setClients(json.data.clients || []);
+          setGroups(json.data.groups || []);
+          setAuditTrail(json.data.auditTrail || []);
+          setPayConfigs(json.data.payToReleaseConfigs || []);
+          try {
+            if (typeof window !== "undefined") {
+              localStorage.setItem(SWR_CACHE_KEY, JSON.stringify(json.data));
+            }
+          } catch {}
         }
       }
     } catch (err) {
@@ -161,6 +191,26 @@ export function useTaxoData(isSandbox: boolean = false) {
       setPayConfigs(SANDBOX_PAY_TO_RELEASE_CONFIGS as any);
       setIsLoading(false);
     } else {
+      // Instant Stale-While-Revalidate (SWR) hydration from local cache in <1ms
+      try {
+        if (typeof window !== "undefined") {
+          const cached = localStorage.getItem(SWR_CACHE_KEY);
+          if (cached) {
+            const d = JSON.parse(cached);
+            if (Array.isArray(d.tasks)) setTasks(d.tasks);
+            if (Array.isArray(d.documents)) setDocuments(d.documents);
+            if (Array.isArray(d.invoices)) setInvoices(d.invoices);
+            if (Array.isArray(d.notices)) setNotices(d.notices);
+            if (Array.isArray(d.dscTokens)) setDscTokens(d.dscTokens);
+            if (Array.isArray(d.portalCredentials)) setPortalCredentials(d.portalCredentials);
+            if (Array.isArray(d.clients)) setClients(d.clients);
+            if (Array.isArray(d.groups)) setGroups(d.groups);
+            if (Array.isArray(d.auditTrail)) setAuditTrail(d.auditTrail);
+            if (Array.isArray(d.payToReleaseConfigs)) setPayConfigs(d.payToReleaseConfigs);
+            setIsLoading(false);
+          }
+        }
+      } catch {}
       refreshData();
     }
 
@@ -207,21 +257,23 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify(taskData),
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          setTasks((prev) => [json.task, ...prev]);
-          refreshData();
-          return json.task;
-        }
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        toast.error("Task Creation Failed", json.error || `HTTP ${res.status}`);
+        throw new Error(json.error || "Failed to create task");
       }
+      setTasks((prev) => [json.task, ...prev]);
+      refreshData();
+      return json.task;
     } catch (err) {
       console.error("Failed to create task", err);
+      throw err;
     }
   };
 
   // Update Task (status, UDIN, chase)
   const updateTask = async (taskId: string, updates: Partial<ComplianceTask>) => {
+    const previous = tasks;
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t))
     );
@@ -234,15 +286,23 @@ export function useTaxoData(isSandbox: boolean = false) {
     }
 
     try {
-      await fetch("/api/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
         body: JSON.stringify({ taskId, ...updates }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setTasks(previous);
+        toast.error("Task Update Rejected", json.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setTasks(previous);
       console.error("Failed to update task", err);
+      toast.error("Task Update Failed", "Network error updating task.");
     }
   };
 
@@ -286,21 +346,23 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify(docData),
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          setDocuments((prev) => [json.document, ...prev]);
-          refreshData();
-          return json.document;
-        }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        toast.error("Upload Rejected", json.error || `HTTP ${res.status}`);
+        return undefined;
       }
+      setDocuments((prev) => [json.document, ...prev]);
+      refreshData();
+      return json.document;
     } catch (err) {
       console.error("Failed to upload document", err);
+      toast.error("Upload Failed", "Network error uploading document.");
     }
   };
 
   // Review Document
   const reviewDocument = async (docId: string, reviewStatus: DocumentItem["reviewStatus"], reviewNotes?: string) => {
+    const previous = documents;
     setDocuments((prev) =>
       prev.map((d) => (d.id === docId ? { ...d, reviewStatus, reviewNotes } : d))
     );
@@ -308,15 +370,23 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) return;
 
     try {
-      await fetch("/api/documents", {
+      const res = await fetch("/api/documents", {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
         body: JSON.stringify({ docId, reviewStatus, reviewNotes }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setDocuments(previous);
+        toast.error("Document Review Rejected", json.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setDocuments(previous);
       console.error("Failed to review document", err);
+      toast.error("Review Failed", "Network error updating document review status.");
     }
   };
 
@@ -328,6 +398,7 @@ export function useTaxoData(isSandbox: boolean = false) {
     clientPayerNote?: string,
     actorName?: string
   ) => {
+    const previous = invoices;
     setInvoices((prev) =>
       prev.map((inv) =>
         inv.id === invoiceId
@@ -346,7 +417,7 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) return;
 
     try {
-      await fetch("/api/invoices", {
+      const res = await fetch("/api/invoices", {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -359,21 +430,30 @@ export function useTaxoData(isSandbox: boolean = false) {
           actorName
         }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setInvoices(previous);
+        toast.error("UTR Submission Failed", json.error || `HTTP ${res.status}`);
+        throw new Error(json.error || "Failed to submit UTR");
+      }
       refreshData();
     } catch (err) {
+      setInvoices(previous);
       console.error("Failed to submit client UTR", err);
+      throw err;
     }
   };
 
   // Reconcile Invoice (Partner action)
   const reconcileInvoice = async (invoiceId: string, reconciledBy?: string) => {
+    const previous = invoices;
     setInvoices((prev) =>
       prev.map((inv) =>
         inv.id === invoiceId
           ? {
               ...inv,
               status: "PAID",
-              reconciledBy: reconciledBy || "CA Gunjan Jain (Partner)",
+              reconciledBy: reconciledBy || "Managing Partner",
               reconciledAt: new Date().toISOString()
             }
           : inv
@@ -383,7 +463,7 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) return;
 
     try {
-      await fetch("/api/invoices", {
+      const res = await fetch("/api/invoices", {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -393,14 +473,23 @@ export function useTaxoData(isSandbox: boolean = false) {
           reconciledBy
         }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setInvoices(previous);
+        toast.error("Reconciliation Denied", json.error || `Only Managing Partners can mark invoices PAID (HTTP ${res.status}).`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setInvoices(previous);
       console.error("Failed to reconcile invoice", err);
+      toast.error("Reconciliation Failed", "Network error reconciling invoice.");
     }
   };
 
   // Checkout DSC Token
   const checkoutDscToken = async (tokenId: string, staffName: string, purpose: string) => {
+    const previous = dscTokens;
     setDscTokens((prev) =>
       prev.map((tok) =>
         tok.id === tokenId
@@ -417,7 +506,7 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) return;
 
     try {
-      await fetch("/api/dsc", {
+      const res = await fetch("/api/dsc", {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -428,14 +517,22 @@ export function useTaxoData(isSandbox: boolean = false) {
           purpose
         }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setDscTokens(previous);
+        toast.error("DSC Checkout Failed", json.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setDscTokens(previous);
       console.error("Failed to checkout DSC token", err);
     }
   };
 
   // Return DSC Token to Safe
   const returnDscToken = async (tokenId: string) => {
+    const previous = dscTokens;
     setDscTokens((prev) =>
       prev.map((tok) =>
         tok.id === tokenId
@@ -452,7 +549,7 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) return;
 
     try {
-      await fetch("/api/dsc", {
+      const res = await fetch("/api/dsc", {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -461,73 +558,72 @@ export function useTaxoData(isSandbox: boolean = false) {
           action: "RETURN"
         }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setDscTokens(previous);
+        toast.error("DSC Return Failed", json.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setDscTokens(previous);
       console.error("Failed to return DSC token", err);
     }
   };
 
-  // Instant UPI Unlock (Pay-to-Release)
+  // Submit Client UTR for Partner Bank Verification (never self-marks PAID)
   const instantUpiUnlock = async (entityId: string, arg2?: string | number, arg3?: number) => {
-    const utrRef = typeof arg2 === "string" ? arg2 : `UPI-${Date.now().toString().slice(-8)}`;
+    const utrRef = typeof arg2 === "string" && arg2.trim() ? arg2.trim() : "";
     const amount = typeof arg2 === "number" ? arg2 : (typeof arg3 === "number" ? arg3 : 0);
 
-    setPayConfigs((prev) =>
-      prev.map((c) =>
-        c.entityId === entityId
-          ? {
-              ...c,
-              isLocked: false,
-              totalOutstandingAmount: Math.max(0, c.totalOutstandingAmount - amount),
-              lockReason: `Fee cleared via UPI ${utrRef}`
-            }
-          : c
-      )
-    );
-
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.entityId === entityId && inv.status !== "PAID"
-          ? { ...inv, status: "PAID", clientUtrNumber: utrRef }
-          : inv
-      )
-    );
+    if (!utrRef || !/^[A-Za-z0-9-]{6,40}$/.test(utrRef)) {
+      throw new Error("A valid 6-40 character UPI/NEFT UTR reference is required for bank verification.");
+    }
 
     if (isSandbox) return;
 
-    try {
-      await fetch("/api/pay-to-release", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify({
-          action: "INSTANT_PAYMENT_RELEASE",
-          entityId,
-          utrRef,
-          amountPaid: amount,
-          paymentMode: "UPI"
-        })
-      });
-      refreshData();
-    } catch (err) {
-      console.error("Failed to process instant UPI unlock", err);
+    const res = await fetch("/api/pay-to-release", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify({
+        action: "SUBMIT_CLIENT_UTR",
+        entityId,
+        utrRef,
+        amountPaid: amount,
+        paymentMode: "UPI",
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.error || "Failed to submit payment UTR for verification.");
     }
+    refreshData();
+    return json;
   };
 
   // Create Client
-  const createClient = async (clientData: Partial<ClientEntity>) => {
+  const createClient = async (clientData: Partial<ClientEntity> & Record<string, any>) => {
     if (isSandbox) {
       const newClient: ClientEntity = {
         id: `CLI-${Date.now().toString().slice(-4)}`,
         groupId: clientData.groupId || "GRP-NEW",
         groupName: clientData.groupName || `${clientData.name} Group`,
         name: clientData.name || "New Client Entity",
+        tradeName: clientData.tradeName,
         type: clientData.type || "PVT_LTD",
         pan: clientData.pan || "AAACA1294F",
+        gstin: clientData.gstin,
+        gstFilingFrequency: clientData.gstFilingFrequency,
+        onboardingMode: clientData.onboardingMode,
+        onboardingChecklist: clientData.onboardingChecklist,
+        gstHistory: clientData.gstHistory,
+        cin: clientData.cin,
+        tan: clientData.tan,
         turnoverCr: clientData.turnoverCr || 5.0,
-        partnerInCharge: "CA Gunjan Jain",
-        assignedArticle: "Kriti Jain (Article)",
-        incorporationYear: 2024,
+        partnerInCharge: clientData.partnerInCharge || "CA Gunjan Jain",
+        assignedArticle: clientData.assignedArticle || "Kriti Jain (Article)",
+        incorporationYear: clientData.incorporationYear || 2024,
         penaltyRiskAccrued: 0,
         primaryContact: {
           name: clientData.primaryContact?.name || "Promoter",
@@ -549,21 +645,22 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify(clientData),
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.client) {
-          setClients((prev) => [json.client, ...prev]);
-          refreshData();
-          return json.client;
-        }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success || !json.client) {
+        throw new Error(json.error || `Failed to create client (HTTP ${res.status})`);
       }
+      setClients((prev) => [json.client, ...prev]);
+      refreshData();
+      return json.client;
     } catch (err) {
       console.error("Failed to create client", err);
+      throw err;
     }
   };
 
   // Update Client
   const updateClient = async (clientId: string, clientData: Partial<ClientEntity>) => {
+    const previous = clients;
     setClients((prev) =>
       prev.map((c) => (c.id === clientId ? { ...c, ...clientData } : c))
     );
@@ -575,32 +672,42 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify({ id: clientId, ...clientData }),
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.client) {
-          setClients((prev) =>
-            prev.map((c) => (c.id === clientId ? json.client : c))
-          );
-          return json.client;
-        }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success || !json.client) {
+        setClients(previous);
+        throw new Error(json.error || `Failed to update client (HTTP ${res.status})`);
       }
+      setClients((prev) =>
+        prev.map((c) => (c.id === clientId ? json.client : c))
+      );
+      return json.client;
     } catch (err) {
+      setClients(previous);
       console.error("Failed to update client", err);
+      throw err;
     }
   };
 
   // Delete / Archive Client
   const deleteClient = async (clientId: string) => {
+    const previous = clients;
     setClients((prev) => prev.filter((c) => c.id !== clientId));
 
     try {
-      await fetch(`/api/clients?id=${clientId}`, {
+      const res = await fetch(`/api/clients?id=${clientId}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
         credentials: "include"
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setClients(previous);
+        throw new Error(json.error || `Failed to delete client (HTTP ${res.status})`);
+      }
     } catch (err) {
+      setClients(previous);
       console.error("Failed to delete client", err);
+      throw err;
     }
   };
 
@@ -635,19 +742,26 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify(credData),
       });
-      const data = await res.json();
-      if (data.success && data.credential) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setPortalCredentials((prev) => prev.filter((c) => c.id !== tempId));
+        toast.error("Save Credential Failed", data.error || `HTTP ${res.status}`);
+        throw new Error(data.error || "Failed to save credential");
+      }
+      if (data.credential) {
         setPortalCredentials((prev) => prev.map((c) => (c.id === tempId ? data.credential : c)));
       }
       refreshData();
       return data.credential || newCred;
     } catch (err) {
+      setPortalCredentials((prev) => prev.filter((c) => c.id !== tempId));
       console.error("Failed to create portal credential", err);
-      return newCred;
+      throw err;
     }
   };
 
   const updatePortalCredential = async (credData: Partial<PortalCredential> & { id: string }) => {
+    const previous = portalCredentials;
     setPortalCredentials((prev) =>
       prev.map((c) => (c.id === credData.id ? { ...c, ...credData, lastChangedDate: new Date().toISOString().split("T")[0] } : c))
     );
@@ -655,31 +769,46 @@ export function useTaxoData(isSandbox: boolean = false) {
     if (isSandbox) return;
 
     try {
-      await fetch("/api/credentials", {
+      const res = await fetch("/api/credentials", {
         method: "PUT",
         headers: getAuthHeaders(),
         credentials: "include",
         body: JSON.stringify(credData),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setPortalCredentials(previous);
+        toast.error("Update Credential Failed", data.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setPortalCredentials(previous);
       console.error("Failed to update credential", err);
     }
   };
 
   const deletePortalCredential = async (id: string) => {
+    const previous = portalCredentials;
     setPortalCredentials((prev) => prev.filter((c) => c.id !== id));
 
     if (isSandbox) return;
 
     try {
-      await fetch(`/api/credentials?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/credentials?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
         credentials: "include",
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setPortalCredentials(previous);
+        toast.error("Delete Credential Failed", data.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setPortalCredentials(previous);
       console.error("Failed to delete credential", err);
     }
   };
@@ -714,7 +843,10 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify({ bulk: true, items }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `Bulk import failed (HTTP ${res.status})`);
+      }
       refreshData();
       return data;
     } catch (err) {
@@ -752,28 +884,42 @@ export function useTaxoData(isSandbox: boolean = false) {
         credentials: "include",
         body: JSON.stringify(tokenData),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setDscTokens((prev) => prev.filter((t) => t.id !== tempId));
+        toast.error("DSC Registration Failed", data.error || `HTTP ${res.status}`);
+        throw new Error(data.error || "Failed to create DSC token");
+      }
       refreshData();
       return data.token || newToken;
     } catch (err) {
+      setDscTokens((prev) => prev.filter((t) => t.id !== tempId));
       console.error("Failed to create DSC token", err);
-      return newToken;
+      throw err;
     }
   };
 
   const deleteDscToken = async (id: string) => {
+    const previous = dscTokens;
     setDscTokens((prev) => prev.filter((t) => t.id !== id));
 
     if (isSandbox) return;
 
     try {
-      await fetch(`/api/dsc?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/dsc?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
         credentials: "include",
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setDscTokens(previous);
+        toast.error("DSC Delete Failed", data.error || `HTTP ${res.status}`);
+        return;
+      }
       refreshData();
     } catch (err) {
+      setDscTokens(previous);
       console.error("Failed to delete DSC token", err);
     }
   };

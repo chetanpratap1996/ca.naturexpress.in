@@ -45,6 +45,7 @@ import {
 } from '@/lib/desktop/mdiDesktopManager';
 import { useClientContext } from '@/lib/context/ClientContext';
 import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
+import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
 
 type SubView = 'TALLY_KEYBOARD_GRID' | 'MDI_DESKTOP' | 'TALLY_SYNC_BRIDGE' | 'BILLING_RECOVERY' | 'MORNING_DIGEST';
 
@@ -58,33 +59,30 @@ interface VoucherRow {
 
 export default function PillarEightTallyDesktopWorkbench() {
   const { selectedClient, isFirmWideView } = useClientContext();
-  const activeClientName = selectedClient && !isFirmWideView ? selectedClient.name : 'Pratwi Solutions Private Limited';
+  const activeClientName = selectedClient && !isFirmWideView ? (selectedClient.tradeName || selectedClient.name) : '';
 
   const [activeView, setActiveView] = useState<SubView>('TALLY_KEYBOARD_GRID');
 
   // MDI Tabs State
-  const [tabs, setTabs] = useState<MdiClientTab[]>(MdiDesktopManager.getInitialTabs());
-  const [activeTabId, setActiveTabId] = useState<string>('TAB-01');
+  const [tabs, setTabs] = useState<MdiClientTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
 
   // Tally Grid State
-  const [voucherRows, setVoucherRows] = useState<VoucherRow[]>([
-    { id: '1', type: 'Dr', ledger: 'Audit MOC Disallowance u/s 43B(h)', amount: 145000, narration: 'MSME supplier overdue > 45 days' },
-    { id: '2', type: 'Cr', ledger: 'Sundry Creditors - Micro & Small Units', amount: 145000, narration: 'Statutory provision created' }
-  ]);
+  const [voucherRows, setVoucherRows] = useState<VoucherRow[]>([]);
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number }>({ row: 0, col: 1 });
   const [isAltCModalOpen, setIsAltCModalOpen] = useState(false);
   const [newLedgerName, setNewLedgerName] = useState('');
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
 
   // Tally Bridge State
-  const [mocs, setMocs] = useState<TallyMocEntry[]>(SAMPLE_MOCS);
-  const [trialBalance] = useState<TallyTrialBalanceItem[]>(SAMPLE_TALLY_TB);
+  const [mocs, setMocs] = useState<TallyMocEntry[]>([]);
+  const [trialBalance] = useState<TallyTrialBalanceItem[]>([]);
   const [xmlExportPreview, setXmlExportPreview] = useState<string>('');
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   // Billing State
-  const [wipItems, setWipItems] = useState<BillableWipItem[]>(SAMPLE_WIP_ITEMS);
-  const [selectedWip, setSelectedWip] = useState<BillableWipItem>(SAMPLE_WIP_ITEMS[0]);
+  const [wipItems, setWipItems] = useState<BillableWipItem[]>([]);
+  const [selectedWip, setSelectedWip] = useState<BillableWipItem>({ id: 'WIP-EMPTY', clientName: activeClientName, clientPan: selectedClient?.pan || '', engagementType: 'TAX_AUDIT_44AB', partnerHours: 0, partnerRatePerHour: 0, managerHours: 0, managerRatePerHour: 0, articleHours: 0, articleRatePerHour: 0, pureAgentDisbursements: [], invoiceRaised: false, paymentStatus: 'PAYMENT_PENDING', fileLockActive: false, lockedDocumentRefs: [] });
 
   // Morning Digest State
   const [digest, setDigest] = useState<MorningBriefingData>(PartnerMorningDigestEngine.compileMorningBriefing());
@@ -172,6 +170,15 @@ export default function PillarEightTallyDesktopWorkbench() {
   const selectedInvoice = FirmBillingRecoveryEngine.computeInvoice(selectedWip);
 
   const activeClientTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="Tally Bridge & Desktop Sync"
+        description="Select a client entity above to enter keyboard vouchers, sync TallyPrime MOCs, and manage client WIP."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

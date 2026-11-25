@@ -13,6 +13,8 @@ import { AisCrossReconciler, BooksIncomeSourceItem, CrossReconciliationReport, C
 import { InsightNoticeForecaster, ScrutinyForecastResult, AisPortalFeedbackPayload, AisFeedbackOption } from "@/lib/ais/insightNoticeForecaster";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
+import { writeClientTaxBridge } from "@/lib/taxAudit/clientTaxBridge";
 
 import { 
   FileSearch, 
@@ -321,8 +323,8 @@ interface Ais26asAnalyzerProps {
 }
 
 export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }) => {
-  const { selectedClient, isFirmWideView } = useClientContext();
-  const [selectedEntityId, setSelectedEntityId] = useState<string>(() => clients[0]?.id || "CLI-PRATWI-01");
+  const { selectedClient, isFirmWideView, selectedAy, selectedFy } = useClientContext();
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [activeSuite, setActiveSuite] = useState<"reconciliation" | "sft_radar" | "gatekeeper" | "notice_forecaster">("reconciliation");
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
@@ -335,29 +337,30 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [customAisRecords, setCustomAisRecords] = useState<AisRecord[] | null>(null);
 
-  // Active Client Entity
-  const activeClients = useMemo(() => {
-    return (clients && clients.length > 0) ? clients : SANDBOX_CLIENTS;
-  }, [clients]);
+  // Active Client Entity (strictly real client from context/props)
+  const activeClients = clients;
 
   const currentEntity = useMemo(() => {
     if (selectedClient && !isFirmWideView) return selectedClient;
-    return activeClients.find(c => c.id === selectedEntityId) || activeClients[0];
+    return activeClients.find(c => c.id === selectedEntityId) || null;
   }, [selectedClient, isFirmWideView, activeClients, selectedEntityId]);
 
-  // Client Profile
+  // Client Profile (strictly real entity + uploaded/saved AIS records, zero dummy fallback)
   const activeProfile = useMemo<ClientAisProfile>(() => {
-    const id = currentEntity?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7";
-    const base = CLIENT_AIS_PROFILES[id] || CLIENT_AIS_PROFILES["ddd33056-b6dc-46ca-b145-cd111045aff7"] || Object.values(CLIENT_AIS_PROFILES)[0];
-    if (customAisRecords) {
-      return {
-        ...base,
-        pan: currentEntity?.pan || base.pan,
-        records: customAisRecords
-      };
-    }
-    return base;
-  }, [currentEntity, customAisRecords]);
+    const isCorp = currentEntity?.type === "PVT_LTD" || currentEntity?.type === "PUBLIC_LTD";
+    return {
+      entityId: currentEntity?.id || "",
+      taxpayerName: currentEntity?.tradeName || currentEntity?.name || "",
+      taxpayerType: isCorp ? "COMPANY" : "INDIVIDUAL",
+      pan: currentEntity?.pan || "",
+      primaryPhone: currentEntity?.primaryContact?.phone || "",
+      assessmentYear: `AY ${selectedAy}`,
+      financialYear: `FY ${selectedFy}`,
+      annualTurnoverInr: (currentEntity?.turnoverCr || 0) * 10000000,
+      records: customAisRecords || [],
+      booksLedgers: [],
+    };
+  }, [currentEntity, customAisRecords, selectedAy, selectedFy]);
 
   const handleProcessAisFile = async () => {
     if (!aisFile) {
@@ -370,6 +373,12 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
       const res = parseOfficialAisJson(text);
       if (res.success && res.records.length > 0) {
         setCustomAisRecords(res.records);
+        if (currentEntity?.id) {
+          const tdsSum = res.records.reduce((s, r) => s + (r.taxDeducted || 0), 0);
+          const divIntSum = res.records.filter(r => r.sourceType === "DIVIDEND" || r.sourceType === "INTEREST_SAVINGS_FD").reduce((s, r) => s + (r.reportedAmount || 0), 0);
+          const unrepSum = res.records.filter(r => r.itrStatus === "UNREPORTED_INCOME_RISK" || r.itrStatus === "DISCREPANCY_FLAG").reduce((s, r) => s + (r.reportedAmount || 0), 0);
+          writeClientTaxBridge(currentEntity.id, selectedAy, { aisSyncedAt: new Date().toISOString(), aisTdsTotal: tdsSum, aisDividendAndInterest: divIntSum, aisUnreportedRiskTotal: unrepSum });
+        }
         playSuccessChime();
         toast.success("AIS Ingested", `Loaded ${res.totalRecords} records (SFT: ${res.sftCount}, TDS: ${res.tdsCount})`);
 
@@ -499,10 +508,19 @@ export const Ais26asAnalyzer: React.FC<Ais26asAnalyzerProps> = ({ clients = [] }
     toast.success("Feedback JSON Exported", `Saved official CBDT AIS feedback file for PAN ${activeProfile.pan}.`);
   };
 
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="AIS & Form 26AS SFT Reconciler"
+        description="Select a client entity above to view or upload their Income Tax Portal AIS JSON and Form 26AS. No dummy or cross-client data is shown."
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* ========================================================================= */}
-      {/* HEADER: Forensic Context & Client Switcher                                */}
+      {/* HEADER: Context & Client Switcher                                */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

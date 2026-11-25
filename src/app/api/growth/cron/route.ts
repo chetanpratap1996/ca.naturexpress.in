@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CadenceEngine } from "@/lib/intelligence/engine/cadenceEngine";
+import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 
 export async function GET(req: NextRequest) {
   return handleCronExecution(req);
@@ -11,20 +12,17 @@ export async function POST(req: NextRequest) {
 
 async function handleCronExecution(req: NextRequest) {
   try {
+    const auth = await authenticateServerRequest(req);
     const { searchParams } = new URL(req.url);
     const authHeader = req.headers.get("authorization");
-    const isVercelCron = req.headers.get("x-vercel-cron") !== null;
-    const providedSecret = searchParams.get("secret") || (authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null);
-    const expectedSecret = process.env.CRON_SECRET || "brains_and_taxes_cadence_secret_2026";
+    const providedSecret =
+      searchParams.get("secret") || (authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null);
+    const expectedSecret = process.env.CRON_SECRET;
 
-    // Allow execution if Vercel Cron, valid secret, or local development
-    const isAuthorized = 
-      isVercelCron || 
-      providedSecret === expectedSecret || 
-      process.env.NODE_ENV !== "production" || 
-      searchParams.get("allowDev") === "true";
+    const hasValidSecret = Boolean(expectedSecret) && providedSecret === expectedSecret;
+    const isPartner = auth.isAuthenticated && auth.role === "PARTNER";
 
-    if (!isAuthorized) {
+    if (process.env.NODE_ENV === "production" && !hasValidSecret && !isPartner) {
       return NextResponse.json(
         { success: false, error: "Unauthorized cron execution request." },
         { status: 401 }

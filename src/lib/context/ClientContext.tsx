@@ -3,6 +3,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { ClientEntity, GstinRecordItem } from "@/lib/types";
 
+export type CommandPaletteFilter =
+  | "ALL"
+  | "CLIENTS"
+  | "TASKS"
+  | "NOTICES"
+  | "DSC"
+  | "KEYS"
+  | "BILLING"
+  | "DOCS"
+  | "WORKSPACES";
+
 export interface ClientContextType {
   selectedClient: ClientEntity | null;
   selectedGstin: string | null;
@@ -10,6 +21,7 @@ export interface ClientContextType {
   selectedFy: string;
   selectedAy: string;
   selectedPeriod: string;
+  availableFys: string[];
   isFirmWideView: boolean;
   recentClients: ClientEntity[];
   selectClient: (client: ClientEntity | null, preferredGstin?: string) => void;
@@ -18,19 +30,48 @@ export interface ClientContextType {
   selectPeriod: (period: string) => void;
   setFirmWideView: (isFirmWide: boolean) => void;
   clearClientContext: () => void;
+  syncClients: (clients: ClientEntity[]) => void;
   availableGstins: GstinRecordItem[];
+  isCommandOpen: boolean;
+  commandInitialFilter: CommandPaletteFilter;
+  openCommandPalette: (filter?: CommandPaletteFilter) => void;
+  closeCommandPalette: () => void;
 }
 
 const STORAGE_KEYS = {
   CLIENT_ID: "bt_selected_client_id_v2",
   GSTIN: "bt_selected_gstin_v2",
-  FY: "bt_selected_fy_v2",
+  FY: "bt_selected_fy_v3",
   PERIOD: "bt_selected_period_v2",
   RECENT: "bt_recent_clients_v2",
   FIRMWIDE: "bt_is_firmwide_v2",
 };
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined);
+
+export function getCurrentIndianFy(refDate: Date = new Date()): string {
+  const m = refDate.getMonth();
+  const y = refDate.getFullYear();
+  const startYear = m >= 3 ? y : y - 1;
+  return `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
+}
+
+export function getAvailableIndianFys(refDate: Date = new Date()): string[] {
+  const m = refDate.getMonth();
+  const y = refDate.getFullYear();
+  const currentStart = m >= 3 ? y : y - 1;
+  return [currentStart - 3, currentStart - 2, currentStart - 1, currentStart].map(
+    (sy) => `${sy}-${String((sy + 1) % 100).padStart(2, "0")}`
+  );
+}
+
+function getCurrentPeriodLabel(refDate: Date = new Date()): string {
+  const names = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  return `${names[refDate.getMonth()]} ${refDate.getFullYear()}`;
+}
 
 function deriveAssessmentYear(fy: string): string {
   try {
@@ -41,19 +82,31 @@ function deriveAssessmentYear(fy: string): string {
       return `${startYear + 1}-${(endYearShort + 1).toString().padStart(2, "0")}`;
     }
   } catch {}
-  return "2025-26";
+  return "2027-28";
 }
 
 export const ClientProvider: React.FC<{
   children: React.ReactNode;
   initialClients?: ClientEntity[];
 }> = ({ children, initialClients = [] }) => {
+  const availableFys = useMemo(() => getAvailableIndianFys(), []);
   const [selectedClient, setSelectedClientState] = useState<ClientEntity | null>(null);
   const [selectedGstin, setSelectedGstinState] = useState<string | null>(null);
-  const [selectedFy, setSelectedFyState] = useState<string>("2024-25");
-  const [selectedPeriod, setSelectedPeriodState] = useState<string>("September 2026");
+  const [selectedFy, setSelectedFyState] = useState<string>(() => getCurrentIndianFy());
+  const [selectedPeriod, setSelectedPeriodState] = useState<string>(() => getCurrentPeriodLabel());
   const [isFirmWideView, setIsFirmWideViewState] = useState<boolean>(true);
   const [recentClients, setRecentClients] = useState<ClientEntity[]>([]);
+  const [isCommandOpen, setIsCommandOpen] = useState<boolean>(false);
+  const [commandInitialFilter, setCommandInitialFilter] = useState<CommandPaletteFilter>("ALL");
+
+  const openCommandPalette = useCallback((filter: CommandPaletteFilter = "ALL") => {
+    setCommandInitialFilter(filter);
+    setIsCommandOpen(true);
+  }, []);
+
+  const closeCommandPalette = useCallback(() => {
+    setIsCommandOpen(false);
+  }, []);
 
   // Computed Assessment Year
   const selectedAy = useMemo(() => deriveAssessmentYear(selectedFy), [selectedFy]);
@@ -89,13 +142,40 @@ export const ClientProvider: React.FC<{
     return availableGstins.find((g) => g.gstin === selectedGstin) || availableGstins[0] || null;
   }, [selectedGstin, availableGstins]);
 
-  // Load state from localStorage on initial render
+  // Load saved context & sync with verified client roster (no unauthenticated 401 requests)
+  const syncClients = useCallback((liveClients: ClientEntity[]) => {
+    if (!Array.isArray(liveClients) || liveClients.length === 0) return;
+    const validIds = new Set(liveClients.map((c) => c.id));
+    setRecentClients((prev) => {
+      const cleaned = prev.filter((c) => validIds.has(c.id));
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(STORAGE_KEYS.RECENT, JSON.stringify(cleaned));
+        } catch {}
+      }
+      return cleaned;
+    });
+    setSelectedClientState((prev) => {
+      if (!prev) return null;
+      const fresh = liveClients.find((c) => c.id === prev.id) || null;
+      if (!fresh) {
+        setIsFirmWideViewState(true);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(STORAGE_KEYS.CLIENT_ID);
+          localStorage.removeItem(STORAGE_KEYS.GSTIN);
+          localStorage.setItem(STORAGE_KEYS.FIRMWIDE, "true");
+        }
+      }
+      return fresh;
+    });
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     try {
       const savedFy = localStorage.getItem(STORAGE_KEYS.FY);
-      if (savedFy) setSelectedFyState(savedFy);
+      if (savedFy && availableFys.includes(savedFy)) setSelectedFyState(savedFy);
 
       const savedPeriod = localStorage.getItem(STORAGE_KEYS.PERIOD);
       if (savedPeriod) setSelectedPeriodState(savedPeriod);
@@ -113,18 +193,16 @@ export const ClientProvider: React.FC<{
         setIsFirmWideViewState(savedFirmwide === "true");
       }
 
-      // Restore client from query params or storage
       const urlParams = new URLSearchParams(window.location.search);
       const urlClientId = urlParams.get("clientId");
       const urlGstin = urlParams.get("gstin");
       const savedClientId = urlClientId || localStorage.getItem(STORAGE_KEYS.CLIENT_ID);
 
-      if (savedClientId && initialClients.length > 0) {
+      if (savedClientId && initialClients.length > 0 && savedFirmwide !== "true") {
         const matched = initialClients.find((c) => c.id === savedClientId);
         if (matched) {
           setSelectedClientState(matched);
           setIsFirmWideViewState(false);
-
           const gstinToSelect =
             urlGstin ||
             localStorage.getItem(STORAGE_KEYS.GSTIN) ||
@@ -137,51 +215,54 @@ export const ClientProvider: React.FC<{
     } catch (e) {
       console.warn("ClientContext hydration warning:", e);
     }
-  }, [initialClients]);
+  }, [initialClients, availableFys]);
 
-  // Fallback initial load from server-side search if no client selected yet
+  // Hydrate saved client selection only if authenticated staff session exists
   useEffect(() => {
     let isMounted = true;
     async function hydrateFromServer() {
-      if (selectedClient) return;
+      if (selectedClient || typeof window === "undefined") return;
+      const storedSession = localStorage.getItem("bt_enterprise_session_v4") || localStorage.getItem("bt_auth_user");
+      if (!storedSession) return;
+      let token: string | undefined;
+      let role: string | undefined;
       try {
-        const res = await fetch("/api/clients/search?limit=15");
-        if (res.ok) {
+        const parsed = JSON.parse(storedSession);
+        token = parsed?.token;
+        role = parsed?.role || parsed?.user?.role;
+      } catch {}
+      if (!role || role === "CLIENT") return;
+
+      const savedFirmwide = localStorage.getItem(STORAGE_KEYS.FIRMWIDE);
+      const urlParams = new URLSearchParams(window.location.search);
+      const savedClientId = urlParams.get("clientId") || localStorage.getItem(STORAGE_KEYS.CLIENT_ID);
+      if (!savedClientId || savedFirmwide === "true") return;
+
+      try {
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch("/api/clients/search?limit=15", {
+          headers,
+          credentials: "include",
+        });
+        if (res.ok && isMounted) {
           const data = await res.json();
-          if (data.success && data.clients && data.clients.length > 0 && isMounted) {
-            const list: ClientEntity[] = data.clients;
-            setRecentClients((prev) => (prev.length > 0 ? prev : list.slice(0, 5)));
-
-            const savedClientId = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.CLIENT_ID) : null;
-            const savedFirmwide = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.FIRMWIDE) : null;
-            const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-            const urlClientId = urlParams?.get("clientId");
-            const urlGstin = urlParams?.get("gstin");
-
-            const targetId = urlClientId || savedClientId;
-            let targetClient = list.find((c) => c.id === targetId);
-
-            if (!targetClient && savedFirmwide !== "true") {
-              // Default to the first client in master (Tata Steel or Pratwi)
-              targetClient = list[0];
-            }
-
-            if (targetClient && !selectedClient) {
-              setSelectedClientState(targetClient);
+          if (data.success && Array.isArray(data.clients)) {
+            const matched = data.clients.find((c: ClientEntity) => c.id === savedClientId);
+            if (matched) {
+              setSelectedClientState(matched);
               setIsFirmWideViewState(false);
               const gstin =
-                urlGstin ||
-                (typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.GSTIN) : null) ||
-                targetClient.gstinRecords?.[0]?.gstin ||
-                targetClient.gstin ||
+                urlParams.get("gstin") ||
+                localStorage.getItem(STORAGE_KEYS.GSTIN) ||
+                matched.gstinRecords?.[0]?.gstin ||
+                matched.gstin ||
                 null;
               setSelectedGstinState(gstin);
             }
           }
         }
-      } catch (err) {
-        console.warn("Failed to load initial clients in ClientContext:", err);
-      }
+      } catch {}
     }
     hydrateFromServer();
     return () => {
@@ -304,6 +385,7 @@ export const ClientProvider: React.FC<{
       selectedFy,
       selectedAy,
       selectedPeriod,
+      availableFys,
       isFirmWideView,
       recentClients,
       selectClient,
@@ -312,7 +394,12 @@ export const ClientProvider: React.FC<{
       selectPeriod,
       setFirmWideView,
       clearClientContext,
+      syncClients,
       availableGstins,
+      isCommandOpen,
+      commandInitialFilter,
+      openCommandPalette,
+      closeCommandPalette,
     }),
     [
       selectedClient,
@@ -321,6 +408,7 @@ export const ClientProvider: React.FC<{
       selectedFy,
       selectedAy,
       selectedPeriod,
+      availableFys,
       isFirmWideView,
       recentClients,
       selectClient,
@@ -329,7 +417,12 @@ export const ClientProvider: React.FC<{
       selectPeriod,
       setFirmWideView,
       clearClientContext,
+      syncClients,
       availableGstins,
+      isCommandOpen,
+      commandInitialFilter,
+      openCommandPalette,
+      closeCommandPalette,
     ]
   );
 

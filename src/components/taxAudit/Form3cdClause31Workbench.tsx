@@ -19,7 +19,7 @@ import {
 } from '@/lib/taxAudit/clause31CashLoanEngine';
 
 export function Form3cdClause31Workbench() {
-  const [data] = useState<Clause31AuditSummary>(SAMPLE_CLAUSE_31_DATA);
+  const [data] = useState<Clause31AuditSummary>({ totalTransactionsScanned: 0, totalViolationsFound: 0, totalViolationAmount: 0, potentialPenalty271D_E: 0, compliantAmount: 0, records: [] });
   const [filter, setFilter] = useState<'ALL' | 'VIOLATIONS' | 'COMPLIANT'>('ALL');
   const [search, setSearch] = useState('');
 

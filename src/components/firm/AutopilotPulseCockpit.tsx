@@ -23,7 +23,7 @@ import {
 import { formatCurrencyINR } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
 import { playSuccessChime } from "@/lib/audio/soundEffects";
-import { AutopilotExecutionSummary } from "@/lib/automation/practiceAutopilot";
+import { AutopilotExecutionSummary, AutopilotPolicyConfig, DEFAULT_AUTOPILOT_POLICY } from "@/lib/automation/autopilotTypes";
 
 interface AutopilotPulseCockpitProps {
   onTriggerSweep?: () => Promise<any> | void;
@@ -36,17 +36,26 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localRunning, setLocalRunning] = useState(false);
-  const [lastSweepTime, setLastSweepTime] = useState<string>("Today, 02:00 AM");
+  const [lastSweepTime, setLastSweepTime] = useState<string>("Awaiting sweep");
   const [liveSummary, setLiveSummary] = useState<AutopilotExecutionSummary | null>(null);
+  const [policy, setPolicy] = useState<AutopilotPolicyConfig>(DEFAULT_AUTOPILOT_POLICY);
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   const fetchLatestPosture = async () => {
     try {
-      const res = await fetch("/api/firm-autopilot");
+      const res = await fetch("/api/firm-autopilot", { credentials: "include" });
+      if (!res.ok) return;
       const data = await res.json();
       if (data?.summary) {
         setLiveSummary(data.summary);
+        if (data.posture?.lastSweepAt) {
+          setLastSweepTime(new Date(data.posture.lastSweepAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
+        }
       }
-    } catch (e) {
+      if (data?.policy) {
+        setPolicy(data.policy);
+      }
+    } catch {
       // ignore background read
     }
   };
@@ -60,25 +69,59 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
     return () => window.removeEventListener("bt_autopilot_sweep_completed", handler);
   }, []);
 
+  const handleTogglePolicyFlag = async (key: keyof AutopilotPolicyConfig) => {
+    if (savingPolicy) return;
+    const nextValue = !Boolean(policy[key]);
+    const prev = policy;
+    setPolicy({ ...policy, [key]: nextValue });
+    setSavingPolicy(true);
+    try {
+      const res = await fetch("/api/firm-autopilot", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ [key]: nextValue }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.policy) {
+        setPolicy(data.policy);
+        toast.info("Autopilot Policy Updated", "Guardrail preference saved to PostgreSQL.");
+      } else {
+        setPolicy(prev);
+        toast.error("Update Denied", data.error || "Only Partners can change Autopilot policy.");
+      }
+    } catch {
+      setPolicy(prev);
+      toast.error("Network Error", "Could not save Autopilot policy.");
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
+
   const handleRunSweep = async () => {
     setLocalRunning(true);
-    toast.info("Autonomous Sweep Started", "Executing 9-Cycle Practice Autopilot across GST, AIS, Form 3CD, CARO, and ITR...");
+    toast.info("Autonomous Sweep Started", "Executing PostgreSQL Practice Autopilot across tasks, documents, invoices, and DSCs...");
     
     try {
       const res = await fetch("/api/firm-autopilot", {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       
-      if (data?.summary) {
+      if (res.ok && data?.success && data?.summary) {
         setLiveSummary(data.summary);
+        if (data.policy) setPolicy(data.policy);
         setLastSweepTime("Just now");
         playSuccessChime();
+        window.dispatchEvent(new CustomEvent("bt_autopilot_sweep_completed"));
         toast.success(
           "Autonomous Practice Sweep Complete",
-          `9 cycles finished in ${data.summary.executionDurationMs}ms. ${data.summary.gstr2bInvoicesAudited || 0} GST invoices reconciled, ₹${((data.summary.totalClientTaxSavingsIdentifiedInr || 0) / 100000).toFixed(2)}L client tax savings identified.`
+          `8 cycles finished in ${data.summary.executionDurationMs}ms. Spawned ${data.summary.tasksSpawned} tasks, advanced ${data.summary.tasksAutoAdvanced}, drafted ${data.summary.autoInvoicesDrafted} invoices.`
         );
+      } else if (!res.ok) {
+        toast.error("Autopilot Denied", data.error || `HTTP ${res.status}`);
       } else if (onTriggerSweep) {
         await onTriggerSweep();
         playSuccessChime();
@@ -259,6 +302,41 @@ export const AutopilotPulseCockpit: React.FC<AutopilotPulseCockpitProps> = ({
                 {liveSummary?.deliverableGatesActive ? `${liveSummary.deliverableGatesActive} Active Gates` : "Good Standing"}
               </div>
               <div className="text-[10px] text-emerald-700 font-medium">Sec 16 3x RBI Rate</div>
+            </div>
+
+            {/* Interactive Partner Autopilot Guardrails */}
+            <div className="col-span-2 sm:col-span-4 lg:col-span-8 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+              <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-1">
+                Guardrails:
+              </span>
+              {(
+                [
+                  ["autoSpawnTasks", "Auto-Spawn Returns"],
+                  ["autoAssignStaff", "Auto-Route Staff"],
+                  ["autoAdvanceDocs", "Auto-Advance Docs"],
+                  ["autoDraftInvoices", "WIP Auto-Invoice"],
+                  ["autoLockPayToRelease", "Pay-to-Release Lock"],
+                  ["autoSendDeadlineNotifications", "Deadline Nudges"],
+                ] as const
+              ).map(([flagKey, label]) => {
+                const active = Boolean(policy[flagKey]);
+                return (
+                  <button
+                    key={flagKey}
+                    type="button"
+                    disabled={savingPolicy}
+                    onClick={() => handleTogglePolicyFlag(flagKey)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition ${
+                      active
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                        : "bg-slate-100 text-slate-500 border-slate-200"
+                    }`}
+                  >
+                    {active ? "✓ " : "○ "}
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

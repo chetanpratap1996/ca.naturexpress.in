@@ -82,7 +82,7 @@ export const NoticeCenter: React.FC<NoticeCenterProps> = ({
         (n.entityName && n.entityName.toLowerCase().includes(qName)) ||
         (n.pan && n.pan.toLowerCase() === qPan)
       );
-      return matches.length > 0 ? matches : notices;
+      return matches;
     }
     return notices;
   }, [notices, selectedClient, isFirmWideView]);

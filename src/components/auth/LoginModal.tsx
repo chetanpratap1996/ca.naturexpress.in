@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { BtLogo } from "@/components/shared/BtLogo";
 import { 
   AuthUser, 
-  setActiveSession,
-  authenticateUser
+  setActiveSession
 } from "@/lib/auth/session";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { ClientEntity } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { 
@@ -58,19 +58,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Sync clients if props change or fetch from API
+  // Sync clients if explicitly passed via props (never enumerate /api/clients unauthenticated)
   useEffect(() => {
     if (initialClients && initialClients.length > 0) {
       setClientRegistry(initialClients);
-    } else {
-      fetch("/api/clients")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.clients && Array.isArray(data.clients) && data.clients.length > 0) {
-            setClientRegistry(data.clients);
-          }
-        })
-        .catch(() => {});
     }
   }, [initialClients]);
 
@@ -126,19 +117,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setIsSubmitting(false);
       setErrorMessage(data.error || "Authentication failed. Please verify credentials.");
     } catch {
-      // Offline / Local Resilience Fallback
-      const result = authenticateUser(identifier, password, clientRegistry);
       setIsSubmitting(false);
-      if (result.success && result.user) {
-        setActiveSession(result.user);
-        toast.info(
-          "Local Resilient Session",
-          `Logged in: ${result.user.name}`
-        );
-        onLoginSuccess(result.user);
-        return;
-      }
-      setErrorMessage("Could not reach authentication service. Please verify your registered credentials.");
+      setErrorMessage("Could not reach authentication service. Please check your connection and try again.");
     }
   };
 
@@ -178,10 +158,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
 
           <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
-            GPA &amp; Co., Chartered Accountants
+            {DEFAULT_FIRM_BRANDING.firmName}
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            ICAI FRN: 022998C &bull; Practice &amp; Client Compliance Portal
+            ICAI FRN: {DEFAULT_FIRM_BRANDING.frn} &bull; Practice &amp; Client Compliance Portal
           </p>
 
           {/* Mode Switcher: Client vs CA Firm Staff */}
@@ -333,11 +313,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </label>
                 {portalMode === "staff" ? (
                   <span className="text-[10px] text-slate-500 font-medium">
-                    Default PIN: last 4 digits of phone
+                    Issued by Partner
                   </span>
                 ) : (
                   <span className="text-[10px] text-slate-500 font-medium">
-                    Issued by GPA &amp; Co.
+                    Issued by {DEFAULT_FIRM_BRANDING.firmShortName}
                   </span>
                 )}
               </div>

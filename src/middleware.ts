@@ -4,9 +4,9 @@ import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  let response = await createClient(request);
+  const response = await createClient(request);
 
-  // 1. Protect Admin Route: Only Partners with valid session allowed
+  // 1. Protect Admin Route: Only authenticated firm Partners allowed
   if (pathname.startsWith("/admin")) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated || auth.role !== "PARTNER") {
@@ -16,23 +16,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Private by default for all API endpoints except public auth, consultation, & token-secured cron routes
-  const isPublicApi = 
-    pathname === "/api/auth/login" || 
+  // 2. Private by default for all API endpoints except explicit public endpoints
+  const isPublicApi =
+    pathname === "/api/health" ||
+    pathname === "/api/auth/login" ||
     pathname === "/api/auth/logout" ||
-    pathname === "/api/growth/consultation" ||
-    pathname === "/api/notifications" ||
+    (pathname === "/api/growth/consultation" && request.method === "POST") ||
     pathname.startsWith("/api/cron/") ||
     pathname === "/api/growth/cron" ||
-    pathname === "/api/whatsapp/webhook" ||
-    pathname === "/api/gst/lookup" ||
-    pathname.startsWith("/api/gst/hsn") ||
-    pathname === "/api/litigation/notice-parse" ||
-    pathname === "/api/litigation/predictive-risk" ||
-    pathname === "/api/billing/value-statement" ||
-    pathname === "/api/pay-to-release" ||
-    pathname === "/api/billing/agreements" ||
-    pathname === "/api/billing/msme-recovery";
+    pathname === "/api/whatsapp/webhook";
+
   if (pathname.startsWith("/api/") && !isPublicApi) {
     const auth = await authenticateServerRequest(request);
     if (!auth.isAuthenticated) {
@@ -42,23 +35,52 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    // Firm-exclusive administrative routes
+    // Partner-exclusive administrative routes
     const partnerOnly = [
       "/api/analytics/partner-realization",
       "/api/audit/peer-review",
       "/api/audit-trail",
+      "/api/staff",
     ];
-    if (partnerOnly.some((path) => pathname === path || pathname.startsWith(`${path}/`)) && auth.role !== "PARTNER") {
-      return NextResponse.json({ success: false, error: "Administrative partner access required.", code: "FORBIDDEN" }, { status: 403 });
+    if (
+      partnerOnly.some((path) => pathname === path || pathname.startsWith(`${path}/`)) &&
+      !(pathname === "/api/staff" && request.method === "GET" && (auth.role === "ARTICLE" || auth.role === "TEAM")) &&
+      auth.role !== "PARTNER"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Administrative partner access required.", code: "FORBIDDEN" },
+        { status: 403 }
+      );
     }
 
     // Firm staff routes (Partner + Article Trainees + Team Members)
     const firmStaffOnly = [
       "/api/clients",
       "/api/dsc",
+      "/api/credentials",
       "/api/portal-sync",
       "/api/billing/receipt",
+      "/api/billing/agreements",
+      "/api/billing/msme-recovery",
+      "/api/billing/reconcile-bank",
+      "/api/billing/imprest",
       "/api/whatsapp/parser",
+      "/api/growth",
+      "/api/gst",
+      "/api/itr",
+      "/api/tax-audit",
+      "/api/tds",
+      "/api/mca",
+      "/api/schedule3",
+      "/api/ais",
+      "/api/parsers",
+      "/api/migration",
+      "/api/governance",
+      "/api/vcfo",
+      "/api/firm-autopilot",
+      "/api/practice",
+      "/api/telemetry",
+      "/api/benchmark",
     ];
     if (
       firmStaffOnly.some((path) => pathname === path || pathname.startsWith(`${path}/`)) &&
@@ -66,10 +88,13 @@ export async function middleware(request: NextRequest) {
       auth.role !== "ARTICLE" &&
       auth.role !== "TEAM"
     ) {
-      return NextResponse.json({ success: false, error: "Firm staff access required.", code: "FORBIDDEN" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Firm staff access required.", code: "FORBIDDEN" },
+        { status: 403 }
+      );
     }
 
-    // Client portal scoped permissions
+    // Client portal scoped permissions (strict allowlist)
     if (auth.role === "CLIENT") {
       const isAllowedClientRoute =
         pathname === "/api/session" ||
@@ -80,11 +105,14 @@ export async function middleware(request: NextRequest) {
         (pathname === "/api/documents/download" && request.method === "GET") ||
         (pathname === "/api/invoices" && (request.method === "GET" || request.method === "PATCH" || request.method === "POST")) ||
         (pathname === "/api/pay-to-release" && (request.method === "GET" || request.method === "POST")) ||
-        (pathname === "/api/litigation/notice-parse" && request.method === "POST") ||
+        (pathname === "/api/billing/value-statement" && request.method === "GET") ||
         (pathname === "/api/auth/pin" && request.method === "POST");
 
       if (!isAllowedClientRoute) {
-        return NextResponse.json({ success: false, error: "Forbidden for client account.", code: "FORBIDDEN" }, { status: 403 });
+        return NextResponse.json(
+          { success: false, error: "Forbidden for client account.", code: "FORBIDDEN" },
+          { status: 403 }
+        );
       }
     }
   }

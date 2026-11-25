@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { EnterpriseCiCdOrchestrator } from "@/lib/knowledge/benchmark/ciCdOrchestrator";
 import { ENTERPRISE_GOLDEN_CORPUS } from "@/lib/knowledge/benchmark/goldenCorpus";
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     return NextResponse.json({
       success: true,
@@ -31,6 +34,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     // Execute the full 50-case regression pipeline
     const runResult = EnterpriseCiCdOrchestrator.runPipeline((caseId: string) => {

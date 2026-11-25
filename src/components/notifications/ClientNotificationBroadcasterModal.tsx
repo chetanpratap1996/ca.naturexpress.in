@@ -400,10 +400,10 @@ export const ClientNotificationBroadcasterModal: React.FC<ClientNotificationBroa
         try {
           await fetch("/api/notifications", {
             method: "POST",
-            headers: { 
+            headers: {
               "Content-Type": "application/json",
-              ...(currentUser?.token ? { Authorization: `Bearer ${currentUser.token}` } : { "x-sandbox-mode": "true" })
             },
+            credentials: "include",
             body: JSON.stringify({
               title: subject,
               message: personalizedMsg,

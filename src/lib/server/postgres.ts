@@ -19,8 +19,14 @@ export function getPostgresPool(): Pool {
       connectionString,
       ssl: { rejectUnauthorized: false },
       max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 8000,
+      keepAlive: true,
+    });
+
+    // Prevent idle client network drops from crashing the Node.js server process
+    pool.on("error", (err) => {
+      console.error("[PG_POOL_IDLE_ERROR]", err?.message || err);
     });
   }
   return pool;

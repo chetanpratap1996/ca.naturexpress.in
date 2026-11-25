@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useClientContext } from '@/lib/context/ClientContext';
 import { UniversalClientSelector } from '@/components/shared/UniversalClientSelector';
+import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
+import { readClientTaxBridge, syncClientTaxBridgeFromServer, TAX_BRIDGE_EVENT } from '@/lib/taxAudit/clientTaxBridge';
 import { 
   IcdsClause13AuditReport, 
   SAMPLE_ICDS_REPORT 
@@ -41,15 +43,27 @@ import {
 import { toast } from '@/components/shared/ToastNotification';
 
 export function PillarThreeTaxAuditWorkbench() {
-  const { selectedClient, selectedAy, isFirmWideView } = useClientContext();
+  const { selectedClient, selectedAy, selectedFy, isFirmWideView } = useClientContext();
   const [activeTab, setActiveTab] = useState<'ICDS_CLAUSE13' | 'DISALLOWANCES_CLAUSE21' | 'STATUTORY_DUES_SEC43B' | 'CASH_LOANS_CLAUSE31' | 'LOSS_MATRIX_RATIOS'>('ICDS_CLAUSE13');
 
   // State
-  const [icdsReport] = useState<IcdsClause13AuditReport>(SAMPLE_ICDS_REPORT);
-  const [clause21Report] = useState<Clause21SummaryReport>(SAMPLE_CLAUSE_21_REPORT);
-  const [clause26Report] = useState<Clause26AuditReport>(SAMPLE_CLAUSE_26_DATA);
-  const [clause32Report] = useState<Clause32SummaryReport>(SAMPLE_CLAUSE_32_RECORDS);
-  const [clause40Report] = useState<Clause40RatiosReport>(SAMPLE_CLAUSE_40_REPORT);
+  const [bridgeVersion, setBridgeVersion] = useState(0);
+  React.useEffect(() => {
+    if (!selectedClient || isFirmWideView) return;
+    syncClientTaxBridgeFromServer(selectedClient.id, selectedAy);
+    const onBridge = () => setBridgeVersion(v => v + 1);
+    window.addEventListener(TAX_BRIDGE_EVENT, onBridge);
+    return () => window.removeEventListener(TAX_BRIDGE_EVENT, onBridge);
+  }, [selectedClient, isFirmWideView, selectedAy]);
+  const bridge = selectedClient && !isFirmWideView ? readClientTaxBridge(selectedClient.id, selectedAy) : null;
+  void bridgeVersion;
+  const [icdsReport] = useState<IcdsClause13AuditReport>({ assessmentYear: selectedAy || '', totalIncreaseInProfit: 0, totalDecreaseInProfit: 0, netAdjustmentToTaxableProfit: 0, standards: [] });
+  const pen37 = bridge?.penaltyDisallowance37 || 0;
+  const cash40a3 = bridge?.bankCashOver10k40A3 || 0;
+  const clause21Report: Clause21SummaryReport = { assessmentYear: selectedAy || '', totalSec40aIaDisallowance: 0, totalSec40A3CashDisallowance: cash40a3, totalSec40A2bRelatedPartyExcess: 0, totalPenaltiesAndCsrDisallowance: pen37, grandTotalDisallowances: pen37 + cash40a3, items: [] };
+  const [clause26Report] = useState<Clause26AuditReport>({ assessmentYear: selectedAy || '', totalStatutoryLiabilities31stMarch: 0, totalPaidBeforeItrDueDate: 0, totalDisallowedUnderSec43B: 0, dues: [] });
+  const [clause32Report] = useState<Clause32SummaryReport>({ currentAssessmentYear: selectedAy || '', totalBusinessLossCarriedForward: 0, totalUnabsorbedDepreciationCarriedForward: 0, totalCapitalLossesCarriedForward: 0, totalLossLapsedThisYear: 0, records: [] });
+  const clause40Report: Clause40RatiosReport = { currentFinancialYear: selectedFy || '', precedingFinancialYear: '', currentTurnoverInr: bridge?.revenueFromOperations || 0, precedingTurnoverInr: 0, ratios: [] };
 
   const handleExportForm3CdJson = () => {
     const pan = selectedClient?.pan || "AANCP9915B";
@@ -91,6 +105,14 @@ export function PillarThreeTaxAuditWorkbench() {
 
     toast.success("Form 3CD Exported", `Downloaded Form3CD_${pan}_AY_${ay}.json ready for Income Tax portal.`);
   };
+
+  if (!selectedClient || isFirmWideView) {
+    return (
+      <ClientGateEmptyState
+        moduleTitle="Form 3CD Tax Audit Workpapers & Reporting"
+        description="Select a client entity above to prepare or inspect their ICDS, Clause 21 disallowances, Sec 43B, Clause 31 cash loans, and Clause 40 ratios." />
+    );
+  }
 
   return (
     <div className="space-y-6">

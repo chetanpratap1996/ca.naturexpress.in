@@ -171,8 +171,8 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-sandbox-mode": "true",
         },
+        credentials: "include",
         body: JSON.stringify({
           gstin: gstinToScrape,
           stateCode: stateCodeHint,
@@ -302,7 +302,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
       if (searchQuery.trim()) params.set("q", searchQuery.trim());
 
       const res = await fetch(`/api/growth/leads?${params.toString()}`, {
-        headers: { "x-sandbox-mode": "true" }
+        credentials: "include",
       });
       const data = await res.json();
       if (data.success) {
@@ -381,10 +381,10 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
 
       const res = await fetch("/api/growth/leads", {
         method: "PATCH",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "x-sandbox-mode": "true"
         },
+        credentials: "include",
         body: JSON.stringify({
           id: selectedLeadForLog.id,
           activity: activityPayload,
@@ -415,10 +415,10 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
     try {
       const res = await fetch("/api/growth/convert", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "x-sandbox-mode": "true"
         },
+        credentials: "include",
         body: JSON.stringify({ leadId: lead.id, clientName: lead.legalName }),
       });
       const data = await res.json();
@@ -459,7 +459,7 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
     setDocketData(null);
     try {
       const res = await fetch(`/api/growth/docket?leadId=${lead.id}`, {
-        headers: { "x-sandbox-mode": "true" }
+        credentials: "include",
       });
       const data = await res.json();
       if (data.success) {
@@ -476,9 +476,9 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
   const handleTriggerCadence = async () => {
     setIsCadenceRunning(true);
     try {
-      const res = await fetch("/api/growth/cron?allowDev=true", { 
+      const res = await fetch("/api/growth/cron", {
         method: "POST",
-        headers: { "x-sandbox-mode": "true" }
+        credentials: "include",
       });
       const data = await res.json();
       if (data.success) {
@@ -507,10 +507,10 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
     try {
       const res = await fetch("/api/growth/scrape", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "x-sandbox-mode": "true"
         },
+        credentials: "include",
         body: JSON.stringify({
           cin: scanCin.trim() || undefined,
           gstin: scanGstin.trim() || undefined,
@@ -541,10 +541,10 @@ export function PracticeGrowthCockpit({ onClientConverted }: { onClientConverted
     try {
       const res = await fetch("/api/growth/leads", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "x-sandbox-mode": "true"
         },
+        credentials: "include",
         body: JSON.stringify(scanResult.lead),
       });
       const data = await res.json();

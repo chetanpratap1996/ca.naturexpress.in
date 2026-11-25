@@ -34,6 +34,7 @@ import { openWhatsAppPreset } from "@/lib/whatsapp";
 import { toast } from "@/components/shared/ToastNotification";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 import { NoticeUploadModal, ExtractedNoticeData } from "./litigation/NoticeUploadModal";
 import { ReconciliationAnnexureModal } from "./litigation/ReconciliationAnnexureModal";
 import { PrecedentLibraryDrawer } from "./litigation/PrecedentLibraryDrawer";
@@ -266,9 +267,9 @@ interface NoticeReplyDrafterProps {
 export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients = [] }) => {
   const [selectedNoticeType, setSelectedNoticeType] = useState<NoticeType>("GST_ASMT_10_MISMATCH");
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "");
-  const [noticeDate, setNoticeDate] = useState("2026-10-15");
-  const [demandAmount, setDemandAmount] = useState("₹2,45,000");
-  const [period, setPeriod] = useState("FY 2024-25 / Q2");
+  const [noticeDate, setNoticeDate] = useState("");
+  const [demandAmount, setDemandAmount] = useState("");
+  const [period, setPeriod] = useState("");
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [customDraft, setCustomDraft] = useState("");
@@ -277,14 +278,14 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
   const [isNoticeUploadOpen, setIsNoticeUploadOpen] = useState(false);
   const [isAnnexureOpen, setIsAnnexureOpen] = useState(false);
   const [isPrecedentDrawerOpen, setIsPrecedentDrawerOpen] = useState(false);
-  const [dinOrRef, setDinOrRef] = useState("CBIC/IND/2026/8891024/ASMT10");
-  const [replyDeadline, setReplyDeadline] = useState("2026-11-14");
-  const [daysRemaining, setDaysRemaining] = useState(21);
-  const [customClientName, setCustomClientName] = useState(() => clients[0]?.name || "Pratwi Solutions Private Limited");
-  const [customPan, setCustomPan] = useState(() => clients[0]?.pan || "AANCP9915B");
-  const [customGstin, setCustomGstin] = useState(() => clients[0]?.gstin || "09AANCP9915B1Z4");
+  const [dinOrRef, setDinOrRef] = useState("");
+  const [replyDeadline, setReplyDeadline] = useState("");
+  const [daysRemaining, setDaysRemaining] = useState(0);
+  const [customClientName, setCustomClientName] = useState("");
+  const [customPan, setCustomPan] = useState("");
+  const [customGstin, setCustomGstin] = useState("");
 
-  // Masterclass AI Drafter & Predictive Radar States
+  // AI Drafter & Predictive Radar States
   const [activeView, setActiveView] = useState<"DRAFTER" | "PREDICTIVE_RADAR">("DRAFTER");
   const [predictiveRisks, setPredictiveRisks] = useState<PredictiveNoticeRisk[]>([]);
   const [isLoadingRisks, setIsLoadingRisks] = useState(false);
@@ -294,6 +295,27 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
   const [hasCustomGeneratedDraft, setHasCustomGeneratedDraft] = useState(false);
 
   const { selectedClient: globalClient, isFirmWideView } = useClientContext();
+  React.useEffect(() => {
+    if (!globalClient || isFirmWideView) return;
+    try {
+      const raw = localStorage.getItem("bt_active_notice_draft");
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.entityId && d.entityId !== globalClient.id) return;
+      if (d.dinNumber) setDinOrRef(d.dinNumber);
+      if (d.demandAmount !== undefined) setDemandAmount(`₹${Number(d.demandAmount).toLocaleString('en-IN')}`);
+      if (d.issueDate) setNoticeDate(d.issueDate);
+      if (d.statutoryDeadline) setReplyDeadline(d.statutoryDeadline);
+      if (typeof d.daysRemaining === "number") setDaysRemaining(d.daysRemaining);
+      if (d.period) setPeriod(d.period);
+      const sec = String(d.section || "").toLowerCase();
+      if (sec.includes("148")) setSelectedNoticeType("ITD_148_REASSESSMENT");
+      else if (sec.includes("139(9)")) setSelectedNoticeType("ITD_139_9_DEFECTIVE");
+      else if (sec.includes("143")) setSelectedNoticeType("ITD_143_1_A_PRIMA_FACIE");
+      else if (sec.includes("drc-01c")) setSelectedNoticeType("GST_DRC_01C_LIABILITY");
+      else if (sec.includes("asmt") || sec.includes("drc")) setSelectedNoticeType("GST_ASMT_10_MISMATCH");
+    } catch {}
+  }, [globalClient, isFirmWideView]);
   const selectedClient = (globalClient && !isFirmWideView)
     ? globalClient
     : (clients.find(c => c.id === selectedClientId) || clients[0] || null);
@@ -302,12 +324,10 @@ export const NoticeReplyDrafter: React.FC<NoticeReplyDrafterProps> = ({ clients 
 
   // Active Assessee Info (Syncs with Universal Client Context)
   const activeClientName = (globalClient && !isFirmWideView)
-    ? (globalClient.tradeName || globalClient.name)
-    : (customClientName || selectedClient?.name || "Pratwi Solutions Private Limited");
+    ? (globalClient.tradeName || globalClient.name) : "";
 
   const activePan = (globalClient && !isFirmWideView)
-    ? globalClient.pan
-    : (customPan || selectedClient?.pan || "AANCP9915B");
+    ? globalClient.pan : "";
 
   const activeGstin = (globalClient && !isFirmWideView)
     ? (globalClient.gstin || globalClient.gstinRecords?.[0]?.gstin || "09AANCP9915B1Z4")

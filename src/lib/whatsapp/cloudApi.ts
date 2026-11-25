@@ -42,9 +42,11 @@ export function verifyWhatsAppWebhookSignature(
   signatureHeader: string | null,
   appSecret?: string
 ): boolean {
-  if (!signatureHeader || !appSecret) {
-    // If firm has not configured an appSecret, skip strict verification in sandbox
-    return true;
+  if (!appSecret) {
+    return process.env.NODE_ENV !== "production";
+  }
+  if (!signatureHeader) {
+    return false;
   }
 
   try {

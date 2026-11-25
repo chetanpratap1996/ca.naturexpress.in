@@ -43,6 +43,7 @@ import { toast } from "@/components/shared/ToastNotification";
 import { BankStatementReconcileModal } from "./billing/BankStatementReconcileModal";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
 interface PayToReleaseManagerProps {
   configs: PayToReleaseConfig[];
@@ -135,8 +136,8 @@ export function PayToReleaseManager({
         blockedDeliverables: (isLocked 
           ? ["FORM_3CD_PDF", "BALANCE_SHEET_SIGNED", "ITR_ACKNOWLEDGMENT"] 
           : []) as BlockedDeliverableType[],
-        instantUpiVpa: firmUpiVpa || "BRAINSANDTAXES@icici",
-        merchantName: "GPA & Co., Chartered Accountants",
+        instantUpiVpa: firmUpiVpa || DEFAULT_FIRM_BRANDING.firmUpiVpa || "BRAINSANDTAXES@icici",
+        merchantName: DEFAULT_FIRM_BRANDING.firmName,
         lockReason: isOverrideActive
           ? `Partner Emergency Waiver active until ${new Date(overrideExpiry).toLocaleString("en-IN")}`
           : isLocked 
@@ -181,20 +182,22 @@ export function PayToReleaseManager({
       const res = await fetch("/api/pay-to-release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "TOGGLE_LOCK",
           entityId,
-          partnerName: "CA Gunjan Jain"
         })
       });
       const data = await res.json();
-      if (data.success && data.config) {
+      if (res.ok && data.success && data.config) {
         setConfigs((prev) =>
           prev.map((c) => (c.entityId === entityId ? data.config : c))
         );
         if (onUpdateConfig) onUpdateConfig(data.config);
         toast.info("Gate Status Toggled", `Deliverable download lock updated for client.`);
         if (onRefreshData) onRefreshData();
+      } else {
+        toast.error("Action Denied", data.error || "Failed to toggle gate status");
       }
     } catch (e) {
       console.error(e);
@@ -204,13 +207,14 @@ export function PayToReleaseManager({
     }
   };
 
-  // Instant Payment Simulation & Webhook Release
+  // Partner-Confirmed Instant UPI Settlement & Release
   const handleSimulatePayment = async (entityId: string, amount: number) => {
     setIsProcessing(true);
     try {
       const res = await fetch("/api/pay-to-release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "INSTANT_PAYMENT_RELEASE",
           entityId,
@@ -220,17 +224,19 @@ export function PayToReleaseManager({
         })
       });
       const data = await res.json();
-      if (data.success && data.config) {
+      if (res.ok && data.success && data.config) {
         setConfigs((prev) =>
           prev.map((c) => (c.entityId === entityId ? data.config : c))
         );
         if (onUpdateConfig) onUpdateConfig(data.config);
         setSelectedQrConfig(null);
         toast.success(
-          "Payment Reconciled & Unlocked",
-          `₹${amount.toLocaleString("en-IN")} cleared via NPCI Webhook. Certified deliverables released.`
+          "Payment Recorded & Unlocked",
+          `₹${amount.toLocaleString("en-IN")} marked received by Partner. Certified deliverables released.`
         );
         if (onRefreshData) onRefreshData();
+      } else {
+        toast.error("Settlement Failed", data.error || "Only Partners can mark direct settlement release.");
       }
     } catch (e) {
       console.error(e);
@@ -253,16 +259,16 @@ export function PayToReleaseManager({
       const res = await fetch("/api/pay-to-release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "PARTNER_OVERRIDE_UNLOCK",
           entityId: selectedEntityId,
-          partnerName: "CA Gunjan Jain",
           durationHours: overrideHours,
           reason: overrideReason
         })
       });
       const data = await res.json();
-      if (data.success && data.config) {
+      if (res.ok && data.success && data.config) {
         setConfigs((prev) =>
           prev.map((c) => (c.entityId === selectedEntityId ? data.config : c))
         );
@@ -274,6 +280,8 @@ export function PayToReleaseManager({
           `Deliverables unlocked for ${overrideHours} hours under ICAI SA 210 exception. Logged to Peer Review audit trail.`
         );
         if (onRefreshData) onRefreshData();
+      } else {
+        toast.error("Override Denied", data.error || "Could not authorize partner override.");
       }
     } catch (e) {
       console.error(e);
@@ -290,16 +298,16 @@ export function PayToReleaseManager({
       const res = await fetch("/api/pay-to-release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "RECONCILE_UTR",
           entityId,
           invoiceId,
           utrRef,
-          partnerName: "CA Gunjan Jain"
         })
       });
       const data = await res.json();
-      if (data.success && data.config) {
+      if (res.ok && data.success && data.config) {
         setConfigs((prev) =>
           prev.map((c) => (c.entityId === entityId ? data.config : c))
         );
@@ -307,6 +315,8 @@ export function PayToReleaseManager({
         setSelectedUtrInvoice(null);
         toast.success("UTR Verified & Released", `Bank credit confirmed for ${utrRef}. Deliverables unlocked for client.`);
         if (onRefreshData) onRefreshData();
+      } else {
+        toast.error("Verification Denied", data.error || "Unable to reconcile UTR.");
       }
     } catch (e) {
       console.error(e);
@@ -324,6 +334,7 @@ export function PayToReleaseManager({
       const res = await fetch("/api/pay-to-release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "REJECT_UTR",
           entityId: selectedUtrInvoice.client.id,
@@ -333,12 +344,14 @@ export function PayToReleaseManager({
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setSelectedUtrInvoice(null);
         setUtrRejectReason("");
         setIsRejectingUtr(false);
         toast.info("UTR Rejected", "Client notified to re-check bank transfer.");
         if (onRefreshData) onRefreshData();
+      } else {
+        toast.error("Reject Failed", data.error || "Unable to reject UTR.");
       }
     } catch (e) {
       console.error(e);
@@ -353,19 +366,24 @@ export function PayToReleaseManager({
     const client = clients.find(c => c.id === entityId);
     const clientInvoices = invoices.filter(i => i.entityId === entityId && i.status !== "PAID");
     const inv = clientInvoices[0];
-    const amount = inv?.amount || 118000;
-    
-    // Accurate phone resolution: Primary Contact -> Fallback to client office phone
-    const clientPhone = client?.primaryContact?.phone || "919820011223";
+    const amount = inv?.amount || 0;
+    const clientPhone = client?.primaryContact?.phone?.trim() || "";
+
+    if (!clientPhone) {
+      toast.warning("Primary Phone Missing", `Add a valid mobile number for ${client?.name || "this client"} before opening WhatsApp.`);
+      return;
+    }
+
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/` : "/";
 
     openWhatsAppPreset(clientPhone, "FEE_INVOICE_UTR", {
       clientName: client?.name || "Client Entity",
-      firmName: "GPA & Co., Chartered Accountants",
+      firmName: DEFAULT_FIRM_BRANDING.firmName,
       serviceName: inv?.serviceDescription || "Statutory Audit & Tax Filing",
-      invoiceNo: inv?.invoiceNo || "GPA/2026-27/089",
+      invoiceNo: inv?.invoiceNo || "FEE-INVOICE",
       invoiceAmount: amount,
-      firmUpiVpa: firmUpiVpa || "BRAINSANDTAXES@icici",
-      portalUrl: "https://ca.naturexpress.in/"
+      firmUpiVpa: firmUpiVpa || DEFAULT_FIRM_BRANDING.firmUpiVpa || "BRAINSANDTAXES@icici",
+      portalUrl
     });
 
     toast.success(
@@ -385,7 +403,7 @@ export function PayToReleaseManager({
         entityId: c.entityId,
         clientName: client?.name || c.entityId,
         contactName: client?.primaryContact?.name || "Finance Director",
-        phone: client?.primaryContact?.phone || "919820011223",
+        phone: client?.primaryContact?.phone || "",
         email: client?.primaryContact?.email,
         invoiceNo: inv?.invoiceNo || "OVERDUE-AUDIT",
         amount: c.totalOutstandingAmount,
@@ -402,19 +420,25 @@ export function PayToReleaseManager({
     setLockPolicyDays(days);
     setIsPolicySelectorOpen(false);
     try {
-      await fetch("/api/pay-to-release", {
+      const res = await fetch("/api/pay-to-release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "UPDATE_POLICY",
           gracePeriodDays: days,
-          partnerName: "CA Gunjan Jain"
         })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error("Policy Update Denied", data.error || "Only Partners can change the lock policy.");
+        return;
+      }
       toast.info("Firm Policy Updated", `Deliverable lock grace period set to ${days} days.`);
       if (onRefreshData) onRefreshData();
     } catch (e) {
       console.error(e);
+      toast.error("Policy Update Failed", "Network error updating firm policy.");
     }
   };
 
@@ -902,7 +926,7 @@ export function PayToReleaseManager({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                Simulate Payment &amp; Release
+                Confirm Bank Credit &amp; Release
               </button>
             </div>
           </div>
@@ -1218,12 +1242,14 @@ export function PayToReleaseManager({
               </div>
               <button
                 onClick={() => {
+                  const targetCfg = selectedQrConfig?.config || effectiveConfigs.find((c) => c.isLocked) || effectiveConfigs[0];
+                  if (!targetCfg) return;
                   setClientPwaPreviewOpen(false);
-                  handleSimulatePayment(selectedQrConfig?.config?.entityId || clients[0]?.id || "ddd33056-b6dc-46ca-b145-cd111045aff7", 29500);
+                  handleSimulatePayment(targetCfg.entityId, targetCfg.totalOutstandingAmount || 0);
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md"
               >
-                Pay ₹1,18,000 via UPI &amp; Unlock
+                Mark UPI Settled &amp; Unlock
               </button>
             </div>
           </div>

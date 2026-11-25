@@ -1,10 +1,10 @@
 /**
- * Multi-GSTIN Conglomerate Command Deck & Input Service Distributor (ISD) Engine
- * 
+ * Multi-GSTIN & Input Service Distributor (ISD) Engine
+ *
  * Statutory Authority:
- * - Section 20 of CGST Act read with Rule 39 of CGST Rules (Mandatory ISD mechanism post Finance Act 2024)
- * - Pro-rata distribution of common ITC to distinct persons based on state turnover
- * - Multi-state PAN-level enterprise monitoring
+ * - Section 20 of CGST Act read with Rule 39 of CGST Rules (Mandatory ISD mechanism)
+ * - Rule 39(1)(e)/(f): CGST/SGST distributed to a distinct person in a DIFFERENT state MUST be distributed as IGST;
+ *   only recipients in the SAME state as the ISD receive CGST + SGST (and IGST always remains IGST).
  */
 
 export interface StateGstinProfile {
@@ -12,28 +12,27 @@ export interface StateGstinProfile {
   stateName: string;
   stateCode: string;
   tradeName: string;
-  turnoverRatioPercent: number; // Ratio for ISD allocation
+  turnoverRatioPercent: number;
   annualTurnoverInr: number;
-  gstr1Status: 'FILED' | 'PENDING' | 'OVERDUE';
-  gstr3bStatus: 'FILED' | 'PENDING' | 'OVERDUE';
-  imsStatus: '100% ACTIONED' | 'ACTION_PENDING';
-  pendingImsCount: number;
-  netTaxPayableThisMonth: number;
-  itcAvailable2b: number;
+  gstr1Status: "FILED" | "PENDING" | "OVERDUE";
+  gstr3bStatus: "FILED" | "PENDING" | "OVERDUE";
   isdCreditAllocated: number;
 }
 
 export interface IsdDistributionCycle {
   cycleId: string;
+  isdGstin: string;
+  isdStateCode: string;
   taxPeriod: string;
-  commonInputServiceInvoices: number;
   totalCommonItcIgst: number;
   totalCommonItcCgst: number;
   totalCommonItcSgst: number;
   totalCommonItcPool: number;
   allocations: Array<{
     recipientGstin: string;
+    stateCode: string;
     stateName: string;
+    isInterState: boolean;
     turnoverSharePercent: number;
     allocatedIgst: number;
     allocatedCgst: number;
@@ -44,99 +43,81 @@ export interface IsdDistributionCycle {
 
 export class MultiGstinIsdEngine {
   /**
-   * Distributes common input tax credit pro-rata to branches under Section 20 & Rule 39
+   * Distributes common input service tax credit pro-rata under Section 20 & Rule 39.
    */
   public static distributeIsdCredit(
     branches: StateGstinProfile[],
     commonPool: { igst: number; cgst: number; sgst: number },
-    taxPeriod: string
+    taxPeriod: string,
+    isdGstin: string = ""
   ): IsdDistributionCycle {
-    const totalTurnover = branches.reduce((sum, b) => sum + b.annualTurnoverInr, 0);
-    const totalCommonPool = commonPool.igst + commonPool.cgst + commonPool.sgst;
+    const isdStateCode = isdGstin.length >= 2 ? isdGstin.substring(0, 2) : (branches[0]?.stateCode || "");
+    const totalTurnover = branches.reduce((sum, b) => sum + Math.max(0, b.annualTurnoverInr), 0);
+    const totalCommonPool = Math.round((commonPool.igst + commonPool.cgst + commonPool.sgst) * 100) / 100;
 
-    const allocations = branches.map(b => {
-      const share = totalTurnover > 0 ? (b.annualTurnoverInr / totalTurnover) : 0;
+    let runningIgstAllocated = 0;
+    let runningCgstAllocated = 0;
+    let runningSgstAllocated = 0;
+
+    const allocations = branches.map((b, idx) => {
+      const share = totalTurnover > 0 ? Math.max(0, b.annualTurnoverInr) / totalTurnover : branches.length > 0 ? 1 / branches.length : 0;
       const sharePercent = Number((share * 100).toFixed(2));
+      const isInterState = Boolean(isdStateCode && b.stateCode && b.stateCode !== isdStateCode);
 
-      // Rule 39: Inter-state branches receive IGST; intra-state receive CGST/SGST
-      const allocIgst = Math.round(commonPool.igst * share);
-      const allocCgst = Math.round(commonPool.cgst * share);
-      const allocSgst = Math.round(commonPool.sgst * share);
+      let allocIgst = 0;
+      let allocCgst = 0;
+      let allocSgst = 0;
+
+      if (isInterState) {
+        // Rule 39: Inter-state recipients receive ALL CGST + SGST converted into IGST
+        allocIgst = Math.round((commonPool.igst + commonPool.cgst + commonPool.sgst) * share);
+      } else {
+        allocIgst = Math.round(commonPool.igst * share);
+        allocCgst = Math.round(commonPool.cgst * share);
+        allocSgst = Math.round(commonPool.sgst * share);
+      }
+
+      // Adjust last recipient for exact rupee rounding parity
+      if (idx === branches.length - 1 && branches.length > 0) {
+        const expectedTotalAllocated = totalCommonPool;
+        const soFar = runningIgstAllocated + runningCgstAllocated + runningSgstAllocated;
+        const targetThis = Math.round((expectedTotalAllocated - soFar) * 100) / 100;
+        if (isInterState) {
+          allocIgst = Math.max(0, targetThis);
+        } else {
+          const currentThis = allocIgst + allocCgst + allocSgst;
+          const diff = Math.round(targetThis - currentThis);
+          allocIgst = Math.max(0, allocIgst + diff);
+        }
+      }
+
+      runningIgstAllocated += allocIgst;
+      runningCgstAllocated += allocCgst;
+      runningSgstAllocated += allocSgst;
 
       return {
         recipientGstin: b.gstin,
+        stateCode: b.stateCode,
         stateName: b.stateName,
+        isInterState,
         turnoverSharePercent: sharePercent,
         allocatedIgst: allocIgst,
         allocatedCgst: allocCgst,
         allocatedSgst: allocSgst,
-        totalAllocated: allocIgst + allocCgst + allocSgst
+        totalAllocated: allocIgst + allocCgst + allocSgst,
       };
     });
 
     return {
-      cycleId: `ISD-${taxPeriod}-${Date.now()}`,
+      cycleId: `ISD-${taxPeriod.replace(/\s+/g, "_")}`,
+      isdGstin,
+      isdStateCode,
       taxPeriod,
-      commonInputServiceInvoices: 12,
       totalCommonItcIgst: commonPool.igst,
       totalCommonItcCgst: commonPool.cgst,
       totalCommonItcSgst: commonPool.sgst,
       totalCommonItcPool: totalCommonPool,
-      allocations
+      allocations,
     };
   }
 }
-
-export const SAMPLE_MULTI_GSTIN_PROFILES: StateGstinProfile[] = [
-  {
-    gstin: '23AAACG1234F1Z5',
-    stateName: 'Madhya Pradesh (HQ)',
-    stateCode: '23',
-    tradeName: 'Pratwi Solutions - Plant 1',
-    turnoverRatioPercent: 45.0,
-    annualTurnoverInr: 65000000,
-    gstr1Status: 'FILED',
-    gstr3bStatus: 'FILED',
-    imsStatus: '100% ACTIONED',
-    pendingImsCount: 0,
-    netTaxPayableThisMonth: 185000,
-    itcAvailable2b: 420000,
-    isdCreditAllocated: 247500
-  },
-  {
-    gstin: '27AAACG1234F1Z8',
-    stateName: 'Maharashtra',
-    stateCode: '27',
-    tradeName: 'Pratwi Solutions - Pune Depot',
-    turnoverRatioPercent: 30.0,
-    annualTurnoverInr: 43500000,
-    gstr1Status: 'FILED',
-    gstr3bStatus: 'PENDING',
-    imsStatus: 'ACTION_PENDING',
-    pendingImsCount: 4,
-    netTaxPayableThisMonth: 120000,
-    itcAvailable2b: 290000,
-    isdCreditAllocated: 165000
-  },
-  {
-    gstin: '24AAACG1234F1Z1',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    tradeName: 'Pratwi Solutions - Ahmedabad Sales',
-    turnoverRatioPercent: 25.0,
-    annualTurnoverInr: 36250000,
-    gstr1Status: 'FILED',
-    gstr3bStatus: 'FILED',
-    imsStatus: '100% ACTIONED',
-    pendingImsCount: 0,
-    netTaxPayableThisMonth: 85000,
-    itcAvailable2b: 195000,
-    isdCreditAllocated: 137500
-  }
-];
-
-export const SAMPLE_ISD_CYCLE: IsdDistributionCycle = MultiGstinIsdEngine.distributeIsdCredit(
-  SAMPLE_MULTI_GSTIN_PROFILES,
-  { igst: 350000, cgst: 100000, sgst: 100000 },
-  'October 2026'
-);

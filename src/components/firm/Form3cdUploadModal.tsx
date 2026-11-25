@@ -41,8 +41,8 @@ export const Form3cdUploadModal: React.FC<Form3cdUploadModalProps> = ({
   isOpen,
   onClose,
   onApplyData,
-  activeClientName = "Pratwi Solutions Private Limited",
-  activePan = "AANCP9915B"
+  activeClientName = "",
+  activePan = ""
 }) => {
   const [activeTab, setActiveTab] = useState<"SAMPLES" | "UPLOAD" | "PASTE">("UPLOAD");
   const [isDragging, setIsDragging] = useState(false);

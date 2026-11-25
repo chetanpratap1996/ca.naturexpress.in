@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { searchHsnSac, getHsnItem, computeGstForHsn } from "@/lib/gst/hsnMaster";
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") || "";
   const code = searchParams.get("code");

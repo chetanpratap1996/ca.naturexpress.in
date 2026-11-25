@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { executeAutonomousWorkDispatcher } from "@/lib/tasks/autonomousDispatcher";
+import { resolveFirmUuid } from "@/lib/server/pgHelpers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,10 +13,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await executeAutonomousWorkDispatcher(auth.user?.firmId || "FRM-024310C");
+    const firmId = await resolveFirmUuid(auth);
+    const result = await executeAutonomousWorkDispatcher(firmId, auth.user?.id, auth.userName || "Managing Partner");
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("POST /api/tasks/auto-assign error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || "Auto-assign failed." }, { status: 500 });
   }
 }

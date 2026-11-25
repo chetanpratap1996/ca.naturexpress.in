@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { StaffMember, CompetencyTier, StaffRole, StaffSpecialization, ComplianceTask } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
-import { INITIAL_STAFF_MEMBERS } from "@/lib/data/firmDefaults";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { 
   Users, 
   UserPlus, 
@@ -120,8 +120,15 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
     fetch("/api/staff", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ id: memberId, allowedTools: next }),
-    }).catch(() => {});
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed");
+      })
+      .catch(() => {
+        toast.error("Sync Failed", "Could not persist tool permission change.");
+      });
     const toolLabel = PRACTICE_TOOLS.find(t => t.id === toolId)?.label || toolId;
     toast.success(
       "Tool Access Updated",
@@ -141,7 +148,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
     specializations: StaffSpecialization[];
     maxDailyTaskCapacity: number;
     icaiRegistrationNo: string;
-    tempPin: string;
+    password: string;
   }>({
     fullName: "",
     phone: "",
@@ -151,34 +158,23 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
     specializations: ["GST", "INCOME_TAX"],
     maxDailyTaskCapacity: 10,
     icaiRegistrationNo: "",
-    tempPin: "",
+    password: "",
   });
 
   // Fetch staff data
   const fetchStaff = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/staff");
+      const res = await fetch("/api/staff", { credentials: "include" });
       const data = await res.json();
-      if (data.success && Array.isArray(data.staff) && data.staff.length > 0) {
+      if (res.ok && data.success && Array.isArray(data.staff)) {
         setStaffList(data.staff);
       } else {
-        // Fallback to initial practice roster enriched with real task stats
-        const enriched = INITIAL_STAFF_MEMBERS.map((m) => {
-          const open = tasks.filter(t => t.status !== "FILED_AND_COMPLETED" && (t.assignedTo === m.fullName || (t.assignedTo && t.assignedTo.includes(m.fullName.split(" ")[0])))).length;
-          const completed = tasks.filter(t => t.status === "FILED_AND_COMPLETED" && (t.assignedTo === m.fullName || (t.assignedTo && t.assignedTo.includes(m.fullName.split(" ")[0])))).length;
-          return {
-            ...m,
-            activeOpenTasksCount: open,
-            completedTasksThisMonth: completed,
-            capacityUtilizationPct: Math.min(100, Math.round((open / (m.maxDailyTaskCapacity || 10)) * 100))
-          };
-        });
-        setStaffList(enriched);
+        setStaffList([]);
       }
     } catch (err) {
-      console.warn("Staff API fallback to mock roster:", err);
-      setStaffList(INITIAL_STAFF_MEMBERS);
+      console.error("Failed to fetch staff roster:", err);
+      setStaffList([]);
     } finally {
       setIsLoading(false);
     }
@@ -226,6 +222,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       const res = await fetch("/api/staff", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ id: staffId, competencyTier: newTier }),
       });
       const data = await res.json();
@@ -246,20 +243,23 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
   const handleSendWhatsAppInvite = (member: StaffMember) => {
     const phoneDigits = member.phone.replace(/\D/g, "");
     const cleanPhone = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : phoneDigits;
-    const defaultPin = member.tempPin || (cleanPhone.length >= 4 ? cleanPhone.slice(-4) : "1234");
-    
-    const message = `*GPA & Co., Chartered Accountants*\nOfficial Practice Portal Invite\n\nDear ${member.fullName},\nYou have been registered as a Team Member (${SENIORITY_LEVELS[member.competencyTier]?.label || "Associate"}).\n\n👉 *Login URL:* https://brainsandtaxes.com/?portal=staff\n📱 *Mobile:* +91 ${cleanPhone}\n🔑 *Your 4-Digit Access PIN:* ${defaultPin}\n\nPlease log in and review your assigned statutory compliance queue.`;
+    const portalOrigin = typeof window !== "undefined" ? window.location.origin : "https://ca.naturexpress.in";
+
+    const message = `*${DEFAULT_FIRM_BRANDING.firmName}*\nOfficial Practice Portal Invite\n\nDear ${member.fullName},\nYou have been registered as a Team Member (${SENIORITY_LEVELS[member.competencyTier]?.label || "Associate"}).\n\nLogin URL: ${portalOrigin}/?portal=staff\nEmail: ${member.email}\nPlease use the secure password shared by the Managing Partner to sign in.`;
 
     const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
-    toast.success("WhatsApp Invite Ready", `Dispatched onboarding credentials to ${member.fullName}.`);
+    toast.success("WhatsApp Invite Ready", `Opened invite message for ${member.fullName}.`);
   };
 
   // Handle Autonomous Work Assignment Autopilot Sweep
   const handleTriggerAutonomousSweep = async () => {
     setIsAutoAssigning(true);
     try {
-      const res = await fetch("/api/tasks/auto-assign", { method: "POST" });
+      const res = await fetch("/api/tasks/auto-assign", {
+        method: "POST",
+        credentials: "include",
+      });
       const data = await res.json();
       if (data.success) {
         toast.success(
@@ -290,7 +290,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       specializations: ["GST", "INCOME_TAX"],
       maxDailyTaskCapacity: 10,
       icaiRegistrationNo: "",
-      tempPin: "",
+      password: "",
     });
     setIsModalOpen(true);
   };
@@ -308,7 +308,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       specializations: member.specializations || ["GST"],
       maxDailyTaskCapacity: member.maxDailyTaskCapacity || 10,
       icaiRegistrationNo: member.icaiRegistrationNo || "",
-      tempPin: member.tempPin || phone10.slice(-4),
+      password: "",
     });
     setIsModalOpen(true);
   };
@@ -320,6 +320,10 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       toast.error("Validation Error", "Please provide a valid full name and 10-digit mobile number.");
       return;
     }
+    if (!editingStaff && formData.password.trim().length < 8) {
+      toast.error("Password Required", "Please set an initial password of at least 8 characters for the new team member.");
+      return;
+    }
 
     try {
       const url = "/api/staff";
@@ -329,6 +333,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -356,6 +361,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       const res = await fetch("/api/staff", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ id: member.id, status: newStatus }),
       });
       const data = await res.json();
@@ -599,7 +605,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
                       {member.phone}
                     </span>
                     <span className="font-mono text-slate-700 text-[10px] font-bold">
-                      PIN: {member.tempPin || member.phone.slice(-4)}
+                      {member.email}
                     </span>
                   </div>
                 </div>
@@ -861,18 +867,19 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    4-Digit Access PIN
+                    {editingStaff ? "Reset Password (Optional)" : "Staff Login Password *"}
                   </label>
                   <input
-                    type="text"
-                    maxLength={4}
-                    placeholder="e.g. 1928"
-                    value={formData.tempPin}
-                    onChange={(e) => setFormData({ ...formData, tempPin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-btred-logo font-mono font-bold"
+                    type="password"
+                    minLength={editingStaff ? undefined : 8}
+                    required={!editingStaff}
+                    placeholder={editingStaff ? "Leave blank to keep existing" : "Min 8 characters"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-btred-logo font-mono"
                   />
                   <span className="text-[10px] text-slate-400">
-                    Default: Last 4 digits of phone ({formData.phone.slice(-4) || "0000"})
+                    Stored with PBKDF2-SHA256 salted hash
                   </span>
                 </div>
               </div>

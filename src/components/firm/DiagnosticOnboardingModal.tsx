@@ -25,6 +25,8 @@ import {
   CreditCard
 } from "lucide-react";
 import { toast } from "@/components/shared/ToastNotification";
+import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
+import { getQrmpGroupForState } from "@/lib/gst/gstClientFetch";
 
 interface DiagnosticOnboardingModalProps {
   isOpen: boolean;
@@ -46,8 +48,10 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
   const [digitalPctInput, setDigitalPctInput] = useState("96.5");
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [primaryStateCode, setPrimaryStateCode] = useState("23"); // Madhya Pradesh
+  const [primaryGstinInput, setPrimaryGstinInput] = useState("");
   const [secondaryStateCode, setSecondaryStateCode] = useState("27"); // Maharashtra
-  const [hasSecondaryState, setHasSecondaryState] = useState(true);
+  const [secondaryGstinInput, setSecondaryGstinInput] = useState("");
+  const [hasSecondaryState, setHasSecondaryState] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("+91 98200 11223");
   const [contactEmail, setContactEmail] = useState("");
@@ -72,16 +76,19 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
     );
   }, [turnoverNum, digitalPctNum, panInference.entityType]);
 
-  // Derived mock GSTINs
-  const derivedPrimaryGstin = useMemo(() => {
-    if (!panInference.isValid) return "";
-    return `${primaryStateCode}${panInference.pan}1Z1`;
-  }, [primaryStateCode, panInference]);
+  // Validated real GSTINs (never fabricated)
+  const primaryGstinCheck = useMemo(() => {
+    const clean = primaryGstinInput.trim().toUpperCase();
+    return clean ? validateGstinDetailed(clean) : null;
+  }, [primaryGstinInput]);
 
-  const derivedSecondaryGstin = useMemo(() => {
-    if (!panInference.isValid || !hasSecondaryState) return "";
-    return `${secondaryStateCode}${panInference.pan}1Z4`;
-  }, [secondaryStateCode, hasSecondaryState, panInference]);
+  const secondaryGstinCheck = useMemo(() => {
+    const clean = secondaryGstinInput.trim().toUpperCase();
+    return clean && hasSecondaryState ? validateGstinDetailed(clean) : null;
+  }, [secondaryGstinInput, hasSecondaryState]);
+
+  const derivedPrimaryGstin = primaryGstinCheck?.isValid ? primaryGstinCheck.cleanGstin : "";
+  const derivedSecondaryGstin = secondaryGstinCheck?.isValid ? secondaryGstinCheck.cleanGstin : "";
 
   if (!isOpen) return null;
 
@@ -106,102 +113,55 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
       const resolvedContactName = contactName || (panInference.entityType === "INDIVIDUAL_HNI" ? legalName : "Authorized Director");
       const resolvedEmail = contactEmail || `accounts@${legalName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
 
+      if (primaryGstinInput.trim() && !primaryGstinCheck?.isValid) {
+        toast.error("Invalid Primary GSTIN", primaryGstinCheck?.error || "Check 15-digit GSTIN format & checksum.");
+        setIsSubmitting(false);
+        return;
+      }
+      if (hasSecondaryState && secondaryGstinInput.trim() && !secondaryGstinCheck?.isValid) {
+        toast.error("Invalid Secondary GSTIN", secondaryGstinCheck?.error || "Check 15-digit GSTIN format & checksum.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const gstinRecords = [];
-      if (derivedPrimaryGstin) {
+      if (derivedPrimaryGstin && primaryGstinCheck?.stateCode) {
+        const sc = primaryGstinCheck.stateCode;
         gstinRecords.push({
           gstin: derivedPrimaryGstin,
-          stateCode: primaryStateCode,
-          stateName: GST_STATE_CODES[primaryStateCode] || "Primary State",
+          stateCode: sc,
+          stateName: primaryGstinCheck.stateName || GST_STATE_CODES[sc] || "Primary State",
           tradeName: tradeNameInput || legalName,
+          legalName,
           registrationType: "REGULAR" as const,
           filingFrequency: "MONTHLY" as const,
+          qrmpStateGroup: getQrmpGroupForState(sc),
           status: "ACTIVE" as const,
           eWayBillEnabled: true,
           eInvoiceApplicable: thresholds.eInvoicingMandatory
         });
       }
-      if (hasSecondaryState && derivedSecondaryGstin) {
+      if (hasSecondaryState && derivedSecondaryGstin && secondaryGstinCheck?.stateCode) {
+        const sc = secondaryGstinCheck.stateCode;
         gstinRecords.push({
           gstin: derivedSecondaryGstin,
-          stateCode: secondaryStateCode,
-          stateName: GST_STATE_CODES[secondaryStateCode] || "Secondary State",
+          stateCode: sc,
+          stateName: secondaryGstinCheck.stateName || GST_STATE_CODES[sc] || "Secondary State",
           tradeName: `${tradeNameInput || legalName} - Branch`,
+          legalName,
           registrationType: "REGULAR" as const,
           filingFrequency: "MONTHLY" as const,
+          qrmpStateGroup: getQrmpGroupForState(sc),
           status: "ACTIVE" as const,
           eWayBillEnabled: true,
           eInvoiceApplicable: thresholds.eInvoicingMandatory
         });
       }
 
-      const directors = panInference.rocApplicable ? [
-        {
-          din: `0${Math.floor(1000000 + Math.random() * 9000000)}`,
-          name: resolvedContactName,
-          pan: panInference.pan,
-          designation: panInference.entityType === "LLP" ? "Designated Partner" : "Managing Director",
-          appointmentDate: "2024-04-01",
-          dir3KycStatus: "COMPLIANT" as const,
-          dscValidityEnd: "2027-12-31"
-        }
-      ] : [];
-
-      const bankAccounts = [
-        {
-          id: `BNK-${clientId}-01`,
-          bankName: "HDFC Bank",
-          accountNumber: `502000${Math.floor(10000000 + Math.random() * 90000000)}`,
-          accountType: "CURRENT" as const,
-          ifsc: "HDFC0000045",
-          branch: "Commercial Branch",
-          statementPassword: panInference.pan,
-          isPrimary: true,
-          autoTallySync: true
-        }
-      ];
-
-      const dscVault = panInference.rocApplicable ? [
-        {
-          id: `DSC-${clientId}-01`,
-          holderName: resolvedContactName,
-          holderPan: panInference.pan,
-          holderDin: directors[0]?.din,
-          lockerSlot: `Rack-B / Slot-${Math.floor(1 + Math.random() * 20)}`,
-          expiryDate: "2027-12-31",
-          tokenProvider: "ePass2003",
-          custodyStatus: "IN_LOCKER" as const
-        }
-      ] : [];
-
-      const complianceBaselines = [
-        {
-          assessmentYear: "2024-25",
-          formType: panInference.statutoryTaxReturnForm,
-          acknowledgementNo: `4109${Math.floor(10000000000 + Math.random() * 90000000000)}`,
-          filingDate: "2024-10-28",
-          taxPaidAmount: Math.round(turnoverNum * 22000),
-          refundClaimedAmount: 0,
-          status: "PROCESSED_143_1" as const
-        },
-        {
-          assessmentYear: "2025-26",
-          formType: panInference.statutoryTaxReturnForm,
-          acknowledgementNo: `4108${Math.floor(10000000000 + Math.random() * 90000000000)}`,
-          filingDate: "2025-10-25",
-          taxPaidAmount: Math.round(turnoverNum * 25000),
-          refundClaimedAmount: 0,
-          status: "PROCESSED_143_1" as const
-        },
-        {
-          assessmentYear: "2026-27",
-          formType: panInference.statutoryTaxReturnForm,
-          acknowledgementNo: `4107${Math.floor(10000000000 + Math.random() * 90000000000)}`,
-          filingDate: "2026-07-29",
-          taxPaidAmount: Math.round(turnoverNum * 28000),
-          refundClaimedAmount: 14500,
-          status: "PROCESSED_143_1" as const
-        }
-      ];
+      const directors: any[] = [];
+      const bankAccounts: any[] = [];
+      const dscVault: any[] = [];
+      const complianceBaselines: any[] = [];
 
       const newEntity: ClientEntity = {
         id: clientId,
@@ -212,16 +172,16 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
         type: panInference.entityType,
         pan: panInference.pan,
         gstin: derivedPrimaryGstin || undefined,
-        cin: panInference.entityType === "PVT_LTD" ? `U74999MP2024PTC${Math.floor(100000 + Math.random() * 900000)}` : undefined,
-        tan: `BPL${panInference.pan.slice(0, 3)}0189K`,
+        cin: undefined,
+        tan: undefined,
         turnoverCr: turnoverNum,
         digitalTxnPct: digitalPctNum,
         partnerInCharge,
         assignedArticle,
-        incorporationYear: 2024,
+        incorporationYear: new Date().getFullYear(),
         penaltyRiskAccrued: 0,
-        healthScore: 98,
-        registeredAddress: `Plot No. 12, Commercial Zone, ${GST_STATE_CODES[primaryStateCode] || "India"}`,
+        healthScore: 100,
+        registeredAddress: GST_STATE_CODES[primaryStateCode] || "India",
         authorizedCapitalCr: Math.max(1.0, Math.round(turnoverNum * 0.1 * 10) / 10),
         paidUpCapitalCr: Math.max(0.5, Math.round(turnoverNum * 0.05 * 10) / 10),
         primaryContact: {
@@ -484,22 +444,25 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Primary State Registration
+                  Primary GSTIN (Optional, 15-Digit)
                 </label>
-                <select
-                  value={primaryStateCode}
-                  onChange={(e) => setPrimaryStateCode(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none"
-                >
-                  {Object.entries(GST_STATE_CODES).map(([code, name]) => (
-                    <option key={code} value={code}>
-                      {code} - {name}
-                    </option>
-                  ))}
-                </select>
-                {derivedPrimaryGstin && (
-                  <span className="text-[11px] font-mono font-bold text-purple-700 mt-1 block">
-                    GSTIN: {derivedPrimaryGstin}
+                <input
+                  type="text"
+                  maxLength={15}
+                  value={primaryGstinInput}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase();
+                    setPrimaryGstinInput(val);
+                    if (val.length >= 2 && GST_STATE_CODES[val.substring(0, 2)]) {
+                      setPrimaryStateCode(val.substring(0, 2));
+                    }
+                  }}
+                  placeholder={panInference.isValid ? `e.g. 23${panInference.pan}1Z5` : "Enter actual 15-digit GSTIN"}
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 font-mono text-xs font-bold text-slate-900 uppercase focus:outline-none focus:border-red-500"
+                />
+                {primaryGstinCheck && (
+                  <span className={`text-[10px] font-medium mt-1 block ${primaryGstinCheck.isValid ? "text-emerald-700" : "text-rose-600"}`}>
+                    {primaryGstinCheck.isValid ? `Valid: ${primaryGstinCheck.stateName}` : primaryGstinCheck.error}
                   </span>
                 )}
               </div>
@@ -507,7 +470,7 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-700">
-                    Secondary State Branch
+                    Secondary State GSTIN (Optional)
                   </label>
                   <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
                     <input
@@ -521,25 +484,28 @@ export const DiagnosticOnboardingModal: React.FC<DiagnosticOnboardingModalProps>
                 </div>
                 {hasSecondaryState ? (
                   <>
-                    <select
-                      value={secondaryStateCode}
-                      onChange={(e) => setSecondaryStateCode(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none"
-                    >
-                      {Object.entries(GST_STATE_CODES).map(([code, name]) => (
-                        <option key={code} value={code}>
-                          {code} - {name}
-                        </option>
-                      ))}
-                    </select>
-                    {derivedSecondaryGstin && (
-                      <span className="text-[11px] font-mono font-bold text-purple-700 mt-1 block">
-                        GSTIN: {derivedSecondaryGstin}
+                    <input
+                      type="text"
+                      maxLength={15}
+                      value={secondaryGstinInput}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setSecondaryGstinInput(val);
+                        if (val.length >= 2 && GST_STATE_CODES[val.substring(0, 2)]) {
+                          setSecondaryStateCode(val.substring(0, 2));
+                        }
+                      }}
+                      placeholder="Enter secondary 15-digit GSTIN"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 font-mono text-xs font-bold text-slate-900 uppercase focus:outline-none focus:border-red-500"
+                    />
+                    {secondaryGstinCheck && (
+                      <span className={`text-[10px] font-medium mt-1 block ${secondaryGstinCheck.isValid ? "text-emerald-700" : "text-rose-600"}`}>
+                        {secondaryGstinCheck.isValid ? `Valid: ${secondaryGstinCheck.stateName}` : secondaryGstinCheck.error}
                       </span>
                     )}
                   </>
                 ) : (
-                  <div className="text-xs text-slate-400 py-2">Single state registration only.</div>
+                  <div className="text-xs text-slate-400 py-2">Single state registration (add more later in GSTIN Master).</div>
                 )}
               </div>
             </div>

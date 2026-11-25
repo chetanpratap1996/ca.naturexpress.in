@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AutopilotExecutionSummary } from "@/lib/automation/practiceAutopilot";
+import { AutopilotExecutionSummary } from "@/lib/automation/autopilotTypes";
 import { formatCurrencyINR } from "@/lib/utils";
 import {
   Sparkles,
@@ -38,14 +38,15 @@ export function PracticeAutopilotConsole({ onSweepCompleted }: PracticeAutopilot
       const res = await fetch("/api/firm-autopilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-      if (data.success && data.summary) {
+      if (res.ok && data.success && data.summary) {
         setSummary(data.summary);
         toast.success(
           "Practice Sweep Completed",
-          `Autonomous sweep finished in ${data.summary.executionDurationMs}ms. Health score: ${data.summary.systemHealthScore}%.`
+          `PostgreSQL Autopilot finished in ${data.summary.executionDurationMs}ms. Health score: ${data.summary.systemHealthScore}%.`
         );
         if (onSweepCompleted) onSweepCompleted();
       } else {

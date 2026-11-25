@@ -1,208 +1,267 @@
-// ==============================================================================
-// Brains & Taxes — Enterprise Practice Autopilot & Heartbeat Orchestrator
-// Unified Autonomous Pipeline Connecting All 15 Modules (Phases 1, 2 & 3)
-// Real-World CA Practice Automation with Zero-Touch Execution & Exception Triage
-// ==============================================================================
+import { getPostgresPool } from "@/lib/server/postgres";
+import { appendPgAuditLog, listWorkspaceRecords, upsertWorkspaceRecord } from "@/lib/server/pgHelpers";
+import {
+  executePostgresAutopilotSweep,
+  getPostgresAutopilotPosture,
+  maybeDraftInvoiceForCompletedTask,
+  recalculatePayToReleaseForEntity,
+} from "@/lib/automation/postgresAutopilot";
+import type {
+  PracticeExceptionItem,
+  PracticeHeartbeatState,
+  PracticePulseEvent,
+} from "@/lib/automation/autopilotTypes";
 
-export interface PracticePulseEvent {
-  id: string;
-  timestamp: string;
-  moduleCode: string;
-  moduleName: string;
-  clientName: string;
-  eventType: "ZERO_TOUCH_SUCCESS" | "EXCEPTION_FLAGGED" | "PORTAL_SYNC" | "STATUTORY_DEADLINE";
-  description: string;
-  statutorySection?: string;
-  autoActionTaken: string;
+export type { PracticeExceptionItem, PracticeHeartbeatState, PracticePulseEvent };
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getPostgresHeartbeatState(firmId: string): Promise<PracticeHeartbeatState> {
+  const posture = await getPostgresAutopilotPosture(firmId);
+  return posture.heartbeat;
 }
 
-export interface PracticeExceptionItem {
-  id: string;
-  moduleCode: "GST" | "TDS" | "MCA" | "LITIGATION" | "GOVERNANCE" | "BILLING";
-  moduleName: string;
-  clientName: string;
-  urgency: "CRITICAL" | "HIGH" | "MEDIUM";
-  title: string;
-  discrepancyDetails: string;
-  statutoryImpact: string;
-  recommendedAction: string;
-  quickActionLabel: string;
-  status: "PENDING_PARTNER" | "RESOLVED";
-}
-
-export interface PracticeHeartbeatState {
-  lastSweepTimestamp: string;
-  totalActiveClients: number;
-  totalAutomatedFilingsToday: number;
-  autonomousCompletionRatePcnt: number; // e.g. 95.8% completed zero-touch
-  hoursSavedThisMonth: number;
-  realizedRevenueThisMonthInr: number;
-  unbilledWipInr: number;
-  activeExceptionsCount: number;
-  exceptions: PracticeExceptionItem[];
-  recentPulseEvents: PracticePulseEvent[];
-  moduleHealth: {
-    module1Stickiness: { status: "OPTIMAL" | "ATTENTION"; label: "Entity DNA & Bank OCR"; cleanCount: number };
-    module2Accuracy: { status: "OPTIMAL" | "ATTENTION"; label: "Reconciliation & Tax Audit"; cleanCount: number };
-    module3Autonomy: { status: "OPTIMAL" | "ATTENTION"; label: "Autonomous Assembly Lines"; cleanCount: number };
-  };
+export async function executePostgresHeartbeatSweep(
+  firmId: string,
+  actorName?: string
+): Promise<PracticeHeartbeatState> {
+  const result = await executePostgresAutopilotSweep(firmId, actorName || "Partner Heartbeat Sweep");
+  return result.heartbeat;
 }
 
 /**
- * Returns the current live practice heartbeat state
+ * Batch approves clean MANAGER_REVIEW / PARTNER_SIGN_OFF tasks whose entity has
+ * approved documents and no unresolved Pay-to-Release lock.
  */
-export function getPracticeHeartbeatState(): PracticeHeartbeatState {
-  const exceptions: PracticeExceptionItem[] = [
-    {
-      id: "EXC-GST-01",
-      moduleCode: "GST",
-      moduleName: "Module 3.1: Autonomous GST Assembly",
-      clientName: "Pratwi Solutions Private Limited",
-      urgency: "HIGH",
-      title: "GSTR-2B vs Books Invoice Mismatch (₹8,450 Variance)",
-      discrepancyDetails: "Vendor M/s Express Fleet Services filed GSTR-1 with Taxable ₹1,42,000, while Books reflect ₹1,50,450.",
-      statutoryImpact: "ITC claiming on unmatched amount violates Section 16(2)(aa) and triggers DRC-01C mismatch notice.",
-      recommendedAction: "Issue 1-click WhatsApp notice to vendor to amend GSTR-1 in Table 9 next month; hold ₹8,450 ITC for November 3B.",
-      quickActionLabel: "Dispatch Vendor Notice & Hold ITC",
-      status: "PENDING_PARTNER",
-    },
-    {
-      id: "EXC-LIT-02",
-      moduleCode: "LITIGATION",
-      moduleName: "Module 3.4: Faceless Notice Defense",
-      clientName: "Pratwi Solutions Private Limited",
-      urgency: "CRITICAL",
-      title: "Section 148 Notice Uploaded Completely Lacking DIN",
-      discrepancyDetails: "ITD portal uploaded a manual notice for AY 2018-19 alleging ₹68L escaped turnover without quoting a DIN.",
-      statutoryImpact: "CBDT Circular No. 19/2019 and Supreme Court Brandix Mauritius ruling render notice void ab initio.",
-      recommendedAction: "1-Click approve preliminary jurisdictional objection brief and Section 220(6) stay petition requesting 100% waiver.",
-      quickActionLabel: "Approve Jurisdictional Objection",
-      status: "PENDING_PARTNER",
-    },
-    {
-      id: "EXC-GOV-03",
-      moduleCode: "GOVERNANCE",
-      moduleName: "Module 3.3: SQC-1 Peer Review Shield",
-      clientName: "Pratwi Solutions Private Limited",
-      urgency: "MEDIUM",
-      title: "UDIN 60-Day Countdown: 8 Days Remaining",
-      discrepancyDetails: "Form 3CD signed on 30.09.2026. UDIN must be generated and sealed on ICAI portal before 29.11.2026.",
-      statutoryImpact: "ICAI Gazette mandate locks generation after 60 days, triggering disciplinary reporting under Code of Ethics.",
-      recommendedAction: "1-Click generate and register 18-digit UDIN using pre-filled ICAI JSON payload.",
-      quickActionLabel: "Register UDIN on Portal",
-      status: "PENDING_PARTNER",
-    },
-  ];
+export async function batchApproveCleanFilingsPg(
+  firmId: string,
+  actorId?: string,
+  actorName: string = "Managing Partner"
+): Promise<{ approvedCount: number; invoicesDrafted: number; taskTitles: string[] }> {
+  const pool = getPostgresPool();
+  const [{ rows: candidateTasks }, { rows: docRows }, p2rRecs] = await Promise.all([
+    pool.query(
+      `SELECT t.*, ce.entity_name, ce.group_id
+       FROM public.compliance_tasks t
+       JOIN public.client_entities ce ON ce.id = t.entity_id
+       WHERE t.firm_id = $1 AND t.status IN ('MANAGER_REVIEW', 'PARTNER_SIGN_OFF')`,
+      [firmId]
+    ),
+    pool.query("SELECT entity_id, review_status FROM public.documents WHERE firm_id = $1", [firmId]),
+    listWorkspaceRecords<{ entityId: string; isLocked: boolean }>(firmId, "PAY_TO_RELEASE_CONFIG"),
+  ]);
 
-  const recentPulseEvents: PracticePulseEvent[] = [
-    {
-      id: "PULSE-01",
-      timestamp: "10:45:12 AM",
-      moduleCode: "3.1",
-      moduleName: "GST Assembly Line",
-      clientName: "Pratwi Solutions Private Limited",
-      eventType: "ZERO_TOUCH_SUCCESS",
-      description: "100% GSTR-2B match achieved across 48 invoices. Rule 88A credit offset calculated.",
-      statutorySection: "Rule 88A & Section 16(2)(aa)",
-      autoActionTaken: "Generated draft GSTR-3B return and dispatched SA 580 approval link to Managing Director via WhatsApp.",
-    },
-    {
-      id: "PULSE-02",
-      timestamp: "10:42:05 AM",
-      moduleCode: "1.3",
-      moduleName: "Bank OCR & Tally XML",
-      clientName: "Pratwi Solutions Private Limited",
-      eventType: "ZERO_TOUCH_SUCCESS",
-      description: "Parsed 184 transactions from HDFC current account PDF. 0 suspense ledgers remaining.",
-      statutorySection: "Ind AS 7 / AS 3",
-      autoActionTaken: "Exported validated Tally XML and updated 13-week direct cash flow runway model.",
-    },
-    {
-      id: "PULSE-03",
-      timestamp: "10:38:40 AM",
-      moduleCode: "3.2",
-      moduleName: "TDS / TRACES Pipeline",
-      clientName: "Pratwi Solutions Private Limited",
-      eventType: "PORTAL_SYNC",
-      description: "TRACES Challan 281 BSR verification matched 100% against OLTAS database.",
-      statutorySection: "Section 200(3) & Form 26Q",
-      autoActionTaken: "Challan verified and Form 26Q statement marked compliant with 0 short deduction defaults.",
-    },
-    {
-      id: "PULSE-04",
-      timestamp: "10:30:15 AM",
-      moduleCode: "3.4",
-      moduleName: "Faceless Notice Defense",
-      clientName: "Pratwi Solutions Private Limited",
-      eventType: "EXCEPTION_FLAGGED",
-      description: "Scanned ITD e-Filing portal for new notices. Ingested Section 148 notice for AY 2018-19.",
-      statutorySection: "Section 148 / Circular 19/2019",
-      autoActionTaken: "DIN Sentinel detected missing DIN. Auto-flagged fatal jurisdictional defect and drafted Brandix Mauritius defense.",
-    },
-    {
-      id: "PULSE-05",
-      timestamp: "10:15:00 AM",
-      moduleCode: "3.5",
-      moduleName: "Enterprise CI/CD Golden Suite",
-      clientName: "Practice-Wide Firm Gate",
-      eventType: "ZERO_TOUCH_SUCCESS",
-      description: "Nightly regression benchmark executed across all 50 complex tax test cases.",
-      statutorySection: "Golden Corpus (ICAI & Direct Tax)",
-      autoActionTaken: "50/50 test cases passed with ₹0.00 mathematical divergence. JUnit XML compliance certificate issued.",
-    },
-  ];
+  const lockedEntityIds = new Set(p2rRecs.filter((r) => r.payload?.isLocked).map((r) => r.payload.entityId));
+  const entitiesWithRejectedDocs = new Set(
+    docRows.filter((d: any) => d.review_status === "CORRECTION_NEEDED").map((d: any) => d.entity_id)
+  );
 
-  return {
-    lastSweepTimestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    totalActiveClients: 48,
-    totalAutomatedFilingsToday: 14,
-    autonomousCompletionRatePcnt: 94.2, // 94.2% zero-touch execution!
-    hoursSavedThisMonth: 348,
-    realizedRevenueThisMonthInr: 1845000,
-    unbilledWipInr: 285000,
-    activeExceptionsCount: exceptions.length,
-    exceptions,
-    recentPulseEvents,
-    moduleHealth: {
-      module1Stickiness: { status: "OPTIMAL", label: "Entity DNA & Bank OCR", cleanCount: 48 },
-      module2Accuracy: { status: "OPTIMAL", label: "Reconciliation & Tax Audit", cleanCount: 46 },
-      module3Autonomy: { status: "OPTIMAL", label: "Autonomous Assembly Lines", cleanCount: 45 },
-    },
-  };
-}
+  let approvedCount = 0;
+  let invoicesDrafted = 0;
+  const taskTitles: string[] = [];
 
-/**
- * Execute a global autonomous practice sweep across all modules
- */
-export function executeGlobalAutonomousSweep(): PracticeHeartbeatState {
-  const state = getPracticeHeartbeatState();
-  state.lastSweepTimestamp = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  state.totalAutomatedFilingsToday += 2;
-  state.hoursSavedThisMonth += 3;
-  return state;
-}
-
-/**
- * 1-Click Batch Approve all clean profiles
- */
-export function batchApproveCleanFilings(): { approvedCount: number; dispatchedWhatsAppCount: number } {
-  return {
-    approvedCount: 14,
-    dispatchedWhatsAppCount: 14,
-  };
-}
-
-/**
- * Resolve a specific partner exception
- */
-export function resolvePartnerException(
-  exceptions: PracticeExceptionItem[],
-  exceptionId: string
-): PracticeExceptionItem[] {
-  return exceptions.map((e) => {
-    if (e.id === exceptionId) {
-      return { ...e, status: "RESOLVED" as const };
+  for (const task of candidateTasks) {
+    if (lockedEntityIds.has(task.entity_id) || entitiesWithRejectedDocs.has(task.entity_id)) {
+      continue;
     }
-    return e;
+
+    const arn = task.arn_number || `AA${Date.now().toString().slice(-6)}${Math.floor(1000 + Math.random() * 9000)}`;
+    await pool.query(
+      `UPDATE public.compliance_tasks
+       SET status = 'FILED_AND_COMPLETED'::workflow_status,
+           arn_number = $1,
+           filing_date = CURRENT_DATE,
+           penalty_risk = 0,
+           accruing_daily_penalty = 0,
+           updated_at = now()
+       WHERE id = $2 AND firm_id = $3`,
+      [arn, task.id, firmId]
+    );
+
+    const drafted = await maybeDraftInvoiceForCompletedTask({
+      firmId,
+      taskRow: task,
+      actorName,
+    });
+    if (drafted) invoicesDrafted++;
+
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: task.entity_id,
+      recordType: "NOTIFICATION",
+      matchKey: "idKey",
+      matchValue: `batch-filed-${task.id}`,
+      payload: {
+        id: `NOTIF-BATCH-${task.id}`,
+        idKey: `batch-filed-${task.id}`,
+        title: `Return Batch-Approved & Filed: ${task.title}`,
+        message: `${task.title} (${task.period}) approved by ${actorName} (ARN: ${arn}).`,
+        category: "COMPLIANCE",
+        priority: "HIGH",
+        recipientRole: "CLIENT",
+        recipientEntityId: task.entity_id,
+        targetTab: "vault",
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    approvedCount++;
+    taskTitles.push(`${task.entity_name}: ${task.title}`);
+  }
+
+  await appendPgAuditLog({
+    firmId,
+    actorId,
+    actorName,
+    actorRole: "PARTNER",
+    entityName: "Batch Approval Queue",
+    action: "Batch Approved Clean Filings",
+    details: `Partner batch-filed ${approvedCount} clean return(s) and auto-drafted ${invoicesDrafted} SAC 9982 invoice(s).`,
+    category: "COMPLIANCE",
   });
+
+  return { approvedCount, invoicesDrafted, taskTitles };
+}
+
+/**
+ * Executes real database/notification side-effects when a Partner resolves an exception.
+ */
+export async function resolvePartnerExceptionPg(params: {
+  firmId: string;
+  exceptionId: string;
+  actorId?: string;
+  actorName: string;
+}): Promise<{ state: PracticeHeartbeatState; actionMessage: string }> {
+  const { firmId, exceptionId, actorId, actorName } = params;
+  const pool = getPostgresPool();
+  const stateBefore = await getPostgresHeartbeatState(firmId);
+  const target = stateBefore.exceptions.find((e) => e.id === exceptionId);
+  const entityId = target?.entityId && UUID_REGEX.test(target.entityId) ? target.entityId : null;
+
+  let actionMessage = `Exception ${exceptionId} marked resolved by ${actorName}.`;
+
+  if (exceptionId.startsWith("EXC-UTR-")) {
+    const invoiceId = exceptionId.replace("EXC-UTR-", "");
+    if (UUID_REGEX.test(invoiceId)) {
+      const actorUuid = actorId && UUID_REGEX.test(actorId) ? actorId : null;
+      const upd = await pool.query(
+        `UPDATE public.invoices
+         SET status = 'PAID', reconciled_by_id = $1, reconciled_at = now()
+         WHERE id = $2 AND firm_id = $3
+         RETURNING entity_id, invoice_no`,
+        [actorUuid, invoiceId, firmId]
+      );
+      if (upd.rows[0]) {
+        await recalculatePayToReleaseForEntity({
+          firmId,
+          entityId: upd.rows[0].entity_id,
+        });
+        actionMessage = `Invoice #${upd.rows[0].invoice_no} reconciled as PAID and deliverable lock updated.`;
+      }
+    }
+  } else if (exceptionId.startsWith("EXC-TASK-")) {
+    const taskId = exceptionId.replace("EXC-TASK-", "");
+    if (UUID_REGEX.test(taskId)) {
+      const { rows } = await pool.query(
+        "SELECT id, entity_id, title, status, period FROM public.compliance_tasks WHERE id = $1 AND firm_id = $2 LIMIT 1",
+        [taskId, firmId]
+      );
+      const task = rows[0];
+      if (task) {
+        if (task.status === "DOCUMENTS_AWAITED") {
+          await pool.query(
+            "UPDATE public.compliance_tasks SET chase_count = COALESCE(chase_count, 0) + 1, last_chase_at = now() WHERE id = $1 AND firm_id = $2",
+            [task.id, firmId]
+          );
+          await upsertWorkspaceRecord({
+            firmId,
+            entityId: task.entity_id,
+            recordType: "NOTIFICATION",
+            payload: {
+              id: `NOTIF-CHASE-${Date.now()}`,
+              title: `Priority Document Request: ${task.title}`,
+              message: `Urgent partner follow-up for ${task.period}. Upload missing records immediately.`,
+              category: "COMPLIANCE",
+              priority: "CRITICAL",
+              recipientRole: "CLIENT",
+              recipientEntityId: task.entity_id,
+              targetTab: "progress",
+              isRead: false,
+              createdAt: new Date().toISOString(),
+            },
+          });
+          actionMessage = `Priority client chase sent for "${task.title}".`;
+        } else if (task.status === "PARTNER_SIGN_OFF") {
+          const arn = `AA${Date.now().toString().slice(-6)}${Math.floor(1000 + Math.random() * 9000)}`;
+          await pool.query(
+            `UPDATE public.compliance_tasks
+             SET status = 'FILED_AND_COMPLETED'::workflow_status, arn_number = $1, filing_date = CURRENT_DATE,
+                 penalty_risk = 0, accruing_daily_penalty = 0, updated_at = now()
+             WHERE id = $2 AND firm_id = $3`,
+            [arn, task.id, firmId]
+          );
+          await maybeDraftInvoiceForCompletedTask({
+            firmId,
+            taskRow: { ...task, category: target?.moduleCode || "GST" },
+            actorName,
+          });
+          actionMessage = `Partner approved "${task.title}" (ARN ${arn}) and queued WIP invoice.`;
+        } else {
+          await pool.query(
+            "UPDATE public.compliance_tasks SET status = 'PARTNER_SIGN_OFF'::workflow_status, updated_at = now() WHERE id = $1 AND firm_id = $2",
+            [task.id, firmId]
+          );
+          actionMessage = `Moved "${task.title}" directly to Partner Sign-Off.`;
+        }
+      }
+    }
+  } else if (entityId) {
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId,
+      recordType: "NOTIFICATION",
+      payload: {
+        id: `NOTIF-EXC-${Date.now()}`,
+        title: `Partner Action Dispatched: ${target?.title || exceptionId}`,
+        message: target?.recommendedAction || "Action approved by Managing Partner.",
+        category: target?.moduleCode === "BILLING" ? "BILLING" : "COMPLIANCE",
+        priority: "HIGH",
+        recipientRole: "ALL",
+        recipientEntityId: entityId,
+        targetTab: target?.moduleCode === "LITIGATION" || exceptionId.startsWith("EXC-DSC-") ? "director-risk" : "progress",
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  await upsertWorkspaceRecord({
+    firmId,
+    entityId,
+    recordType: "RESOLVED_EXCEPTION",
+    matchKey: "exceptionId",
+    matchValue: exceptionId,
+    payload: {
+      exceptionId,
+      resolvedBy: actorName,
+      resolvedAt: new Date().toISOString(),
+      actionMessage,
+    },
+  });
+
+  await appendPgAuditLog({
+    firmId,
+    actorId,
+    actorName,
+    actorRole: "PARTNER",
+    entityId,
+    entityName: target?.clientName || "Practice Exception",
+    action: "Autopilot Exception Resolved",
+    details: actionMessage,
+    category: target?.moduleCode || "SYSTEM",
+  });
+
+  const nextState = await getPostgresHeartbeatState(firmId);
+  return { state: nextState, actionMessage };
 }

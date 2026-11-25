@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);
-    if (!auth.isAuthenticated) {
+    if (!auth.isAuthenticated || !auth.firmId) {
       return NextResponse.json(
         { success: false, error: "Authentication required to update security PIN." },
         { status: 401 }
@@ -15,25 +15,47 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { entityId, currentPin, newPin } = body;
+    const entityId = typeof body.entityId === "string" ? body.entityId.trim() : "";
+    const currentPin = typeof body.currentPin === "string" ? body.currentPin.trim() : "";
+    const newPin = typeof body.newPin === "string" ? body.newPin.trim() : "";
 
-    if (!entityId || !currentPin || !newPin) {
+    if (!entityId || !newPin) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields (entityId, currentPin, newPin)." },
+        { success: false, error: "Missing required fields (entityId, newPin)." },
         { status: 400 }
       );
     }
 
-    // Role-based authorization check:
-    // Clients can only update their own entity's PIN.
-    if (auth.role === "CLIENT" && auth.clientEntityId && auth.clientEntityId !== entityId) {
+    const isPartner = auth.role === "PARTNER";
+    if (!isPartner && auth.role !== "CLIENT") {
       return NextResponse.json(
-        { success: false, error: "Unauthorized: You may only modify PINs for your own entity." },
+        { success: false, error: "Only the client entity or a firm partner can update a client PIN." },
         { status: 403 }
       );
     }
 
-    const result = await updateClientPin(entityId, currentPin, newPin);
+    if (auth.role === "CLIENT") {
+      if (!auth.clientEntityId || auth.clientEntityId !== entityId) {
+        return NextResponse.json(
+          { success: false, error: "Unauthorized: You may only modify PINs for your own entity." },
+          { status: 403 }
+        );
+      }
+      if (!currentPin) {
+        return NextResponse.json(
+          { success: false, error: "Current PIN is required." },
+          { status: 400 }
+        );
+      }
+    }
+
+    const result = await updateClientPin(
+      entityId,
+      auth.firmId,
+      currentPin,
+      newPin,
+      isPartner && !currentPin
+    );
 
     if (!result.success) {
       return NextResponse.json(

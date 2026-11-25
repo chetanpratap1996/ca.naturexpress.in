@@ -1,386 +1,439 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDatabase, saveDatabase, logAuditEvent, createNotification } from "@/lib/server/db";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { InvoiceItem, DocumentItem, PayToReleaseConfig } from "@/lib/types";
-import { authenticateServerRequest } from "@/lib/auth/serverAuth";
-import { executePracticeAutopilotSweep } from "@/lib/automation/practiceAutopilot";
+import { authenticateServerRequest, ServerAuthContext } from "@/lib/auth/serverAuth";
+import { getPostgresPool } from "@/lib/server/postgres";
+import {
+  resolveFirmUuid,
+  appendPgAuditLog,
+  listWorkspaceRecords,
+  upsertWorkspaceRecord,
+} from "@/lib/server/pgHelpers";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function mapDbInvoice(row: any, entityNameMap: Map<string, { name: string; groupId: string }>): InvoiceItem {
+  const ent = entityNameMap.get(row.entity_id);
+  return {
+    id: row.id,
+    invoiceNo: row.invoice_no,
+    entityId: row.entity_id,
+    entityName: ent?.name || "Practice Client",
+    groupId: ent?.groupId || "",
+    serviceDescription: row.service_description,
+    taxableAmount: Number(row.taxable_amount || 0),
+    gstRate: Number(row.gst_rate || 18),
+    gstAmount: Number(row.gst_amount || 0),
+    amount: Number(row.total_amount || 0),
+    dueDate: row.due_date ? new Date(row.due_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    status: row.status,
+    sacCode: row.sac_code || "998231",
+    clientUtrNumber: row.client_utr_number || undefined,
+    clientPaymentMode: row.client_payment_mode || undefined,
+    clientPaymentDate: row.client_payment_date ? new Date(row.client_payment_date).toISOString().split("T")[0] : undefined,
+    clientPayerNote: row.client_payer_note || undefined,
+    reconciledAt: row.reconciled_at ? new Date(row.reconciled_at).toISOString() : undefined,
+  };
+}
 
 export async function GET(request: NextRequest) {
-  const auth = await authenticateServerRequest(request);
-  if (!auth.isAuthenticated) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
-  const db = ensureDatabase();
+  try {
+    const auth = await authenticateServerRequest(request);
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
 
-  if (auth.role === "CLIENT" && auth.clientEntityId) {
-    const clientInvoices = (db.invoices || []).filter(
-      (i) => i.entityId === auth.clientEntityId || (auth.clientGroupId && i.groupId === auth.clientGroupId)
-    );
-    return NextResponse.json({ success: true, invoices: clientInvoices });
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
+
+    const [{ rows: entRows }, { rows: invRows }] = await Promise.all([
+      pool.query("SELECT id, entity_name, group_id FROM public.client_entities WHERE firm_id = $1", [firmId]),
+      auth.role === "CLIENT" && auth.clientEntityId && UUID_REGEX.test(auth.clientEntityId)
+        ? pool.query(
+            "SELECT * FROM public.invoices WHERE firm_id = $1 AND entity_id = $2 ORDER BY created_at DESC",
+            [firmId, auth.clientEntityId]
+          )
+        : pool.query("SELECT * FROM public.invoices WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+    ]);
+
+    const entityMap = new Map<string, { name: string; groupId: string }>();
+    for (const e of entRows) {
+      entityMap.set(e.id, { name: e.entity_name, groupId: e.group_id });
+    }
+
+    let invoices = invRows.map((r: any) => mapDbInvoice(r, entityMap));
+    if (auth.role === "CLIENT") {
+      invoices = invoices.filter(
+        (i: InvoiceItem) =>
+          (auth.clientEntityId && i.entityId === auth.clientEntityId) ||
+          (!auth.clientEntityId && auth.clientGroupId && i.groupId === auth.clientGroupId)
+      );
+    }
+
+    return NextResponse.json({ success: true, invoices });
+  } catch (error: any) {
+    console.error("GET /api/invoices error:", error);
+    return NextResponse.json({ success: false, error: "Failed to load invoices." }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true, invoices: db.invoices || [] });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);
-    if (!auth.isAuthenticated || !auth.role) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+
     const body = await req.json();
 
-    // Route action to settlement handler if this is an autonomous UTR submission or partner reconciliation
     if (body.action === "SUBMIT_UTR" || body.action === "RECONCILE") {
       return handleInvoiceSettlement(auth, body);
     }
 
     if (auth.role !== "PARTNER") {
-      return NextResponse.json({ success: false, error: "Only firm partners can generate new tax invoices." }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Only firm partners can generate new tax invoices." },
+        { status: 403 }
+      );
     }
 
-    const db = ensureDatabase();
+    const firmId = await resolveFirmUuid(auth);
+    const pool = getPostgresPool();
 
-    const taxable = body.taxableAmount || Math.round(body.amount / 1.18);
-    const gst = body.gstAmount || (body.amount - taxable);
+    const entityId = typeof body.entityId === "string" ? body.entityId.trim() : "";
+    const amount = Number(body.amount);
+    const serviceDescription = typeof body.serviceDescription === "string" ? body.serviceDescription.trim() : "";
+    const dueDate = typeof body.dueDate === "string" && body.dueDate ? body.dueDate : new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0];
 
-    const newInvoice: InvoiceItem = {
-      id: body.id || `INV-${Date.now().toString().slice(-4)}`,
-      invoiceNo: body.invoiceNo || `GPA/2026-27/${(db.invoices.length + 430).toString()}`,
-      entityId: body.entityId,
-      entityName: body.entityName,
-      groupId: body.groupId || "GRP-001",
-      serviceDescription: body.serviceDescription,
-      taxableAmount: taxable,
-      gstRate: 18,
-      gstAmount: gst,
-      amount: body.amount,
-      dueDate: body.dueDate,
-      status: "PENDING",
-      sacCode: body.sacCode || "998231",
-    };
-
-    db.invoices.unshift(newInvoice);
-    await saveDatabase(db);
-
-    // Bi-Directional Supabase Cloud Sync
-    if (isSupabaseConfigured()) {
-      try {
-        const { data: firms } = await supabase.from("firms").select("id").limit(1);
-        const firmId = firms?.[0]?.id;
-
-        const { data: entityRow } = await supabase
-          .from("client_entities")
-          .select("id")
-          .or(`id.eq.${newInvoice.entityId},entity_name.ilike.${newInvoice.entityName}`)
-          .limit(1)
-          .maybeSingle();
-
-        if (firmId && entityRow?.id) {
-          await supabase.from("invoices").insert({
-            firm_id: firmId,
-            entity_id: entityRow.id,
-            invoice_no: newInvoice.invoiceNo,
-            service_description: newInvoice.serviceDescription,
-            sac_code: newInvoice.sacCode,
-            taxable_amount: newInvoice.taxableAmount,
-            gst_rate: newInvoice.gstRate,
-            gst_amount: newInvoice.gstAmount,
-            total_amount: newInvoice.amount,
-            due_date: newInvoice.dueDate,
-            status: "PENDING"
-          });
-        }
-      } catch (sbErr) {
-        console.warn("Supabase invoice insert warning:", sbErr);
-      }
+    if (!entityId || !UUID_REGEX.test(entityId) || !serviceDescription || !Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json(
+        { success: false, error: "Valid entityId, serviceDescription, and positive amount are required." },
+        { status: 400 }
+      );
     }
 
-    await logAuditEvent(
-      body.actorName || "CA Gunjan Jain",
-      "PARTNER",
-      newInvoice.entityName,
-      "Invoice Generated",
-      `Generated Tax Invoice #${newInvoice.invoiceNo} for ₹${newInvoice.amount.toLocaleString("en-IN")}`,
-      "INVOICE"
+    const entRes = await pool.query(
+      "SELECT id, entity_name, group_id FROM public.client_entities WHERE id = $1 AND firm_id = $2 LIMIT 1",
+      [entityId, firmId]
+    );
+    if (entRes.rows.length === 0) {
+      return NextResponse.json({ success: false, error: "Client entity not found in your firm." }, { status: 404 });
+    }
+    const entity = entRes.rows[0];
+
+    const taxable = Number(body.taxableAmount) || Math.round(amount / 1.18);
+    const gst = Number(body.gstAmount) || amount - taxable;
+    const countRes = await pool.query("SELECT count(*)::int as cnt FROM public.invoices WHERE firm_id = $1", [firmId]);
+    const invoiceNo =
+      typeof body.invoiceNo === "string" && body.invoiceNo.trim()
+        ? body.invoiceNo.trim()
+        : `BT/2026-27/${String((countRes.rows[0]?.cnt || 0) + 101)}`;
+    const sacCode = typeof body.sacCode === "string" && body.sacCode.trim() ? body.sacCode.trim() : "998231";
+
+    const inserted = await pool.query(
+      `INSERT INTO public.invoices (
+        firm_id, entity_id, invoice_no, service_description, sac_code,
+        taxable_amount, gst_rate, gst_amount, total_amount, due_date, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, 18, $7, $8, $9, 'PENDING')
+      RETURNING *`,
+      [firmId, entity.id, invoiceNo, serviceDescription, sacCode, taxable, gst, amount, dueDate]
     );
 
-    // Free In-App & Browser Push Notification
-    await createNotification({
-      title: `Invoice Generated: ${newInvoice.invoiceNo}`,
-      message: `Tax invoice of ₹${newInvoice.amount.toLocaleString("en-IN")} generated for ${newInvoice.entityName} (${newInvoice.serviceDescription}).`,
-      category: "BILLING",
-      priority: "MEDIUM",
-      targetRoles: ["SUPER_ADMIN", "PARTNER", "CLIENT"],
-      groupId: newInvoice.groupId,
-      entityId: newInvoice.entityId,
-      link: "/admin",
-      actionLabel: "View Billing",
-      metadata: { invoiceId: newInvoice.id, amount: newInvoice.amount }
+    const row = inserted.rows[0];
+    const newInvoice: InvoiceItem = {
+      id: row.id,
+      invoiceNo: row.invoice_no,
+      entityId: entity.id,
+      entityName: entity.entity_name,
+      groupId: entity.group_id,
+      serviceDescription: row.service_description,
+      taxableAmount: Number(row.taxable_amount),
+      gstRate: 18,
+      gstAmount: Number(row.gst_amount),
+      amount: Number(row.total_amount),
+      dueDate: new Date(row.due_date).toISOString().split("T")[0],
+      status: "PENDING",
+      sacCode: row.sac_code,
+    };
+
+    await appendPgAuditLog({
+      firmId,
+      actorId: auth.user?.id,
+      actorName: auth.userName || "Firm Partner",
+      actorRole: "PARTNER",
+      entityId: entity.id,
+      entityName: entity.entity_name,
+      action: "Invoice Generated",
+      details: `Generated Tax Invoice #${newInvoice.invoiceNo} for ₹${newInvoice.amount.toLocaleString("en-IN")}`,
+      category: "INVOICE",
+    });
+
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: entity.id,
+      recordType: "NOTIFICATION",
+      payload: {
+        id: `NOTIF-INV-${row.id}`,
+        title: `Invoice Generated: ${newInvoice.invoiceNo}`,
+        message: `Tax invoice of ₹${newInvoice.amount.toLocaleString("en-IN")} generated for ${entity.entity_name} (${newInvoice.serviceDescription}).`,
+        category: "BILLING",
+        priority: "MEDIUM",
+        recipientRole: "CLIENT",
+        recipientEntityId: entity.id,
+        targetTab: "billing",
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
     });
 
     return NextResponse.json({ success: true, invoice: newInvoice });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("POST /api/invoices error:", error);
+    return NextResponse.json({ success: false, error: error.message || "Failed to generate invoice." }, { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
     const auth = await authenticateServerRequest(req);
-    if (!auth.isAuthenticated || !auth.role) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    if (!auth.isAuthenticated || !auth.role) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
     const body = await req.json();
     return handleInvoiceSettlement(auth, body);
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("PATCH /api/invoices error:", error);
+    return NextResponse.json({ success: false, error: error.message || "Failed to process invoice action." }, { status: 500 });
   }
 }
 
-async function handleInvoiceSettlement(auth: any, body: any) {
-  const { 
-    invoiceId, 
-    action, // "SUBMIT_UTR" | "RECONCILE"
+async function handleInvoiceSettlement(auth: ServerAuthContext, body: any) {
+  const {
+    invoiceId,
+    action,
     clientUtrNumber: rawClientUtr,
     utrNumber: rawUtr,
     clientPaymentMode: rawMode,
     paymentMode: rawPayMode,
     clientPayerNote: rawNote,
     payerNote: rawPayerNote,
-    actorName 
   } = body;
 
-  const clientUtrNumber = rawClientUtr || rawUtr;
+  const clientUtrNumber = typeof (rawClientUtr || rawUtr) === "string" ? (rawClientUtr || rawUtr).trim() : "";
   const clientPaymentMode = rawMode || rawPayMode || "UPI";
-  const clientPayerNote = rawNote || rawPayerNote;
+  const clientPayerNote = typeof (rawNote || rawPayerNote) === "string" ? (rawNote || rawPayerNote).trim() : "";
 
-  const db = ensureDatabase();
-  let invIndex = db.invoices.findIndex((i) => i.id === invoiceId);
-
-  // Resilient fallback: match client entity's pending/overdue invoice if exact ID not matched
-  if (invIndex === -1 && auth.role === "CLIENT" && auth.clientEntityId) {
-    invIndex = db.invoices.findIndex(
-      (i) => (i.entityId === auth.clientEntityId) && i.status !== "PAID"
-    );
+  if (action !== "SUBMIT_UTR" && action !== "RECONCILE") {
+    return NextResponse.json({ success: false, error: "Invalid invoice settlement action." }, { status: 400 });
   }
 
-  if (invIndex === -1) {
-    return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
+  const firmId = await resolveFirmUuid(auth);
+  const pool = getPostgresPool();
+
+  if (!invoiceId || !UUID_REGEX.test(String(invoiceId))) {
+    return NextResponse.json({ success: false, error: "Valid invoiceId is required." }, { status: 400 });
   }
 
-  const currentInvoice = db.invoices[invIndex];
+  const invRes = await pool.query(
+    `SELECT i.*, ce.entity_name, ce.group_id
+     FROM public.invoices i
+     JOIN public.client_entities ce ON ce.id = i.entity_id
+     WHERE i.id = $1 AND i.firm_id = $2
+     LIMIT 1`,
+    [invoiceId, firmId]
+  );
 
+  if (invRes.rows.length === 0) {
+    return NextResponse.json({ success: false, error: "Invoice not found." }, { status: 404 });
+  }
+
+  const row = invRes.rows[0];
+
+  // Authorization checks
   if (auth.role === "CLIENT") {
-    if (action !== "SUBMIT_UTR" || !auth.clientEntityId || currentInvoice.entityId !== auth.clientEntityId) {
-      return NextResponse.json({ success: false, error: "You may submit payment details only for your assigned entity." }, { status: 403 });
+    if (action !== "SUBMIT_UTR") {
+      return NextResponse.json({ success: false, error: "Only a firm partner can reconcile invoices." }, { status: 403 });
     }
-    if (currentInvoice.status === "PAID") {
+    const ownsEntity = auth.clientEntityId && row.entity_id === auth.clientEntityId;
+    const ownsGroup = !auth.clientEntityId && auth.clientGroupId && row.group_id === auth.clientGroupId;
+    if (!ownsEntity && !ownsGroup) {
+      return NextResponse.json(
+        { success: false, error: "You may submit payment details only for your assigned entity." },
+        { status: 403 }
+      );
+    }
+    if (row.status === "PAID") {
       return NextResponse.json({ success: false, error: "This invoice is already paid and reconciled." }, { status: 400 });
     }
-    if (typeof clientUtrNumber !== "string" || !/^[A-Za-z0-9-]{6,40}$/.test(clientUtrNumber.trim())) {
-      return NextResponse.json({ success: false, error: "A valid UTR is required for an unpaid invoice." }, { status: 400 });
+    if (!/^[A-Za-z0-9-]{6,40}$/.test(clientUtrNumber)) {
+      return NextResponse.json({ success: false, error: "A valid UTR reference (6-40 chars) is required." }, { status: 400 });
     }
-    if ((clientPaymentMode && !["NEFT_RTGS", "IMPS", "UPI"].includes(clientPaymentMode)) || (clientPayerNote && String(clientPayerNote).length > 500)) {
+    if (!["NEFT_RTGS", "IMPS", "UPI", "CHEQUE"].includes(clientPaymentMode) || clientPayerNote.length > 500) {
       return NextResponse.json({ success: false, error: "Payment mode or note is invalid." }, { status: 400 });
     }
-  } else if (auth.role !== "PARTNER" || action !== "RECONCILE") {
+  } else if (auth.role !== "PARTNER") {
     return NextResponse.json({ success: false, error: "Only a firm partner can reconcile invoices." }, { status: 403 });
   }
 
+  let updatedRow = row;
+  let payCfg: PayToReleaseConfig | undefined;
   let receiptDoc: DocumentItem | null = null;
-  let payCfg: PayToReleaseConfig | undefined = undefined;
 
   if (action === "SUBMIT_UTR") {
-    // 2027 Autonomous Auto-Reconciler: Validate and settle payment immediately
-    currentInvoice.status = "PAID";
-    currentInvoice.clientUtrNumber = clientUtrNumber;
-    currentInvoice.clientPaymentMode = clientPaymentMode || "UPI";
-    currentInvoice.clientPaymentDate = new Date().toISOString().split("T")[0];
-    currentInvoice.clientPayerNote = clientPayerNote;
-    currentInvoice.reconciledBy = "AUTONOMOUS_PAY_ENGINE";
-    currentInvoice.reconciledAt = new Date().toISOString();
+    // CRITICAL SECURITY RULE: Client UTR submission ALWAYS sets status to UTR_SUBMITTED (pending partner bank verification).
+    // Clients can NEVER self-mark invoices PAID or unlock Pay-to-Release deliverables.
+    const upd = await pool.query(
+      `UPDATE public.invoices
+       SET status = 'UTR_SUBMITTED',
+           client_utr_number = $1,
+           client_payment_mode = $2::payment_mode,
+           client_payment_date = CURRENT_DATE,
+           client_payer_note = $3
+       WHERE id = $4 AND firm_id = $5 AND status IN ('PENDING', 'OVERDUE', 'UTR_SUBMITTED')
+       RETURNING *`,
+      [clientUtrNumber, clientPaymentMode, clientPayerNote || "UTR submitted by client; pending bank verification.", row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
 
-    // Recalculate remaining unpaid amount for this client
-    const remainingUnpaid = db.invoices
-      .filter((i) => i.entityId === currentInvoice.entityId && i.id !== currentInvoice.id && i.status !== "PAID")
-      .reduce((sum, i) => sum + i.amount, 0);
+    await appendPgAuditLog({
+      firmId,
+      actorId: auth.user?.id,
+      actorName: auth.userName || row.entity_name,
+      actorRole: auth.role,
+      entityId: row.entity_id,
+      entityName: row.entity_name,
+      action: "Payment Reference Submitted",
+      details: `Submitted UTR ${clientUtrNumber} (${clientPaymentMode}) for Invoice #${row.invoice_no}. Pending partner bank reconciliation.`,
+      category: "INVOICE",
+    });
 
-    // Auto-unlock Pay-to-Release Gatekeeper if all dues cleared
-    if (!db.payToReleaseConfigs) db.payToReleaseConfigs = [];
-    payCfg = db.payToReleaseConfigs.find((c) => c.entityId === currentInvoice.entityId);
-    if (payCfg) {
-      payCfg.totalOutstandingAmount = remainingUnpaid;
-      if (remainingUnpaid === 0) {
-        payCfg.isLocked = false;
-        payCfg.lockReason = `Cleared via UTR ${clientUtrNumber}. Deliverables unlocked.`;
-      }
-    }
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: row.entity_id,
+      recordType: "NOTIFICATION",
+      payload: {
+        id: `NOTIF-UTR-${Date.now()}`,
+        title: `UTR Pending Bank Verification: ${row.entity_name}`,
+        message: `${row.entity_name} submitted UTR ${clientUtrNumber} (${clientPaymentMode}) for Invoice #${row.invoice_no} (₹${Number(row.total_amount).toLocaleString("en-IN")}). Please verify bank credit before releasing deliverables.`,
+        category: "BILLING",
+        priority: "HIGH",
+        recipientRole: "PARTNER",
+        recipientEntityId: row.entity_id,
+        targetTab: "pay-to-release",
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } else {
+    // action === "RECONCILE" (Partner-verified bank settlement)
+    const actorUuid = auth.user?.id && UUID_REGEX.test(auth.user.id) ? auth.user.id : null;
+    const upd = await pool.query(
+      `UPDATE public.invoices
+       SET status = 'PAID',
+           reconciled_by_id = $1,
+           reconciled_at = now()
+       WHERE id = $2 AND firm_id = $3
+       RETURNING *`,
+      [actorUuid, row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
 
-    // Auto-deposit official Payment Release Receipt into documents
-    if (!db.documents) db.documents = [];
+    const unpaidRes = await pool.query(
+      `SELECT COALESCE(SUM(total_amount), 0)::numeric as remaining
+       FROM public.invoices
+       WHERE firm_id = $1 AND entity_id = $2 AND status <> 'PAID'`,
+      [firmId, row.entity_id]
+    );
+    const remainingUnpaid = Number(unpaidRes.rows[0]?.remaining || 0);
+
+    const existingCfgs = await listWorkspaceRecords<PayToReleaseConfig>(firmId, "PAY_TO_RELEASE_CONFIG", row.entity_id);
+    const existingCfg = existingCfgs[0]?.payload;
+    payCfg = {
+      entityId: row.entity_id,
+      isLocked: remainingUnpaid > 0 ? Boolean(existingCfg?.isLocked) : false,
+      totalOutstandingAmount: remainingUnpaid,
+      oldestInvoiceDays: existingCfg?.oldestInvoiceDays || 0,
+      gracePeriodDays: existingCfg?.gracePeriodDays || 30,
+      blockedDeliverables: existingCfg?.blockedDeliverables || ["FORM_3CD_PDF", "BALANCE_SHEET_SIGNED", "ITR_ACKNOWLEDGMENT"],
+      instantUpiVpa: existingCfg?.instantUpiVpa || "BRAINSANDTAXES@icici",
+      merchantName: existingCfg?.merchantName || "Brains & Taxes",
+      lockReason:
+        remainingUnpaid === 0
+          ? `Cleared & verified by ${auth.userName || "Partner"}. Deliverables unlocked.`
+          : `Remaining balance: ₹${remainingUnpaid.toLocaleString("en-IN")}`,
+    };
+
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: row.entity_id,
+      recordType: "PAY_TO_RELEASE_CONFIG",
+      matchKey: "entityId",
+      matchValue: row.entity_id,
+      payload: payCfg,
+    });
+
+    const receiptName = `Receipt_${String(row.invoice_no).replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+    const docIns = await pool.query(
+      `INSERT INTO public.documents (
+        firm_id, entity_id, category, file_name, file_size_bytes, financial_year, review_status, reviewed_by_id, reviewed_at
+      ) VALUES ($1, $2, 'CHALLAN', $3, 189440, 'FY 2026-27', 'APPROVED', $4, now())
+      RETURNING id, created_at`,
+      [firmId, row.entity_id, receiptName, actorUuid]
+    );
     receiptDoc = {
-      id: `DOC-RCPT-${Date.now()}`,
-      entityId: currentInvoice.entityId,
-      entityName: currentInvoice.entityName,
+      id: docIns.rows[0].id,
+      entityId: row.entity_id,
+      entityName: row.entity_name,
       category: "CHALLAN",
-      fileName: `Receipt_${currentInvoice.invoiceNo.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
+      fileName: receiptName,
       fileSize: "185 KB",
-      uploadedAt: new Date().toISOString(),
+      uploadedAt: new Date(docIns.rows[0].created_at).toISOString(),
       uploadedBy: "FIRM_STAFF",
       isPasswordProtected: false,
       isUnlocked: true,
       financialYear: "FY 2026-27",
       reviewStatus: "APPROVED",
-      reviewedBy: "AUTONOMOUS_PAY_ENGINE",
-      reviewedAt: new Date().toISOString()
+      reviewedBy: auth.userName || "Firm Partner",
+      reviewedAt: new Date().toISOString(),
     };
-    db.documents.unshift(receiptDoc);
 
-    await logAuditEvent(
-      auth.user?.name || "Client Accounts Desk",
-      auth.role,
-      currentInvoice.entityName,
-      "UTR Payment Auto-Reconciled",
-      `Autonomous reconciliation verified UTR ${clientUtrNumber} (${currentInvoice.clientPaymentMode}) for ₹${currentInvoice.amount.toLocaleString("en-IN")}. Deliverables unlocked.`,
-      "INVOICE"
-    );
-
-    // Persist invoice & vault changes before notification creation to avoid state overwrite
-    db.invoices[invIndex] = currentInvoice;
-    await saveDatabase(db);
-
-    // Autonomous Client Notification: Immediate Deliverable Release
-    await createNotification({
-      title: `Payment Verified & Deliverables Unlocked`,
-      message: `Payment of ₹${currentInvoice.amount.toLocaleString("en-IN")} verified for Invoice #${currentInvoice.invoiceNo} (UTR: ${clientUtrNumber}). Certified deliverables (Form 3CD, ITR-6, Balance Sheet) are now unlocked in your Vault.`,
-      category: "BILLING",
-      priority: "HIGH",
-      targetTab: "vault",
-      recipientRole: "CLIENT",
-      recipientEntityId: currentInvoice.entityId,
-      targetRoles: ["CLIENT"],
-      entityId: currentInvoice.entityId,
-      metadata: { invoiceId: currentInvoice.id, utr: clientUtrNumber }
+    await appendPgAuditLog({
+      firmId,
+      actorId: auth.user?.id,
+      actorName: auth.userName || "Firm Partner",
+      actorRole: "PARTNER",
+      entityId: row.entity_id,
+      entityName: row.entity_name,
+      action: "Payment Reconciled & Settled",
+      details: `Partner verified settlement via UTR ${row.client_utr_number || "Direct"} for Invoice #${row.invoice_no}.`,
+      category: "INVOICE",
     });
 
-    // Notify Partners
-    await createNotification({
-      title: `Payment Auto-Reconciled: ₹${currentInvoice.amount.toLocaleString("en-IN")}`,
-      message: `Autonomous engine verified UTR ${clientUtrNumber} for ${currentInvoice.entityName} (Invoice #${currentInvoice.invoiceNo}). Fees settled and deliverables released.`,
-      category: "BILLING",
-      priority: "MEDIUM",
-      targetRoles: ["SUPER_ADMIN", "PARTNER", "STAFF"],
-      entityId: currentInvoice.entityId,
-      groupId: currentInvoice.groupId,
-      link: "/admin",
-      actionLabel: "View Receipt",
-      metadata: { invoiceId: currentInvoice.id, utr: clientUtrNumber }
-    });
-  } else if (action === "RECONCILE") {
-    currentInvoice.status = "PAID";
-    currentInvoice.reconciledBy = auth.user?.name || "Firm Partner";
-    currentInvoice.reconciledAt = new Date().toISOString();
-
-    // Recalculate remaining unpaid and unlock gatekeeper
-    const remainingUnpaid = db.invoices
-      .filter((i) => i.entityId === currentInvoice.entityId && i.id !== currentInvoice.id && i.status !== "PAID")
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    if (!db.payToReleaseConfigs) db.payToReleaseConfigs = [];
-    payCfg = db.payToReleaseConfigs.find((c) => c.entityId === currentInvoice.entityId);
-    if (payCfg) {
-      payCfg.totalOutstandingAmount = remainingUnpaid;
-      if (remainingUnpaid === 0) {
-        payCfg.isLocked = false;
-        payCfg.lockReason = "Account in good standing. Deliverables unlocked.";
-      }
-    }
-
-    // Auto-deposit official Payment Release Receipt into documents
-    if (!db.documents) db.documents = [];
-    receiptDoc = {
-      id: `DOC-RCPT-${Date.now()}`,
-      entityId: currentInvoice.entityId,
-      entityName: currentInvoice.entityName,
-      category: "CHALLAN",
-      fileName: `Receipt_${currentInvoice.invoiceNo.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
-      fileSize: "185 KB",
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: "FIRM_STAFF",
-      isPasswordProtected: false,
-      isUnlocked: true,
-      financialYear: "FY 2026-27",
-      reviewStatus: "APPROVED",
-      reviewedBy: "AUTONOMOUS_PAY_ENGINE",
-      reviewedAt: new Date().toISOString()
-    };
-    db.documents.unshift(receiptDoc);
-
-    await logAuditEvent(
-      auth.user?.name || "Firm Partner",
-      auth.role,
-      currentInvoice.entityName,
-      "Payment Reconciled & Settled",
-      `Verified bank settlement via UTR ${currentInvoice.clientUtrNumber || "Direct"} for Invoice #${currentInvoice.invoiceNo}`,
-      "INVOICE"
-    );
-
-    // Persist invoice & vault changes before notification creation
-    db.invoices[invIndex] = currentInvoice;
-    await saveDatabase(db);
-
-    // Notify Client and Partners of reconciliation
-    await createNotification({
-      title: `Payment Reconciled & Deliverables Unlocked: #${currentInvoice.invoiceNo}`,
-      message: `Payment of ₹${currentInvoice.amount.toLocaleString("en-IN")} for ${currentInvoice.entityName} reconciled. Official deliverables unlocked in your Vault.`,
-      category: "BILLING",
-      priority: "HIGH",
-      targetTab: "vault",
-      recipientRole: "CLIENT",
-      recipientEntityId: currentInvoice.entityId,
-      targetRoles: ["SUPER_ADMIN", "PARTNER", "CLIENT"],
-      entityId: currentInvoice.entityId,
-      groupId: currentInvoice.groupId,
-      link: "/client",
-      actionLabel: "View Vault",
-      metadata: { invoiceId: currentInvoice.id }
+    await upsertWorkspaceRecord({
+      firmId,
+      entityId: row.entity_id,
+      recordType: "NOTIFICATION",
+      payload: {
+        id: `NOTIF-PAID-${Date.now()}`,
+        title: `Payment Verified & Deliverables Unlocked: #${row.invoice_no}`,
+        message: `Payment of ₹${Number(row.total_amount).toLocaleString("en-IN")} for ${row.entity_name} has been verified. Certified deliverables are now unlocked in your Vault.`,
+        category: "BILLING",
+        priority: "HIGH",
+        recipientRole: "CLIENT",
+        recipientEntityId: row.entity_id,
+        targetTab: "vault",
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
     });
   }
 
-  // Autonomous Practice Sweep Trigger in Background
-  try {
-    const freshDb = ensureDatabase();
-    await executePracticeAutopilotSweep(freshDb, "Invoice Payment Reconciler Engine");
-    await saveDatabase(freshDb);
-  } catch (e) {
-    console.warn("Autopilot sweep error:", e);
-  }
+  const entityMap = new Map([[row.entity_id, { name: row.entity_name, groupId: row.group_id }]]);
+  const mappedInvoice = mapDbInvoice(updatedRow, entityMap);
 
-  // Bi-Directional Supabase update
-  if (isSupabaseConfigured()) {
-    try {
-      const updatePayload: Record<string, any> = {};
-      if (action === "SUBMIT_UTR") {
-        updatePayload.status = "UTR_SUBMITTED";
-        updatePayload.client_utr_number = clientUtrNumber;
-        updatePayload.client_payment_mode = clientPaymentMode || "NEFT_RTGS";
-        updatePayload.client_payment_date = new Date().toISOString().split("T")[0];
-        updatePayload.client_payer_note = clientPayerNote || "";
-      } else if (action === "RECONCILE") {
-        updatePayload.status = "PAID";
-        updatePayload.reconciled_at = new Date().toISOString();
-      }
-
-      if (Object.keys(updatePayload).length > 0) {
-        await supabase
-          .from("invoices")
-          .update(updatePayload)
-          .or(`id.eq.${invoiceId},invoice_no.eq.${currentInvoice.invoiceNo}`);
-      }
-    } catch (sbErr) {
-      console.warn("Supabase invoice update warning:", sbErr);
-    }
-  }
-
-  return NextResponse.json({ 
-    success: true, 
-    invoice: currentInvoice,
-    deliverablesUnlocked: payCfg ? !payCfg.isLocked : true,
-    deliverableDocument: receiptDoc
+  return NextResponse.json({
+    success: true,
+    invoice: mappedInvoice,
+    deliverablesUnlocked: payCfg ? !payCfg.isLocked : false,
+    deliverableDocument: receiptDoc,
   });
 }

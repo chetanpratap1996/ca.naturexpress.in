@@ -25,6 +25,7 @@ import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
 import { useClientContext } from "@/lib/context/ClientContext";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
+import { ClientGateEmptyState } from "@/components/shared/ClientGateEmptyState";
 import { validateIcaUdin, formatDate } from "@/lib/utils";
 import { UdinBulkImportModal } from "./udin/UdinBulkImportModal";
 import { UdinVerificationSlipModal } from "./udin/UdinVerificationSlipModal";
@@ -86,7 +87,18 @@ interface UdinVaultProps {
 
 export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
   const { selectedClient, isFirmWideView } = useClientContext();
-  const [entries, setEntries] = useState<UdinEntry[]>(DEFAULT_REALISTIC_UDIN_DATA);
+  const [entries, setEntries] = useState<UdinEntry[]>([]);
+  React.useEffect(() => {
+    if (!selectedClient || isFirmWideView) { setEntries([]); return; }
+    try {
+      const raw = localStorage.getItem(`bt_udin_vault_v1::${selectedClient.id}`);
+      setEntries(raw ? JSON.parse(raw) : []);
+    } catch { setEntries([]); }
+  }, [selectedClient, isFirmWideView]);
+  React.useEffect(() => {
+    if (!selectedClient || isFirmWideView) return;
+    try { localStorage.setItem(`bt_udin_vault_v1::${selectedClient.id}`, JSON.stringify(entries)); } catch {}
+  }, [entries, selectedClient, isFirmWideView]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -243,7 +255,7 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
         (e.clientPan && e.clientPan.toLowerCase() === qPan) ||
         (e.clientName && e.clientName.toLowerCase().includes(qName))
       );
-      return matches.length > 0 ? matches : entries;
+      return matches;
     }
     return entries;
   }, [entries, selectedClient, isFirmWideView]);

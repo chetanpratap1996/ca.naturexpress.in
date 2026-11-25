@@ -1,79 +1,110 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import { TabSkeleton } from "@/components/shared/TabSkeleton";
+
+// Core Instant App Shell
 import { TopNav } from "@/components/navigation/TopNav";
 import { FloatingBottomNav } from "@/components/navigation/FloatingBottomNav";
-import { StatutoryCalendar } from "@/components/firm/StatutoryCalendar";
-import { StatutoryTaskEngine } from "@/components/firm/tasks/StatutoryTaskEngine";
-import { NoticeCenter } from "@/components/firm/NoticeCenter";
-import { BillingWip } from "@/components/firm/BillingWip";
-import { DscVault } from "@/components/firm/DscVault";
-import { KeysVault } from "@/components/firm/KeysVault";
-import { ArticleWorkbench } from "@/components/firm/ArticleWorkbench";
-import { ClientPortalPwa } from "@/components/client/ClientPortalPwa";
-import { Gstr2bReconciler } from "@/components/firm/Gstr2bReconciler";
-import { InwardOutwardRegister } from "@/components/firm/InwardOutwardRegister";
-import { PayToReleaseManager } from "@/components/firm/PayToReleaseManager";
-import { WhatsAppAiWorkbench } from "@/components/firm/WhatsAppAiWorkbench";
-import { PeerReviewManager } from "@/components/firm/PeerReviewManager";
-import { EnterpriseSecurityAndRealization } from "@/components/firm/EnterpriseSecurityAndRealization";
-import { BatchOutwardDispatcher } from "@/components/firm/BatchOutwardDispatcher";
-import { ClientMasterModal } from "@/components/firm/ClientMasterModal";
-import { FirmHubActionModal } from "@/components/firm/FirmHubActionModal";
-import { ClientNotificationBroadcasterModal } from "@/components/notifications/ClientNotificationBroadcasterModal";
-import { VirtualCfoCockpit } from "@/components/firm/VirtualCfoCockpit";
-import { BankStatementParser } from "@/components/firm/BankStatementParser";
-import { EntityDnaMaster } from "@/components/firm/EntityDnaMaster";
-import { DiagnosticOnboardingModal } from "@/components/firm/DiagnosticOnboardingModal";
-import { ItrComputationEngine } from "@/components/firm/ItrComputationEngine";
-import { CaCreatorContentStudio } from "@/components/firm/CaCreatorContentStudio";
-import { EngagementLetterGenerator } from "@/components/firm/EngagementLetterGenerator";
-import { Ais26asAnalyzer } from "@/components/firm/Ais26asAnalyzer";
-import { Form3cdWorkpaper } from "@/components/firm/Form3cdWorkpaper";
-import { Schedule3AuditEngine } from "@/components/firm/Schedule3AuditEngine";
-import { UdinVault } from "@/components/firm/UdinVault";
-import { NoticeReplyDrafter } from "@/components/firm/NoticeReplyDrafter";
-import { AssesseeApprovalDesk } from "@/components/firm/AssesseeApprovalDesk";
-import { PracticeGrowthCockpit } from "@/components/growth/PracticeGrowthCockpit";
-import { SidebarNav } from "@/components/navigation/SidebarNav";
-import { AppLauncherMegaMenu } from "@/components/navigation/AppLauncherMegaMenu";
-import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
-import { AutonomousGstAssemblyLine } from "@/components/firm/AutonomousGstAssemblyLine";
-import { AutonomousPracticeCockpit } from "@/components/firm/AutonomousPracticeCockpit";
-import { AutonomousTdsWorkbench } from "@/components/firm/AutonomousTdsWorkbench";
-import { AutonomousMcaWorkbench } from "@/components/firm/AutonomousMcaWorkbench";
-import { AutonomousNoticeWorkbench } from "@/components/firm/AutonomousNoticeWorkbench";
-import { AutonomousGovernanceWorkbench } from "@/components/firm/AutonomousGovernanceWorkbench";
-import { AutonomousVcfoWorkbench } from "@/components/firm/AutonomousVcfoWorkbench";
-import { EnterpriseCiCdWorkbench } from "@/components/firm/EnterpriseCiCdWorkbench";
-import { LegacyMigrationWorkbench } from "@/components/firm/LegacyMigrationWorkbench";
-import { GstImsWorkbench } from "@/components/gst/GstImsWorkbench";
-import { PillarOneGstEnterpriseWorkbench } from "@/components/gst/PillarOneGstEnterpriseWorkbench";
-import { PillarTwoDirectTaxWorkbench } from "@/components/itr/PillarTwoDirectTaxWorkbench";
-import { PillarThreeTaxAuditWorkbench } from "@/components/taxAudit/PillarThreeTaxAuditWorkbench";
-import { PillarFiveTdsEnterpriseWorkbench } from "@/components/tds/PillarFiveTdsEnterpriseWorkbench";
-import { PillarSixMcaEnterpriseWorkbench } from "@/components/mca/PillarSixMcaEnterpriseWorkbench";
-import PillarSevenGovernanceWorkbench from "@/components/governance/PillarSevenGovernanceWorkbench";
-import PillarEightTallyDesktopWorkbench from "@/components/desktop/PillarEightTallyDesktopWorkbench";
-import AutonomousPracticeOrchestratorWorkbench from "@/components/firm/AutonomousPracticeOrchestratorWorkbench";
-import { BankAuditWorkbench } from "@/components/firm/BankAuditWorkbench";
-import { Form3cdClause31Workbench } from "@/components/taxAudit/Form3cdClause31Workbench";
-import { TallyDataGrid } from "@/components/shared/TallyDataGrid";
-import { TallyKeyboardOverlay } from "@/components/shared/TallyKeyboardOverlay";
 import { DomainRail, DomainId } from "@/components/navigation/DomainRail";
 import { DomainSubTabHeader, DOMAIN_SUBTABS } from "@/components/navigation/DomainSubTabHeader";
-import { TasksCommandCenter } from "@/components/firm/TasksCommandCenter";
-import { StaffManagementView } from "@/components/firm/StaffManagementView";
-import { GstFilingMatrix } from "@/components/firm/GstFilingMatrix";
-import { ItrAuditMatrix } from "@/components/firm/ItrAuditMatrix";
-import { BillingWipMatrix } from "@/components/firm/BillingWipMatrix";
-import { useClientContext } from "@/lib/context/ClientContext";
 import { AmbientClientContextBar } from "@/components/navigation/AmbientClientContextBar";
+
+// Primary Matrices (Code-Split + Prefetched on Hover for Ultra-Fast Initial Load)
+const ExecutiveDashboard = dynamic(() => import("@/components/dashboard/ExecutiveDashboard").then(m => m.ExecutiveDashboard), { ssr: false, loading: () => <TabSkeleton title="Executive Dashboard" /> });
+const GstFilingMatrix = dynamic(() => import("@/components/firm/GstFilingMatrix").then(m => m.GstFilingMatrix), { ssr: false, loading: () => <TabSkeleton title="GST Filing Matrix" /> });
+const TasksCommandCenter = dynamic(() => import("@/components/firm/TasksCommandCenter").then(m => m.TasksCommandCenter), { ssr: false, loading: () => <TabSkeleton title="Task Command Center" /> });
+const ItrAuditMatrix = dynamic(() => import("@/components/firm/ItrAuditMatrix").then(m => m.ItrAuditMatrix), { ssr: false, loading: () => <TabSkeleton title="ITR & Audit Matrix" /> });
+const BillingWipMatrix = dynamic(() => import("@/components/firm/BillingWipMatrix").then(m => m.BillingWipMatrix), { ssr: false, loading: () => <TabSkeleton title="Billing & WIP Matrix" /> });
+const Gstr1OutwardWorkbench = dynamic(() => import("@/components/gst/Gstr1OutwardWorkbench").then(m => m.Gstr1OutwardWorkbench), { ssr: false, loading: () => <TabSkeleton title="GSTR-1 Outward" /> });
+
+// Tab Chunk Prefetcher (Warms up chunk on hover before click)
+const TAB_PREFETCHERS: Record<string, () => Promise<any>> = {
+  dashboard: () => import("@/components/dashboard/ExecutiveDashboard"),
+  "gst-filing": () => import("@/components/firm/GstFilingMatrix"),
+  gstr1: () => import("@/components/gst/Gstr1OutwardWorkbench"),
+  gstr2b: () => import("@/components/firm/Gstr2bReconciler"),
+  "gst-ims": () => import("@/components/gst/GstImsWorkbench"),
+  "pillar-one-gst": () => import("@/components/gst/PillarOneGstEnterpriseWorkbench"),
+  "entity-dna": () => import("@/components/firm/EntityDnaMaster"),
+  "tasks-matrix": () => import("@/components/firm/TasksCommandCenter"),
+  calendar: () => import("@/components/firm/tasks/StatutoryTaskEngine"),
+  "itr-matrix": () => import("@/components/firm/ItrAuditMatrix"),
+  "ais-analyzer": () => import("@/components/firm/Ais26asAnalyzer"),
+  "billing-matrix": () => import("@/components/firm/BillingWipMatrix"),
+  "client-master": () => import("@/components/firm/EntityDnaMaster"),
+  notices: () => import("@/components/firm/NoticeCenter"),
+};
+
+// Lazy-Loaded Sub-Workbenches (Code-Split on Demand for Instant Shell Load)
+const Gstr2bReconciler = dynamic(() => import("@/components/firm/Gstr2bReconciler").then(m => m.Gstr2bReconciler), { ssr: false, loading: () => <TabSkeleton title="GSTR-2B Reconciler" /> });
+const GstImsWorkbench = dynamic(() => import("@/components/gst/GstImsWorkbench").then(m => m.GstImsWorkbench), { ssr: false, loading: () => <TabSkeleton title="IMS Desk" /> });
+const PillarOneGstEnterpriseWorkbench = dynamic(() => import("@/components/gst/PillarOneGstEnterpriseWorkbench").then(m => m.PillarOneGstEnterpriseWorkbench), { ssr: false, loading: () => <TabSkeleton title="GST Enterprise Suite" /> });
+const AutonomousGstAssemblyLine = dynamic(() => import("@/components/firm/AutonomousGstAssemblyLine").then(m => m.AutonomousGstAssemblyLine), { ssr: false, loading: () => <TabSkeleton title="GST Autopilot Assembly" /> });
+
+const PillarTwoDirectTaxWorkbench = dynamic(() => import("@/components/itr/PillarTwoDirectTaxWorkbench").then(m => m.PillarTwoDirectTaxWorkbench), { ssr: false, loading: () => <TabSkeleton title="Direct Tax Workbench" /> });
+const PillarThreeTaxAuditWorkbench = dynamic(() => import("@/components/taxAudit/PillarThreeTaxAuditWorkbench").then(m => m.PillarThreeTaxAuditWorkbench), { ssr: false, loading: () => <TabSkeleton title="Tax Audit Workbench" /> });
+const PillarFiveTdsEnterpriseWorkbench = dynamic(() => import("@/components/tds/PillarFiveTdsEnterpriseWorkbench").then(m => m.PillarFiveTdsEnterpriseWorkbench), { ssr: false, loading: () => <TabSkeleton title="TDS Enterprise Workbench" /> });
+const PillarSixMcaEnterpriseWorkbench = dynamic(() => import("@/components/mca/PillarSixMcaEnterpriseWorkbench").then(m => m.PillarSixMcaEnterpriseWorkbench), { ssr: false, loading: () => <TabSkeleton title="MCA & Secretarial Workbench" /> });
+const PillarSevenGovernanceWorkbench = dynamic(() => import("@/components/governance/PillarSevenGovernanceWorkbench"), { ssr: false, loading: () => <TabSkeleton title="Firm Governance Desk" /> });
+const PillarEightTallyDesktopWorkbench = dynamic(() => import("@/components/desktop/PillarEightTallyDesktopWorkbench"), { ssr: false, loading: () => <TabSkeleton title="Tally Desktop Bridge" /> });
+
+const AutonomousPracticeOrchestratorWorkbench = dynamic(() => import("@/components/firm/AutonomousPracticeOrchestratorWorkbench"), { ssr: false, loading: () => <TabSkeleton title="Practice Orchestrator" /> });
+const AutonomousPracticeCockpit = dynamic(() => import("@/components/firm/AutonomousPracticeCockpit").then(m => m.AutonomousPracticeCockpit), { ssr: false, loading: () => <TabSkeleton title="Autonomous Practice Cockpit" /> });
+const AutonomousTdsWorkbench = dynamic(() => import("@/components/firm/AutonomousTdsWorkbench").then(m => m.AutonomousTdsWorkbench), { ssr: false, loading: () => <TabSkeleton title="Autonomous TDS Engine" /> });
+const AutonomousMcaWorkbench = dynamic(() => import("@/components/firm/AutonomousMcaWorkbench").then(m => m.AutonomousMcaWorkbench), { ssr: false, loading: () => <TabSkeleton title="Autonomous MCA Desk" /> });
+const AutonomousNoticeWorkbench = dynamic(() => import("@/components/firm/AutonomousNoticeWorkbench").then(m => m.AutonomousNoticeWorkbench), { ssr: false, loading: () => <TabSkeleton title="Autonomous Notice Engine" /> });
+const AutonomousGovernanceWorkbench = dynamic(() => import("@/components/firm/AutonomousGovernanceWorkbench").then(m => m.AutonomousGovernanceWorkbench), { ssr: false, loading: () => <TabSkeleton title="Autonomous Governance" /> });
+const AutonomousVcfoWorkbench = dynamic(() => import("@/components/firm/AutonomousVcfoWorkbench").then(m => m.AutonomousVcfoWorkbench), { ssr: false, loading: () => <TabSkeleton title="Autonomous vCFO Engine" /> });
+const EnterpriseCiCdWorkbench = dynamic(() => import("@/components/firm/EnterpriseCiCdWorkbench").then(m => m.EnterpriseCiCdWorkbench), { ssr: false, loading: () => <TabSkeleton title="CI/CD Suite" /> });
+const LegacyMigrationWorkbench = dynamic(() => import("@/components/firm/LegacyMigrationWorkbench").then(m => m.LegacyMigrationWorkbench), { ssr: false, loading: () => <TabSkeleton title="Legacy Migration Bridge" /> });
+
+const Schedule3AuditEngine = dynamic(() => import("@/components/firm/Schedule3AuditEngine").then(m => m.Schedule3AuditEngine), { ssr: false, loading: () => <TabSkeleton title="Schedule III Audit Engine" /> });
+const Form3cdWorkpaper = dynamic(() => import("@/components/firm/Form3cdWorkpaper").then(m => m.Form3cdWorkpaper), { ssr: false, loading: () => <TabSkeleton title="Form 3CD Workpapers" /> });
+const Form3cdClause31Workbench = dynamic(() => import("@/components/taxAudit/Form3cdClause31Workbench").then(m => m.Form3cdClause31Workbench), { ssr: false, loading: () => <TabSkeleton title="Clause 31 Audit Desk" /> });
+const BankAuditWorkbench = dynamic(() => import("@/components/firm/BankAuditWorkbench").then(m => m.BankAuditWorkbench), { ssr: false, loading: () => <TabSkeleton title="Bank Audit Desk" /> });
+const BankStatementParser = dynamic(() => import("@/components/firm/BankStatementParser").then(m => m.BankStatementParser), { ssr: false, loading: () => <TabSkeleton title="Bank Statement Parser" /> });
+const Ais26asAnalyzer = dynamic(() => import("@/components/firm/Ais26asAnalyzer").then(m => m.Ais26asAnalyzer), { ssr: false, loading: () => <TabSkeleton title="AIS & 26AS Analyzer" /> });
+const ItrComputationEngine = dynamic(() => import("@/components/firm/ItrComputationEngine").then(m => m.ItrComputationEngine), { ssr: false, loading: () => <TabSkeleton title="ITR Tax Engine" /> });
+const VirtualCfoCockpit = dynamic(() => import("@/components/firm/VirtualCfoCockpit").then(m => m.VirtualCfoCockpit), { ssr: false, loading: () => <TabSkeleton title="vCFO Cockpit" /> });
+const EntityDnaMaster = dynamic(() => import("@/components/firm/EntityDnaMaster").then(m => m.EntityDnaMaster), { ssr: false, loading: () => <TabSkeleton title="Entity DNA Master" /> });
+const PayToReleaseManager = dynamic(() => import("@/components/firm/PayToReleaseManager").then(m => m.PayToReleaseManager), { ssr: false, loading: () => <TabSkeleton title="Pay to Release Gate" /> });
+const WhatsAppAiWorkbench = dynamic(() => import("@/components/firm/WhatsAppAiWorkbench").then(m => m.WhatsAppAiWorkbench), { ssr: false, loading: () => <TabSkeleton title="WhatsApp Desk" /> });
+const PracticeGrowthCockpit = dynamic(() => import("@/components/growth/PracticeGrowthCockpit").then(m => m.PracticeGrowthCockpit), { ssr: false, loading: () => <TabSkeleton title="Growth Engine" /> });
+const BatchOutwardDispatcher = dynamic(() => import("@/components/firm/BatchOutwardDispatcher").then(m => m.BatchOutwardDispatcher), { ssr: false, loading: () => <TabSkeleton title="Batch Outward Dispatcher" /> });
+const StatutoryCalendar = dynamic(() => import("@/components/firm/StatutoryCalendar").then(m => m.StatutoryCalendar), { ssr: false, loading: () => <TabSkeleton title="Statutory Calendar" /> });
+const StatutoryTaskEngine = dynamic(() => import("@/components/firm/tasks/StatutoryTaskEngine").then(m => m.StatutoryTaskEngine), { ssr: false, loading: () => <TabSkeleton title="Statutory Task Engine" /> });
+const NoticeCenter = dynamic(() => import("@/components/firm/NoticeCenter").then(m => m.NoticeCenter), { ssr: false, loading: () => <TabSkeleton title="Notice Scrutiny Center" /> });
+const BillingWip = dynamic(() => import("@/components/firm/BillingWip").then(m => m.BillingWip), { ssr: false, loading: () => <TabSkeleton title="Billing & WIP" /> });
+const DscVault = dynamic(() => import("@/components/firm/DscVault").then(m => m.DscVault), { ssr: false, loading: () => <TabSkeleton title="DSC Vault" /> });
+const KeysVault = dynamic(() => import("@/components/firm/KeysVault").then(m => m.KeysVault), { ssr: false, loading: () => <TabSkeleton title="Credentials Vault" /> });
+const UdinVault = dynamic(() => import("@/components/firm/UdinVault").then(m => m.UdinVault), { ssr: false, loading: () => <TabSkeleton title="UDIN Vault" /> });
+const NoticeReplyDrafter = dynamic(() => import("@/components/firm/NoticeReplyDrafter").then(m => m.NoticeReplyDrafter), { ssr: false, loading: () => <TabSkeleton title="Notice Reply Drafter" /> });
+const AssesseeApprovalDesk = dynamic(() => import("@/components/firm/AssesseeApprovalDesk").then(m => m.AssesseeApprovalDesk), { ssr: false, loading: () => <TabSkeleton title="Assessee Approval Desk" /> });
+const InwardOutwardRegister = dynamic(() => import("@/components/firm/InwardOutwardRegister").then(m => m.InwardOutwardRegister), { ssr: false, loading: () => <TabSkeleton title="Inward Outward Register" /> });
+const CaCreatorContentStudio = dynamic(() => import("@/components/firm/CaCreatorContentStudio").then(m => m.CaCreatorContentStudio), { ssr: false, loading: () => <TabSkeleton title="CA Creator Studio" /> });
+const EngagementLetterGenerator = dynamic(() => import("@/components/firm/EngagementLetterGenerator").then(m => m.EngagementLetterGenerator), { ssr: false, loading: () => <TabSkeleton title="Engagement Letters" /> });
+const PeerReviewManager = dynamic(() => import("@/components/firm/PeerReviewManager").then(m => m.PeerReviewManager), { ssr: false, loading: () => <TabSkeleton title="Audit Quality Desk" /> });
+const EnterpriseSecurityAndRealization = dynamic(() => import("@/components/firm/EnterpriseSecurityAndRealization").then(m => m.EnterpriseSecurityAndRealization), { ssr: false, loading: () => <TabSkeleton title="Enterprise Security" /> });
+const ArticleWorkbench = dynamic(() => import("@/components/firm/ArticleWorkbench").then(m => m.ArticleWorkbench), { ssr: false, loading: () => <TabSkeleton title="Team Workbench" /> });
+const ClientPortalPwa = dynamic(() => import("@/components/client/ClientPortalPwa").then(m => m.ClientPortalPwa), { ssr: false, loading: () => <TabSkeleton title="Client Portal" /> });
+const StaffManagementView = dynamic(() => import("@/components/firm/StaffManagementView").then(m => m.StaffManagementView), { ssr: false, loading: () => <TabSkeleton title="Team Management" /> });
+const TallyDataGrid = dynamic(() => import("@/components/shared/TallyDataGrid").then(m => m.TallyDataGrid), { ssr: false, loading: () => <TabSkeleton title="Tally Data Grid" /> });
+
+// Modals (Lazy Loaded on User Trigger)
+const ClientMasterModal = dynamic(() => import("@/components/firm/ClientMasterModal").then(m => m.ClientMasterModal), { ssr: false });
+const FirmHubActionModal = dynamic(() => import("@/components/firm/FirmHubActionModal").then(m => m.FirmHubActionModal), { ssr: false });
+const ClientNotificationBroadcasterModal = dynamic(() => import("@/components/notifications/ClientNotificationBroadcasterModal").then(m => m.ClientNotificationBroadcasterModal), { ssr: false });
+const DiagnosticOnboardingModal = dynamic(() => import("@/components/firm/DiagnosticOnboardingModal").then(m => m.DiagnosticOnboardingModal), { ssr: false });
+const AppLauncherMegaMenu = dynamic(() => import("@/components/navigation/AppLauncherMegaMenu").then(m => m.AppLauncherMegaMenu), { ssr: false });
+const KeyboardShortcutsModal = dynamic(() => import("@/components/shared/KeyboardShortcutsModal").then(m => m.KeyboardShortcutsModal), { ssr: false });
+const LoginModal = dynamic(() => import("@/components/auth/LoginModal").then(m => m.LoginModal), { ssr: false });
+const SaasGateway = dynamic(() => import("@/components/gateway/SaasGateway").then(m => m.SaasGateway), { ssr: false });
+const TallyKeyboardOverlay = dynamic(() => import("@/components/shared/TallyKeyboardOverlay").then(m => m.TallyKeyboardOverlay), { ssr: false });
+import { useClientContext } from "@/lib/context/ClientContext";
 import { getNavItemById } from "@/lib/navigation/navigationItems";
-import { LoginModal } from "@/components/auth/LoginModal";
-import { SaasGateway } from "@/components/gateway/SaasGateway";
-import { KeyboardShortcutsModal } from "@/components/shared/KeyboardShortcutsModal";
 import { toast } from "@/components/shared/ToastNotification";
 import { useTaxoData } from "@/lib/hooks/useTaxoData";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
@@ -156,6 +187,7 @@ const TAB_TO_DOMAIN: Record<string, DomainId> = {
 
   // 2. GST Suite
   "gst-filing": "gst",
+  gstr1: "gst",
   "pillar-one-gst": "gst",
   "gst-ims": "gst",
   gstr2b: "gst",
@@ -249,8 +281,8 @@ export default function Home() {
     deleteDscToken,
   } = useTaxoData(isDemoSandbox);
 
-  // Authenticated user session
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  // Authenticated user session — matching SSR & client initial state
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
   const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
@@ -783,6 +815,10 @@ export default function Home() {
                   activeSubTab={activePartnerTab}
                   onSelectDomain={handleSelectDomain}
                   onSelectSubTab={(tabId) => handleTabChange(tabId)}
+                  onPrefetchTab={(tabId) => {
+                    const loader = TAB_PREFETCHERS[tabId];
+                    if (loader) loader().catch(() => {});
+                  }}
                   taskCount={tasks.length}
                 />
               )}
@@ -836,7 +872,12 @@ export default function Home() {
                   dscTokens={dscTokens}
                   onUpdateTask={updateTask}
                   onRefreshData={refreshData}
+                  onNavigateTab={handleTabChange}
                 />
+              )}
+
+              {activePartnerTab === "gstr1" && (
+                <Gstr1OutwardWorkbench />
               )}
 
               {activePartnerTab === "itr-matrix" && (
@@ -865,7 +906,7 @@ export default function Home() {
               )}
               {activePartnerTab === "batch-dispatch" && (
                 <BatchOutwardDispatcher 
-                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
+                  clients={clients}
                   onBatchDispatched={() => refreshData()}
                   onTasksUpdated={() => refreshData()}
                 />
@@ -908,7 +949,7 @@ export default function Home() {
 
 
               {activePartnerTab === "vcfo" && (
-                <VirtualCfoCockpit clients={clients.length > 0 ? clients : INITIAL_CLIENTS} />
+                <VirtualCfoCockpit clients={clients} />
               )}
 
               {activePartnerTab === "bank-parser" && (
@@ -929,9 +970,9 @@ export default function Home() {
 
               {activePartnerTab === "pay-to-release" && (
                 <PayToReleaseManager
-                  configs={(payConfigs.length > 0 ? payConfigs : INITIAL_PAY_TO_RELEASE_CONFIGS) as any}
-                  clients={clients.length > 0 ? clients : INITIAL_CLIENTS}
-                  invoices={invoices.length > 0 ? invoices : INITIAL_INVOICES}
+                  configs={(isDemoSandbox && payConfigs.length === 0 ? INITIAL_PAY_TO_RELEASE_CONFIGS : payConfigs) as any}
+                  clients={clients}
+                  invoices={invoices}
                   firmUpiVpa={DEFAULT_FIRM_BRANDING.firmUpiVpa}
                   onRefreshData={refreshData}
                 />
@@ -1094,15 +1135,17 @@ export default function Home() {
               {activePartnerTab === "peer-review" && (
                 <PeerReviewManager
                   clients={clients}
-                  initialMsmeRecords={(isDemoSandbox ? SANDBOX_MSME_43BH_RECORDS : INITIAL_MSME_43BH_RECORDS) as any}
-                  initialSection40a={(isDemoSandbox ? SANDBOX_SECTION_40A2B_SAMPLES : INITIAL_SECTION_40A2B_SAMPLES) as any}
+                  initialMsmeRecords={(isDemoSandbox ? SANDBOX_MSME_43BH_RECORDS : []) as any}
+                  initialSection40a={(isDemoSandbox ? SANDBOX_SECTION_40A2B_SAMPLES : []) as any}
                 />
               )}
 
               {activePartnerTab === "anti-poaching" && (
                 <EnterpriseSecurityAndRealization
-                  partnerMetrics={(isDemoSandbox ? SANDBOX_PARTNER_METRICS : INITIAL_PARTNER_METRICS) as any}
-                  securityLogs={(isDemoSandbox ? SANDBOX_STAFF_SECURITY_LOGS : INITIAL_STAFF_SECURITY_LOGS) as any}
+                  partnerMetrics={(isDemoSandbox ? SANDBOX_PARTNER_METRICS : []) as any}
+                  securityLogs={(isDemoSandbox ? SANDBOX_STAFF_SECURITY_LOGS : []) as any}
+                  invoices={invoices}
+                  clients={clients}
                 />
               )}
 
@@ -1191,16 +1234,25 @@ export default function Home() {
         onClose={() => setIsClientMasterOpen(false)}
         clients={clients}
         groups={groups}
+        portalCredentials={portalCredentials}
+        dscTokens={dscTokens}
+        notices={notices}
+        onRefreshData={refreshData}
         onAddClient={async (newClient) => {
-          await createClient(newClient);
+          const created = await createClient(newClient);
           await refreshData();
+          return created;
         }}
         onUpdateClient={async (id, data) => {
-          await updateClient(id, data);
+          const updated = await updateClient(id, data);
           await refreshData();
+          return updated;
         }}
         onDeleteClient={async (id) => {
           await deleteClient(id);
+          await refreshData();
+        }}
+        onBatchImported={async () => {
           await refreshData();
         }}
       />
@@ -1227,7 +1279,7 @@ export default function Home() {
 
       {/* TallyPrime & Winman Muscle-Memory Keyboard Overlay (Alt+H / Alt+G / F2-F9) */}
       <TallyKeyboardOverlay 
-        onTriggerAction={(actionId) => {
+        onTriggerAction={(actionId: any) => {
           switch (actionId) {
             case "CHANGE_PERIOD":
               handleTabChange("calendar");

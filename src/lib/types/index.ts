@@ -40,13 +40,24 @@ export interface GstinRecordItem {
   stateCode: string;
   stateName: string;
   tradeName: string;
-  registrationType: "REGULAR" | "COMPOSITION" | "ISD" | "CASUAL";
+  legalName?: string;
+  registrationType: "REGULAR" | "COMPOSITION" | "ISD" | "CASUAL" | "SEZ" | "TDS_TCS";
   filingFrequency: "MONTHLY" | "QRMP";
+  qrmpStateGroup?: "22ND" | "24TH";
   status: "ACTIVE" | "CANCELLED" | "SUSPENDED";
+  registrationDate?: string;
+  cancellationDate?: string;
+  principalAddress?: string;
   jurisdictionCenter?: string;
   jurisdictionState?: string;
   eWayBillEnabled?: boolean;
   eInvoiceApplicable?: boolean;
+  isdEnabled?: boolean;
+  authorizedSignatory?: string;
+  otpMobile?: string;
+  lastGstnVerifiedAt?: string;
+  openingCreditLedger?: { igst: number; cgst: number; sgst: number; cess: number };
+  openingCashLedger?: { igst: number; cgst: number; sgst: number; cess: number };
 }
 
 export interface DirectorRecordItem {
@@ -111,6 +122,9 @@ export interface GstComplianceHistoryItem {
   lateFeePaid: number;
 }
 
+export type GstFilingFrequency = "MONTHLY" | "QRMP" | "COMPOSITION" | "UNREGISTERED";
+export type OnboardingMode = "NEW_BUSINESS" | "CA_TAKEOVER";
+
 export interface ClientEntity {
   id: string;
   groupId: string;
@@ -120,6 +134,13 @@ export interface ClientEntity {
   type: EntityType;
   pan: string;
   gstin?: string;
+  gstFilingFrequency?: GstFilingFrequency;
+  onboardingMode?: OnboardingMode;
+  onboardingChecklist?: {
+    completedPortals: string[];
+    takeoverChecklistDone?: string[];
+    lastBaselineSyncAt?: string;
+  };
   cin?: string;
   tan?: string;
   turnoverCr: number;
@@ -179,6 +200,13 @@ export interface ComplianceTask {
   challanCin?: string;
   taxPayableAmount?: number;
   section50Interest?: number;
+  lateFeeAmount?: number;
+  isNilReturn?: boolean;
+  outwardTaxBreakdown?: { igst: number; cgst: number; sgst: number; cess: number };
+  rcmTax?: number;
+  itcUtilized?: { igst: number; cgst: number; sgst: number; cess: number };
+  closingCreditLedger?: { igst: number; cgst: number; sgst: number; cess: number };
+  cashPaid?: number;
   clientApprovalStatus?: 'APPROVED' | 'PENDING' | 'NOT_REQUIRED';
   penaltyNote?: string;
   docsReceivedAt?: string;

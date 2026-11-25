@@ -46,6 +46,7 @@ export const DOMAIN_SUBTABS: Record<DomainId, SubTabItem[]> = {
   ],
   gst: [
     { id: "gst-filing", label: "Filing Desk", shortLabel: "Filing", icon: FileCheck },
+    { id: "gstr1", label: "GSTR-1 Outward", shortLabel: "GSTR-1", icon: TrendingUp },
     { id: "gstr2b", label: "2B Matcher", shortLabel: "2B", icon: FileSpreadsheet },
     { id: "gst-ims", label: "IMS Desk", shortLabel: "IMS", icon: ClipboardCheck },
     { id: "pillar-one-gst", label: "Annual & Audit", shortLabel: "Annual", icon: Layers },
@@ -92,6 +93,7 @@ interface DomainSubTabHeaderProps {
   activeSubTab: string;
   onSelectDomain: (domain: DomainId) => void;
   onSelectSubTab: (subTabId: string) => void;
+  onPrefetchTab?: (subTabId: string) => void;
   taskCount?: number;
 }
 
@@ -100,6 +102,7 @@ export const DomainSubTabHeader: React.FC<DomainSubTabHeaderProps> = ({
   activeSubTab,
   onSelectDomain,
   onSelectSubTab,
+  onPrefetchTab,
   taskCount = 0
 }) => {
   const currentDomainInfo = DOMAINS.find((d) => d.id === activeDomain) || DOMAINS[0];
@@ -151,6 +154,8 @@ export const DomainSubTabHeader: React.FC<DomainSubTabHeaderProps> = ({
               <button
                 key={tab.id}
                 onClick={() => onSelectSubTab(tab.id)}
+                onMouseEnter={() => onPrefetchTab?.(tab.id)}
+                onFocus={() => onPrefetchTab?.(tab.id)}
                 className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                   isActive
                     ? "bg-btred-logo text-white shadow-sm shadow-red-500/20"

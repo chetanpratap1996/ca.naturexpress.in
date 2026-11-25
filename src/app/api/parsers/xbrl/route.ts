@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 import { parseXbrlFinancials } from "@/lib/parsers/xbrlParser";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const contentType = req.headers.get("content-type") || "";
     let xbrlContent = "";

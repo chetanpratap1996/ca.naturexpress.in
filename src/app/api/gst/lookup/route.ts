@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lookupGstin, lookupGstReturns } from "@/lib/gst/gstinApiClient";
 import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   const { searchParams } = new URL(request.url);
   const gstin = searchParams.get("gstin") || "";
   const includeReturns = searchParams.get("returns") === "true";
@@ -43,6 +46,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { errorResponse } = await enforceApiRole(request, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const body = await request.json();
     const gstin = body.gstin || "";

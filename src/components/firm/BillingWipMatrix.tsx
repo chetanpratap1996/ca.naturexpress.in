@@ -59,18 +59,8 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
   const [paymentMode, setPaymentMode] = useState<"UPI" | "NEFT_RTGS" | "IMPS" | "CHEQUE">("UPI");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Unbilled WIP Jobs (derived dynamically from registered active clients)
-  const unbilledWipJobs = useMemo(() => {
-    if (!clients || clients.length === 0) return [];
-    return clients.map((c, i) => ({
-      id: `WIP-${c.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6)}-${i + 1}`,
-      entityName: c.name,
-      service: c.type === "PVT_LTD" ? "ITR-6 Corporate Compliance & MCA AOC-4" : "GSTR-3B & 2B ITC Reconciliation",
-      fee: c.type === "PVT_LTD" ? 18500 : 7500,
-      status: "READY_TO_BILL",
-      staff: c.assignedArticle || "Kriti Jain (Article)",
-    }));
-  }, [clients]);
+  // Real Unbilled WIP Jobs (empty unless created/tracked from actual assignments)
+  const unbilledWipJobs = useMemo(() => [] as Array<{ id: string; entityName: string; service: string; fee: number; status: string; staff: string }>, []);
 
   // Context-aware client filtering
   const effectiveInvoices = useMemo(() => {
@@ -80,7 +70,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
       const matches = invoices.filter(inv => 
         inv.entityId === qId || inv.entityName.toLowerCase().includes(qName)
       );
-      return matches.length > 0 ? matches : invoices;
+      return matches;
     }
     return invoices;
   }, [invoices, selectedClient, isFirmWideView]);
@@ -91,7 +81,7 @@ export const BillingWipMatrix: React.FC<BillingWipMatrixProps> = ({
       const matches = unbilledWipJobs.filter(j => 
         j.entityName.toLowerCase().includes(qName)
       );
-      return matches.length > 0 ? matches : unbilledWipJobs;
+      return matches;
     }
     return unbilledWipJobs;
   }, [unbilledWipJobs, selectedClient, isFirmWideView]);

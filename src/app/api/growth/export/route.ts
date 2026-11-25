@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LeadStore } from "@/lib/intelligence/store/leadStore";
 import { LeadFilterCriteria, ServiceTrack, StatutorySeverity, LeadStage } from "@/lib/intelligence/types";
+import { enforceApiRole } from "@/lib/auth/serverAuth";
 
 export async function GET(req: NextRequest) {
+  const { errorResponse } = await enforceApiRole(req, ["PARTNER", "ARTICLE", "TEAM"]);
+  if (errorResponse) return errorResponse;
   try {
     const { searchParams } = new URL(req.url);
 

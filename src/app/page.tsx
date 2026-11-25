@@ -10,7 +10,6 @@ import { TopNav } from "@/components/navigation/TopNav";
 import { FloatingBottomNav } from "@/components/navigation/FloatingBottomNav";
 import { DomainRail, DomainId } from "@/components/navigation/DomainRail";
 import { DomainSubTabHeader, DOMAIN_SUBTABS } from "@/components/navigation/DomainSubTabHeader";
-import { AmbientClientContextBar } from "@/components/navigation/AmbientClientContextBar";
 
 // Primary Matrices (Code-Split + Prefetched on Hover for Ultra-Fast Initial Load)
 const ExecutiveDashboard = dynamic(() => import("@/components/dashboard/ExecutiveDashboard").then(m => m.ExecutiveDashboard), { ssr: false, loading: () => <TabSkeleton title="Executive Dashboard" /> });
@@ -762,16 +761,6 @@ export default function Home() {
           selectedGstin={selectedGstin}
           onOpenDiagnosticOnboarding={() => setIsDiagnosticModalOpen(true)}
         />
-
-        {/* Ambient Universal Client Selection Bar */}
-        {currentView !== "client-pwa" && (
-          <AmbientClientContextBar
-            clients={clients}
-            groups={groups}
-            dscTokens={dscTokens}
-            onNavigateTab={handleTabChange}
-          />
-        )}
 
         {/* Master Flex Layout with Left Sidebar */}
         <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-w-0">

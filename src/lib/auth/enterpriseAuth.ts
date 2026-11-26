@@ -140,8 +140,7 @@ export async function authenticateClientEntity(
     const { rows } = await pool.query(query, [cleanUpper, cleanPhone10, cleanId]);
 
     if (rows.length === 0) {
-      recordFailedAttempt(`client:${cleanId.toLowerCase()}`);
-      recordFailedAttempt(`client:ip:${ipAddress}`);
+      recordFailedAttempt(`client:${cleanId.toLowerCase()}:${ipAddress}`);
       return {
         success: false,
         error: "Invalid client credentials. Please verify your Mobile/PAN and PIN or contact your CA firm.",
@@ -164,8 +163,7 @@ export async function authenticateClientEntity(
     }
 
     if (!isPinValid) {
-      recordFailedAttempt(`client:${cleanId.toLowerCase()}`);
-      recordFailedAttempt(`client:ip:${ipAddress}`);
+      recordFailedAttempt(`client:${cleanId.toLowerCase()}:${ipAddress}`);
       await pool
         .query(
           "INSERT INTO auth_audit_log (identifier, role, status, ip_address, user_agent, details) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -180,8 +178,7 @@ export async function authenticateClientEntity(
       };
     }
 
-    clearRateLimit(`client:${cleanId.toLowerCase()}`);
-    clearRateLimit(`client:ip:${ipAddress}`);
+    clearRateLimit(`client:${cleanId.toLowerCase()}:${ipAddress}`);
 
     const firmName = row.firm_name || DEFAULT_FIRM_BRANDING.firmName;
     const firmFrn = row.firm_frn || DEFAULT_FIRM_BRANDING.frn;
@@ -296,8 +293,7 @@ export async function authenticateStaffUser(
     const { rows } = await pool.query(query, [cleanLower, cleanPhone10]);
 
     if (rows.length === 0) {
-      recordFailedAttempt(`staff:${cleanLower}`);
-      recordFailedAttempt(`staff:ip:${ipAddress}`);
+      recordFailedAttempt(`staff:${cleanLower}:${ipAddress}`);
       return {
         success: false,
         error: "Invalid staff credentials. Please check your email and password.",
@@ -320,8 +316,7 @@ export async function authenticateStaffUser(
     }
 
     if (!isPasswordValid) {
-      recordFailedAttempt(`staff:${cleanLower}`);
-      recordFailedAttempt(`staff:ip:${ipAddress}`);
+      recordFailedAttempt(`staff:${cleanLower}:${ipAddress}`);
       await pool
         .query(
           "INSERT INTO auth_audit_log (identifier, role, status, ip_address, user_agent, details) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -332,8 +327,7 @@ export async function authenticateStaffUser(
       return { success: false, error: "Invalid staff credentials. Please check your email and password.", code: "INVALID_PASSWORD" };
     }
 
-    clearRateLimit(`staff:${cleanLower}`);
-    clearRateLimit(`staff:ip:${ipAddress}`);
+    clearRateLimit(`staff:${cleanLower}:${ipAddress}`);
 
     const mappedRole: UserRole =
       row.role === "PARTNER" || row.role === "SUPER_ADMIN" ? "PARTNER" : "ARTICLE";

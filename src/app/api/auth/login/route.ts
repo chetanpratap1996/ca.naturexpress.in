@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Rate Limiting Check (by identifier and IP)
-    const idRateCheck = checkRateLimit(`${portalMode}:${identifier.toLowerCase()}`);
-    const ipRateCheck = checkRateLimit(`${portalMode}:ip:${ip}`);
-    if (idRateCheck.isBlocked || ipRateCheck.isBlocked) {
-      const waitSec = Math.max(idRateCheck.retryAfterSec || 0, ipRateCheck.retryAfterSec || 0);
+    // 1. Rate Limiting Check (per identifier + IP so one user's typo never locks out an entire office Wi-Fi)
+    const rateKey = `${portalMode}:${identifier.toLowerCase()}:${ip}`;
+    const idRateCheck = checkRateLimit(rateKey);
+    if (idRateCheck.isBlocked) {
+      const waitSec = idRateCheck.retryAfterSec || 60;
       return NextResponse.json(
         {
           success: false,

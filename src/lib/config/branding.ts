@@ -74,6 +74,20 @@ export const DEFAULT_CLIENT_BRANDING: ClientBrandingConfig = {
 const STORAGE_KEY_FIRM = "bt_firm_branding_v3";
 const STORAGE_KEY_CLIENT = "bt_client_branding_v3";
 
+export function getPortalBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_PORTAL_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  if (
+    typeof window !== "undefined" &&
+    window.location?.origin &&
+    !window.location.hostname.includes("localhost") &&
+    !window.location.hostname.startsWith("127.")
+  ) {
+    return window.location.origin.replace(/\/+$/, "");
+  }
+  return "https://ca.naturexpress.in";
+}
+
 export function getFirmBranding(): FirmBrandingConfig {
   if (typeof window === "undefined") return DEFAULT_FIRM_BRANDING;
   try {

@@ -119,166 +119,184 @@ export function generateStatutoryTasksForClient(
   const isTrust = client.type === "TRUST_NGO";
   const isIndividual = client.type === "INDIVIDUAL_HNI";
   const gstFreq = client.gstFilingFrequency || "MONTHLY";
+  const scopeSet =
+    Array.isArray(client.serviceScope) && client.serviceScope.length > 0
+      ? new Set(client.serviceScope)
+      : null;
+  const hasScope = (s: "GST" | "INCOME_TAX" | "TAX_AUDIT" | "TDS" | "ROC_MCA" | "VCFO") =>
+    !scopeSet || scopeSet.has(s);
+  const mode = client.onboardingMode || "EXISTING_CLIENT";
+  const isNewIncorp = mode === "NEW_BUSINESS";
+  const lastFiled = client.lastFiledPeriods || {};
+  const currentYear = referenceDate.getFullYear();
+  const isFreshlyIncorporated = isNewIncorp && (client.incorporationYear || currentYear) >= currentYear - 1;
 
-  // 1. GST Compliance Obligations (ONLY if entity holds an active GSTIN registration & not marked UNREGISTERED)
-  if (gstin && gstin.trim().length === 15 && gstFreq !== "UNREGISTERED") {
-    if (gstFreq === "COMPOSITION") {
-      tasks.push({
-        id: `TSK-CMP08-${cycle.periodKey}-${cleanId}`,
-        entityId,
-        entityName,
-        groupId,
-        category: "GST",
-        title: "CMP-08 Quarterly Composition Statement & Tax Payment",
-        period: `${cycle.fyLabel} Quarter`,
-        dueDate: formatIsoDate(cycle.fyStartYear + 1, 0, 18),
-        status: "DOCUMENTS_AWAITED",
-        assignedTo: article,
-        reviewedBy: partner,
-        priority: "HIGH",
-        penaltyRisk: 0,
-        accruingDailyPenalty: 0,
-        missingDocumentsCount: 1,
-        missingDocumentsList: ["Quarterly Turnover Summary & Exempt Sales Split"],
-        chaseCount: 0,
-        pan,
-        gstin,
-        clientApprovalStatus: "PENDING",
-        penaltyNote: "Sec 47 Late Fee for CMP-08 post 18th of quarter-end month"
-      });
-    } else if (gstFreq === "QRMP") {
-      tasks.push({
-        id: `TSK-QRMP-IFF-${cycle.periodKey}-${cleanId}`,
-        entityId,
-        entityName,
-        groupId,
-        category: "GST",
-        title: "QRMP IFF / PMT-06 Monthly Tax Challan (Month 1/2)",
-        period: cycle.periodLabel,
-        dueDate: formatIsoDate(Number(cycle.periodKey.slice(0, 4)), Number(cycle.periodKey.slice(4, 6)) - 1, 25),
-        status: "DOCUMENTS_AWAITED",
-        assignedTo: article,
-        reviewedBy: partner,
-        priority: "HIGH",
-        penaltyRisk: 0,
-        accruingDailyPenalty: 0,
-        missingDocumentsCount: 1,
-        missingDocumentsList: ["B2B Sales Invoices for IFF & 35% Fixed Sum Challan Check"],
-        chaseCount: 0,
-        pan,
-        gstin,
-        clientApprovalStatus: "PENDING",
-        penaltyNote: "IFF due 13th; PMT-06 self-assessment/fixed-sum challan due 25th"
-      });
-      tasks.push({
-        id: `TSK-QRMP-3B-${cycle.periodKey}-${cleanId}`,
-        entityId,
-        entityName,
-        groupId,
-        category: "GST",
-        title: "QRMP Quarterly GSTR-1 & GSTR-3B Return",
-        period: `${cycle.fyLabel} Quarter`,
-        dueDate: formatIsoDate(cycle.fyStartYear + 1, 0, 22),
-        status: "DOCUMENTS_AWAITED",
-        assignedTo: article,
-        reviewedBy: partner,
-        priority: "CRITICAL",
-        penaltyRisk: 0,
-        accruingDailyPenalty: 0,
-        missingDocumentsCount: 2,
-        missingDocumentsList: ["Quarterly Sales Register", "Purchase Register & GSTR-2B Match"],
-        chaseCount: 0,
-        pan,
-        gstin,
-        clientApprovalStatus: "PENDING",
-        penaltyNote: "QRMP due 22nd/24th post-quarter based on state group"
-      });
-    } else {
-      tasks.push({
-        id: `TSK-GSTR1-${cycle.periodKey}-${cleanId}`,
-        entityId,
-        entityName,
-        groupId,
-        category: "GST",
-        title: "GSTR-1 Monthly Outward Supplies",
-        period: cycle.periodLabel,
-        dueDate: cycle.gstr1Due,
-        status: "DOCUMENTS_AWAITED",
-        assignedTo: article,
-        reviewedBy: partner,
-        priority: "CRITICAL",
-        penaltyRisk: 0,
-        accruingDailyPenalty: 0,
-        missingDocumentsCount: 1,
-        missingDocumentsList: ["B2B Sales Invoices & E-way Bill Summary"],
-        chaseCount: 0,
-        pan,
-        gstin,
-        clientApprovalStatus: "PENDING",
-        penaltyNote: "Sec 47 Late Fee (₹50/day; ₹20/day for Nil) applicable only post due date",
-      });
+  // 1. GST Compliance Obligations (ONLY if entity holds an active GSTIN, not UNREGISTERED, & GST is in scope)
+  const gstAlreadyFiledForCycle =
+    Boolean(lastFiled.gst) && lastFiled.gst!.trim().toLowerCase() === cycle.periodLabel.toLowerCase();
 
-      tasks.push({
-        id: `TSK-GSTR3B-${cycle.periodKey}-${cleanId}`,
-        entityId,
-        entityName,
-        groupId,
-        category: "GST",
-        title: "GSTR-3B Monthly Return Filing",
-        period: cycle.periodLabel,
-        dueDate: cycle.gstr3bDue,
-        status: "DOCUMENTS_AWAITED",
-        assignedTo: article,
-        reviewedBy: partner,
-        priority: "CRITICAL",
-        penaltyRisk: 0,
-        accruingDailyPenalty: 0,
-        missingDocumentsCount: 2,
-        missingDocumentsList: [
-          `Bank Statement (${cycle.periodLabel})`,
-          "Purchase Register & GSTR-2B ITC Match",
-        ],
-        chaseCount: 0,
-        pan,
-        gstin,
-        taxPayableAmount: 0,
-        section50Interest: 0,
-        clientApprovalStatus: "PENDING",
-        penaltyNote: "Sec 47 Late Fee (₹50/day) + Sec 50(1) 18% p.a. Cash Interest only if delayed",
-      });
+  if (hasScope("GST") && gstin && gstin.trim().length === 15 && gstFreq !== "UNREGISTERED") {
+    if (!gstAlreadyFiledForCycle) {
+      if (gstFreq === "COMPOSITION") {
+        tasks.push({
+          id: `TSK-CMP08-${cycle.periodKey}-${cleanId}`,
+          entityId,
+          entityName,
+          groupId,
+          category: "GST",
+          title: "CMP-08 Quarterly Composition Statement & Tax Payment",
+          period: `${cycle.fyLabel} Quarter`,
+          dueDate: formatIsoDate(cycle.fyStartYear + 1, 0, 18),
+          status: "DOCUMENTS_AWAITED",
+          assignedTo: article,
+          reviewedBy: partner,
+          priority: "HIGH",
+          penaltyRisk: 0,
+          accruingDailyPenalty: 0,
+          missingDocumentsCount: 1,
+          missingDocumentsList: ["Quarterly Turnover Summary & Exempt Sales Split"],
+          chaseCount: 0,
+          pan,
+          gstin,
+          clientApprovalStatus: "PENDING",
+          penaltyNote: "Sec 47 Late Fee for CMP-08 post 18th of quarter-end month"
+        });
+      } else if (gstFreq === "QRMP") {
+        tasks.push({
+          id: `TSK-QRMP-IFF-${cycle.periodKey}-${cleanId}`,
+          entityId,
+          entityName,
+          groupId,
+          category: "GST",
+          title: "QRMP IFF / PMT-06 Monthly Tax Challan (Month 1/2)",
+          period: cycle.periodLabel,
+          dueDate: formatIsoDate(Number(cycle.periodKey.slice(0, 4)), Number(cycle.periodKey.slice(4, 6)) - 1, 25),
+          status: "DOCUMENTS_AWAITED",
+          assignedTo: article,
+          reviewedBy: partner,
+          priority: "HIGH",
+          penaltyRisk: 0,
+          accruingDailyPenalty: 0,
+          missingDocumentsCount: 1,
+          missingDocumentsList: ["B2B Sales Invoices for IFF & 35% Fixed Sum Challan Check"],
+          chaseCount: 0,
+          pan,
+          gstin,
+          clientApprovalStatus: "PENDING",
+          penaltyNote: "IFF due 13th; PMT-06 self-assessment/fixed-sum challan due 25th"
+        });
+        tasks.push({
+          id: `TSK-QRMP-3B-${cycle.periodKey}-${cleanId}`,
+          entityId,
+          entityName,
+          groupId,
+          category: "GST",
+          title: "QRMP Quarterly GSTR-1 & GSTR-3B Return",
+          period: `${cycle.fyLabel} Quarter`,
+          dueDate: formatIsoDate(cycle.fyStartYear + 1, 0, 22),
+          status: "DOCUMENTS_AWAITED",
+          assignedTo: article,
+          reviewedBy: partner,
+          priority: "CRITICAL",
+          penaltyRisk: 0,
+          accruingDailyPenalty: 0,
+          missingDocumentsCount: 2,
+          missingDocumentsList: ["Quarterly Sales Register", "Purchase Register & GSTR-2B Match"],
+          chaseCount: 0,
+          pan,
+          gstin,
+          clientApprovalStatus: "PENDING",
+          penaltyNote: "QRMP due 22nd/24th post-quarter based on state group"
+        });
+      } else {
+        tasks.push({
+          id: `TSK-GSTR1-${cycle.periodKey}-${cleanId}`,
+          entityId,
+          entityName,
+          groupId,
+          category: "GST",
+          title: "GSTR-1 Monthly Outward Supplies",
+          period: cycle.periodLabel,
+          dueDate: cycle.gstr1Due,
+          status: "DOCUMENTS_AWAITED",
+          assignedTo: article,
+          reviewedBy: partner,
+          priority: "CRITICAL",
+          penaltyRisk: 0,
+          accruingDailyPenalty: 0,
+          missingDocumentsCount: 1,
+          missingDocumentsList: ["B2B Sales Invoices & E-way Bill Summary"],
+          chaseCount: 0,
+          pan,
+          gstin,
+          clientApprovalStatus: "PENDING",
+          penaltyNote: "Sec 47 Late Fee (₹50/day; ₹20/day for Nil) applicable only post due date",
+        });
+
+        tasks.push({
+          id: `TSK-GSTR3B-${cycle.periodKey}-${cleanId}`,
+          entityId,
+          entityName,
+          groupId,
+          category: "GST",
+          title: "GSTR-3B Monthly Return Filing",
+          period: cycle.periodLabel,
+          dueDate: cycle.gstr3bDue,
+          status: "DOCUMENTS_AWAITED",
+          assignedTo: article,
+          reviewedBy: partner,
+          priority: "CRITICAL",
+          penaltyRisk: 0,
+          accruingDailyPenalty: 0,
+          missingDocumentsCount: 2,
+          missingDocumentsList: [
+            `Bank Statement (${cycle.periodLabel})`,
+            "Purchase Register & GSTR-2B ITC Match",
+          ],
+          chaseCount: 0,
+          pan,
+          gstin,
+          taxPayableAmount: 0,
+          section50Interest: 0,
+          clientApprovalStatus: "PENDING",
+          penaltyNote: "Sec 47 Late Fee (₹50/day) + Sec 50(1) 18% p.a. Cash Interest only if delayed",
+        });
+      }
     }
 
-    // Auto-create catch-up tasks if live GSTN lookup revealed unfiled historical returns
-    const unfiledHistory = (client.gstHistory || []).filter((h) => !h.arn || h.delayDays > 0);
-    unfiledHistory.slice(0, 3).forEach((h, idx) => {
-      tasks.push({
-        id: `TSK-CATCHUP-${h.returnType}-${cleanId}-${idx}`,
-        entityId,
-        entityName,
-        groupId,
-        category: "GST",
-        title: `Overdue Catch-Up: ${h.returnType.replace("_", "-")} (${h.period || "Prior Period"})`,
-        period: h.period || "Prior Period",
-        dueDate: new Date().toISOString().split("T")[0],
-        status: "DOCUMENTS_AWAITED",
-        assignedTo: article,
-        reviewedBy: partner,
-        priority: "CRITICAL",
-        penaltyRisk: 5000,
-        accruingDailyPenalty: 50,
-        missingDocumentsCount: 1,
-        missingDocumentsList: [`Historical ${h.returnType.replace("_", "-")} data for ${h.period}`],
-        chaseCount: 0,
-        pan,
-        gstin,
-        clientApprovalStatus: "PENDING",
-        penaltyNote: "Detected unfiled return during GSTN onboarding lookup",
+    // Auto-create catch-up tasks ONLY for non-fresh entities where live GSTN lookup revealed unfiled historical returns
+    if (!isNewIncorp) {
+      const unfiledHistory = (client.gstHistory || []).filter((h) => !h.arn || h.delayDays > 0);
+      unfiledHistory.slice(0, 3).forEach((h, idx) => {
+        tasks.push({
+          id: `TSK-CATCHUP-${h.returnType}-${cleanId}-${idx}`,
+          entityId,
+          entityName,
+          groupId,
+          category: "GST",
+          title: `Overdue Catch-Up: ${h.returnType.replace("_", "-")} (${h.period || "Prior Period"})`,
+          period: h.period || "Prior Period",
+          dueDate: new Date().toISOString().split("T")[0],
+          status: "DOCUMENTS_AWAITED",
+          assignedTo: article,
+          reviewedBy: partner,
+          priority: "CRITICAL",
+          penaltyRisk: 5000,
+          accruingDailyPenalty: 50,
+          missingDocumentsCount: 1,
+          missingDocumentsList: [`Historical ${h.returnType.replace("_", "-")} data for ${h.period}`],
+          chaseCount: 0,
+          pan,
+          gstin,
+          clientApprovalStatus: "PENDING",
+          penaltyNote: "Detected unfiled return during GSTN onboarding lookup",
+        });
       });
-    });
+    }
   }
 
-  // 2. TDS Deposit Challan 281 & Quarterly Statement 26Q (if entity holds TAN or is corporate)
-  if (tan || isCorporate) {
+  // 2. TDS Deposit Challan 281 & Quarterly Statement 26Q (if TDS in scope AND entity holds TAN or is corporate)
+  if (hasScope("TDS") && (tan || isCorporate)) {
     tasks.push({
       id: `TSK-TDS-${cycle.periodKey}-${cleanId}`,
       entityId,
@@ -304,83 +322,98 @@ export function generateStatutoryTasksForClient(
       penaltyNote: "Sec 201(1A) 1.5% interest per month from date of deduction to deposit",
     });
 
-    tasks.push({
-      id: `TSK-${cycle.nextTdsQuarter.code}-${cycle.fyStartYear}-${cleanId}`,
-      entityId,
-      entityName,
-      groupId,
-      category: "TDS",
-      title: "TDS Quarterly Return (Form 26Q / 24Q)",
-      period: cycle.nextTdsQuarter.period,
-      dueDate: cycle.nextTdsQuarter.due,
-      status: "DOCUMENTS_AWAITED",
-      assignedTo: article,
-      reviewedBy: partner,
-      priority: "HIGH",
-      penaltyRisk: 0,
-      accruingDailyPenalty: 0,
-      missingDocumentsCount: 1,
-      missingDocumentsList: ["TRACES Consolidated CSI File & Deductee PAN Ledger"],
-      chaseCount: 0,
-      pan,
-      tan,
-      clientApprovalStatus: "PENDING",
-      penaltyNote: "Sec 234E ₹200/day mandatory late fee until return filing",
-    });
+    const tdsQuarterAlreadyFiled =
+      Boolean(lastFiled.tdsQuarter) &&
+      lastFiled.tdsQuarter!.trim().toLowerCase() === cycle.nextTdsQuarter.period.toLowerCase();
+
+    if (!tdsQuarterAlreadyFiled) {
+      tasks.push({
+        id: `TSK-${cycle.nextTdsQuarter.code}-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "TDS",
+        title: "TDS Quarterly Return (Form 26Q / 24Q)",
+        period: cycle.nextTdsQuarter.period,
+        dueDate: cycle.nextTdsQuarter.due,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "HIGH",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 1,
+        missingDocumentsList: ["TRACES Consolidated CSI File & Deductee PAN Ledger"],
+        chaseCount: 0,
+        pan,
+        tan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Sec 234E ₹200/day mandatory late fee until return filing",
+      });
+    }
   }
 
-  // 3. Advance Tax Next Installment (Corporates & entities u/s 208)
-  if (isCorporate || (client.turnoverCr && client.turnoverCr >= 1)) {
-    tasks.push({
-      id: `TSK-${cycle.nextAdv.code}-${cycle.fyStartYear}-${cleanId}`,
-      entityId,
-      entityName,
-      groupId,
-      category: "INCOME_TAX",
-      title: cycle.nextAdv.label,
-      period: cycle.fyLabel,
-      dueDate: cycle.nextAdv.due,
-      status: "IN_PREPARATION",
-      assignedTo: article,
-      reviewedBy: partner,
-      priority: "HIGH",
-      penaltyRisk: 0,
-      accruingDailyPenalty: 0,
-      missingDocumentsCount: 1,
-      missingDocumentsList: ["Provisional Profit & Loss / Trial Balance"],
-      chaseCount: 0,
-      pan,
-      taxPayableAmount: 0,
-      clientApprovalStatus: "PENDING",
-      penaltyNote: "Sec 234C 1% simple interest per month on deferment of advance tax",
-    });
-  } else {
-    tasks.push({
-      id: `TSK-ITR-${cycle.fyStartYear}-${cleanId}`,
-      entityId,
-      entityName,
-      groupId,
-      category: "INCOME_TAX",
-      title: "Income Tax Return Computation & Filing",
-      period: `${cycle.auditFyLabel} (${cycle.auditAyLabel})`,
-      dueDate: cycle.itrNonAuditDue,
-      status: "DOCUMENTS_AWAITED",
-      assignedTo: article,
-      reviewedBy: partner,
-      priority: "MEDIUM",
-      penaltyRisk: 0,
-      accruingDailyPenalty: 0,
-      missingDocumentsCount: 2,
-      missingDocumentsList: ["AIS / Form 26AS Export", "Bank Interest & Capital Gains Statement"],
-      chaseCount: 0,
-      pan,
-      clientApprovalStatus: "PENDING",
-      penaltyNote: "Sec 234F ₹1,000 / ₹5,000 fee applies only after statutory due date",
-    });
+  // 3. Advance Tax / ITR (only if INCOME_TAX in scope)
+  const itrAlreadyFiled =
+    Boolean(lastFiled.itrAy) && lastFiled.itrAy!.trim().toLowerCase() === cycle.auditAyLabel.toLowerCase();
+
+  if (hasScope("INCOME_TAX")) {
+    if (isCorporate || (client.turnoverCr && client.turnoverCr >= 1)) {
+      tasks.push({
+        id: `TSK-${cycle.nextAdv.code}-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "INCOME_TAX",
+        title: cycle.nextAdv.label,
+        period: cycle.fyLabel,
+        dueDate: cycle.nextAdv.due,
+        status: "IN_PREPARATION",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "HIGH",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 1,
+        missingDocumentsList: ["Provisional Profit & Loss / Trial Balance"],
+        chaseCount: 0,
+        pan,
+        taxPayableAmount: 0,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Sec 234C 1% simple interest per month on deferment of advance tax",
+      });
+    } else if (!itrAlreadyFiled && !isFreshlyIncorporated) {
+      tasks.push({
+        id: `TSK-ITR-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "INCOME_TAX",
+        title: "Income Tax Return Computation & Filing",
+        period: `${cycle.auditFyLabel} (${cycle.auditAyLabel})`,
+        dueDate: cycle.itrNonAuditDue,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "MEDIUM",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 2,
+        missingDocumentsList: ["AIS / Form 26AS Export", "Bank Interest & Capital Gains Statement"],
+        chaseCount: 0,
+        pan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Sec 234F ₹1,000 / ₹5,000 fee applies only after statutory due date",
+      });
+    }
   }
 
-  // 4. Form 3CD Tax Audit Report (Sec 44AB: turnover >= 10 Cr digital or audit threshold)
-  if (client.turnoverCr && client.turnoverCr >= 10) {
+  // 4. Form 3CD Tax Audit Report (Sec 44AB: turnover >= 10 Cr if >=95% digital else >= 1 Cr; skipped for freshly incorporated entities)
+  const digitalPct = client.digitalTxnPct ?? 95;
+  const auditThreshold = digitalPct >= 95 ? 10 : 1;
+  const taxAuditRequiredByTurnover = (client.turnoverCr || 0) >= auditThreshold;
+
+  if (!isFreshlyIncorporated && !itrAlreadyFiled && (scopeSet?.has("TAX_AUDIT") || (hasScope("TAX_AUDIT") && taxAuditRequiredByTurnover))) {
     tasks.push({
       id: `TSK-3CD-${cycle.fyStartYear}-${cleanId}`,
       entityId,
@@ -409,83 +442,137 @@ export function generateStatutoryTasksForClient(
     });
   }
 
-  // 5. ROC / MCA Statutory Filings
-  if (isCorporate) {
-    tasks.push({
-      id: `TSK-AOC4-${cycle.fyStartYear}-${cleanId}`,
-      entityId,
-      entityName,
-      groupId,
-      category: "ROC_MCA",
-      title: "ROC Form AOC-4 (Financial Statements Filing)",
-      period: cycle.auditFyLabel,
-      dueDate: cycle.rocAoc4Due,
-      status: "DOCUMENTS_AWAITED",
-      assignedTo: article,
-      reviewedBy: partner,
-      priority: "MEDIUM",
-      penaltyRisk: 0,
-      accruingDailyPenalty: 0,
-      missingDocumentsCount: 1,
-      missingDocumentsList: ["Signed Directors Report & Audited Balance Sheet"],
-      chaseCount: 0,
-      cin,
-      pan,
-      clientApprovalStatus: "PENDING",
-      penaltyNote: "Sec 403 MCA Additional Late Fee: ₹100/day applies only post deadline",
-    });
+  // 5. ROC / MCA Statutory Filings (only if ROC_MCA in scope)
+  const rocAlreadyFiled =
+    Boolean(lastFiled.rocFy) && lastFiled.rocFy!.trim().toLowerCase() === cycle.auditFyLabel.toLowerCase();
 
-    tasks.push({
-      id: `TSK-MGT7-${cycle.fyStartYear}-${cleanId}`,
-      entityId,
-      entityName,
-      groupId,
-      category: "ROC_MCA",
-      title: "ROC Form MGT-7 (Annual Return)",
-      period: cycle.auditFyLabel,
-      dueDate: cycle.rocMgt7Due,
-      status: "DOCUMENTS_AWAITED",
-      assignedTo: article,
-      reviewedBy: partner,
-      priority: "MEDIUM",
-      penaltyRisk: 0,
-      accruingDailyPenalty: 0,
-      missingDocumentsCount: 1,
-      missingDocumentsList: ["Shareholding Pattern & Board Meeting Register"],
-      chaseCount: 0,
-      cin,
-      pan,
-      clientApprovalStatus: "PENDING",
-      penaltyNote: "Sec 403 MCA Additional Late Fee: ₹100/day applies only post deadline",
-    });
-  } else if (isLlp) {
-    tasks.push({
-      id: `TSK-LLP8-${cycle.fyStartYear}-${cleanId}`,
-      entityId,
-      entityName,
-      groupId,
-      category: "ROC_MCA",
-      title: "LLP Form 8 (Statement of Account & Solvency)",
-      period: cycle.auditFyLabel,
-      dueDate: cycle.llpForm8Due,
-      status: "DOCUMENTS_AWAITED",
-      assignedTo: article,
-      reviewedBy: partner,
-      priority: "MEDIUM",
-      penaltyRisk: 0,
-      accruingDailyPenalty: 0,
-      missingDocumentsCount: 1,
-      missingDocumentsList: ["Designated Partners Statement of Solvency"],
-      chaseCount: 0,
-      cin,
-      pan,
-      clientApprovalStatus: "PENDING",
-      penaltyNote: "LLP Act Section 34 late fees apply only post statutory cutoff",
-    });
+  if (hasScope("ROC_MCA")) {
+    if (isCorporate && isFreshlyIncorporated) {
+      const inc20aDue = new Date(referenceDate.getTime() + 180 * 86400000).toISOString().split("T")[0];
+      const adt1Due = new Date(referenceDate.getTime() + 30 * 86400000).toISOString().split("T")[0];
+      tasks.push({
+        id: `TSK-INC20A-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "ROC_MCA",
+        title: "Form INC-20A (Declaration of Commencement of Business)",
+        period: cycle.fyLabel,
+        dueDate: inc20aDue,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "CRITICAL",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 2,
+        missingDocumentsList: ["Subscription Money Bank Credit Proof", "Current Account Opening Letter"],
+        chaseCount: 0,
+        cin,
+        pan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Sec 10A: ₹50,000 company penalty + ₹1,000/day per officer after 180 days",
+      });
+      tasks.push({
+        id: `TSK-ADT1-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "ROC_MCA",
+        title: "Form ADT-1 (First Statutory Auditor Appointment)",
+        period: cycle.fyLabel,
+        dueDate: adt1Due,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "HIGH",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 1,
+        missingDocumentsList: ["Signed Board Resolution & Auditor Consent u/s 139(6)"],
+        chaseCount: 0,
+        cin,
+        pan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Must appoint first auditor within 30 days of incorporation u/s 139(6)",
+      });
+    } else if (isCorporate && !rocAlreadyFiled) {
+      tasks.push({
+        id: `TSK-AOC4-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "ROC_MCA",
+        title: "ROC Form AOC-4 (Financial Statements Filing)",
+        period: cycle.auditFyLabel,
+        dueDate: cycle.rocAoc4Due,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "MEDIUM",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 1,
+        missingDocumentsList: ["Signed Directors Report & Audited Balance Sheet"],
+        chaseCount: 0,
+        cin,
+        pan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Sec 403 MCA Additional Late Fee: ₹100/day applies only post deadline",
+      });
+
+      tasks.push({
+        id: `TSK-MGT7-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "ROC_MCA",
+        title: "ROC Form MGT-7 (Annual Return)",
+        period: cycle.auditFyLabel,
+        dueDate: cycle.rocMgt7Due,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "MEDIUM",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 1,
+        missingDocumentsList: ["Shareholding Pattern & Board Meeting Register"],
+        chaseCount: 0,
+        cin,
+        pan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "Sec 403 MCA Additional Late Fee: ₹100/day applies only post deadline",
+      });
+    } else if (isLlp && !rocAlreadyFiled && !isFreshlyIncorporated) {
+      tasks.push({
+        id: `TSK-LLP8-${cycle.fyStartYear}-${cleanId}`,
+        entityId,
+        entityName,
+        groupId,
+        category: "ROC_MCA",
+        title: "LLP Form 8 (Statement of Account & Solvency)",
+        period: cycle.auditFyLabel,
+        dueDate: cycle.llpForm8Due,
+        status: "DOCUMENTS_AWAITED",
+        assignedTo: article,
+        reviewedBy: partner,
+        priority: "MEDIUM",
+        penaltyRisk: 0,
+        accruingDailyPenalty: 0,
+        missingDocumentsCount: 1,
+        missingDocumentsList: ["Designated Partners Statement of Solvency"],
+        chaseCount: 0,
+        cin,
+        pan,
+        clientApprovalStatus: "PENDING",
+        penaltyNote: "LLP Act Section 34 late fees apply only post statutory cutoff",
+      });
+    }
   }
 
   // 6. Charitable Trust / Sec 8 NGO Statutory Filings
-  if (isTrust) {
+  if (hasScope("INCOME_TAX") && isTrust && !itrAlreadyFiled && !isFreshlyIncorporated) {
     tasks.push({
       id: `TSK-10BD-${cycle.fyStartYear}-${cleanId}`,
       entityId,
@@ -533,7 +620,7 @@ export function generateStatutoryTasksForClient(
   }
 
   // 7. Individual / HNI Direct Tax & AIS Reconciliation
-  if (isIndividual) {
+  if (hasScope("INCOME_TAX") && isIndividual && !itrAlreadyFiled && !isFreshlyIncorporated) {
     tasks.push({
       id: `TSK-ITR-AIS-${cycle.fyStartYear}-${cleanId}`,
       entityId,

@@ -48,39 +48,6 @@ export interface UdinEntry {
   revocationReason?: string;
 }
 
-const DEFAULT_REALISTIC_UDIN_DATA: UdinEntry[] = [
-  {
-    id: "udin-1",
-    udin: "26022998BTA0881923",
-    documentTitle: "Independent Statutory Auditor's Report under Companies Act 2013",
-    documentType: "STATUTORY_AUDIT",
-    clientName: "Pratwi Solutions Private Limited",
-    clientPan: "AANCP9915B",
-    signingDate: "2026-10-02",
-    generatedDate: "2026-10-03",
-    financialFigures: "Total Assets: ₹1.85 Cr | Net Profit: ₹28.5 Lakh",
-    partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-    membershipNo: "022998C",
-    status: "GENERATED_VALID",
-    daysRemainingForGeneration: 60
-  },
-  {
-    id: "udin-2",
-    udin: "26022998BTA0192841",
-    documentTitle: "Tax Audit Report u/s 44AB in Form 3CA/3CD for FY 2025-26",
-    documentType: "TAX_AUDIT_3CD",
-    clientName: "Pratwi Solutions Private Limited",
-    clientPan: "AANCP9915B",
-    signingDate: "2026-09-28",
-    generatedDate: "2026-09-29",
-    financialFigures: "Turnover: ₹1.20 Cr | Total Disallowances: ₹0",
-    partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-    membershipNo: "022998C",
-    status: "GENERATED_VALID",
-    daysRemainingForGeneration: 60
-  }
-];
-
 interface UdinVaultProps {
   clients?: ClientEntity[];
 }
@@ -88,17 +55,51 @@ interface UdinVaultProps {
 export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
   const { selectedClient, isFirmWideView } = useClientContext();
   const [entries, setEntries] = useState<UdinEntry[]>([]);
-  React.useEffect(() => {
-    if (!selectedClient || isFirmWideView) { setEntries([]); return; }
+  const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+
+  const persistUdinEntry = async (entry: UdinEntry, entityId?: string | null) => {
     try {
-      const raw = localStorage.getItem(`bt_udin_vault_v1::${selectedClient.id}`);
-      setEntries(raw ? JSON.parse(raw) : []);
-    } catch { setEntries([]); }
-  }, [selectedClient, isFirmWideView]);
+      const targetEntityId = entityId || (selectedClient && !isFirmWideView ? selectedClient.id : undefined);
+      await fetch("/api/governance/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          recordType: "UDIN_ENTRY",
+          entityId: targetEntityId || null,
+          payload: entry,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to persist UDIN record:", err);
+    }
+  };
+
   React.useEffect(() => {
-    if (!selectedClient || isFirmWideView) return;
-    try { localStorage.setItem(`bt_udin_vault_v1::${selectedClient.id}`, JSON.stringify(entries)); } catch {}
-  }, [entries, selectedClient, isFirmWideView]);
+    if (!selectedClient || isFirmWideView) {
+      setEntries([]);
+      return;
+    }
+    let active = true;
+    setIsLoadingRecords(true);
+    fetch(`/api/governance/records?recordType=UDIN_ENTRY&entityId=${encodeURIComponent(selectedClient.id)}`, {
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active) return;
+        setEntries(Array.isArray(data?.records) ? data.records : []);
+      })
+      .catch(() => {
+        if (active) setEntries([]);
+      })
+      .finally(() => {
+        if (active) setIsLoadingRecords(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedClient, isFirmWideView]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -145,10 +146,16 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
 
   // Form State for logging a new signed document
   const [newTitle, setNewTitle] = useState("");
-  const [newClient, setNewClient] = useState(clients[0]?.name || "Pratwi Solutions Private Limited");
+  const [newClient, setNewClient] = useState(selectedClient?.name || clients[0]?.name || "");
   const [newType, setNewType] = useState<UdinEntry["documentType"]>("TAX_AUDIT_3CD");
   const [newFigures, setNewFigures] = useState("");
   const [newUdinCode, setNewUdinCode] = useState("");
+
+  React.useEffect(() => {
+    if (selectedClient && !isFirmWideView) {
+      setNewClient(selectedClient.name);
+    }
+  }, [selectedClient, isFirmWideView]);
 
   const handleCopyUdin = (id: string, udinCode: string) => {
     navigator.clipboard.writeText(udinCode);
@@ -157,12 +164,14 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
     setTimeout(() => setCopiedId(null), 3000);
   };
 
-  const handleCreateEntry = (e: React.FormEvent) => {
+  const handleCreateEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const matchedClient = clients.find(c => c.name === newClient);
-    const clientPan = matchedClient?.pan || "AABCA9182K";
+    const matchedClient =
+      clients.find((c) => c.name === newClient) ||
+      (selectedClient && !isFirmWideView ? selectedClient : undefined);
+    const clientPan = matchedClient?.pan || "";
     const cleanUdin = newUdinCode.trim().toUpperCase();
 
     if (cleanUdin) {
@@ -178,18 +187,19 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
       udin: cleanUdin || "PENDING_GENERATION",
       documentTitle: newTitle,
       documentType: newType,
-      clientName: newClient,
+      clientName: newClient || matchedClient?.name || "Client Entity",
       clientPan,
       signingDate: new Date().toISOString().split("T")[0],
       generatedDate: cleanUdin ? new Date().toISOString().split("T")[0] : undefined,
       financialFigures: newFigures || "Audited Figures Documented",
-      partnerName: DEFAULT_FIRM_BRANDING.managingPartner,
-      membershipNo: "518492",
+      partnerName: matchedClient?.partnerInCharge || DEFAULT_FIRM_BRANDING.managingPartner,
+      membershipNo: DEFAULT_FIRM_BRANDING.frn,
       status: cleanUdin ? "GENERATED_VALID" : "PENDING_GENERATION",
       daysRemainingForGeneration: 60
     };
 
     setEntries(prev => [newRec, ...prev]);
+    await persistUdinEntry(newRec, matchedClient?.id);
     setIsAddOpen(false);
     setNewTitle("");
     setNewFigures("");
@@ -197,7 +207,7 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
     toast.success("Signed Report Logged", `Started 60-day ICAI UDIN countdown for ${newTitle}.`);
   };
 
-  const handleSaveUdin = () => {
+  const handleSaveUdin = async () => {
     if (!updatingEntry) return;
     const clean = enteredUdinInput.trim().toUpperCase();
     const val = validateIcaUdin(clean);
@@ -206,40 +216,36 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
       return;
     }
 
-    setEntries(prev => prev.map(item => {
-      if (item.id === updatingEntry.id) {
-        return {
-          ...item,
-          udin: clean,
-          status: "GENERATED_VALID",
-          generatedDate: new Date().toISOString().split("T")[0],
-          daysRemainingForGeneration: 60
-        };
-      }
-      return item;
-    }));
+    const updatedRec: UdinEntry = {
+      ...updatingEntry,
+      udin: clean,
+      status: "GENERATED_VALID",
+      generatedDate: new Date().toISOString().split("T")[0],
+      daysRemainingForGeneration: 60,
+    };
+
+    setEntries(prev => prev.map(item => (item.id === updatingEntry.id ? updatedRec : item)));
+    await persistUdinEntry(updatedRec);
 
     toast.success("UDIN Verified & Linked", `Report linked to active UDIN ${clean}.`);
     setUpdatingEntry(null);
     setEnteredUdinInput("");
   };
 
-  const handleConfirmRevocation = () => {
+  const handleConfirmRevocation = async () => {
     if (!revokingEntry || !revocationReason.trim()) {
       toast.error("Reason Required", "Please specify the statutory ground for revocation.");
       return;
     }
 
-    setEntries(prev => prev.map(item => {
-      if (item.id === revokingEntry.id) {
-        return {
-          ...item,
-          status: "REVOKED",
-          revocationReason: revocationReason.trim()
-        };
-      }
-      return item;
-    }));
+    const revokedRec: UdinEntry = {
+      ...revokingEntry,
+      status: "REVOKED",
+      revocationReason: revocationReason.trim(),
+    };
+
+    setEntries(prev => prev.map(item => (item.id === revokingEntry.id ? revokedRec : item)));
+    await persistUdinEntry(revokedRec);
 
     toast.info("UDIN Revoked", `Marked UDIN ${revokingEntry.udin} as REVOKED on firm compliance register.`);
     setRevokingEntry(null);
@@ -775,7 +781,13 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
       <UdinBulkImportModal
         isOpen={isBulkImportOpen}
         onClose={() => setIsBulkImportOpen(false)}
-        onApplyImportedEntries={(newEntries) => setEntries(prev => [...newEntries, ...prev])}
+        onApplyImportedEntries={async (newEntries) => {
+          setEntries(prev => [...newEntries, ...prev]);
+          for (const ne of newEntries) {
+            const m = clients.find(c => c.pan === ne.clientPan || c.name === ne.clientName);
+            await persistUdinEntry(ne, m?.id);
+          }
+        }}
       />
 
       {/* Official ICAI Verification Slip & Attestation Certificate */}
@@ -790,13 +802,16 @@ export const UdinVault: React.FC<UdinVaultProps> = ({ clients = [] }) => {
         isOpen={!!payloadEntry}
         onClose={() => setPayloadEntry(null)}
         entry={payloadEntry}
-        onUdinGenerated={(id, udinCode) => {
-          setEntries(prev => prev.map(item => item.id === id ? {
-            ...item,
+        onUdinGenerated={async (id, udinCode) => {
+          const target = entries.find(item => item.id === id);
+          const updated = target ? {
+            ...target,
             udin: udinCode,
-            status: "GENERATED_VALID",
+            status: "GENERATED_VALID" as const,
             generatedDate: new Date().toISOString().split("T")[0]
-          } : item));
+          } : null;
+          setEntries(prev => prev.map(item => item.id === id && updated ? updated : item));
+          if (updated) await persistUdinEntry(updated);
         }}
       />
     </div>

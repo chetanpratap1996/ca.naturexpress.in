@@ -60,6 +60,7 @@ import { ClientQuickActionModal } from "./ClientQuickActionModal";
 import { DirectorRiskRadar } from "./DirectorRiskRadar";
 import { Msme43bhWatchdog } from "./Msme43bhWatchdog";
 import { ClientProfileSettings } from "./ClientProfileSettings";
+import { Day1HandoverDropzone } from "./Day1HandoverDropzone";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { ClientSidebarNav } from "./navigation/ClientSidebarNav";
 import { ClientExecutiveHeader } from "./navigation/ClientExecutiveHeader";
@@ -733,6 +734,15 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
       {/* TAB 1: PROGRESS RADAR WITH 5-STAGE DEPARTMENT FILING PIPELINE */}
       {currentTab === "progress" && (
         <div className="space-y-4">
+          {currentClient && !isSandbox && (
+            <Day1HandoverDropzone
+              client={currentClient}
+              credentials={clientCredentials}
+              dscTokens={clientDscTokens}
+              uploadDocument={uploadDocument}
+              onRefreshData={refreshData}
+            />
+          )}
           <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
@@ -753,7 +763,16 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
                     }}
                     className="text-xs font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                   >
-                    {currentClient?.gstin ? (
+                    {currentClient?.gstinRecords && currentClient.gstinRecords.length > 0 ? (
+                      <>
+                        {currentClient.gstinRecords.map((gr) => (
+                          <option key={gr.gstin} value={gr.gstin}>
+                            GSTIN: {gr.gstin} ({gr.stateName})
+                          </option>
+                        ))}
+                        <option value={currentClient.pan}>PAN: {currentClient.pan} (Income Tax / MCA)</option>
+                      </>
+                    ) : currentClient?.gstin ? (
                       <>
                         <option value={currentClient.gstin}>GSTIN: {currentClient.gstin} (Principal Place)</option>
                         <option value={currentClient.pan}>PAN: {currentClient.pan} (Income Tax / MCA)</option>
@@ -955,31 +974,39 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
                   Calculated under RBI Lending Guidelines, Tandon Committee MPBF Norms &amp; ICAI SQC-1 Standards
                 </p>
               </div>
-              <span className="text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-xl w-fit">
-                Grade A+ Prime Credit Rating
+              <span className="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-xl w-fit">
+                {clientDocs.length} Vault File(s) • {clientTasks.filter((t) => t.status === "FILED_AND_COMPLETED").length} Filed
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">3-Year Audited Revenue</span>
-                <span className="text-base font-black text-slate-900 mt-0.5 block">₹{(currentClient.turnoverCr || 5.0).toFixed(2)} Cr</span>
-                <span className="text-[10px] text-emerald-600 font-semibold block">+18.5% YoY Trajectory</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Declared Turnover</span>
+                <span className="text-base font-black text-slate-900 mt-0.5 block">
+                  {currentClient.turnoverCr > 0 ? `₹${currentClient.turnoverCr.toFixed(2)} Cr` : "Not Set"}
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold block">From Client Master</span>
               </div>
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">DSCR Debt Coverage</span>
-                <span className="text-base font-black text-emerald-700 mt-0.5 block">2.18x</span>
-                <span className="text-[10px] text-slate-500 font-semibold block">Bank Norm &gt; 1.33x</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">ITR Baselines</span>
+                <span className="text-base font-black text-indigo-700 mt-0.5 block">
+                  {currentClient.complianceBaselines?.length || 0} Year(s)
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold block">Historical Filings</span>
               </div>
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Current Ratio (MPBF)</span>
-                <span className="text-base font-black text-indigo-700 mt-0.5 block">1.42x</span>
-                <span className="text-[10px] text-slate-500 font-semibold block">Tandon Benchmark &ge; 1.33x</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">GST Return Sync</span>
+                <span className="text-base font-black text-emerald-700 mt-0.5 block">
+                  {currentClient.gstHistory?.length || 0} Periods
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold block">Live GSTN Status</span>
               </div>
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">GSTR-3B vs P&amp;L Variance</span>
-                <span className="text-base font-black text-emerald-700 mt-0.5 block">0.4%</span>
-                <span className="text-[10px] text-emerald-600 font-semibold block">100% Reconciled (&lt; 2%)</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Vault Deliverables</span>
+                <span className="text-base font-black text-slate-900 mt-0.5 block">
+                  {clientDocs.length} Docs
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold block">Signed &amp; Archived</span>
               </div>
             </div>
 
@@ -1017,22 +1044,22 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
 
       {/* TAB 4: SUPPLIER ITC HOLD & RECOVERY REGISTER */}
       {currentTab === "vendor-hold" && (
-        <VendorItcHoldManager clientName={currentClient.name} client={currentClient} />
+        <VendorItcHoldManager clientName={currentClient.name} client={currentClient} isSandbox={isSandbox} />
       )}
 
       {/* TAB 5: PERMANENT LEGAL & KYC LOCKER */}
       {currentTab === "kyc-locker" && (
-        <CompanyKycLocker client={currentClient} />
+        <CompanyKycLocker client={currentClient} uploadedDocs={clientDocs} />
       )}
 
       {/* TAB: DIRECTOR RISK & MCA SHIELD */}
       {currentTab === "director-risk" && (
-        <DirectorRiskRadar client={currentClient} />
+        <DirectorRiskRadar client={currentClient} isSandbox={isSandbox} />
       )}
 
       {/* TAB: MSME 43B(H) 45-DAY PAYMENT WATCHDOG */}
       {currentTab === "msme-watchdog" && (
-        <Msme43bhWatchdog client={currentClient} />
+        <Msme43bhWatchdog client={currentClient} isSandbox={isSandbox} />
       )}
 
       {/* TAB: PROFILE & SECURITY PIN */}

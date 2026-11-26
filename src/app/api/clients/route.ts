@@ -10,12 +10,54 @@ import { executeAutonomousWorkDispatcher } from "@/lib/tasks/autonomousDispatche
 import { getAutopilotPolicy } from "@/lib/automation/postgresAutopilot";
 import { hashSecret, normalizePhone10 } from "@/lib/auth/enterpriseAuth";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { parseCinStrict } from "@/lib/intelligence/registry/mcaEngine";
 import crypto from "crypto";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function mapEntityRow(e: any, groupMap: Map<string, any>): ClientEntity {
+function resolveIncorporationYear(rawYear: unknown, cin?: string | null): number {
+  if (cin) {
+    const parsed = parseCinStrict(cin);
+    if (parsed.isValid && parsed.incorporationYear >= 1900 && parsed.incorporationYear <= 2100) {
+      return parsed.incorporationYear;
+    }
+  }
+  const n = parseInt(String(rawYear ?? ""), 10);
+  if (Number.isFinite(n) && n >= 1900 && n <= 2100) return n;
+  return new Date().getFullYear();
+}
+
+function hydrateProfileFields(base: ClientEntity, prof?: any): ClientEntity {
+  if (!prof) return base;
+  if (prof.tradeName) base.tradeName = prof.tradeName;
+  if (Array.isArray(prof.gstinRecords)) base.gstinRecords = prof.gstinRecords;
+  if (prof.gstFilingFrequency) base.gstFilingFrequency = prof.gstFilingFrequency;
+  if (prof.onboardingMode) base.onboardingMode = prof.onboardingMode;
+  if (prof.onboardingChecklist) base.onboardingChecklist = prof.onboardingChecklist;
+  if (Array.isArray(prof.gstHistory)) base.gstHistory = prof.gstHistory;
+  if (Array.isArray(prof.serviceScope)) base.serviceScope = prof.serviceScope;
+  if (prof.cutoverDate) base.cutoverDate = prof.cutoverDate;
+  if (prof.lastFiledPeriods) base.lastFiledPeriods = prof.lastFiledPeriods;
+  if (prof.digitalTxnPct !== undefined) base.digitalTxnPct = Number(prof.digitalTxnPct);
+  if (prof.registeredAddress) base.registeredAddress = prof.registeredAddress;
+  if (Array.isArray(prof.directors)) base.directors = prof.directors;
+  if (Array.isArray(prof.bankAccounts)) base.bankAccounts = prof.bankAccounts;
+  if (Array.isArray(prof.complianceBaselines)) base.complianceBaselines = prof.complianceBaselines;
+  return base;
+}
+
+function mapEntityRow(
+  e: any,
+  groupMap: Map<string, any>,
+  staffNameById?: Map<string, string>
+): ClientEntity {
   const g = groupMap.get(e.group_id);
+  const partnerName =
+    (e.partner_in_charge_id && staffNameById?.get(e.partner_in_charge_id)) ||
+    DEFAULT_FIRM_BRANDING.managingPartner;
+  const articleName =
+    (e.assigned_article_id && staffNameById?.get(e.assigned_article_id)) ||
+    "Unassigned";
   return {
     id: e.id,
     groupId: e.group_id,
@@ -27,10 +69,12 @@ function mapEntityRow(e: any, groupMap: Map<string, any>): ClientEntity {
     cin: e.cin || undefined,
     tan: e.tan || undefined,
     turnoverCr: Number(e.turnover_cr || 0),
-    incorporationYear: e.incorporation_year || 2024,
+    incorporationYear: e.incorporation_year || new Date().getFullYear(),
     penaltyRiskAccrued: Number(e.penalty_risk_accrued || 0),
-    partnerInCharge: DEFAULT_FIRM_BRANDING.managingPartner,
-    assignedArticle: "Practice Team",
+    partnerInCharge: partnerName,
+    partnerInChargeId: e.partner_in_charge_id || undefined,
+    assignedArticle: articleName,
+    assignedArticleId: e.assigned_article_id || undefined,
     primaryContact: {
       name: e.primary_contact_name || g?.promoter_name || "Authorized Signatory",
       phone: e.primary_contact_phone || g?.promoter_phone || "",
@@ -38,6 +82,30 @@ function mapEntityRow(e: any, groupMap: Map<string, any>): ClientEntity {
       designation: e.primary_contact_designation || "Director / Authorized Signatory",
     },
   };
+}
+
+async function resolveStaffUserId(
+  pool: ReturnType<typeof getPostgresPool>,
+  firmId: string,
+  staffId?: string,
+  staffName?: string
+): Promise<{ id: string | null; name: string | null }> {
+  if (staffId && UUID_REGEX.test(staffId)) {
+    const res = await pool.query(
+      "SELECT id, full_name FROM public.users WHERE id = $1 AND firm_id = $2 LIMIT 1",
+      [staffId, firmId]
+    );
+    if (res.rows[0]) return { id: res.rows[0].id, name: res.rows[0].full_name };
+  }
+  if (staffName && staffName.trim() && staffName !== "Unassigned" && staffName !== "Practice Team") {
+    const clean = staffName.replace(/\s*\(.*?\)\s*/g, "").trim();
+    const res = await pool.query(
+      "SELECT id, full_name FROM public.users WHERE firm_id = $1 AND (LOWER(full_name) = LOWER($2) OR LOWER(full_name) = LOWER($3)) LIMIT 1",
+      [firmId, staffName.trim(), clean]
+    );
+    if (res.rows[0]) return { id: res.rows[0].id, name: res.rows[0].full_name };
+  }
+  return { id: null, name: null };
 }
 
 export async function GET(req: NextRequest) {
@@ -52,12 +120,14 @@ export async function GET(req: NextRequest) {
 
     const firmId = await resolveFirmUuid(auth);
     const pool = getPostgresPool();
-    const [{ rows: groupRows }, { rows: entityRows }, gstProfileRecs] = await Promise.all([
+    const [{ rows: groupRows }, { rows: entityRows }, { rows: staffRows }, gstProfileRecs] = await Promise.all([
       pool.query("SELECT * FROM public.client_groups WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
       pool.query("SELECT * FROM public.client_entities WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+      pool.query("SELECT id, full_name FROM public.users WHERE firm_id = $1", [firmId]),
       listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE"),
     ]);
 
+    const staffNameById = new Map<string, string>(staffRows.map((u: any) => [u.id, u.full_name]));
     const gstProfileMap = new Map<string, any>();
     for (const r of gstProfileRecs) {
       const eid = r.entity_id || r.payload?.entityId;
@@ -66,17 +136,8 @@ export async function GET(req: NextRequest) {
 
     const groupMap = new Map(groupRows.map((g: any) => [g.id, g]));
     const clients = entityRows.map((e: any) => {
-      const base = mapEntityRow(e, groupMap);
-      const prof = gstProfileMap.get(e.id);
-      if (prof) {
-        if (prof.tradeName) base.tradeName = prof.tradeName;
-        if (Array.isArray(prof.gstinRecords)) base.gstinRecords = prof.gstinRecords;
-        if (prof.gstFilingFrequency) base.gstFilingFrequency = prof.gstFilingFrequency;
-        if (prof.onboardingMode) base.onboardingMode = prof.onboardingMode;
-        if (prof.onboardingChecklist) base.onboardingChecklist = prof.onboardingChecklist;
-        if (Array.isArray(prof.gstHistory)) base.gstHistory = prof.gstHistory;
-      }
-      return base;
+      const base = mapEntityRow(e, groupMap, staffNameById);
+      return hydrateProfileFields(base, gstProfileMap.get(e.id));
     });
     const groups = groupRows.map((g: any) => ({
       id: g.id,
@@ -114,13 +175,54 @@ export async function POST(req: NextRequest) {
     const pool = getPostgresPool();
     const body = await req.json();
 
-    // ─── BATCH IMPORT FOR CSV UPLOADS ───
+    // ─── BATCH IMPORT FOR CSV UPLOADS (SCALED FOR 1,000+ CLIENTS) ───
     if (Array.isArray(body.batch) && body.batch.length > 0) {
       if (body.batch.length > 500) {
         return NextResponse.json({ success: false, error: "Batch size limited to 500 entities per request." }, { status: 400 });
       }
 
+      // Preload firm groups, staff, and existing entity PANs in 3 O(1) queries
+      const [grpPreload, staffPreload, entPreload] = await Promise.all([
+        pool.query("SELECT id, group_name, promoter_phone FROM public.client_groups WHERE firm_id = $1", [firmId]),
+        pool.query("SELECT id, full_name FROM public.users WHERE firm_id = $1", [firmId]),
+        pool.query("SELECT id, pan FROM public.client_entities WHERE firm_id = $1", [firmId]),
+      ]);
+
+      const groupById = new Map<string, string>();
+      const groupByPhone10 = new Map<string, string>();
+      const groupByName = new Map<string, string>();
+      for (const g of grpPreload.rows) {
+        groupById.set(g.id, g.id);
+        const p10 = normalizePhone10(g.promoter_phone || "");
+        if (p10.length >= 10) groupByPhone10.set(p10, g.id);
+        if (g.group_name) groupByName.set(String(g.group_name).trim().toLowerCase(), g.id);
+      }
+
+      const staffById = new Map<string, string>(staffPreload.rows.map((u: any) => [u.id, u.full_name]));
+      const staffByNameLower = new Map<string, { id: string; name: string }>(
+        staffPreload.rows.map((u: any) => [String(u.full_name || "").trim().toLowerCase(), { id: u.id, name: u.full_name }])
+      );
+      const resolveBatchStaff = (rawId?: string, rawName?: string): { id: string | null; name: string | null } => {
+        if (rawId && UUID_REGEX.test(rawId) && staffById.has(rawId)) {
+          return { id: rawId, name: staffById.get(rawId) || null };
+        }
+        if (rawName && rawName.trim()) {
+          const needle = rawName.trim().toLowerCase();
+          const exact = staffByNameLower.get(needle);
+          if (exact) return exact;
+          for (const [k, v] of staffByNameLower.entries()) {
+            if (k.includes(needle) || needle.includes(k)) return v;
+          }
+        }
+        return { id: null, name: rawName || null };
+      };
+
+      const existingByPan = new Map<string, string>(
+        entPreload.rows.map((e: any) => [String(e.pan || "").toUpperCase(), e.id])
+      );
+
       const inserted: ClientEntity[] = [];
+      const tasksBuffer: Array<[string, string, string, string, string, string, string, string, number, number]> = [];
       let skippedCount = 0;
 
       for (const item of body.batch) {
@@ -140,14 +242,22 @@ export async function POST(req: NextRequest) {
         const contactEmail = item.primaryContact?.email?.trim() || "";
         const designation = item.primaryContact?.designation?.trim() || "Director / Authorized Signatory";
         const turnover = parseFloat(item.turnoverCr) || 0;
-        const incYear = parseInt(item.incorporationYear, 10) || 2024;
+        const cleanCin = item.cin?.trim().toUpperCase() || null;
+        const cleanTan = item.tan?.trim().toUpperCase() || null;
+        const incYear = resolveIncorporationYear(item.incorporationYear, cleanCin);
         const groupName = item.groupName?.trim() || `${entityName} Group`;
+        const phone10 = normalizePhone10(contactPhone);
 
-        const grpRes = await pool.query(
-          "SELECT id FROM public.client_groups WHERE firm_id = $1 AND LOWER(group_name) = LOWER($2) LIMIT 1",
-          [firmId, groupName]
-        );
-        let groupId = grpRes.rows[0]?.id;
+        let groupId: string | undefined;
+        if (item.groupId && UUID_REGEX.test(String(item.groupId))) {
+          groupId = groupById.get(String(item.groupId));
+        }
+        if (!groupId && phone10.length >= 10 && item.linkByPhone !== false) {
+          groupId = groupByPhone10.get(phone10);
+        }
+        if (!groupId) {
+          groupId = groupByName.get(groupName.toLowerCase());
+        }
         if (!groupId) {
           const gIns = await pool.query(
             `INSERT INTO public.client_groups (
@@ -156,37 +266,46 @@ export async function POST(req: NextRequest) {
             [firmId, groupName, contactName, contactPhone || "+91 00000 00000", contactEmail || "accounts@client.in"]
           );
           groupId = gIns.rows[0].id;
+          if (groupId) {
+            groupById.set(groupId, groupId);
+            if (phone10.length >= 10) groupByPhone10.set(phone10, groupId);
+            groupByName.set(groupName.toLowerCase(), groupId);
+          }
         }
 
-        const phone10 = normalizePhone10(contactPhone);
+        const resolvedPartner = resolveBatchStaff(item.partnerInChargeId, item.partnerInCharge);
+        const resolvedArticle = resolveBatchStaff(item.assignedArticleId, item.assignedArticle);
+
         const initialPin = phone10.length >= 4 ? phone10.slice(-4) : String(crypto.randomInt(1000, 9999));
         const { hash, salt } = hashSecret(initialPin);
 
-        const existingEnt = await pool.query(
-          "SELECT id FROM public.client_entities WHERE firm_id = $1 AND pan = $2 LIMIT 1",
-          [firmId, pan]
-        );
+        const existingEntityId = existingByPan.get(pan);
 
         let entityId: string;
-        if (existingEnt.rows[0]?.id) {
-          entityId = existingEnt.rows[0].id;
+        if (existingEntityId) {
+          entityId = existingEntityId;
           await pool.query(
             `UPDATE public.client_entities
-             SET entity_name = $1, type = $2::entity_type, gstin = $3, cin = $4, turnover_cr = $5,
-                 incorporation_year = $6, primary_contact_name = $7, primary_contact_phone = $8,
-                 primary_contact_email = $9, primary_contact_designation = $10
-             WHERE id = $11 AND firm_id = $12`,
+             SET entity_name = $1, type = $2::entity_type, gstin = $3, cin = $4, tan = $5, turnover_cr = $6,
+                 incorporation_year = $7, primary_contact_name = $8, primary_contact_phone = $9,
+                 primary_contact_email = $10, primary_contact_designation = $11,
+                 partner_in_charge_id = COALESCE($12, partner_in_charge_id),
+                 assigned_article_id = COALESCE($13, assigned_article_id)
+             WHERE id = $14 AND firm_id = $15`,
             [
               entityName,
               item.type || "PVT_LTD",
               item.gstin?.trim().toUpperCase() || null,
-              item.cin?.trim().toUpperCase() || null,
+              cleanCin,
+              cleanTan,
               turnover,
               incYear,
               contactName,
               contactPhone,
               contactEmail,
               designation,
+              resolvedPartner.id,
+              resolvedArticle.id,
               entityId,
               firmId,
             ]
@@ -194,10 +313,11 @@ export async function POST(req: NextRequest) {
         } else {
           const ins = await pool.query(
             `INSERT INTO public.client_entities (
-              firm_id, group_id, entity_name, type, pan, gstin, cin, turnover_cr, incorporation_year,
+              firm_id, group_id, entity_name, type, pan, gstin, cin, tan, turnover_cr, incorporation_year,
               primary_contact_name, primary_contact_phone, primary_contact_email, primary_contact_designation,
+              partner_in_charge_id, assigned_article_id,
               auth_pin, auth_pin_hash, auth_pin_salt, is_pin_customized
-            ) VALUES ($1, $2, $3, $4::entity_type, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, $14, $15, FALSE)
+            ) VALUES ($1, $2, $3, $4::entity_type, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NULL, $17, $18, FALSE)
             RETURNING id`,
             [
               firmId,
@@ -206,40 +326,66 @@ export async function POST(req: NextRequest) {
               item.type || "PVT_LTD",
               pan,
               item.gstin?.trim().toUpperCase() || null,
-              item.cin?.trim().toUpperCase() || null,
+              cleanCin,
+              cleanTan,
               turnover,
               incYear,
               contactName,
               contactPhone,
               contactEmail,
               designation,
+              resolvedPartner.id,
+              resolvedArticle.id,
               hash,
               salt,
             ]
           );
           entityId = ins.rows[0].id;
+          existingByPan.set(pan, entityId);
 
           const clientStub: ClientEntity = {
             id: entityId,
-            groupId,
+            groupId: groupId!,
             groupName,
             name: entityName,
+            tradeName: item.tradeName?.trim() || undefined,
             type: item.type || "PVT_LTD",
             pan,
             gstin: item.gstin?.trim().toUpperCase() || undefined,
             gstFilingFrequency: item.gstFilingFrequency || undefined,
-            onboardingMode: item.onboardingMode || "CA_TAKEOVER",
+            onboardingMode: item.onboardingMode || "EXISTING_CLIENT",
+            serviceScope: Array.isArray(item.serviceScope) ? item.serviceScope : undefined,
+            cutoverDate: item.cutoverDate || undefined,
+            lastFiledPeriods: item.lastFiledPeriods || undefined,
+            digitalTxnPct: item.digitalTxnPct !== undefined ? Number(item.digitalTxnPct) : undefined,
+            registeredAddress: item.registeredAddress || undefined,
             onboardingChecklist: item.onboardingChecklist || undefined,
-            cin: item.cin?.trim().toUpperCase() || undefined,
-            tan: item.tan?.trim().toUpperCase() || undefined,
+            cin: cleanCin || undefined,
+            tan: cleanTan || undefined,
             turnoverCr: turnover,
             incorporationYear: incYear,
             penaltyRiskAccrued: 0,
-            partnerInCharge: DEFAULT_FIRM_BRANDING.managingPartner,
-            assignedArticle: "Practice Team",
+            partnerInCharge: resolvedPartner.name || item.partnerInCharge || DEFAULT_FIRM_BRANDING.managingPartner,
+            partnerInChargeId: resolvedPartner.id || undefined,
+            assignedArticle: resolvedArticle.name || item.assignedArticle || "Unassigned",
+            assignedArticleId: resolvedArticle.id || undefined,
             primaryContact: { name: contactName, phone: contactPhone, email: contactEmail, designation },
           };
-          if (item.gstFilingFrequency || item.onboardingMode || item.onboardingChecklist || item.tradeName) {
+          if (
+            item.gstFilingFrequency ||
+            item.onboardingMode ||
+            item.onboardingChecklist ||
+            item.tradeName ||
+            Array.isArray(item.serviceScope) ||
+            item.cutoverDate ||
+            item.lastFiledPeriods ||
+            item.digitalTxnPct !== undefined ||
+            item.registeredAddress ||
+            Array.isArray(item.gstinRecords) ||
+            Array.isArray(item.directors) ||
+            Array.isArray(item.bankAccounts) ||
+            Array.isArray(item.complianceBaselines)
+          ) {
             await upsertWorkspaceRecord({
               firmId,
               entityId,
@@ -250,44 +396,103 @@ export async function POST(req: NextRequest) {
                 entityId,
                 tradeName: item.tradeName?.trim() || undefined,
                 gstFilingFrequency: item.gstFilingFrequency || undefined,
-                onboardingMode: item.onboardingMode || "CA_TAKEOVER",
+                onboardingMode: item.onboardingMode || "EXISTING_CLIENT",
+                serviceScope: Array.isArray(item.serviceScope) ? item.serviceScope : undefined,
+                cutoverDate: item.cutoverDate || undefined,
+                lastFiledPeriods: item.lastFiledPeriods || undefined,
+                digitalTxnPct: item.digitalTxnPct !== undefined ? Number(item.digitalTxnPct) : undefined,
+                registeredAddress: item.registeredAddress || undefined,
                 onboardingChecklist: item.onboardingChecklist || undefined,
                 gstinRecords: Array.isArray(item.gstinRecords) ? item.gstinRecords : [],
+                directors: Array.isArray(item.directors) ? item.directors : undefined,
+                bankAccounts: Array.isArray(item.bankAccounts) ? item.bankAccounts : undefined,
+                complianceBaselines: Array.isArray(item.complianceBaselines) ? item.complianceBaselines : undefined,
                 updatedAt: new Date().toISOString(),
               },
             });
           }
           const tasks = generateStatutoryTasksForClient(clientStub);
           for (const t of tasks) {
-            await pool.query(
-              `INSERT INTO public.compliance_tasks (
-                firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty
-              ) VALUES ($1, $2, $3::compliance_category, $4, $5, $6, $7::workflow_status, $8::task_priority, $9, $10)`,
-              [firmId, entityId, t.category, t.title, t.period, t.dueDate, t.status, t.priority, t.penaltyRisk, t.accruingDailyPenalty]
-            );
+            tasksBuffer.push([
+              firmId,
+              entityId,
+              t.category,
+              t.title,
+              t.period,
+              t.dueDate,
+              t.status,
+              t.priority,
+              t.penaltyRisk,
+              t.accruingDailyPenalty,
+            ]);
           }
+        }
+
+        if (item.bankAccounts && Array.isArray(item.bankAccounts) && item.bankAccounts.length > 0 && existingEntityId) {
+          const existingProfs = await listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE", entityId);
+          const curProf = existingProfs[0]?.payload || {};
+          await upsertWorkspaceRecord({
+            firmId,
+            entityId,
+            recordType: "GST_CLIENT_PROFILE",
+            matchKey: "entityId",
+            matchValue: entityId,
+            payload: {
+              ...curProf,
+              entityId,
+              bankAccounts: item.bankAccounts,
+              complianceBaselines: Array.isArray(item.complianceBaselines) ? item.complianceBaselines : curProf.complianceBaselines,
+              gstinRecords: Array.isArray(item.gstinRecords) ? item.gstinRecords : (curProf.gstinRecords || []),
+              updatedAt: new Date().toISOString(),
+            },
+          });
         }
 
         inserted.push({
           id: entityId,
-          groupId,
+          groupId: groupId!,
           groupName,
           name: entityName,
+          tradeName: item.tradeName?.trim() || undefined,
           type: item.type || "PVT_LTD",
           pan,
           gstin: item.gstin?.trim().toUpperCase() || undefined,
           gstFilingFrequency: item.gstFilingFrequency || undefined,
-          onboardingMode: item.onboardingMode || "CA_TAKEOVER",
+          onboardingMode: item.onboardingMode || "EXISTING_CLIENT",
+          serviceScope: Array.isArray(item.serviceScope) ? item.serviceScope : undefined,
+          cutoverDate: item.cutoverDate || undefined,
+          lastFiledPeriods: item.lastFiledPeriods || undefined,
           onboardingChecklist: item.onboardingChecklist || undefined,
-          cin: item.cin?.trim().toUpperCase() || undefined,
-          tan: item.tan?.trim().toUpperCase() || undefined,
+          cin: cleanCin || undefined,
+          tan: cleanTan || undefined,
           turnoverCr: turnover,
           incorporationYear: incYear,
           penaltyRiskAccrued: 0,
-          partnerInCharge: DEFAULT_FIRM_BRANDING.managingPartner,
-          assignedArticle: "Practice Team",
+          partnerInCharge: resolvedPartner.name || item.partnerInCharge || DEFAULT_FIRM_BRANDING.managingPartner,
+          partnerInChargeId: resolvedPartner.id || undefined,
+          assignedArticle: resolvedArticle.name || item.assignedArticle || "Unassigned",
+          assignedArticleId: resolvedArticle.id || undefined,
           primaryContact: { name: contactName, phone: contactPhone, email: contactEmail, designation },
         });
+      }
+
+      // Multi-row bulk INSERT for generated statutory compliance tasks (200 rows per query)
+      for (let i = 0; i < tasksBuffer.length; i += 200) {
+        const chunk = tasksBuffer.slice(i, i + 200);
+        const values: any[] = [];
+        const placeholders = chunk
+          .map((row, idx) => {
+            const base = idx * 10;
+            values.push(...row);
+            return `($${base + 1}, $${base + 2}, $${base + 3}::compliance_category, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}::workflow_status, $${base + 8}::task_priority, $${base + 9}, $${base + 10})`;
+          })
+          .join(", ");
+        await pool.query(
+          `INSERT INTO public.compliance_tasks (
+            firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty
+          ) VALUES ${placeholders}`,
+          values
+        );
       }
 
       await appendPgAuditLog({
@@ -344,24 +549,44 @@ export async function POST(req: NextRequest) {
     const contactEmail = body.primaryContact?.email?.trim() || "";
     const designation = body.primaryContact?.designation?.trim() || "Director / Authorized Signatory";
     const turnover = parseFloat(body.turnoverCr) || 0;
-    const incYear = parseInt(body.incorporationYear, 10) || 2024;
+    const cleanCin = body.cin?.trim().toUpperCase() || undefined;
+    const cleanTan = body.tan?.trim().toUpperCase() || undefined;
+    const incYear = resolveIncorporationYear(body.incorporationYear, cleanCin);
     const entityType = body.type || "PVT_LTD";
     const groupName = body.groupName?.trim() || `${entityName} Group`;
+    const phone10Single = normalizePhone10(contactPhone);
 
     let targetGroupId: string | null = null;
+    let resolvedGroupName = groupName;
     if (body.groupId && UUID_REGEX.test(String(body.groupId))) {
       const gById = await pool.query(
-        "SELECT id FROM public.client_groups WHERE id = $1 AND firm_id = $2 LIMIT 1",
+        "SELECT id, group_name FROM public.client_groups WHERE id = $1 AND firm_id = $2 LIMIT 1",
         [body.groupId, firmId]
       );
-      if (gById.rows[0]?.id) targetGroupId = gById.rows[0].id;
+      if (gById.rows[0]?.id) {
+        targetGroupId = gById.rows[0].id;
+        resolvedGroupName = gById.rows[0].group_name;
+      }
+    }
+    if (!targetGroupId && phone10Single.length >= 10 && body.linkExistingGroup !== false) {
+      const gByPhone = await pool.query(
+        "SELECT id, group_name FROM public.client_groups WHERE firm_id = $1 AND RIGHT(REGEXP_REPLACE(COALESCE(promoter_phone, ''), '\\D', '', 'g'), 10) = $2 LIMIT 1",
+        [firmId, phone10Single]
+      );
+      if (gByPhone.rows[0]?.id) {
+        targetGroupId = gByPhone.rows[0].id;
+        resolvedGroupName = gByPhone.rows[0].group_name;
+      }
     }
     if (!targetGroupId) {
       const gByName = await pool.query(
-        "SELECT id FROM public.client_groups WHERE firm_id = $1 AND LOWER(group_name) = LOWER($2) LIMIT 1",
+        "SELECT id, group_name FROM public.client_groups WHERE firm_id = $1 AND LOWER(group_name) = LOWER($2) LIMIT 1",
         [firmId, groupName]
       );
-      if (gByName.rows[0]?.id) targetGroupId = gByName.rows[0].id;
+      if (gByName.rows[0]?.id) {
+        targetGroupId = gByName.rows[0].id;
+        resolvedGroupName = gByName.rows[0].group_name;
+      }
     }
     if (!targetGroupId) {
       const gIns = await pool.query(
@@ -372,6 +597,11 @@ export async function POST(req: NextRequest) {
       );
       targetGroupId = gIns.rows[0].id;
     }
+
+    const [resolvedPartner, resolvedArticle] = await Promise.all([
+      resolveStaffUserId(pool, firmId, body.partnerInChargeId, body.partnerInCharge),
+      resolveStaffUserId(pool, firmId, body.assignedArticleId, body.assignedArticle),
+    ]);
 
     const existingEnt = await pool.query(
       "SELECT id FROM public.client_entities WHERE firm_id = $1 AND pan = $2 LIMIT 1",
@@ -387,36 +617,40 @@ export async function POST(req: NextRequest) {
         `UPDATE public.client_entities
          SET entity_name = $1, type = $2::entity_type, gstin = $3, cin = $4, tan = $5,
              turnover_cr = $6, incorporation_year = $7, primary_contact_name = $8,
-             primary_contact_phone = $9, primary_contact_email = $10, primary_contact_designation = $11
-         WHERE id = $12 AND firm_id = $13`,
+             primary_contact_phone = $9, primary_contact_email = $10, primary_contact_designation = $11,
+             partner_in_charge_id = COALESCE($12, partner_in_charge_id),
+             assigned_article_id = COALESCE($13, assigned_article_id)
+         WHERE id = $14 AND firm_id = $15`,
         [
           entityName,
           entityType,
           cleanGstin || null,
-          body.cin?.trim().toUpperCase() || null,
-          body.tan?.trim().toUpperCase() || null,
+          cleanCin || null,
+          cleanTan || null,
           turnover,
           incYear,
           contactName,
           contactPhone,
           contactEmail,
           designation,
+          resolvedPartner.id,
+          resolvedArticle.id,
           entityId,
           firmId,
         ]
       );
     } else {
       isNewEntity = true;
-      const phone10 = normalizePhone10(contactPhone);
-      const initialPin = phone10.length >= 4 ? phone10.slice(-4) : String(crypto.randomInt(1000, 9999));
+      const initialPin = phone10Single.length >= 4 ? phone10Single.slice(-4) : String(crypto.randomInt(1000, 9999));
       const { hash, salt } = hashSecret(initialPin);
 
       const ins = await pool.query(
         `INSERT INTO public.client_entities (
           firm_id, group_id, entity_name, type, pan, gstin, cin, tan, turnover_cr, incorporation_year,
           primary_contact_name, primary_contact_phone, primary_contact_email, primary_contact_designation,
+          partner_in_charge_id, assigned_article_id,
           auth_pin, auth_pin_hash, auth_pin_salt, is_pin_customized
-        ) VALUES ($1, $2, $3, $4::entity_type, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NULL, $15, $16, FALSE)
+        ) VALUES ($1, $2, $3, $4::entity_type, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NULL, $17, $18, FALSE)
         RETURNING id`,
         [
           firmId,
@@ -425,14 +659,16 @@ export async function POST(req: NextRequest) {
           entityType,
           pan,
           cleanGstin || null,
-          body.cin?.trim().toUpperCase() || null,
-          body.tan?.trim().toUpperCase() || null,
+          cleanCin || null,
+          cleanTan || null,
           turnover,
           incYear,
           contactName,
           contactPhone,
           contactEmail,
           designation,
+          resolvedPartner.id,
+          resolvedArticle.id,
           hash,
           salt,
         ]
@@ -443,25 +679,35 @@ export async function POST(req: NextRequest) {
     const newClient: ClientEntity = {
       id: entityId,
       groupId: targetGroupId!,
-      groupName,
+      groupName: resolvedGroupName,
       name: entityName,
       tradeName: body.tradeName?.trim() || undefined,
       type: entityType,
       pan,
       gstin: cleanGstin || undefined,
       gstFilingFrequency: body.gstFilingFrequency || undefined,
-      onboardingMode: body.onboardingMode || undefined,
+      onboardingMode: body.onboardingMode || "EXISTING_CLIENT",
+      serviceScope: Array.isArray(body.serviceScope) ? body.serviceScope : undefined,
+      cutoverDate: body.cutoverDate || undefined,
+      lastFiledPeriods: body.lastFiledPeriods || undefined,
+      digitalTxnPct: body.digitalTxnPct !== undefined ? Number(body.digitalTxnPct) : undefined,
+      registeredAddress: body.registeredAddress || undefined,
       onboardingChecklist: body.onboardingChecklist || undefined,
       gstHistory: Array.isArray(body.gstHistory) ? body.gstHistory : undefined,
-      cin: body.cin?.trim().toUpperCase() || undefined,
-      tan: body.tan?.trim().toUpperCase() || undefined,
+      cin: cleanCin,
+      tan: cleanTan,
       turnoverCr: turnover,
       incorporationYear: incYear,
       penaltyRiskAccrued: 0,
-      partnerInCharge: body.partnerInCharge || DEFAULT_FIRM_BRANDING.managingPartner,
-      assignedArticle: body.assignedArticle || "Practice Team",
+      partnerInCharge: resolvedPartner.name || body.partnerInCharge || DEFAULT_FIRM_BRANDING.managingPartner,
+      partnerInChargeId: resolvedPartner.id || undefined,
+      assignedArticle: resolvedArticle.name || body.assignedArticle || "Unassigned",
+      assignedArticleId: resolvedArticle.id || undefined,
       primaryContact: { name: contactName, phone: contactPhone, email: contactEmail, designation },
       gstinRecords: Array.isArray(body.gstinRecords) ? body.gstinRecords : undefined,
+      directors: Array.isArray(body.directors) ? body.directors : undefined,
+      bankAccounts: Array.isArray(body.bankAccounts) ? body.bankAccounts : undefined,
+      complianceBaselines: Array.isArray(body.complianceBaselines) ? body.complianceBaselines : undefined,
     };
 
     if (
@@ -470,7 +716,15 @@ export async function POST(req: NextRequest) {
       body.gstFilingFrequency ||
       body.onboardingMode ||
       body.onboardingChecklist ||
-      Array.isArray(body.gstHistory)
+      Array.isArray(body.gstHistory) ||
+      Array.isArray(body.serviceScope) ||
+      body.cutoverDate ||
+      body.lastFiledPeriods ||
+      body.digitalTxnPct !== undefined ||
+      body.registeredAddress ||
+      Array.isArray(body.directors) ||
+      Array.isArray(body.bankAccounts) ||
+      Array.isArray(body.complianceBaselines)
     ) {
       await upsertWorkspaceRecord({
         firmId,
@@ -483,10 +737,55 @@ export async function POST(req: NextRequest) {
           tradeName: body.tradeName?.trim() || undefined,
           gstinRecords: Array.isArray(body.gstinRecords) ? body.gstinRecords : [],
           gstFilingFrequency: body.gstFilingFrequency || undefined,
-          onboardingMode: body.onboardingMode || undefined,
+          onboardingMode: body.onboardingMode || "EXISTING_CLIENT",
+          serviceScope: Array.isArray(body.serviceScope) ? body.serviceScope : undefined,
+          cutoverDate: body.cutoverDate || undefined,
+          lastFiledPeriods: body.lastFiledPeriods || undefined,
+          digitalTxnPct: body.digitalTxnPct !== undefined ? Number(body.digitalTxnPct) : undefined,
+          registeredAddress: body.registeredAddress || undefined,
           onboardingChecklist: body.onboardingChecklist || undefined,
           gstHistory: Array.isArray(body.gstHistory) ? body.gstHistory : undefined,
+          directors: Array.isArray(body.directors) ? body.directors : undefined,
+          bankAccounts: Array.isArray(body.bankAccounts) ? body.bankAccounts : undefined,
+          complianceBaselines: Array.isArray(body.complianceBaselines) ? body.complianceBaselines : undefined,
           updatedAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    if (body.initialAgreement && Number(body.initialAgreement.baseRetainerFee) > 0) {
+      const fee = Number(body.initialAgreement.baseRetainerFee);
+      const billingCycle = body.initialAgreement.billingCycle || "MONTHLY";
+      const scopeLabels = Array.isArray(newClient.serviceScope) && newClient.serviceScope.length > 0
+        ? newClient.serviceScope
+        : ["GST", "INCOME_TAX"];
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId,
+        recordType: "ENGAGEMENT_AGREEMENT",
+        matchKey: "entityId",
+        matchValue: entityId,
+        payload: {
+          id: `AGR-${entityId}`,
+          entityId,
+          clientName: entityName,
+          billingCycle,
+          baseRetainerFee: fee,
+          includedServices: scopeLabels,
+          thresholds: {
+            maxMonthlyInvoices: Math.max(50, Math.round((turnover || 1) * 20)),
+            maxAnnualTurnoverCr: Math.max(1, (turnover || 1) * 1.25),
+            maxBankAccounts: 3,
+          },
+          actuals: {
+            actualMonthlyInvoices: 0,
+            actualTurnoverCr: turnover,
+            actualBankAccounts: Array.isArray(body.bankAccounts) ? body.bankAccounts.length : 1,
+            overagePercentage: 0,
+          },
+          status: "ACTIVE",
+          startDate: new Date().toISOString().split("T")[0],
+          renewalDate: `${new Date().getFullYear() + 1}-03-31`,
         },
       });
     }
@@ -638,13 +937,23 @@ export async function PATCH(req: NextRequest) {
 
     const nextCin = body.cin !== undefined ? (body.cin ? String(body.cin).trim().toUpperCase() : null) : ex.cin;
     const nextTan = body.tan !== undefined ? (body.tan ? String(body.tan).trim().toUpperCase() : null) : ex.tan;
+    const [resolvedPartner, resolvedArticle] = await Promise.all([
+      body.partnerInChargeId || body.partnerInCharge
+        ? resolveStaffUserId(pool, firmId, body.partnerInChargeId, body.partnerInCharge)
+        : Promise.resolve({ id: null, name: null }),
+      body.assignedArticleId || body.assignedArticle
+        ? resolveStaffUserId(pool, firmId, body.assignedArticleId, body.assignedArticle)
+        : Promise.resolve({ id: null, name: null }),
+    ]);
 
     const upd = await pool.query(
       `UPDATE public.client_entities
        SET entity_name = $1, type = $2::entity_type, pan = $3, gstin = $4, turnover_cr = $5,
            primary_contact_name = $6, primary_contact_phone = $7, primary_contact_email = $8,
-           primary_contact_designation = $9, cin = $10, tan = $11
-       WHERE id = $12 AND firm_id = $13
+           primary_contact_designation = $9, cin = $10, tan = $11,
+           partner_in_charge_id = COALESCE($12, partner_in_charge_id),
+           assigned_article_id = COALESCE($13, assigned_article_id)
+       WHERE id = $14 AND firm_id = $15
        RETURNING *`,
       [
         body.name?.trim() || ex.entity_name,
@@ -658,12 +967,16 @@ export async function PATCH(req: NextRequest) {
         body.primaryContact?.designation?.trim() ?? ex.primary_contact_designation,
         nextCin,
         nextTan,
+        resolvedPartner.id,
+        resolvedArticle.id,
         clientId,
         firmId,
       ]
     );
 
-    const updated = mapEntityRow(upd.rows[0], new Map());
+    const { rows: staffRows } = await pool.query("SELECT id, full_name FROM public.users WHERE firm_id = $1", [firmId]);
+    const staffNameById = new Map<string, string>(staffRows.map((u: any) => [u.id, u.full_name]));
+    const updated = mapEntityRow(upd.rows[0], new Map(), staffNameById);
 
     const existingProfiles = await listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE", clientId);
     const existingProf = existingProfiles[0]?.payload || {};
@@ -673,7 +986,15 @@ export async function PATCH(req: NextRequest) {
       body.gstFilingFrequency !== undefined ||
       body.onboardingMode !== undefined ||
       body.onboardingChecklist !== undefined ||
-      Array.isArray(body.gstHistory);
+      Array.isArray(body.gstHistory) ||
+      Array.isArray(body.serviceScope) ||
+      body.cutoverDate !== undefined ||
+      body.lastFiledPeriods !== undefined ||
+      body.digitalTxnPct !== undefined ||
+      body.registeredAddress !== undefined ||
+      Array.isArray(body.directors) ||
+      Array.isArray(body.bankAccounts) ||
+      Array.isArray(body.complianceBaselines);
 
     if (hasOnboardingMetaUpdate) {
       const nextProfile = {
@@ -686,6 +1007,14 @@ export async function PATCH(req: NextRequest) {
         onboardingChecklist:
           body.onboardingChecklist !== undefined ? body.onboardingChecklist : existingProf.onboardingChecklist,
         gstHistory: Array.isArray(body.gstHistory) ? body.gstHistory : existingProf.gstHistory,
+        serviceScope: Array.isArray(body.serviceScope) ? body.serviceScope : existingProf.serviceScope,
+        cutoverDate: body.cutoverDate !== undefined ? body.cutoverDate : existingProf.cutoverDate,
+        lastFiledPeriods: body.lastFiledPeriods !== undefined ? body.lastFiledPeriods : existingProf.lastFiledPeriods,
+        digitalTxnPct: body.digitalTxnPct !== undefined ? Number(body.digitalTxnPct) : existingProf.digitalTxnPct,
+        registeredAddress: body.registeredAddress !== undefined ? body.registeredAddress : existingProf.registeredAddress,
+        directors: Array.isArray(body.directors) ? body.directors : existingProf.directors,
+        bankAccounts: Array.isArray(body.bankAccounts) ? body.bankAccounts : existingProf.bankAccounts,
+        complianceBaselines: Array.isArray(body.complianceBaselines) ? body.complianceBaselines : existingProf.complianceBaselines,
         updatedAt: new Date().toISOString(),
       };
       await upsertWorkspaceRecord({
@@ -696,12 +1025,7 @@ export async function PATCH(req: NextRequest) {
         matchValue: clientId,
         payload: nextProfile,
       });
-      updated.tradeName = nextProfile.tradeName;
-      updated.gstinRecords = nextProfile.gstinRecords;
-      if (nextProfile.gstFilingFrequency) updated.gstFilingFrequency = nextProfile.gstFilingFrequency;
-      if (nextProfile.onboardingMode) updated.onboardingMode = nextProfile.onboardingMode;
-      if (nextProfile.onboardingChecklist) updated.onboardingChecklist = nextProfile.onboardingChecklist;
-      if (Array.isArray(nextProfile.gstHistory)) updated.gstHistory = nextProfile.gstHistory;
+      hydrateProfileFields(updated, nextProfile);
 
       // Also generate catch-up compliance tasks for any newly detected unfiled GST returns
       if (Array.isArray(body.gstHistory)) {
@@ -732,12 +1056,7 @@ export async function PATCH(req: NextRequest) {
         }
       }
     } else {
-      if (existingProf.tradeName) updated.tradeName = existingProf.tradeName;
-      if (Array.isArray(existingProf.gstinRecords)) updated.gstinRecords = existingProf.gstinRecords;
-      if (existingProf.gstFilingFrequency) updated.gstFilingFrequency = existingProf.gstFilingFrequency;
-      if (existingProf.onboardingMode) updated.onboardingMode = existingProf.onboardingMode;
-      if (existingProf.onboardingChecklist) updated.onboardingChecklist = existingProf.onboardingChecklist;
-      if (Array.isArray(existingProf.gstHistory)) updated.gstHistory = existingProf.gstHistory;
+      hydrateProfileFields(updated, existingProf);
     }
 
     await appendPgAuditLog({

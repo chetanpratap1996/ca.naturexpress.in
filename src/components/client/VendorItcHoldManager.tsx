@@ -66,10 +66,12 @@ const INITIAL_VENDOR_HOLDS: VendorHoldItem[] = [
 
 export function VendorItcHoldManager({ 
   clientName = "Client Entity", 
-  client 
+  client,
+  isSandbox = false,
 }: { 
   clientName?: string; 
   client?: ClientEntity | null; 
+  isSandbox?: boolean;
 }) {
   const [holds, setHolds] = useState<VendorHoldItem[]>(() => {
     if (typeof window !== "undefined" && client?.id) {
@@ -78,11 +80,7 @@ export function VendorItcHoldManager({
         if (saved) return JSON.parse(saved);
       } catch {}
     }
-    // For newly onboarded clients start with authentic clean state
-    if (client && client.id.startsWith("CLI-")) {
-      return [];
-    }
-    return INITIAL_VENDOR_HOLDS;
+    return isSandbox ? INITIAL_VENDOR_HOLDS : [];
   });
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

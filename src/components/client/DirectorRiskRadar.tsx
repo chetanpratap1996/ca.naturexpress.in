@@ -101,31 +101,27 @@ const INITIAL_SFT_FLAGS: SftTransactionFlag[] = [
 
 export interface DirectorRiskRadarProps {
   client?: ClientEntity | null;
+  isSandbox?: boolean;
 }
 
-export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) => {
-  const [directors] = useState<DirectorProfile[]>(() => {
-    if (!client) return DEFAULT_DIRECTORS;
-    const dirName = client.primaryContact?.name || "Authorized Director";
-    const cinCode = client.cin || (client.type === "PVT_LTD" || client.type === "PUBLIC_LTD" ? "CIN Verified" : "N/A (Non-Corporate)");
-    const dinDigits = client.cin 
-      ? `09${Math.abs(client.pan.split("").reduce((a, b) => a + b.charCodeAt(0), 0) * 31).toString().slice(0, 6)}` 
-      : client.type === "PVT_LTD" || client.type === "PUBLIC_LTD" ? "DIR-3 ACTIVE" : "N/A";
-
-    return [
-      {
-        name: dirName,
-        din: dinDigits,
-        dinStatus: "ACTIVE",
-        dir3KycStatus: "FILED",
-        disqualificationRisk: "CLEAN",
+export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client, isSandbox = false }) => {
+  const directors: DirectorProfile[] = React.useMemo(() => {
+    if (!client) return isSandbox ? DEFAULT_DIRECTORS : [];
+    if (Array.isArray(client.directors) && client.directors.length > 0) {
+      return client.directors.map((d) => ({
+        name: d.name,
+        din: d.din,
+        dinStatus: d.dir3KycStatus === "DEACTIVATED" ? "DEACTIVATED_KYC_DUE" : "ACTIVE",
+        dir3KycStatus: d.dir3KycStatus === "COMPLIANT" ? "FILED" : "PENDING",
+        disqualificationRisk: d.dir3KycStatus === "DEACTIVATED" ? "HIGH_RISK" : "CLEAN",
         associatedCompanies: [
-          { cin: cinCode, name: client.name, status: "COMPLIANT" }
+          { cin: client.cin || "Not Entered", name: client.name, status: d.dir3KycStatus === "DEACTIVATED" ? "DEFAULT_PENDING" : "COMPLIANT" },
         ],
-        syncedDate: "Today (MCA V3)"
-      }
-    ];
-  });
+        syncedDate: "From Entity Master",
+      }));
+    }
+    return isSandbox ? DEFAULT_DIRECTORS : [];
+  }, [client, isSandbox]);
 
   const [sftFlags, setSftFlags] = useState<SftTransactionFlag[]>(() => {
     if (typeof window !== "undefined" && client?.id) {
@@ -134,11 +130,7 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
         if (saved) return JSON.parse(saved);
       } catch {}
     }
-    // Client statutory risk radar initialized
-    if (client && client.id.startsWith("CLI-")) {
-      return [];
-    }
-    return INITIAL_SFT_FLAGS;
+    return isSandbox ? INITIAL_SFT_FLAGS : [];
   });
   const [filterType, setFilterType] = useState<"ALL" | "ALERTS" | "RECONCILED">("ALL");
   const [selectedFlagForUpload, setSelectedFlagForUpload] = useState<SftTransactionFlag | null>(null);
@@ -224,13 +216,15 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
             </div>
             <div>
               <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                All DINs Active &amp; Verified
+                {directors.length > 0 ? "Directors Synced & Monitored" : "MCA Director Sync Pending"}
               </div>
               <div className="text-[10px] text-emerald-700 font-bold">
-                Zero disqualification risk detected
+                {directors.length > 0
+                  ? `${directors.length} Director(s) tracked • ${alertCount} SFT alert(s)`
+                  : "Add directors in Client Master or upload MCA master data"}
               </div>
               <div className="text-[9px] text-slate-500 mt-0.5">
-                MCA V3 Synced Today
+                {directors.length > 0 ? directors[0].syncedDate : "Awaiting MCA / AIS sync"}
               </div>
             </div>
           </div>
@@ -321,7 +315,11 @@ export const DirectorRiskRadar: React.FC<DirectorRiskRadarProps> = ({ client }) 
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {directors.map((dir) => (
+          {directors.length === 0 ? (
+            <div className="col-span-full p-6 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-xs text-slate-500">
+              No director DIN / KYC records synced yet for {client?.name || "this entity"}. Add directors in Entity Master or complete your Handover Kit.
+            </div>
+          ) : directors.map((dir) => (
             <div key={dir.din} className="p-4 sm:p-5 border border-slate-200 rounded-2xl bg-slate-50/60 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between gap-2">

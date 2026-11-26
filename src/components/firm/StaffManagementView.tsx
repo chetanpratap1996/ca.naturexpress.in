@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { StaffMember, CompetencyTier, StaffRole, StaffSpecialization, ComplianceTask } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
 import { openWhatsAppPreset } from "@/lib/whatsapp";
-import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import { DEFAULT_FIRM_BRANDING, getPortalBaseUrl } from "@/lib/config/branding";
 import { 
   Users, 
   UserPlus, 
@@ -243,7 +243,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
   const handleSendWhatsAppInvite = (member: StaffMember) => {
     const phoneDigits = member.phone.replace(/\D/g, "");
     const cleanPhone = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : phoneDigits;
-    const portalOrigin = typeof window !== "undefined" ? window.location.origin : "https://ca.naturexpress.in";
+    const portalOrigin = getPortalBaseUrl();
 
     const message = `*${DEFAULT_FIRM_BRANDING.firmName}*\nOfficial Practice Portal Invite\n\nDear ${member.fullName},\nYou have been registered as a Team Member (${SENIORITY_LEVELS[member.competencyTier]?.label || "Associate"}).\n\nLogin URL: ${portalOrigin}/?portal=staff\nEmail: ${member.email}\nPlease use the secure password shared by the Managing Partner to sign in.`;
 

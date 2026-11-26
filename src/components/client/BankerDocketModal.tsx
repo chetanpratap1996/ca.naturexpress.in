@@ -37,7 +37,29 @@ export function BankerDocketModal({ client, isOpen, onClose }: BankerDocketModal
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSuccess, setGeneratedSuccess] = useState(false);
   const [dossierRef, setDossierRef] = useState(`BT/CR-${Date.now().toString().slice(-4)}`);
-  const [udinNumber, setUdinNumber] = useState(`26098221AAAAAA${Date.now().toString().slice(-4)}`);
+  const [realUdin, setRealUdin] = useState("");
+  const [udinNumber, setUdinNumber] = useState("PENDING_ICAI_UDIN");
+
+  React.useEffect(() => {
+    if (!isOpen || !client?.id) return;
+    let active = true;
+    fetch(`/api/governance/records?recordType=UDIN_ENTRY&entityId=${encodeURIComponent(client.id)}`, {
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active) return;
+        const list = Array.isArray(data?.records) ? data.records : [];
+        const valid = list.find((u: any) => u?.status === "GENERATED_VALID" && u?.udin);
+        const code = valid?.udin || "";
+        setRealUdin(code);
+        setUdinNumber(code || "PENDING_ICAI_UDIN");
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [isOpen, client?.id]);
 
   if (!isOpen || !client) return null;
 
@@ -45,54 +67,53 @@ export function BankerDocketModal({ client, isOpen, onClose }: BankerDocketModal
     setIsGenerating(true);
     setTimeout(() => {
       const generatedRef = `BT/CR-${Date.now().toString().slice(-4)}`;
-      const generatedUdin = `26098221AAAAAA${Date.now().toString().slice(-4)}`;
       setIsGenerating(false);
       setGeneratedSuccess(true);
       setDossierRef(generatedRef);
-      setUdinNumber(generatedUdin);
+      setUdinNumber(realUdin || "PENDING_ICAI_UDIN");
       toast.success(
         "Banker Docket Compiled",
-        `Certified credit appraisal dossier created with UDIN ${generatedUdin}.`
+        realUdin
+          ? `Credit appraisal dossier compiled with verified UDIN ${realUdin}.`
+          : "Credit appraisal summary compiled. Attach an official UDIN from UDIN Vault before bank submission."
       );
-    }, 1200);
+    }, 600);
   };
 
   const handleDownloadZip = () => {
-    // Dynamic 3-Year Audited Trajectory based on real client turnover
-    const tCurr = client.turnoverCr || 5.0;
-    const tY1 = (tCurr).toFixed(2);
-    const tY2 = (tCurr * 0.85).toFixed(2);
-    const tY3 = (tCurr * 0.72).toFixed(2);
-    const constDoc = client.cin 
-      ? "Memorandum & Articles of Association (MOA/AOA) Stamped by Registrar of Companies"
+    const tCurr = client.turnoverCr || 0;
+    const baselines = Array.isArray(client.complianceBaselines) ? client.complianceBaselines : [];
+    const baselineLines =
+      baselines.length > 0
+        ? baselines
+            .slice(0, 3)
+            .map((b, idx) => `${idx + 1}. AY ${b.assessmentYear} — ${b.formType} (Ack: ${b.acknowledgementNo}, Filed: ${b.filingDate})`)
+            .join("\n")
+        : `1. Current Turnover Declared: ${tCurr > 0 ? `Rs. ${tCurr.toFixed(2)} Cr` : "Not Yet Uploaded"}\n2. Prior-Year Audited Financials & ITR-V: Upload in Client Baselines / Vault to include verified figures`;
+    const constDoc = client.cin
+      ? `Certificate of Incorporation & MOA/AOA (CIN: ${client.cin})`
       : client.type === "PARTNERSHIP" || client.type === "LLP"
       ? "Registered Partnership Deed / LLP Agreement"
-      : "Proprietorship Registration & Commercial Mandate";
+      : "Proprietorship Registration & PAN Master";
 
-    // Real browser download of certified manifest
-    const manifestContent = `OFFICIAL CA FIRM VERIFIED CREDIT APPRAISAL DOSSIER
+    // Real browser download of verified manifest (zero fabricated EBITDA/prior-year numbers)
+    const manifestContent = `OFFICIAL CA FIRM CREDIT APPRAISAL DOSSIER SUMMARY
 ====================================================================
 Issued by: ${DEFAULT_FIRM_BRANDING.firmName} (FRN: ${DEFAULT_FIRM_BRANDING.frn})
 Managing Partner: ${DEFAULT_FIRM_BRANDING.managingPartner}
 Applicant Entity: ${client.name} (PAN: ${client.pan}, GSTIN: ${client.gstin || "N/A"})
 Target Institution: ${bankName}
 Application Purpose: ${purpose.replace(/_/g, " ")}
-ICAI Stamped UDIN: ${udinNumber}
+ICAI UDIN Status: ${udinNumber}
 Dossier Serial: ${dossierRef}
-Date of Certification: ${new Date().toLocaleDateString("en-IN")}
-Status: CERTIFIED TRUE COPY - BANK CREDIT GRADE
+Date Generated: ${new Date().toLocaleDateString("en-IN")}
 
-ATTACHED STATUTORY SCHEDULES:
-1. FY 2025-26 Audited Balance Sheet & P&L Statement (Revenue: Rs. ${tY1} Cr, EBITDA: 18.2%)
-2. FY 2024-25 Audited Balance Sheet & P&L Statement (Revenue: Rs. ${tY2} Cr, EBITDA: 17.5%)
-3. FY 2023-24 Audited Balance Sheet & P&L Statement (Revenue: Rs. ${tY3} Cr, EBITDA: 16.9%)
-4. Form 3CD Tax Audit Report with Physical Clause-by-Clause ICAI Verification
-5. Income Tax Department ITR-V e-Filing Acknowledgements (3 Consecutive Assessment Years)
-6. Last 12 Consecutive Months GSTR-3B Department Receipts with ARN Tracking
-7. ${constDoc}
-8. Group Promoter Net Worth Certificate issued under ICAI SQC-1 Standards
+VERIFIED ENTITY & FILING SCHEDULES:
+${baselineLines}
+• Constitution Record: ${constDoc}
+• GST Return History Records Synced: ${client.gstHistory?.length || 0} period(s)
 ====================================================================
-Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
+Watermark: PREPARED FOR ${bankName.toUpperCase()}`;
 
     const blob = new Blob([manifestContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -127,13 +148,18 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const tCurr = client.turnoverCr || 5.0;
-    const tY1 = (tCurr).toFixed(2);
-    const tY2 = (tCurr * 0.85).toFixed(2);
-    const tY3 = (tCurr * 0.72).toFixed(2);
-    const pat1 = (tCurr * 0.10).toFixed(2);
-    const pat2 = (tCurr * 0.85 * 0.095).toFixed(2);
-    const pat3 = (tCurr * 0.72 * 0.09).toFixed(2);
+    const tCurr = client.turnoverCr || 0;
+    const baselines = Array.isArray(client.complianceBaselines) ? client.complianceBaselines : [];
+    const baselineRowsHtml =
+      baselines.length > 0
+        ? baselines
+            .slice(0, 3)
+            .map(
+              (b) =>
+                `<tr><td><strong>AY ${b.assessmentYear}</strong></td><td>${b.formType}</td><td>${b.acknowledgementNo}</td><td>${b.filingDate}</td><td>Rs. ${b.taxPaidAmount.toLocaleString("en-IN")}</td></tr>`
+            )
+            .join("")
+        : `<tr><td colspan="5">Current Declared Turnover: ${tCurr > 0 ? `Rs. ${tCurr.toFixed(2)} Cr` : "Pending Upload"} &bull; Prior-year audited statements will populate once uploaded to Baselines / Vault.</td></tr>`;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -189,35 +215,15 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
           <table>
             <thead>
               <tr>
-                <th>Financial Year</th>
-                <th>Audited Turnover</th>
-                <th>EBITDA Margin</th>
-                <th>PAT (Profit After Tax)</th>
-                <th>DSCR Coverage</th>
+                <th>Assessment Year</th>
+                <th>ITR / Form</th>
+                <th>Acknowledgement No.</th>
+                <th>Filing Date</th>
+                <th>Tax Paid</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td><strong>FY 2025-26 (Audited)</strong></td>
-                <td>Rs. ${tY1} Cr</td>
-                <td>18.2%</td>
-                <td>Rs. ${pat1} Cr</td>
-                <td>2.18x</td>
-              </tr>
-              <tr>
-                <td><strong>FY 2024-25 (Audited)</strong></td>
-                <td>Rs. ${tY2} Cr</td>
-                <td>17.5%</td>
-                <td>Rs. ${pat2} Cr</td>
-                <td>2.05x</td>
-              </tr>
-              <tr>
-                <td><strong>FY 2023-24 (Audited)</strong></td>
-                <td>Rs. ${tY3} Cr</td>
-                <td>16.9%</td>
-                <td>Rs. ${pat3} Cr</td>
-                <td>1.92x</td>
-              </tr>
+              ${baselineRowsHtml}
             </tbody>
           </table>
 
@@ -403,22 +409,28 @@ Watermark: EXCLUSIVELY VALID FOR ${bankName.toUpperCase()}`;
               </span>
             </div>
 
-            {/* Key Ratios & Metrics Snapshot (For Bank Loan Officers) */}
+            {/* Verified Entity Metrics Snapshot */}
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
               <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded-2xl text-center">
-                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">Turnover</span>
-                <span className="text-xs sm:text-base font-black text-slate-900 mt-0.5 block">₹36.1 Cr</span>
-                <span className="text-[8px] sm:text-[9px] text-emerald-600 font-bold block truncate">+18.5% YoY</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">Declared Turnover</span>
+                <span className="text-xs sm:text-base font-black text-slate-900 mt-0.5 block">
+                  {client.turnoverCr > 0 ? `₹${client.turnoverCr.toFixed(2)} Cr` : "Not Entered"}
+                </span>
+                <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold block truncate">Entity Master</span>
               </div>
               <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded-2xl text-center">
-                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">PAT Margin</span>
-                <span className="text-xs sm:text-base font-black text-slate-900 mt-0.5 block">9.4%</span>
-                <span className="text-[8px] sm:text-[9px] text-emerald-600 font-bold block truncate">Stable Cash</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">ITR Baselines</span>
+                <span className="text-xs sm:text-base font-black text-slate-900 mt-0.5 block">
+                  {client.complianceBaselines?.length || 0} Year(s)
+                </span>
+                <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold block truncate">Archived Filings</span>
               </div>
               <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 rounded-2xl text-center">
-                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">DSCR Ratio</span>
-                <span className="text-xs sm:text-base font-black text-emerald-700 mt-0.5 block">2.18x</span>
-                <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold block truncate">&gt; 1.33x Norm</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase block truncate">GST Periods</span>
+                <span className="text-xs sm:text-base font-black text-emerald-700 mt-0.5 block">
+                  {client.gstHistory?.length || 0} Synced
+                </span>
+                <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold block truncate">GSTN Ledger</span>
               </div>
             </div>
 

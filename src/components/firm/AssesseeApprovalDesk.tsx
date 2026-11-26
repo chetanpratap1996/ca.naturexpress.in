@@ -51,37 +51,6 @@ export interface ApprovalRecord {
   sha256Hash?: string;
 }
 
-const DEFAULT_REALISTIC_APPROVALS: ApprovalRecord[] = [
-  {
-    id: "appr-1",
-    documentTitle: "Form GSTR-3B Outward & Inward Tax Return for October 2026",
-    filingType: "GSTR_3B_MONTHLY",
-    clientName: "Pratwi Solutions Private Limited",
-    clientPan: "AANCP9915B",
-    signatoryName: "Chetan Pratap Singh (Director)",
-    signatoryPhone: "+91 80771 70715",
-    signatoryIp: "103.21.144.18 (Noida, Uttar Pradesh)",
-    timestamp: "2026-11-18 11:20:05 IST",
-    status: "APPROVED_AND_LOCKED",
-    sha256Hash: "5e6f7a8b9c0d1e2f3a4b5c6d7e8f901234567890abcdef1234567890abcdef12",
-    legalDeclarationText: "I verify that outward tax liability and Input Tax Credit claimed in Table 4 match our books of accounts and GSTR-2B reconciliation. Authorized to file."
-  },
-  {
-    id: "appr-2",
-    documentTitle: "ITR-V & Statement of Computation of Total Income for AY 2026-27",
-    filingType: "ITR_COMPUTATION_139",
-    clientName: "Pratwi Solutions Private Limited",
-    clientPan: "AANCP9915B",
-    signatoryName: "Chetan Pratap Singh (Director)",
-    signatoryPhone: "+91 80771 70715",
-    signatoryIp: "103.21.144.18 (Noida, Uttar Pradesh)",
-    timestamp: "2026-10-24 15:42:19 IST",
-    status: "APPROVED_AND_LOCKED",
-    sha256Hash: "8f4a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
-    legalDeclarationText: "I hereby confirm that I have verified the gross income, eligible deductions and tax liabilities computed in this return. I formally authorize GPA & Co., Chartered Accountants to upload and verify the return on the Income Tax Portal on our behalf."
-  }
-];
-
 interface AssesseeApprovalDeskProps {
   clients?: ClientEntity[];
 }
@@ -89,17 +58,46 @@ interface AssesseeApprovalDeskProps {
 export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clients = [] }) => {
   const { selectedClient, isFirmWideView } = useClientContext();
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
-  React.useEffect(() => {
-    if (!selectedClient || isFirmWideView) { setApprovals([]); return; }
+
+  const persistApproval = async (record: ApprovalRecord, entityId?: string | null) => {
     try {
-      const raw = localStorage.getItem(`bt_assessee_approvals_v1::${selectedClient.id}`);
-      setApprovals(raw ? JSON.parse(raw) : []);
-    } catch { setApprovals([]); }
-  }, [selectedClient, isFirmWideView]);
+      const targetEntityId = entityId || (selectedClient && !isFirmWideView ? selectedClient.id : undefined);
+      await fetch("/api/governance/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          recordType: "ASSESSEE_APPROVAL",
+          entityId: targetEntityId || null,
+          payload: record,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to persist SA 580 approval:", err);
+    }
+  };
+
   React.useEffect(() => {
-    if (!selectedClient || isFirmWideView) return;
-    try { localStorage.setItem(`bt_assessee_approvals_v1::${selectedClient.id}`, JSON.stringify(approvals)); } catch {}
-  }, [approvals, selectedClient, isFirmWideView]);
+    if (!selectedClient || isFirmWideView) {
+      setApprovals([]);
+      return;
+    }
+    let active = true;
+    fetch(`/api/governance/records?recordType=ASSESSEE_APPROVAL&entityId=${encodeURIComponent(selectedClient.id)}`, {
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active) return;
+        setApprovals(Array.isArray(data?.records) ? data.records : []);
+      })
+      .catch(() => {
+        if (active) setApprovals([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedClient, isFirmWideView]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
   const [copiedHashId, setCopiedHashId] = useState<string | null>(null);
@@ -148,17 +146,18 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
     setTimeout(() => setCopiedHashId(null), 2500);
   };
 
-  const handleCreateRequest = (newRecord: ApprovalRecord, openWhatsApp: boolean) => {
+  const handleCreateRequest = async (newRecord: ApprovalRecord, openWhatsApp: boolean) => {
     setApprovals(prev => [newRecord, ...prev]);
+    const matched = clients.find(c => c.pan === newRecord.clientPan || c.name === newRecord.clientName);
+    await persistApproval(newRecord, matched?.id || selectedClient?.id);
     toast.success("E-Sign Request Issued", `Generated authorization link for ${newRecord.clientName}.`);
   };
 
-  const handleSignComplete = (signedRecord: ApprovalRecord) => {
+  const handleSignComplete = async (signedRecord: ApprovalRecord) => {
     setApprovals(prev => prev.map(a => a.id === signedRecord.id ? signedRecord : a));
+    await persistApproval(signedRecord, selectedClient?.id);
     if (selectedClient && (signedRecord.filingType === "TAX_AUDIT_3CD" || signedRecord.filingType === "BALANCE_SHEET_AUDIT")) {
       try {
-        const key = `bt_udin_vault_v1::${selectedClient.id}`;
-        const existing = JSON.parse(localStorage.getItem(key) || "[]");
         const nextUdin = {
           id: `udin-${Date.now()}`,
           udin: "PENDING_GENERATION",
@@ -173,7 +172,16 @@ export const AssesseeApprovalDesk: React.FC<AssesseeApprovalDeskProps> = ({ clie
           status: "PENDING_GENERATION",
           daysRemainingForGeneration: 60
         };
-        localStorage.setItem(key, JSON.stringify([nextUdin, ...existing]));
+        await fetch("/api/governance/records", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            recordType: "UDIN_ENTRY",
+            entityId: selectedClient.id,
+            payload: nextUdin,
+          }),
+        });
         toast.info("UDIN Tracker Updated", "Added 60-day pending UDIN entry for " + signedRecord.clientName);
       } catch {}
     }

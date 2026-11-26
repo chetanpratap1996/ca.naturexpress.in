@@ -7,21 +7,29 @@ import {
   DscRecord,
   GstComplianceHistoryItem,
   GstFilingFrequency,
+  GstinRecordItem,
+  LastFiledPeriods,
   NoticeRecord,
   OnboardingMode,
   PortalCredential,
   PortalType,
+  ServiceScopeKey,
 } from "@/lib/types";
 import { toast } from "@/components/shared/ToastNotification";
-import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
-import { inferConstitutionFromPan } from "@/lib/config/entityDna";
+import { DEFAULT_FIRM_BRANDING, getPortalBaseUrl } from "@/lib/config/branding";
+import { evaluateEntityThresholds, inferConstitutionFromPan } from "@/lib/config/entityDna";
 import {
+  buildGstinRecordFromLookup,
   CLIENT_ARCHETYPE_BLUEPRINTS,
+  deriveDefaultServiceScope,
   evaluateClientOnboardingReadiness,
   normalizeGstApiReturns,
   parseAndValidateBulkClientCsv,
   ParsedCsvClientPreviewRow,
+  SERVICE_SCOPE_OPTIONS,
 } from "@/lib/config/clientOnboardingMatrix";
+import { parseCinStrict } from "@/lib/intelligence/registry/mcaEngine";
+import { EntityIntelligenceBox, EntityAutoFillPayload } from "@/components/firm/onboarding/EntityIntelligenceBox";
 import { isValidPan, isValidGstin } from "@/lib/utils";
 import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
 import { normalizePhone10 } from "@/lib/auth/session";
@@ -62,6 +70,7 @@ import {
 interface ClientMasterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: "directory" | "credentials" | "bulk" | "add";
   clients: ClientEntity[];
   groups?: ClientGroup[];
   portalCredentials?: PortalCredential[];
@@ -72,11 +81,13 @@ interface ClientMasterModalProps {
   onBatchImported?: () => Promise<void> | void;
   onUpdateClient?: (clientId: string, data: Partial<ClientEntity>) => Promise<any> | any;
   onDeleteClient?: (clientId: string) => Promise<void> | void;
+  onSelectClient?: (client: ClientEntity) => void;
 }
 
 export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   isOpen,
   onClose,
+  initialTab,
   clients,
   groups = [],
   portalCredentials = [],
@@ -87,8 +98,9 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   onBatchImported,
   onUpdateClient,
   onDeleteClient,
+  onSelectClient,
 }) => {
-  const [activeTab, setActiveTab] = useState<"directory" | "credentials" | "bulk" | "add">("directory");
+  const [activeTab, setActiveTab] = useState<"directory" | "credentials" | "bulk" | "add">(initialTab || "directory");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroupFilter, setSelectedGroupFilter] = useState("ALL");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("ALL");
@@ -114,14 +126,15 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   const [editCin, setEditCin] = useState("");
   const [editTan, setEditTan] = useState("");
   const [editGstFreq, setEditGstFreq] = useState<GstFilingFrequency>("MONTHLY");
-  const [editOnboardingMode, setEditOnboardingMode] = useState<OnboardingMode>("CA_TAKEOVER");
+  const [editOnboardingMode, setEditOnboardingMode] = useState<OnboardingMode>("EXISTING_CLIENT");
   const [editType, setEditType] = useState<ClientEntity["type"]>("PVT_LTD");
   const [editContactName, setEditContactName] = useState("");
   const [editContactPhone, setEditContactPhone] = useState("");
   const [editContactEmail, setEditContactEmail] = useState("");
-  const [editTurnoverCr, setEditTurnoverCr] = useState("10.0");
+  const [editTurnoverCr, setEditTurnoverCr] = useState("");
   const [editAssignedArticle, setEditAssignedArticle] = useState("");
   const [editAssignedPartner, setEditAssignedPartner] = useState(DEFAULT_FIRM_BRANDING.managingPartner);
+  const [editServiceScope, setEditServiceScope] = useState<ServiceScopeKey[]>([]);
   const [isUpdatingClient, setIsUpdatingClient] = useState(false);
 
   // Baseline & Past Data Drawer State
@@ -132,22 +145,37 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
   // Delete Confirmation State
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
 
-  // Form State for Single Client
+  // Form State for Single Client (Zero-Dummy Defaults)
   const [entityName, setEntityName] = useState("");
   const [tradeName, setTradeName] = useState("");
   const [pan, setPan] = useState("");
   const [gstin, setGstin] = useState("");
+  const [secondaryGstin, setSecondaryGstin] = useState("");
+  const [showSecondaryGstin, setShowSecondaryGstin] = useState(false);
   const [cin, setCin] = useState("");
   const [tan, setTan] = useState("");
   const [type, setType] = useState<ClientEntity["type"]>("PVT_LTD");
-  const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>("CA_TAKEOVER");
+  const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>("EXISTING_CLIENT");
   const [gstFilingFrequency, setGstFilingFrequency] = useState<GstFilingFrequency>("MONTHLY");
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [customGroupName, setCustomGroupName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [assignedArticle, setAssignedArticle] = useState("");
+  const [assignedArticleId, setAssignedArticleId] = useState("");
   const [assignedPartner, setAssignedPartner] = useState(DEFAULT_FIRM_BRANDING.managingPartner);
-  const [turnoverCr, setTurnoverCr] = useState("10.0");
+  const [assignedPartnerId, setAssignedPartnerId] = useState("");
+  const [turnoverCr, setTurnoverCr] = useState("");
+  const [digitalTxnPct, setDigitalTxnPct] = useState("95");
+  const [registeredAddress, setRegisteredAddress] = useState("");
+  const [serviceScope, setServiceScope] = useState<ServiceScopeKey[]>(["GST", "INCOME_TAX", "TDS", "ROC_MCA"]);
+  const [serviceScopeTouched, setServiceScopeTouched] = useState(false);
+  const [lastFiledGst, setLastFiledGst] = useState("");
+  const [lastFiledItrAy, setLastFiledItrAy] = useState("");
+  const [lastFiledRocFy, setLastFiledRocFy] = useState("");
+  const [monthlyRetainerFee, setMonthlyRetainerFee] = useState("");
+  const [lastCreatedClient, setLastCreatedClient] = useState<ClientEntity | null>(null);
   const [showDay1KeysSection, setShowDay1KeysSection] = useState(false);
   const [credItUser, setCredItUser] = useState("");
   const [credItPass, setCredItPass] = useState("");
@@ -165,13 +193,30 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
 
   const [successToast, setSuccessToast] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [visibleLimit, setVisibleLimit] = useState(50);
   const [csvPreviewRows, setCsvPreviewRows] = useState<ParsedCsvClientPreviewRow[]>([]);
   const [csvFileName, setCsvFileName] = useState("");
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const noticesCountMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    for (const n of notices) {
+      map.set(n.entityId, (map.get(n.entityId) || 0) + 1);
+    }
+    return map;
+  }, [notices]);
+
+  useEffect(() => {
+    setVisibleLimit(50);
+  }, [searchQuery, selectedGroupFilter, selectedTypeFilter, selectedHealthFilter, activeTab]);
+
   useEffect(() => {
     if (!isOpen) return;
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
     fetch("/api/staff", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -180,8 +225,14 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
           setStaffDirectory(active);
           const firstPartner = active.find((s: any) => s.role === "MANAGING_PARTNER" || s.role === "PAID_CHARTERED_ACCOUNTANT");
           const firstAssociate = active.find((s: any) => s.role !== "MANAGING_PARTNER");
-          if (firstPartner) setAssignedPartner((prev) => prev || firstPartner.fullName);
-          if (firstAssociate) setAssignedArticle((prev) => prev || firstAssociate.fullName);
+          if (firstPartner) {
+            setAssignedPartner((prev) => prev || firstPartner.fullName);
+            setAssignedPartnerId((prev) => prev || firstPartner.id);
+          }
+          if (firstAssociate) {
+            setAssignedArticle((prev) => prev || firstAssociate.fullName);
+            setAssignedArticleId((prev) => prev || firstAssociate.id);
+          }
         }
       })
       .catch(() => {});
@@ -195,18 +246,48 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     status?: string;
     stateName?: string;
     taxpayerType?: string;
+    registrationDate?: string;
+    cancellationDate?: string | null;
     address?: string;
     creditsRemaining?: number;
     filingHistory?: Array<{ returnType: string; returnPeriod: string; filingStatus: string; filingDate: string; arn: string }>;
     normalizedHistory?: GstComplianceHistoryItem[];
   } | null>(null);
 
+  const syncDefaultScope = (
+    nextType: ClientEntity["type"],
+    hasGstFlag: boolean,
+    nextTurnover: number,
+    hasTanFlag: boolean,
+    nextDigitalPct: number
+  ) => {
+    if (serviceScopeTouched) return;
+    setServiceScope(
+      deriveDefaultServiceScope({
+        type: nextType,
+        hasGst: hasGstFlag,
+        turnoverCr: nextTurnover,
+        hasTan: hasTanFlag,
+        digitalTxnPct: nextDigitalPct,
+      })
+    );
+  };
+
   const handlePanChangeWithDecode = (rawVal: string) => {
     const clean = rawVal.toUpperCase();
     setPan(clean);
     if (clean.length === 10 && isValidPan(clean)) {
       const decoded = inferConstitutionFromPan(clean);
-      if (decoded.isValid) setType(decoded.entityType);
+      if (decoded.isValid) {
+        setType(decoded.entityType);
+        syncDefaultScope(
+          decoded.entityType,
+          Boolean(gstin.trim()),
+          parseFloat(turnoverCr) || 0,
+          Boolean(tan.trim()),
+          parseFloat(digitalTxnPct) || 95
+        );
+      }
     }
   };
 
@@ -245,6 +326,8 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
         status: p.status,
         stateName: p.stateName,
         taxpayerType: p.taxpayerType,
+        registrationDate: p.registrationDate,
+        cancellationDate: p.cancellationDate,
         address: p.address,
         creditsRemaining: data.creditsRemaining,
         filingHistory: returns,
@@ -253,6 +336,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
 
       if (p.legalName) setEntityName(p.legalName);
       if (p.tradeName) setTradeName(p.tradeName);
+      if (p.address) setRegisteredAddress(p.address);
       if (p.pan) handlePanChangeWithDecode(p.pan);
       if (p.taxpayerType && String(p.taxpayerType).toLowerCase().includes("comp")) {
         setGstFilingFrequency("COMPOSITION");
@@ -269,7 +353,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     }
   };
 
-  const portalBaseUrl = typeof window !== "undefined" ? window.location.origin : "https://ca.naturexpress.in";
+  const portalBaseUrl = getPortalBaseUrl();
 
   // Directory per-client live GST return history sync
   const handleSyncClientGstBaseline = async (client: ClientEntity) => {
@@ -367,7 +451,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
         dscTokens,
         noticesCount: notices.filter((n) => n.entityId === client.id).length,
       });
-      const isTakeover = (client.onboardingMode || "CA_TAKEOVER") === "CA_TAKEOVER";
+      const isTakeover = client.onboardingMode === "CA_TAKEOVER";
       const missingDocs = bp.documentChecklist
         .filter((d) => (!d.takeoverOnly || isTakeover) && (!d.gstOnly || readiness.hasGst))
         .filter((d) => !(client.onboardingChecklist?.takeoverChecklistDone || []).includes(d.id))
@@ -382,6 +466,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
         firmName: DEFAULT_FIRM_BRANDING.firmName,
         entityTypeLabel: bp.label,
         isTakeover,
+        onboardingMode: client.onboardingMode || "EXISTING_CLIENT",
         missingDocs,
         missingPortals: readiness.missingPortals.map((p) => p.replace(/_/g, " ")),
       });
@@ -524,68 +609,94 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     }
 
     setIsImporting(true);
+    setImportProgress({ done: 0, total: validRows.length });
     try {
-      const batchPayload = validRows.map((r) => ({
-        name: r.name,
-        type: r.type,
-        pan: r.pan,
-        gstin: r.gstin,
-        tan: r.tan,
-        cin: r.cin,
-        gstFilingFrequency: r.gstFilingFrequency,
-        onboardingMode: r.onboardingMode || "CA_TAKEOVER",
-        turnoverCr: r.turnoverCr,
-        incorporationYear: 2024,
-        partnerInCharge: assignedPartner || DEFAULT_FIRM_BRANDING.managingPartner,
-        assignedArticle: r.assignedArticle,
-        primaryContact: {
-          name: r.contactName,
-          phone: r.contactPhone,
-          email: r.contactEmail,
-          designation: "Director / Authorized Signatory",
-        },
-      }));
-
-      const response = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ batch: batchPayload }),
+      const batchPayload = validRows.map((r) => {
+        const cinParsed = r.cin ? parseCinStrict(r.cin) : null;
+        const gstRec = r.gstin
+          ? buildGstinRecordFromLookup({
+              gstin: r.gstin,
+              legalName: r.name,
+              filingFrequency: r.gstFilingFrequency,
+              turnoverCr: r.turnoverCr,
+              authorizedSignatory: r.contactName,
+              otpMobile: r.contactPhone,
+            })
+          : null;
+        return {
+          name: r.name,
+          type: r.type,
+          pan: r.pan,
+          gstin: r.gstin,
+          gstinRecords: gstRec ? [gstRec] : undefined,
+          tan: r.tan,
+          cin: r.cin,
+          gstFilingFrequency: r.gstFilingFrequency,
+          onboardingMode: r.onboardingMode || "EXISTING_CLIENT",
+          serviceScope: r.serviceScope,
+          groupName: r.groupName,
+          turnoverCr: r.turnoverCr,
+          incorporationYear: cinParsed?.isValid ? cinParsed.incorporationYear : new Date().getFullYear(),
+          partnerInCharge: assignedPartner || DEFAULT_FIRM_BRANDING.managingPartner,
+          partnerInChargeId: assignedPartnerId || undefined,
+          assignedArticle: r.assignedArticle,
+          primaryContact: {
+            name: r.contactName,
+            phone: r.contactPhone,
+            email: r.contactEmail,
+            designation: "Director / Authorized Signatory",
+          },
+        };
       });
 
-      const resData = await response.json();
-      if (response.ok && resData.success) {
-        toast.success(
-          "Bulk Import Successful",
-          `Successfully onboarded ${resData.count || batchPayload.length} clients!`
-        );
-        setSuccessToast(`✓ Onboarded ${resData.count || batchPayload.length} clients! Switching to 1-Tap Broadcast Desk...`);
-        setCsvPreviewRows([]);
-        setCsvFileName("");
+      const CHUNK_SIZE = 200;
+      let totalImported = 0;
+      for (let i = 0; i < batchPayload.length; i += CHUNK_SIZE) {
+        const chunk = batchPayload.slice(i, i + CHUNK_SIZE);
+        const response = await fetch("/api/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ batch: chunk }),
+        });
 
-        if (onBatchImported) {
-          await onBatchImported();
-        } else if (onRefreshData) {
-          await onRefreshData();
+        const resData = await response.json();
+        if (!response.ok || !resData.success) {
+          throw new Error(resData.error || `Chunk failed at row ${i + 1}`);
         }
-
-        setTimeout(() => {
-          setSuccessToast("");
-          setActiveTab("credentials");
-        }, 1200);
-      } else {
-        toast.error("Import Error", resData.error || "Failed to persist batch");
+        totalImported += Number(resData.count || chunk.length);
+        setImportProgress({ done: Math.min(batchPayload.length, i + chunk.length), total: batchPayload.length });
       }
+
+      toast.success(
+        "Bulk Import Successful",
+        `Successfully onboarded ${totalImported} clients to PostgreSQL!`
+      );
+      setSuccessToast(`✓ Onboarded ${totalImported} clients! Switching to WhatsApp Invite Desk...`);
+      setCsvPreviewRows([]);
+      setCsvFileName("");
+
+      if (onBatchImported) {
+        await onBatchImported();
+      } else if (onRefreshData) {
+        await onRefreshData();
+      }
+
+      setTimeout(() => {
+        setSuccessToast("");
+        setActiveTab("credentials");
+      }, 1200);
     } catch (err: any) {
       toast.error("Import Failed", "Failed to upload CSV batch: " + err.message);
     } finally {
       setIsImporting(false);
+      setImportProgress(null);
     }
   };
 
   const handleDownloadCsvTemplate = () => {
-    const csvContent = `entity_name,legal_type,pan,gstin,contact_name,contact_phone,contact_email,turnover_cr,assigned_article,tan,cin_llpin,gst_frequency,onboarding_mode
-"Pratwi Solutions Private Limited","PVT_LTD","AANCP9915B","09AANCP9915B1Z4","Chetan Pratap Singh","+91 80771 70715","chetanpratap1996@gmail.com",1.0,"Kriti Jain","DELP12345A","U72900DL2020PTC123456","MONTHLY","CA_TAKEOVER"`;
+    const csvContent = `entity_name,legal_type,pan,gstin,contact_name,contact_phone,contact_email,turnover_cr,assigned_article,tan,cin_llpin,gst_frequency,onboarding_mode,services,group_name
+"Acme Manufacturing Private Limited","PVT_LTD","AABCA1234C","23AABCA1234C1Z5","Rajesh Sharma","+91 98260 11223","accounts@acmemfg.in",4.5,"Kriti Jain","BPLA01234B","U28900MP2018PTC045123","MONTHLY","EXISTING_CLIENT","GST|INCOME_TAX|TDS|ROC_MCA","Sharma Family Group"`;
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -644,9 +755,51 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       toast.error("Invalid GSTIN", "Please enter a valid 15-character GSTIN with valid state code.");
       return;
     }
+    const secGstinClean = showSecondaryGstin ? secondaryGstin.trim().toUpperCase() : "";
+    if (secGstinClean && !isValidGstin(secGstinClean)) {
+      toast.error("Invalid Secondary GSTIN", "Please enter a valid 15-character secondary GSTIN.");
+      return;
+    }
 
     setIsSubmittingForm(true);
     const savedName = entityName.trim();
+    const cleanCinVal = cin.trim().toUpperCase() || undefined;
+    const cinParsed = cleanCinVal ? parseCinStrict(cleanCinVal) : null;
+    const parsedTurnover = parseFloat(turnoverCr);
+    const resolvedTurnover = Number.isFinite(parsedTurnover) && parsedTurnover >= 0 ? parsedTurnover : 0;
+    const resolvedDigitalPct = Math.min(100, Math.max(0, parseFloat(digitalTxnPct) || 95));
+
+    const builtGstins: GstinRecordItem[] = [];
+    if (gstinClean) {
+      const primaryRec = buildGstinRecordFromLookup({
+        gstin: gstinClean,
+        legalName: gstAutoData?.legalName || savedName,
+        tradeName: tradeName.trim() || gstAutoData?.tradeName || savedName,
+        status: gstAutoData?.status || "ACTIVE",
+        taxpayerType: gstAutoData?.taxpayerType || (gstFilingFrequency === "COMPOSITION" ? "Composition" : "Regular"),
+        registrationDate: gstAutoData?.registrationDate,
+        cancellationDate: gstAutoData?.cancellationDate,
+        address: gstAutoData?.address || registeredAddress.trim() || undefined,
+        filingFrequency: gstFilingFrequency,
+        turnoverCr: resolvedTurnover,
+        authorizedSignatory: contactName.trim() || undefined,
+        otpMobile: contactPhone.trim() || undefined,
+      });
+      if (primaryRec) builtGstins.push(primaryRec);
+    }
+    if (secGstinClean && secGstinClean !== gstinClean) {
+      const secRec = buildGstinRecordFromLookup({
+        gstin: secGstinClean,
+        legalName: savedName,
+        tradeName: tradeName.trim() || savedName,
+        filingFrequency: gstFilingFrequency,
+        turnoverCr: resolvedTurnover,
+        authorizedSignatory: contactName.trim() || undefined,
+        otpMobile: contactPhone.trim() || undefined,
+      });
+      if (secRec) builtGstins.push(secRec);
+    }
+
     const initialCredentials: Array<{ portalType: PortalType; username: string; password: string }> = [];
     if (credItUser.trim() && credItPass.trim()) {
       initialCredentials.push({ portalType: "INCOME_TAX", username: credItUser.trim(), password: credItPass.trim() });
@@ -661,18 +814,37 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       initialCredentials.push({ portalType: "TRACES", username: credTracesUser.trim(), password: credTracesPass.trim() });
     }
 
+    const lastFiledPeriods: LastFiledPeriods | undefined =
+      onboardingMode !== "NEW_BUSINESS" && (lastFiledGst.trim() || lastFiledItrAy.trim() || lastFiledRocFy.trim())
+        ? {
+            gst: lastFiledGst.trim() || undefined,
+            itrAy: lastFiledItrAy.trim() || undefined,
+            rocFy: lastFiledRocFy.trim() || undefined,
+          }
+        : undefined;
+
+    const retainerAmount = parseFloat(monthlyRetainerFee);
+
     const newClientPayload: any = {
-      id: `CLI-${Date.now().toString().slice(-4)}`,
-      groupId: groups?.[0]?.id || "GRP-DIRECT",
-      groupName: groups?.[0]?.name || "Direct Practice Clients",
+      groupId: selectedGroupId && selectedGroupId !== "__NEW__" ? selectedGroupId : undefined,
+      groupName:
+        selectedGroupId && selectedGroupId !== "__NEW__"
+          ? groups.find((g) => g.id === selectedGroupId)?.name
+          : customGroupName.trim() || `${savedName} Group`,
       name: savedName,
       tradeName: tradeName.trim() || gstAutoData?.tradeName || undefined,
       type,
       pan: panClean,
       gstin: gstinClean || undefined,
+      gstinRecords: builtGstins.length > 0 ? builtGstins : undefined,
       gstFilingFrequency: gstinClean ? gstFilingFrequency : "UNREGISTERED",
       onboardingMode,
-      cin: cin.trim().toUpperCase() || undefined,
+      serviceScope,
+      cutoverDate: new Date().toISOString().split("T")[0],
+      lastFiledPeriods,
+      digitalTxnPct: resolvedDigitalPct,
+      registeredAddress: registeredAddress.trim() || gstAutoData?.address || undefined,
+      cin: cleanCinVal,
       tan: tan.trim().toUpperCase() || undefined,
       gstHistory: gstAutoData?.normalizedHistory,
       onboardingChecklist: gstAutoData?.normalizedHistory
@@ -684,18 +856,24 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
         : initialCredentials.length > 0
           ? { completedPortals: initialCredentials.map((c) => c.portalType), takeoverChecklistDone: [] }
           : undefined,
-      turnoverCr: parseFloat(turnoverCr) || 5.0,
-      incorporationYear: 2024,
+      turnoverCr: resolvedTurnover,
+      incorporationYear: cinParsed?.isValid ? cinParsed.incorporationYear : new Date().getFullYear(),
       penaltyRiskAccrued: 0,
       partnerInCharge: assignedPartner,
+      partnerInChargeId: assignedPartnerId || undefined,
       assignedArticle,
+      assignedArticleId: assignedArticleId || undefined,
       primaryContact: {
-        name: contactName.trim() || "Promoter",
+        name: contactName.trim() || "Authorized Signatory",
         phone: contactPhone.trim(),
         email: contactEmail.trim(),
-        designation: "Director / Authorized Signatory",
+        designation: type === "LLP" ? "Designated Partner" : type === "PROPRIETORSHIP" ? "Proprietor" : "Director / Authorized Signatory",
       },
       initialCredentials: initialCredentials.length > 0 ? initialCredentials : undefined,
+      initialAgreement:
+        Number.isFinite(retainerAmount) && retainerAmount > 0
+          ? { baseRetainerFee: retainerAmount, billingCycle: "MONTHLY" }
+          : undefined,
       initialDsc:
         dscHolderName.trim() && dscSerialNumber.trim()
           ? {
@@ -710,19 +888,31 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     };
 
     try {
-      await onAddClient(newClientPayload);
+      const created = await onAddClient(newClientPayload);
+      setLastCreatedClient(created || newClientPayload);
       toast.success(
-        "Client Successfully Onboarded",
-        `"${savedName}" (${panClean}) is now active. Tailored handover kit ready to share.`
+        "Client Enrolled",
+        `"${savedName}" (${panClean}) saved with scoped compliance tasks.`
       );
-      setSuccessToast(`✓ Client "${savedName}" registered! Switching to 1-Tap Broadcast Desk...`);
+      setSuccessToast(`Saved "${savedName}". Choose your next step below or continue adding clients.`);
 
       setEntityName("");
       setTradeName("");
       setPan("");
       setGstin("");
+      setSecondaryGstin("");
+      setShowSecondaryGstin(false);
       setCin("");
       setTan("");
+      setTurnoverCr("");
+      setRegisteredAddress("");
+      setSelectedGroupId("");
+      setCustomGroupName("");
+      setLastFiledGst("");
+      setLastFiledItrAy("");
+      setLastFiledRocFy("");
+      setMonthlyRetainerFee("");
+      setServiceScopeTouched(false);
       setGstAutoData(null);
       setContactName("");
       setContactPhone("");
@@ -739,11 +929,6 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       setDscSerialNumber("");
       setDscValidTill("");
       setShowDay1KeysSection(false);
-
-      setTimeout(() => {
-        setSuccessToast("");
-        setActiveTab("credentials");
-      }, 900);
     } catch (err: any) {
       toast.error("Onboarding Failed", err.message || "Failed to onboard client");
     } finally {
@@ -761,14 +946,24 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
     setEditCin(client.cin || "");
     setEditTan(client.tan || "");
     setEditGstFreq(client.gstFilingFrequency || (client.gstin ? "MONTHLY" : "UNREGISTERED"));
-    setEditOnboardingMode(client.onboardingMode || "CA_TAKEOVER");
+    setEditOnboardingMode(client.onboardingMode || "EXISTING_CLIENT");
     setEditType(client.type);
     setEditContactName(client.primaryContact?.name || "");
     setEditContactPhone(client.primaryContact?.phone || "");
     setEditContactEmail(client.primaryContact?.email || "");
-    setEditTurnoverCr(String(client.turnoverCr || "10.0"));
+    setEditTurnoverCr(client.turnoverCr ? String(client.turnoverCr) : "");
     setEditAssignedArticle(client.assignedArticle || "");
     setEditAssignedPartner(client.partnerInCharge || DEFAULT_FIRM_BRANDING.managingPartner);
+    setEditServiceScope(
+      Array.isArray(client.serviceScope) && client.serviceScope.length > 0
+        ? client.serviceScope
+        : deriveDefaultServiceScope({
+            type: client.type,
+            hasGst: Boolean(client.gstin),
+            turnoverCr: client.turnoverCr || 0,
+            hasTan: Boolean(client.tan),
+          })
+    );
   };
 
   // Save Edit Client Form
@@ -787,6 +982,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       return;
     }
 
+    const parsedEditTurnover = parseFloat(editTurnoverCr);
     setIsUpdatingClient(true);
     const updatedData: Partial<ClientEntity> = {
       name: editEntityName.trim(),
@@ -796,15 +992,16 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
       tan: editTan.trim().toUpperCase() || undefined,
       gstFilingFrequency: cleanEditGstin ? editGstFreq : "UNREGISTERED",
       onboardingMode: editOnboardingMode,
+      serviceScope: editServiceScope,
       type: editType,
-      turnoverCr: parseFloat(editTurnoverCr) || 5.0,
+      turnoverCr: Number.isFinite(parsedEditTurnover) && parsedEditTurnover >= 0 ? parsedEditTurnover : 0,
       assignedArticle: editAssignedArticle,
       partnerInCharge: editAssignedPartner,
       primaryContact: {
-        name: editContactName.trim() || "Promoter",
+        name: editContactName.trim() || "Authorized Signatory",
         phone: editContactPhone.trim(),
         email: editContactEmail.trim(),
-        designation: editingClient.primaryContact?.designation || "Director",
+        designation: editingClient.primaryContact?.designation || "Director / Authorized Signatory",
       },
     };
 
@@ -872,28 +1069,18 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Modal Header */}
+        {/* Modal Header - Clean & Minimal */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3 pr-12 lg:pr-14">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-red-50 border border-red-200 text-btred-logo flex items-center justify-center shrink-0">
-              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 text-btred-logo flex items-center justify-center shrink-0">
+              <Building2 className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-black text-slate-900">
-                  Client Master &amp; WhatsApp Onboarding Desk
-                </h3>
-                <span className="bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-200">
-                  {clients.length} Clients Registered
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-                {DEFAULT_FIRM_BRANDING.firmName} &bull; Portal: <strong className="font-mono text-slate-700">{portalBaseUrl}/</strong>
-              </p>
-            </div>
+            <h3 className="text-sm sm:text-base font-black text-slate-900">
+              Client Master
+            </h3>
           </div>
 
-          {/* Navigation Tabs - Clean, no truncate, no double plus */}
+          {/* Navigation Tabs */}
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl text-xs font-bold overflow-x-auto scrollbar-none w-full lg:w-auto shrink-0">
             <button
               onClick={() => setActiveTab("directory")}
@@ -910,7 +1097,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
               }`}
             >
               <Send className="w-3.5 h-3.5" />
-              <span>1-Tap WhatsApp Desk</span>
+              <span>WhatsApp Invite</span>
             </button>
             <button
               onClick={() => setActiveTab("bulk")}
@@ -919,7 +1106,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Upload 100+ CSV</span>
+              <span>Upload CSV</span>
             </button>
             <button
               onClick={() => setActiveTab("add")}
@@ -933,18 +1120,67 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
           </div>
         </div>
 
-        {/* Global Confirmation Banner */}
+        {/* Post-Save Confirmation & Next-Action Card */}
         {successToast && (
-          <div className="bg-emerald-50 border border-emerald-300 p-3 sm:p-3.5 rounded-2xl text-emerald-900 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-emerald-50 border border-emerald-300 p-3 sm:p-3.5 rounded-2xl text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <div>
                 <span className="font-extrabold text-xs block text-emerald-900">{successToast}</span>
-                <span className="text-[11px] text-emerald-700">Client profile and Zero-DLT credentials successfully initialized.</span>
+                <span className="text-[11px] text-emerald-700">Statutory calendar and portal access are active.</span>
               </div>
             </div>
+            {lastCreatedClient && (
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                <a
+                  href={generateClientWhatsAppUrl(lastCreatedClient)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 transition active:scale-95"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Send Portal Invite</span>
+                </a>
+                {onSelectClient && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectClient(lastCreatedClient);
+                      setSuccessToast("");
+                      setLastCreatedClient(null);
+                      onClose();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition active:scale-95"
+                  >
+                    Open in Workspace
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccessToast("");
+                    setLastCreatedClient(null);
+                    setActiveTab("directory");
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-900 font-bold text-[11px]"
+                >
+                  View Directory
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccessToast("");
+                    setLastCreatedClient(null);
+                  }}
+                  className="p-1 text-emerald-700 hover:text-emerald-950"
+                  title="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1048,7 +1284,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   </button>
                 </div>
               ) : (
-                filteredClients.map((client) => {
+                filteredClients.slice(0, visibleLimit).map((client) => {
                   const director = client.primaryContact?.name || "Director";
                   const phone = client.primaryContact?.phone || "";
                   const phone10 = normalizePhone10(phone);
@@ -1060,12 +1296,12 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   const baseScore = 100 - penaltyDeduction;
                   const isHealthy = baseScore >= 80;
 
-                  const clientNotices = notices.filter((n) => n.entityId === client.id);
+                  const clientNoticesCount = noticesCountMap.get(client.id) || 0;
                   const readiness = evaluateClientOnboardingReadiness({
                     client,
                     credentials: portalCredentials,
                     dscTokens,
-                    noticesCount: clientNotices.length,
+                    noticesCount: clientNoticesCount,
                   });
                   const isSyncingGst = syncingGstClientId === client.id;
 
@@ -1080,11 +1316,15 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                             {client.type.replace(/_/g, " ")}
                           </span>
 
-                          {client.onboardingMode === "NEW_BUSINESS" && (
+                          {client.onboardingMode === "NEW_BUSINESS" ? (
                             <span className="text-[10px] font-black uppercase bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded border border-sky-200">
                               New Setup
                             </span>
-                          )}
+                          ) : client.onboardingMode === "CA_TAKEOVER" ? (
+                            <span className="text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200">
+                              CA Takeover
+                            </span>
+                          ) : null}
 
                           <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
                             PAN: {client.pan}
@@ -1123,6 +1363,27 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                             <span className="text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-300 px-1.5 py-0.5 rounded">
                               {readiness.unfiledGstCount} Unfiled GST
                             </span>
+                          )}
+
+                          {client.gstHistory && client.gstHistory.length > 0 && (
+                            <div
+                              className="flex items-center gap-0.5 bg-slate-50 border border-slate-200 px-1.5 py-1 rounded"
+                              title={`Last ${Math.min(6, client.gstHistory.length)} GST filing periods (Green=On-Time, Amber=Delayed, Red=Unfiled)`}
+                            >
+                              {client.gstHistory.slice(0, 6).map((h, idx) => (
+                                <span
+                                  key={`${h.period}-${idx}`}
+                                  title={`${h.period} (${h.returnType}): ${!h.arn ? "Missing" : h.delayDays > 0 ? `Late ${h.delayDays}d` : "On-Time"}`}
+                                  className={`w-2 h-2 rounded-full ${
+                                    !h.arn
+                                      ? "bg-rose-500"
+                                      : h.delayDays > 0
+                                      ? "bg-amber-400"
+                                      : "bg-emerald-500"
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           )}
 
                           <span
@@ -1204,8 +1465,21 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         </a>
 
                         {/* Open Portal */}
+                        {onSelectClient && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSelectClient(client);
+                              onClose();
+                            }}
+                            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold px-2.5 py-1.5 rounded-xl transition text-[11px] flex items-center gap-1"
+                            title="Switch Active Workspace to this Client"
+                          >
+                            <span>Activate</span>
+                          </button>
+                        )}
                         <a
-                          href={`/?view=client&id=${client.id}`}
+                          href={`/?portal=client${phone10 ? `&phone=${phone10}` : ""}`}
                           target="_blank"
                           rel="noreferrer"
                           className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition text-[11px] flex items-center gap-1"
@@ -1236,6 +1510,29 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     </div>
                   );
                 })
+              )}
+              {filteredClients.length > visibleLimit && (
+                <div className="p-3 bg-slate-50 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-600 font-medium">
+                    Showing {visibleLimit} of {filteredClients.length} clients
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleLimit((v) => v + 100)}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 font-bold text-slate-800"
+                    >
+                      Load 100 More
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibleLimit(filteredClients.length)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold"
+                    >
+                      Show All ({filteredClients.length})
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -1318,7 +1615,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <p className="text-[11px] text-slate-500">Upload a CSV of 100+ clients using the CSV Import tab.</p>
                 </div>
               ) : (
-                filteredClients.map((client) => {
+                filteredClients.slice(0, visibleLimit).map((client) => {
                   const director = client.primaryContact?.name || "Director";
                   const phone = client.primaryContact?.phone || "";
                   const phone10 = normalizePhone10(phone);
@@ -1376,6 +1673,29 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     </div>
                   );
                 })
+              )}
+              {filteredClients.length > visibleLimit && (
+                <div className="p-3 bg-slate-50 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-600 font-medium">
+                    Showing {visibleLimit} of {filteredClients.length} clients
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleLimit((v) => v + 100)}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 font-bold text-slate-800"
+                    >
+                      Load 100 More
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibleLimit(filteredClients.length)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold"
+                    >
+                      Show All ({filteredClients.length})
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -1461,13 +1781,29 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       >
                         {isImporting ? <RotateCcw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                         <span>
-                          {isImporting
-                            ? "Importing Batch..."
-                            : `Import ${csvPreviewRows.filter((r) => r.isValid).length} Valid Clients`}
+                          {isImporting && importProgress
+                            ? `Importing ${importProgress.done} / ${importProgress.total}...`
+                            : isImporting
+                              ? "Importing Batch..."
+                              : `Import ${csvPreviewRows.filter((r) => r.isValid).length} Valid Clients`}
                         </span>
                       </button>
                     </div>
                   </div>
+
+                  {isImporting && importProgress && (
+                    <div className="space-y-1">
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-600 transition-all duration-300"
+                          style={{ width: `${Math.round((importProgress.done / Math.max(1, importProgress.total)) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-500 block text-right">
+                        {importProgress.done} / {importProgress.total} persisted to PostgreSQL
+                      </span>
+                    </div>
+                  )}
 
                   <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
                     {csvPreviewRows.slice(0, 100).map((r) => (
@@ -1517,22 +1853,112 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
         )}
 
         {/* =========================================================================
-            TAB 4: ADD SINGLE CLIENT (ARCHETYPE-AWARE ONBOARDING)
+            TAB 4: ADD SINGLE CLIENT (3-TRACK PRACTICE-GRADE ONBOARDING)
            ========================================================================= */}
         {activeTab === "add" && (
-          <form onSubmit={handleCreateClient} className="space-y-4 text-xs">
-            {/* 0. Onboarding Scenario & Entity Blueprint */}
+          <form onSubmit={handleCreateClient} autoComplete="off" className="space-y-4 text-xs animate-in fade-in duration-200">
+            {/* Enterprise Entity Intelligence Engine */}
+            <EntityIntelligenceBox
+              initialGstin={gstin}
+              initialCin={cin}
+              initialPan={pan}
+              onAutoFill={(payload: EntityAutoFillPayload) => {
+                if (payload.entityName) setEntityName(payload.entityName);
+                if (payload.tradeName) setTradeName(payload.tradeName);
+                if (payload.gstin) setGstin(payload.gstin);
+                if (payload.cin) setCin(payload.cin);
+                if (payload.registeredAddress) setRegisteredAddress(payload.registeredAddress);
+                if (payload.lastFiledPeriod) setLastFiledGst(payload.lastFiledPeriod);
+                if (payload.gstFilingFrequency) {
+                  setGstFilingFrequency(payload.gstFilingFrequency as GstFilingFrequency);
+                }
+                const nextType = (payload.entityType as ClientEntity["type"]) || type;
+                if (payload.entityType) {
+                  setType(nextType);
+                }
+                if (payload.pan) {
+                  setPan(payload.pan);
+                }
+                syncDefaultScope(
+                  nextType,
+                  Boolean(payload.gstin || gstin.trim()),
+                  parseFloat(turnoverCr) || 0,
+                  Boolean(tan.trim()),
+                  parseFloat(digitalTxnPct) || 95
+                );
+                setGstAutoData({
+                  legalName: payload.entityName,
+                  tradeName: payload.tradeName,
+                  status: payload.gstStatus,
+                  stateName: payload.stateName,
+                  taxpayerType: payload.taxpayerType,
+                  registrationDate: payload.gstRegistrationDate,
+                  cancellationDate: payload.gstCancellationDate,
+                  address: payload.registeredAddress,
+                  normalizedHistory: payload.normalizedHistory,
+                });
+                toast.success(
+                  "Entity Intelligence Applied",
+                  `${payload.entityName || payload.gstin || payload.pan} auto-filled${
+                    payload.complianceScore !== undefined ? ` • Compliance Score: ${payload.complianceScore}/100` : ""
+                  }`
+                );
+              }}
+            />
+
+            {/* Live Smart Onboarding Step & Readiness Strip */}
+            {(() => {
+              const idReady = Boolean(entityName.trim()) && isValidPan(pan);
+              const contactReady = rawCleanPhone.length >= 10;
+              const scopeReady = serviceScope.length > 0;
+              const keysReady = Boolean(credItUser || credGstUser || credMcaUser || credTracesUser || dscSerialNumber);
+              const stepsDone = [idReady, contactReady, scopeReady, keysReady].filter(Boolean).length;
+              return (
+                <div className="bg-slate-900 text-white rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`px-2 py-0.5 rounded-lg font-bold transition ${idReady ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" : "bg-white/10 text-slate-300"}`}>
+                      {idReady ? "✓" : "1."} Legal ID
+                    </span>
+                    <span className="text-slate-500">&rarr;</span>
+                    <span className={`px-2 py-0.5 rounded-lg font-bold transition ${contactReady ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" : "bg-white/10 text-slate-300"}`}>
+                      {contactReady ? "✓" : "2."} Signatory
+                    </span>
+                    <span className="text-slate-500">&rarr;</span>
+                    <span className={`px-2 py-0.5 rounded-lg font-bold transition ${scopeReady ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" : "bg-white/10 text-slate-300"}`}>
+                      {scopeReady ? "✓" : "3."} Services
+                    </span>
+                    <span className="text-slate-500">&rarr;</span>
+                    <span className={`px-2 py-0.5 rounded-lg font-bold transition ${keysReady ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" : "bg-white/10 text-slate-400"}`}>
+                      {keysReady ? "✓" : "4."} Day-1 Keys
+                    </span>
+                  </div>
+                  <span className="font-mono text-[10px] text-slate-300">
+                    {stepsDone}/4 Ready
+                  </span>
+                </div>
+              );
+            })()}
+            {/* 0. Onboarding Track & Cutover Context */}
             <div className="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
-                    0. Acquisition Mode &amp; Constitution Blueprint
+                    0. Onboarding Track
                   </h4>
                   <p className="text-[11px] text-slate-600">
-                    Tailors required statutory portals, tax calendar rules, and client handover checklist.
+                    Sets statutory task rules, cutover periods, and client portal checklist.
                   </p>
                 </div>
-                <div className="inline-flex bg-white border border-indigo-200 rounded-xl p-0.5 text-[11px] font-bold shrink-0">
+                <div className="inline-flex flex-wrap bg-white border border-indigo-200 rounded-xl p-0.5 text-[11px] font-bold shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingMode("EXISTING_CLIENT")}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      onboardingMode === "EXISTING_CLIENT" ? "bg-emerald-600 text-white" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Existing Firm Client
+                  </button>
                   <button
                     type="button"
                     onClick={() => setOnboardingMode("CA_TAKEOVER")}
@@ -1549,36 +1975,137 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       onboardingMode === "NEW_BUSINESS" ? "bg-sky-600 text-white" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    New Incorporation / Fresh
+                    New Incorporation
                   </button>
                 </div>
               </div>
 
-              {(() => {
-                const bp = CLIENT_ARCHETYPE_BLUEPRINTS[type] || CLIENT_ARCHETYPE_BLUEPRINTS.PVT_LTD;
-                return (
-                  <div className="bg-white border border-indigo-100 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+              {/* Actionable Track Panel */}
+              {onboardingMode === "EXISTING_CLIENT" && (
+                <div className="bg-white border border-emerald-200 rounded-xl p-3 space-y-2.5 text-[11px]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="font-extrabold text-emerald-900">
+                      Last Filed Cutover (Skips already-filed cycles in Calendar)
+                    </span>
+                    <span className="text-[10px] text-slate-500">Leave blank to auto-detect from GSTN / current FY</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <span className="font-extrabold text-emerald-800 block mb-1">
-                        Usually Available on Day 1 ({bp.shortLabel}):
-                      </span>
-                      <p className="text-slate-600 leading-relaxed">{bp.typicalAssetsOnDay1.slice(0, 3).join(" • ")}</p>
+                      <label className="font-bold text-slate-700 block mb-1">Last Filed GST Period</label>
+                      <input
+                        type="text"
+                        value={lastFiledGst}
+                        onChange={(e) => setLastFiledGst(e.target.value)}
+                        placeholder="e.g. Oct 2026 or Q2 FY26"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-mono"
+                      />
                     </div>
                     <div>
-                      <span className="font-extrabold text-amber-800 block mb-1">
-                        Missing / Collect via Handover Kit:
-                      </span>
-                      <p className="text-slate-600 leading-relaxed">{bp.usuallyMissingOnDay1.slice(0, 3).join(" • ")}</p>
+                      <label className="font-bold text-slate-700 block mb-1">Last Filed ITR (AY)</label>
+                      <input
+                        type="text"
+                        value={lastFiledItrAy}
+                        onChange={(e) => setLastFiledItrAy(e.target.value)}
+                        placeholder="e.g. AY 2026-27"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Last ROC Annual Filing (FY)</label>
+                      <input
+                        type="text"
+                        value={lastFiledRocFy}
+                        onChange={(e) => setLastFiledRocFy(e.target.value)}
+                        placeholder="e.g. FY 2025-26 (AOC-4/MGT-7)"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-mono"
+                      />
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+              )}
+
+              {onboardingMode === "CA_TAKEOVER" && (
+                <div className="bg-white border border-indigo-200 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+                  <div>
+                    <span className="font-extrabold text-indigo-900 block mb-1">
+                      Takeover Handover Queue ({(CLIENT_ARCHETYPE_BLUEPRINTS[type] || CLIENT_ARCHETYPE_BLUEPRINTS.PVT_LTD).shortLabel}):
+                    </span>
+                    <p className="text-slate-600 leading-relaxed">
+                      {(CLIENT_ARCHETYPE_BLUEPRINTS[type] || CLIENT_ARCHETYPE_BLUEPRINTS.PVT_LTD).usuallyMissingOnDay1.slice(0, 3).join(" • ")}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-amber-800 block mb-1">
+                      Day-1 Statutory Checks Scheduled:
+                    </span>
+                    <p className="text-slate-600 leading-relaxed">
+                      NOC &amp; previous CA handover verification, GSTN filing-gap scan, TRACES/26AS notice check &amp; prior AY ITR/3CD retrieval.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {onboardingMode === "NEW_BUSINESS" && (
+                <div className="bg-white border border-sky-200 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+                  <div>
+                    <span className="font-extrabold text-sky-900 block mb-1">
+                      Startup Post-Incorporation Milestones:
+                    </span>
+                    <p className="text-slate-600 leading-relaxed">
+                      {(type === "PVT_LTD" || type === "PUBLIC_LTD")
+                        ? "INC-20A Commencement (180d) • ADT-1 First Auditor (30d) • Bank Current Account & GST/TAN"
+                        : "Current Account Opening • Deed / COI Archive • Optional GST & Shop Act Registration"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-emerald-800 block mb-1">
+                      Smart Calendar Behavior:
+                    </span>
+                    <p className="text-slate-600 leading-relaxed">
+                      Prior-year ITR, Tax Audit (3CD) &amp; old ROC annual catch-up tasks are automatically omitted.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
+            {/* 1. Legal Entity Identification */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-              <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
-                1. Legal Entity Identification
-              </h4>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
+                  1. Legal Entity Identification
+                </h4>
+                {(() => {
+                  const parsedCin = cin.trim().length === 21 ? parseCinStrict(cin) : null;
+                  const parsedTurnover = parseFloat(turnoverCr) || 0;
+                  const parsedDigital = parseFloat(digitalTxnPct) || 95;
+                  const thresholdPreview = evaluateEntityThresholds(
+                    parsedTurnover,
+                    Math.max(0, 100 - parsedDigital),
+                    false,
+                    type
+                  );
+                  return (
+                    <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
+                      {parsedCin?.isValid && parsedCin.incorporationYear && (
+                        <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold">
+                          Inc. {parsedCin.incorporationYear} • {parsedCin.stateName}
+                        </span>
+                      )}
+                      {thresholdPreview.taxAuditApplicable && (
+                        <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">
+                          44AB Audit Applicable
+                        </span>
+                      )}
+                      {thresholdPreview.eInvoicingMandatory && (
+                        <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold">
+                          e-Invoice (&ge;5 Cr)
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1586,6 +2113,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     value={entityName}
                     onChange={(e) => setEntityName(e.target.value)}
                     placeholder="e.g. Acme Tech Solutions Private Limited"
@@ -1597,7 +2125,11 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <label className="font-bold text-slate-700 block mb-1">Entity Constitution / Type</label>
                   <select
                     value={type}
-                    onChange={(e) => setType(e.target.value as any)}
+                    onChange={(e) => {
+                      const nextType = e.target.value as ClientEntity["type"];
+                      setType(nextType);
+                      syncDefaultScope(nextType, Boolean(gstin.trim()), parseFloat(turnoverCr) || 0, Boolean(tan.trim()), parseFloat(digitalTxnPct) || 95);
+                    }}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                   >
                     <option value="PVT_LTD">Private Limited Company</option>
@@ -1622,6 +2154,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     maxLength={10}
                     value={pan}
                     onChange={(e) => handlePanChangeWithDecode(e.target.value)}
@@ -1632,22 +2165,32 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-slate-700">GSTIN (Optional)</label>
-                    {gstin && gstin.trim().length === 15 && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        validateGstinDetailed(gstin).isValid
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-rose-50 text-rose-700 border border-rose-200"
-                      }`}>
-                        {validateGstinDetailed(gstin).isValid
-                          ? `✓ Checksum Valid (${validateGstinDetailed(gstin).stateName})`
-                          : "⚠ Invalid Checksum"}
-                      </span>
-                    )}
+                    <label className="font-bold text-slate-700">Primary GSTIN (Optional)</label>
+                    <div className="flex items-center gap-1.5">
+                      {gstin && gstin.trim().length === 15 && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          validateGstinDetailed(gstin).isValid
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}>
+                          {validateGstinDetailed(gstin).isValid
+                            ? `✓ ${validateGstinDetailed(gstin).stateName}`
+                            : "⚠ Invalid"}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowSecondaryGstin((v) => !v)}
+                        className="text-[10px] font-bold text-indigo-700 hover:underline"
+                      >
+                        {showSecondaryGstin ? "Hide 2nd GSTIN" : "+ Add 2nd State GSTIN"}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      autoComplete="off"
                       maxLength={15}
                       value={gstin}
                       onChange={(e) => {
@@ -1656,6 +2199,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         if (val.length >= 12 && !pan) {
                           handlePanChangeWithDecode(val.substring(2, 12));
                         }
+                        syncDefaultScope(type, Boolean(val.trim()), parseFloat(turnoverCr) || 0, Boolean(tan.trim()), parseFloat(digitalTxnPct) || 95);
                       }}
                       placeholder="e.g. 33AAACC1206D1ZN"
                       className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-mono font-bold focus:outline-none focus:border-btred-logo"
@@ -1666,7 +2210,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         onClick={() => handleFetchGstDetails()}
                         disabled={isFetchingGst}
                         className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl whitespace-nowrap flex items-center gap-1.5 text-xs transition shadow-sm disabled:opacity-50"
-                        title="Fetch Legal Name, PAN, Status & Return History from Live GST Portal"
+                        title="Fetch Legal Name, PAN, Address & Return History from Live GST Portal"
                       >
                         {isFetchingGst ? (
                           <RotateCcw className="w-3.5 h-3.5 animate-spin" />
@@ -1682,9 +2226,21 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       {validateGstinDetailed(gstin).error}
                     </p>
                   )}
+                  {showSecondaryGstin && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        maxLength={15}
+                        value={secondaryGstin}
+                        onChange={(e) => setSecondaryGstin(e.target.value.toUpperCase())}
+                        placeholder="Additional Branch / State GSTIN (15 chars)"
+                        className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-slate-900 font-mono font-bold text-[11px] focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {/* GST Return Scheme + CIN/LLPIN + TAN */}
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">GST Return Scheme</label>
                   <select
@@ -1707,6 +2263,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     </label>
                     <input
                       type="text"
+                      autoComplete="off"
                       maxLength={21}
                       value={cin}
                       onChange={(e) => setCin(e.target.value.toUpperCase())}
@@ -1718,9 +2275,14 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     <label className="font-bold text-slate-700 block mb-1">TAN (For TDS/26Q)</label>
                     <input
                       type="text"
+                      autoComplete="off"
                       maxLength={10}
                       value={tan}
-                      onChange={(e) => setTan(e.target.value.toUpperCase())}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setTan(val);
+                        syncDefaultScope(type, Boolean(gstin.trim()), parseFloat(turnoverCr) || 0, Boolean(val.trim()), parseFloat(digitalTxnPct) || 95);
+                      }}
                       placeholder="DELP12345A"
                       className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-slate-900 font-mono font-bold focus:outline-none focus:border-btred-logo"
                     />
@@ -1728,34 +2290,50 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 </div>
               </div>
 
-              {/* Live GST Verified Details Card */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Principal Place / Registered Address (Auto-filled on GST Lookup)</label>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={registeredAddress}
+                  onChange={(e) => setRegisteredAddress(e.target.value)}
+                  placeholder="Registered office / business premises address"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-btred-logo"
+                />
+              </div>
+
+              {/* Live GST Verified Details & Day-1 Exposure Card */}
               {gstAutoData && (
-                <div className="mt-3 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs space-y-1">
-                  <div className="flex items-center justify-between">
+                <div className="mt-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs space-y-1.5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="font-bold text-emerald-900 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      Live GST Portal Verified
+                      Live GST Portal Verified &amp; Exposure Scan
                     </span>
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
                       Status: {gstAutoData.status} | {gstAutoData.taxpayerType}
+                      {gstAutoData.registrationDate ? ` | Reg: ${gstAutoData.registrationDate}` : ""}
                     </span>
                   </div>
                   <div className="text-slate-700 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-1 pt-1 border-t border-emerald-200/60">
                     <div><strong>Legal:</strong> {gstAutoData.legalName}</div>
                     <div><strong>Trade:</strong> {gstAutoData.tradeName}</div>
-                    {gstAutoData.address && (
-                      <div className="sm:col-span-2"><strong>Address:</strong> {gstAutoData.address}</div>
-                    )}
                   </div>
-                  {gstAutoData.filingHistory && gstAutoData.filingHistory.length > 0 && (
-                    <div className="pt-1.5 mt-1 border-t border-emerald-200/60">
-                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
-                        Recent Returns (GSTR-1 &amp; GSTR-3B):
-                      </span>
+                  {gstAutoData.normalizedHistory && gstAutoData.normalizedHistory.length > 0 && (
+                    <div className="pt-1.5 mt-1 border-t border-emerald-200/60 space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-emerald-800 uppercase tracking-wider">
+                          Day-1 Filing History ({gstAutoData.normalizedHistory.filter((r) => !r.arn).length} gaps / {gstAutoData.normalizedHistory.filter((r) => r.delayDays > 0).length} late):
+                        </span>
+                      </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {gstAutoData.filingHistory.slice(0, 6).map((ret, idx) => (
-                          <span key={idx} className="text-[10px] bg-white border border-emerald-200 rounded px-1.5 py-0.5 text-slate-700 font-mono">
-                            {ret.returnType} ({ret.returnPeriod}): <strong className="text-emerald-700">{ret.filingStatus}</strong>
+                        {gstAutoData.normalizedHistory.slice(0, 6).map((ret, idx) => (
+                          <span key={idx} className={`text-[10px] border rounded px-1.5 py-0.5 font-mono ${
+                            ret.arn && ret.delayDays === 0
+                              ? "bg-white border-emerald-200 text-slate-700"
+                              : "bg-amber-50 border-amber-300 text-amber-900 font-bold"
+                          }`}>
+                            {ret.returnType.replace("_", "-")} ({ret.period}): {ret.arn ? `Filed ${ret.filingDate || ""}` : "Pending"}
                           </span>
                         ))}
                       </div>
@@ -1765,16 +2343,41 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
               )}
             </div>
 
+            {/* 2. Primary Signatory & Promoter Group */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-              <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
-                2. Primary Signatory &amp; WhatsApp Contact
-              </h4>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
+                  2. Primary Signatory &amp; Family / Promoter Group
+                </h4>
+                {(() => {
+                  const p10 = rawCleanPhone.slice(-10);
+                  if (p10.length !== 10 || selectedGroupId) return null;
+                  const matchingClient = clients.find((c) => normalizePhone10(c.primaryContact?.phone || "") === p10);
+                  if (!matchingClient) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (matchingClient.groupId) {
+                          setSelectedGroupId(matchingClient.groupId);
+                        } else {
+                          setCustomGroupName(`${matchingClient.name.split(" ")[0]} Group`);
+                        }
+                      }}
+                      className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg hover:bg-indigo-100"
+                    >
+                      Matches {matchingClient.name} mobile &bull; Link Group
+                    </button>
+                  );
+                })()}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Contact Person Name</label>
                   <input
                     type="text"
+                    autoComplete="off"
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder="e.g. Mukesh Parekh"
@@ -1786,6 +2389,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   <input
                     type="tel"
                     required
+                    autoComplete="off"
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     placeholder="e.g. +91 98230 11928"
@@ -1793,55 +2397,171 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Email ID</label>
+                  <label className="font-bold text-slate-700 block mb-1">Client Signatory Email ID</label>
                   <input
                     type="email"
+                    name="client_signatory_email"
+                    autoComplete="new-password"
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="e.g. accounts@acmetech.com"
+                    placeholder="e.g. accounts@clientdomain.com"
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-btred-logo"
                   />
                 </div>
               </div>
 
-              {/* Dynamic PIN & Onboarding Preview Chip */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Link to Promoter / Family Group (Optional)</label>
+                  <select
+                    value={selectedGroupId}
+                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
+                  >
+                    <option value="">Auto-group by promoter mobile / Standalone</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g.promoterName})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Or Create New Group Label</label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={customGroupName}
+                    onChange={(e) => {
+                      setCustomGroupName(e.target.value);
+                      if (e.target.value.trim()) setSelectedGroupId("");
+                    }}
+                    placeholder="e.g. Parekh Family Group"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-btred-logo"
+                  />
+                </div>
+              </div>
+
+              {/* Portal Access Preview Chip */}
               <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-4 h-4 text-emerald-600" />
                   <span className="text-[11px] text-slate-600 font-medium">
-                    Automated 4-Digit Access PIN:{" "}
+                    Default Client PIN (last 4 of mobile):{" "}
                     <strong className="font-mono text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
                       {dynamicPinPreview}
                     </strong>
                   </span>
                 </div>
                 <span className="text-[10px] text-slate-500">
-                  Login Link: <span className="font-mono">{portalBaseUrl}/{rawCleanPhone.length >= 10 ? `?phone=${rawCleanPhone.slice(-10)}` : ""}</span>
+                  Client Portal:{" "}
+                  <span className="font-mono">
+                    {portalBaseUrl}/?portal=client{rawCleanPhone.length >= 10 ? `&phone=${rawCleanPhone.slice(-10)}` : ""}
+                  </span>
                 </span>
               </div>
             </div>
 
+            {/* 3. Retained Services, Thresholds & Practice Assignment */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-              <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
-                3. Firm Assignment &amp; Financials
-              </h4>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
+                  3. Retained Services &amp; Practice Assignment
+                </h4>
+                <span className="text-[10px] text-slate-500">
+                  Only checked services spawn tasks &amp; portal checklists
+                </span>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {SERVICE_SCOPE_OPTIONS.map((opt) => {
+                  const checked = serviceScope.includes(opt.key);
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => {
+                        setServiceScopeTouched(true);
+                        setServiceScope((prev) =>
+                          prev.includes(opt.key) ? prev.filter((k) => k !== opt.key) : [...prev, opt.key]
+                        );
+                      }}
+                      className={`p-2 rounded-xl border text-left transition flex items-start gap-2 ${
+                        checked
+                          ? "bg-white border-indigo-400 text-slate-900 shadow-sm"
+                          : "bg-slate-100/60 border-slate-200 text-slate-500 hover:bg-white"
+                      }`}
+                    >
+                      {checked ? (
+                        <CheckSquare className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <Square className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-bold text-[11px] block leading-tight">{opt.label}</span>
+                        <span className="text-[9px] text-slate-500 block truncate">{opt.shortLabel}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Annual Turnover (₹ Cr)</label>
                   <input
                     type="number"
-                    step="0.1"
+                    step="0.01"
+                    min="0"
                     value={turnoverCr}
-                    onChange={(e) => setTurnoverCr(e.target.value)}
+                    onChange={(e) => {
+                      setTurnoverCr(e.target.value);
+                      syncDefaultScope(
+                        type,
+                        Boolean(gstin.trim()),
+                        parseFloat(e.target.value) || 0,
+                        Boolean(tan.trim()),
+                        parseFloat(digitalTxnPct) || 95
+                      );
+                    }}
+                    placeholder="Enter Cr (optional)"
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Assigned Article Assistant</label>
+                  <label className="font-bold text-slate-700 block mb-1">Digital Txn % (44AB)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={digitalTxnPct}
+                    onChange={(e) => setDigitalTxnPct(e.target.value)}
+                    placeholder="95"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Monthly Retainer (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={monthlyRetainerFee}
+                    onChange={(e) => setMonthlyRetainerFee(e.target.value)}
+                    placeholder="Optional e.g. 15000"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Assigned Article</label>
                   <select
                     value={assignedArticle}
-                    onChange={(e) => setAssignedArticle(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAssignedArticle(val);
+                      const matched = staffDirectory.find((s) => s.fullName === val);
+                      setAssignedArticleId(matched?.id || "");
+                    }}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                   >
                     {staffDirectory
@@ -1859,10 +2579,15 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Managing Partner in Charge</label>
+                  <label className="font-bold text-slate-700 block mb-1">Partner in Charge</label>
                   <select
                     value={assignedPartner}
-                    onChange={(e) => setAssignedPartner(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAssignedPartner(val);
+                      const matched = staffDirectory.find((s) => s.fullName === val);
+                      setAssignedPartnerId(matched?.id || "");
+                    }}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                   >
                     {staffDirectory
@@ -1892,7 +2617,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-4 h-4 text-indigo-600" />
                   <span className="font-black text-slate-900 uppercase text-[11px] tracking-wider">
-                    4. Optional Day-1 Portal Credentials &amp; Physical USB DSC (If Handed Over Now)
+                    4. Optional Day-1 Portal Credentials &amp; Physical USB DSC (If Available Now)
                   </span>
                 </div>
                 {showDay1KeysSection ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
@@ -1906,6 +2631,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
+                          autoComplete="off"
                           value={credItUser}
                           onChange={(e) => setCredItUser(e.target.value)}
                           placeholder="User ID (PAN)"
@@ -1913,6 +2639,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         />
                         <input
                           type="password"
+                          autoComplete="new-password"
                           value={credItPass}
                           onChange={(e) => setCredItPass(e.target.value)}
                           placeholder="Password"
@@ -1926,6 +2653,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
+                          autoComplete="off"
                           value={credGstUser}
                           onChange={(e) => setCredGstUser(e.target.value)}
                           placeholder="GST Username"
@@ -1933,6 +2661,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         />
                         <input
                           type="password"
+                          autoComplete="new-password"
                           value={credGstPass}
                           onChange={(e) => setCredGstPass(e.target.value)}
                           placeholder="Password"
@@ -1946,6 +2675,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
+                          autoComplete="off"
                           value={credMcaUser}
                           onChange={(e) => setCredMcaUser(e.target.value)}
                           placeholder="MCA Email / User ID"
@@ -1953,6 +2683,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         />
                         <input
                           type="password"
+                          autoComplete="new-password"
                           value={credMcaPass}
                           onChange={(e) => setCredMcaPass(e.target.value)}
                           placeholder="Password"
@@ -1966,6 +2697,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
+                          autoComplete="off"
                           value={credTracesUser}
                           onChange={(e) => setCredTracesUser(e.target.value)}
                           placeholder="TRACES User ID"
@@ -1973,6 +2705,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                         />
                         <input
                           type="password"
+                          autoComplete="new-password"
                           value={credTracesPass}
                           onChange={(e) => setCredTracesPass(e.target.value)}
                           placeholder="Password"
@@ -1987,6 +2720,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <input
                         type="text"
+                        autoComplete="off"
                         value={dscHolderName}
                         onChange={(e) => setDscHolderName(e.target.value)}
                         placeholder="Holder / Director Name"
@@ -1994,6 +2728,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                       />
                       <input
                         type="text"
+                        autoComplete="off"
                         value={dscSerialNumber}
                         onChange={(e) => setDscSerialNumber(e.target.value)}
                         placeholder="Token Serial No."
@@ -2034,7 +2769,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 disabled={isSubmittingForm}
                 className="bg-btred-logo hover:bg-red-700 text-white font-black px-6 py-2.5 rounded-xl shadow-md transition disabled:opacity-50"
               >
-                {isSubmittingForm ? "Saving..." : "Save Client & Generate Handover Kit"}
+                {isSubmittingForm ? "Saving..." : "Save Client"}
               </button>
             </div>
           </form>
@@ -2183,7 +2918,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
            ========================================================================= */}
         {editingClient && (
           <div className="fixed inset-0 z-60 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 relative animate-in zoom-in-95">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
               <button
                 onClick={() => setEditingClient(null)}
                 className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100"
@@ -2197,16 +2932,17 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900">Edit Client Entity</h3>
-                  <p className="text-xs text-slate-500">Update PAN, GSTIN, Signatory and Contact numbers.</p>
+                  <p className="text-xs text-slate-500">Update legal identifiers, contact, service scope &amp; practice owners.</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
+              <form onSubmit={handleSaveEdit} autoComplete="off" className="space-y-3 text-xs">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Company / Entity Legal Name *</label>
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     value={editEntityName}
                     onChange={(e) => setEditEntityName(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-btred-logo"
@@ -2219,6 +2955,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     <input
                       type="text"
                       required
+                      autoComplete="off"
                       maxLength={10}
                       value={editPan}
                       onChange={(e) => setEditPan(e.target.value.toUpperCase())}
@@ -2226,9 +2963,10 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">GSTIN</label>
+                    <label className="font-bold text-slate-700 block mb-1">Primary GSTIN</label>
                     <input
                       type="text"
+                      autoComplete="off"
                       maxLength={15}
                       value={editGstin}
                       onChange={(e) => setEditGstin(e.target.value.toUpperCase())}
@@ -2258,7 +2996,8 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     <label className="font-bold text-slate-700 block mb-1">Turnover (₹ Cr)</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="0.01"
+                      min="0"
                       value={editTurnoverCr}
                       onChange={(e) => setEditTurnoverCr(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-btred-logo"
@@ -2271,6 +3010,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     <label className="font-bold text-slate-700 block mb-1">CIN / LLPIN</label>
                     <input
                       type="text"
+                      autoComplete="off"
                       maxLength={21}
                       value={editCin}
                       onChange={(e) => setEditCin(e.target.value.toUpperCase())}
@@ -2281,6 +3021,7 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     <label className="font-bold text-slate-700 block mb-1">TAN</label>
                     <input
                       type="text"
+                      autoComplete="off"
                       maxLength={10}
                       value={editTan}
                       onChange={(e) => setEditTan(e.target.value.toUpperCase())}
@@ -2305,37 +3046,118 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Onboarding Mode</label>
+                    <label className="font-bold text-slate-700 block mb-1">Onboarding Track</label>
                     <select
                       value={editOnboardingMode}
                       onChange={(e) => setEditOnboardingMode(e.target.value as OnboardingMode)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-btred-logo"
                     >
+                      <option value="EXISTING_CLIENT">Existing Firm Client</option>
                       <option value="CA_TAKEOVER">Switch from Previous CA</option>
                       <option value="NEW_BUSINESS">New Incorporation</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Signatory / Director Name</label>
+                    <label className="font-bold text-slate-700 block mb-1">Signatory Name</label>
                     <input
                       type="text"
+                      autoComplete="off"
                       value={editContactName}
                       onChange={(e) => setEditContactName(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">WhatsApp / Phone Number *</label>
+                    <label className="font-bold text-slate-700 block mb-1">WhatsApp / Phone *</label>
                     <input
                       type="tel"
                       required
+                      autoComplete="off"
                       value={editContactPhone}
                       onChange={(e) => setEditContactPhone(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
                     />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Signatory Email</label>
+                    <input
+                      type="email"
+                      autoComplete="new-password"
+                      value={editContactEmail}
+                      onChange={(e) => setEditContactEmail(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Assigned Article</label>
+                    <select
+                      value={editAssignedArticle}
+                      onChange={(e) => setEditAssignedArticle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
+                    >
+                      {staffDirectory
+                        .filter((s) => s.role !== "MANAGING_PARTNER")
+                        .map((s) => (
+                          <option key={s.id} value={s.fullName}>
+                            {s.fullName}
+                          </option>
+                        ))}
+                      {staffDirectory.filter((s) => s.role !== "MANAGING_PARTNER").length === 0 && (
+                        <option value={editAssignedArticle || ""}>{editAssignedArticle || "Unassigned"}</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Partner in Charge</label>
+                    <select
+                      value={editAssignedPartner}
+                      onChange={(e) => setEditAssignedPartner(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-btred-logo"
+                    >
+                      {staffDirectory
+                        .filter((s) => s.role === "MANAGING_PARTNER" || s.role === "PAID_CHARTERED_ACCOUNTANT")
+                        .map((s) => (
+                          <option key={s.id} value={s.fullName}>
+                            {s.fullName}
+                          </option>
+                        ))}
+                      {staffDirectory.filter((s) => s.role === "MANAGING_PARTNER" || s.role === "PAID_CHARTERED_ACCOUNTANT").length === 0 && (
+                        <option value={editAssignedPartner}>{editAssignedPartner}</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1.5">Retained Services</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SERVICE_SCOPE_OPTIONS.map((opt) => {
+                      const active = editServiceScope.includes(opt.key);
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() =>
+                            setEditServiceScope((prev) =>
+                              prev.includes(opt.key) ? prev.filter((k) => k !== opt.key) : [...prev, opt.key]
+                            )
+                          }
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
+                            active
+                              ? "bg-indigo-50 border-indigo-300 text-indigo-800"
+                              : "bg-slate-50 border-slate-200 text-slate-500"
+                          }`}
+                        >
+                          {active ? "✓ " : ""}{opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -2374,9 +3196,11 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
             dscTokens,
             noticesCount: clientNotices.length,
           });
-          const isTakeover = (bClient.onboardingMode || "CA_TAKEOVER") === "CA_TAKEOVER";
+          const onboardingTrack = bClient.onboardingMode || "EXISTING_CLIENT";
+          const isTakeover = onboardingTrack === "CA_TAKEOVER";
+          const isExisting = onboardingTrack === "EXISTING_CLIENT";
           const checklistItems = bp.documentChecklist.filter(
-            (d) => (!d.takeoverOnly || isTakeover) && (!d.gstOnly || readiness.hasGst)
+            (d) => (!d.takeoverOnly || isTakeover || isExisting) && (!d.gstOnly || readiness.hasGst)
           );
           const doneSet = new Set(bClient.onboardingChecklist?.takeoverChecklistDone || []);
           const clientCreds = portalCredentials.filter(
@@ -2499,7 +3323,11 @@ export const ClientMasterModal: React.FC<ClientMasterModalProps> = ({
                 {/* Archetype Day-1 Handover Document Checklist */}
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2">
                   <span className="font-black text-slate-900 text-xs block">
-                    {isTakeover ? "CA Takeover & Historical Handover Checklist" : "New Business Startup Checklist"}
+                    {isTakeover
+                      ? "CA Takeover & Historical Handover Checklist"
+                      : isExisting
+                        ? "Existing Client Baseline & Historical Vault Checklist"
+                        : "New Incorporation Startup Checklist"}
                   </span>
                   <div className="divide-y divide-slate-200/70 bg-white border border-slate-200 rounded-xl">
                     {checklistItems.map((item) => {

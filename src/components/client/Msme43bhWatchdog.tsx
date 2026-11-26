@@ -76,9 +76,10 @@ const SAMPLE_MSME_INVOICES: MsmeInvoiceItem[] = [
 
 export interface Msme43bhWatchdogProps {
   client?: ClientEntity | null;
+  isSandbox?: boolean;
 }
 
-export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client }) => {
+export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client, isSandbox = false }) => {
   const [invoices, setInvoices] = useState<MsmeInvoiceItem[]>(() => {
     if (typeof window !== "undefined" && client?.id) {
       try {
@@ -86,11 +87,7 @@ export const Msme43bhWatchdog: React.FC<Msme43bhWatchdogProps> = ({ client }) =>
         if (saved) return JSON.parse(saved);
       } catch {}
     }
-    // For newly onboarded clients start with authentic clean state
-    if (client && client.id.startsWith("CLI-")) {
-      return [];
-    }
-    return SAMPLE_MSME_INVOICES;
+    return isSandbox ? SAMPLE_MSME_INVOICES : [];
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 

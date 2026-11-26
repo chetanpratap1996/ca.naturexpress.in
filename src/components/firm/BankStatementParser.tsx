@@ -220,8 +220,9 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     return hookClients || [];
   }, [hookClients]);
 
-  const [selectedEntityId, setSelectedEntityId] = useState<string>(initialEntityId || (clients[0]?.id || "CLI-PRATWI-01"));
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(initialEntityId || (clients[0]?.id || ""));
   const [selectedBank, setSelectedBank] = useState<string>(initialBank || "HDFC_BANK");
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string>("");
 
   React.useEffect(() => {
     if (selectedClient && !isFirmWideView && selectedClient.id !== selectedEntityId) {
@@ -292,12 +293,44 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     return clients[0];
   }, [clients, selectedEntityId, selectedClient, isFirmWideView]);
 
-  // Client Bank Account Profile (clean empty until statement uploaded)
+  const savedBankAccounts = useMemo(() => currentEntity?.bankAccounts || [], [currentEntity]);
+
+  const activeSavedBank = useMemo(() => {
+    if (savedBankAccounts.length === 0) return null;
+    if (selectedBankAccountId) {
+      const found = savedBankAccounts.find((b) => b.id === selectedBankAccountId);
+      if (found) return found;
+    }
+    return savedBankAccounts.find((b) => b.isPrimary) || savedBankAccounts[0];
+  }, [savedBankAccounts, selectedBankAccountId]);
+
+  // Client Bank Account Profile driven by persisted Entity DNA bankAccounts
   const activeProfile = useMemo<BankAccountProfile>(() => {
-    const entityId = currentEntity?.id || "CLI-PRATWI-01";
+    if (activeSavedBank) {
+      const upperName = (activeSavedBank.bankName || "").toUpperCase();
+      const inferredKey = upperName.includes("SBI") || upperName.includes("STATE BANK")
+        ? "SBI"
+        : upperName.includes("ICICI")
+          ? "ICICI_BANK"
+          : upperName.includes("AXIS")
+            ? "AXIS_BANK"
+            : upperName.includes("KOTAK")
+              ? "KOTAK_BANK"
+              : selectedBank || "HDFC_BANK";
+      return {
+        bankKey: inferredKey,
+        bankName: activeSavedBank.bankName,
+        accountNumber: activeSavedBank.accountNumber,
+        ifsc: activeSavedBank.ifsc || "",
+        branch: activeSavedBank.accountType || "Current",
+        openingBalance: 0,
+        statementPeriod: "Current Period",
+        defaultTransactions: []
+      };
+    }
     return {
       bankKey: selectedBank || "HDFC_BANK",
-      bankName: "Selected Bank Account",
+      bankName: "No Bank Account Linked",
       accountNumber: "",
       ifsc: "",
       branch: "",
@@ -305,7 +338,7 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
       statementPeriod: "Current Period",
       defaultTransactions: []
     };
-  }, [currentEntity]);
+  }, [activeSavedBank, selectedBank]);
 
   // Master Transaction state initialized per client profile
   const [transactions, setTransactions] = useState<ParsedTransaction[]>(() => activeProfile.defaultTransactions);
@@ -316,11 +349,13 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
     setSelectedBank(activeProfile.bankKey);
   }, [activeProfile]);
 
-  // Resolved password patterns from Entity DNA
+  // Resolved password patterns from Entity DNA (saved statementPassword first, then heuristic bank rules)
   const resolvedEntityPasswords = useMemo(() => {
     if (!currentEntity) return [];
-    return resolveClientBankPasswords(currentEntity, selectedBank, activeProfile?.accountNumber);
-  }, [currentEntity, selectedBank, activeProfile?.accountNumber]);
+    const base = resolveClientBankPasswords(currentEntity, selectedBank, activeProfile?.accountNumber);
+    const savedPass = activeSavedBank?.statementPassword?.trim();
+    return savedPass ? [savedPass, ...base.filter((p) => p !== savedPass)] : base;
+  }, [currentEntity, selectedBank, activeProfile?.accountNumber, activeSavedBank?.statementPassword]);
 
   // BRS Mathematical & Statutory Verification Report (ICAI SA 500 / SA 505)
   const brsReport = useMemo(() => {
@@ -788,13 +823,16 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
         <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-thin pb-1">
           {clients.map((c) => {
             const isSelected = (currentEntity?.id === c.id);
-            const prof = CLIENT_BANK_PROFILES[c.id] || { bankName: "HDFC Bank", accountNumber: "502000998811" };
+            const primaryBank = c.bankAccounts?.find((b) => b.isPrimary) || c.bankAccounts?.[0];
+            const bankLabel = primaryBank?.bankName || "No Bank Saved";
+            const acctTail = primaryBank?.accountNumber ? `...${primaryBank.accountNumber.slice(-4)}` : "Add in DNA";
             return (
               <button
                 key={c.id}
                 onClick={() => {
                   setSelectedEntityId(c.id);
-                  toast.info("Switched Client Ledger", `Loaded ${prof.bankName} statement for ${c.name}`);
+                  setSelectedBankAccountId("");
+                  toast.info("Switched Client Ledger", `Loaded ${primaryBank?.bankName || c.name} ledger`);
                 }}
                 className={`p-3 rounded-2xl border text-left transition-all shrink-0 min-w-[210px] max-w-[270px] ${
                   isSelected
@@ -808,15 +846,15 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                   }`}>
                     {c.type}
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-slate-700">
-                    {prof.bankName}
+                  <span className="text-[10px] font-mono font-bold text-slate-700 truncate max-w-[110px]">
+                    {bankLabel}
                   </span>
                 </div>
                 <div className="text-xs font-black text-slate-900 truncate">
                   {c.name}
                 </div>
                 <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                  PAN: {c.pan} &bull; A/c: ...{prof.accountNumber ? prof.accountNumber.slice(-4) : "8812"}
+                  PAN: {c.pan} &bull; A/c: {acctTail}
                 </div>
               </button>
             );
@@ -850,14 +888,32 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 <span className="text-emerald-700 text-[11px] font-semibold">Live Statement Feed</span>
               </div>
-              <div className="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
+              <div className="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2 flex-wrap">
                 <span>{activeProfile.bankName}</span>
-                <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
-                  A/c: {activeProfile.accountNumber}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
-                  IFSC: {activeProfile.ifsc}
-                </span>
+                {activeProfile.accountNumber && (
+                  <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
+                    A/c: {activeProfile.accountNumber}
+                  </span>
+                )}
+                {activeProfile.ifsc && (
+                  <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
+                    IFSC: {activeProfile.ifsc}
+                  </span>
+                )}
+                {savedBankAccounts.length > 1 && (
+                  <select
+                    value={activeSavedBank?.id || ""}
+                    onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                    className="text-xs font-semibold bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-700"
+                    title="Switch saved bank account"
+                  >
+                    {savedBankAccounts.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.bankName} (...{b.accountNumber.slice(-4)})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
           </div>

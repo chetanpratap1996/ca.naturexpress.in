@@ -4,11 +4,13 @@ import {
   EntityType,
   GstComplianceHistoryItem,
   GstFilingFrequency,
+  GstinRecordItem,
   OnboardingMode,
   PortalCredential,
   PortalType,
+  ServiceScopeKey,
 } from "@/lib/types";
-import { inferConstitutionFromPan } from "@/lib/config/entityDna";
+import { GST_STATE_CODES, inferConstitutionFromPan } from "@/lib/config/entityDna";
 import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
 import { isValidPan } from "@/lib/utils";
 
@@ -212,6 +214,95 @@ export interface ClientReadinessReport {
   noticesCount: number;
 }
 
+export const SERVICE_SCOPE_OPTIONS: Array<{ key: ServiceScopeKey; label: string; shortLabel: string }> = [
+  { key: "GST", label: "GST Returns & 2B/IMS", shortLabel: "GST" },
+  { key: "INCOME_TAX", label: "Income Tax & Advance Tax", shortLabel: "ITR" },
+  { key: "TAX_AUDIT", label: "Tax Audit (Form 3CD)", shortLabel: "3CD Audit" },
+  { key: "TDS", label: "TDS / TRACES (24Q/26Q)", shortLabel: "TDS" },
+  { key: "ROC_MCA", label: "MCA V3 / ROC Secretarial", shortLabel: "MCA / ROC" },
+  { key: "VCFO", label: "Virtual CFO & Advisory", shortLabel: "vCFO" },
+];
+
+export function deriveDefaultServiceScope(params: {
+  type: EntityType;
+  hasGst?: boolean;
+  turnoverCr?: number;
+  hasTan?: boolean;
+  digitalTxnPct?: number;
+}): ServiceScopeKey[] {
+  const { type, hasGst = false, turnoverCr = 0, hasTan = false, digitalTxnPct = 95 } = params;
+  const scope: ServiceScopeKey[] = ["INCOME_TAX"];
+  if (hasGst) scope.push("GST");
+  const auditThreshold = digitalTxnPct >= 95 ? 10 : 1;
+  if (turnoverCr > 0 && turnoverCr >= auditThreshold) scope.push("TAX_AUDIT");
+  if (hasTan || type === "PVT_LTD" || type === "PUBLIC_LTD") scope.push("TDS");
+  if (type === "PVT_LTD" || type === "PUBLIC_LTD" || type === "LLP") scope.push("ROC_MCA");
+  return scope;
+}
+
+export function buildGstinRecordFromLookup(params: {
+  gstin: string;
+  legalName?: string;
+  tradeName?: string;
+  status?: string;
+  taxpayerType?: string;
+  registrationDate?: string;
+  cancellationDate?: string | null;
+  address?: string;
+  filingFrequency?: GstFilingFrequency;
+  turnoverCr?: number;
+  authorizedSignatory?: string;
+  otpMobile?: string;
+}): GstinRecordItem | null {
+  const check = validateGstinDetailed(params.gstin);
+  if (!check.isValid) return null;
+  const sc = check.stateCode || check.cleanGstin.substring(0, 2);
+  const stateNum = parseInt(sc, 10);
+  const qrmpGroup24 = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 38]);
+  const qrmpStateGroup: "22ND" | "24TH" = qrmpGroup24.has(stateNum) ? "24TH" : "22ND";
+
+  const rawType = String(params.taxpayerType || "").toUpperCase();
+  const registrationType: GstinRecordItem["registrationType"] = rawType.includes("COMP")
+    ? "COMPOSITION"
+    : rawType.includes("ISD")
+      ? "ISD"
+      : rawType.includes("SEZ")
+        ? "SEZ"
+        : rawType.includes("CASUAL")
+          ? "CASUAL"
+          : "REGULAR";
+
+  const rawStatus = String(params.status || "ACTIVE").toUpperCase();
+  const status: GstinRecordItem["status"] = rawStatus.includes("CANCEL")
+    ? "CANCELLED"
+    : rawStatus.includes("SUSPEND")
+      ? "SUSPENDED"
+      : "ACTIVE";
+
+  const filingFrequency: GstinRecordItem["filingFrequency"] = params.filingFrequency === "QRMP" ? "QRMP" : "MONTHLY";
+
+  return {
+    gstin: check.cleanGstin,
+    stateCode: sc,
+    stateName: check.stateName || GST_STATE_CODES[sc] || "India",
+    tradeName: params.tradeName?.trim() || params.legalName?.trim() || "",
+    legalName: params.legalName?.trim() || undefined,
+    registrationType,
+    filingFrequency,
+    qrmpStateGroup,
+    status,
+    registrationDate: params.registrationDate || undefined,
+    cancellationDate: params.cancellationDate || undefined,
+    principalAddress: params.address || undefined,
+    eWayBillEnabled: true,
+    eInvoiceApplicable: (params.turnoverCr || 0) >= 5,
+    isdEnabled: registrationType === "ISD",
+    authorizedSignatory: params.authorizedSignatory || undefined,
+    otpMobile: params.otpMobile || undefined,
+    lastGstnVerifiedAt: new Date().toISOString(),
+  };
+}
+
 /**
  * Evaluates Day-1 readiness for a registered client across Client Master, Keys Vault,
  * GST Return History, DSC Custody, and Notice Center.
@@ -224,9 +315,19 @@ export function evaluateClientOnboardingReadiness(params: {
 }): ClientReadinessReport {
   const { client, credentials = [], dscTokens = [], noticesCount = 0 } = params;
   const blueprint = CLIENT_ARCHETYPE_BLUEPRINTS[client.type] || CLIENT_ARCHETYPE_BLUEPRINTS.PVT_LTD;
-  const hasGst = Boolean(client.gstin && client.gstin.trim().length === 15) && client.gstFilingFrequency !== "UNREGISTERED";
+  const scopeSet = Array.isArray(client.serviceScope) && client.serviceScope.length > 0 ? new Set(client.serviceScope) : null;
+  const hasGst =
+    Boolean(client.gstin && client.gstin.trim().length === 15) &&
+    client.gstFilingFrequency !== "UNREGISTERED" &&
+    (!scopeSet || scopeSet.has("GST"));
 
-  const requiredPortals = blueprint.requiredPortals.filter((p) => (p === "GST" ? hasGst : true));
+  const requiredPortals = blueprint.requiredPortals.filter((p) => {
+    if (p === "GST") return hasGst;
+    if (p === "INCOME_TAX" && scopeSet) return scopeSet.has("INCOME_TAX") || scopeSet.has("TAX_AUDIT");
+    if (p === "MCA_V3" && scopeSet) return scopeSet.has("ROC_MCA");
+    if (p === "TRACES" && scopeSet) return scopeSet.has("TDS") || Boolean(client.tan);
+    return true;
+  });
   const clientCreds = credentials.filter(
     (c) =>
       c.entityId === client.id ||
@@ -398,6 +499,8 @@ export interface ParsedCsvClientPreviewRow {
   cin?: string;
   gstFilingFrequency?: GstFilingFrequency;
   onboardingMode?: OnboardingMode;
+  serviceScope?: ServiceScopeKey[];
+  groupName?: string;
   contactName: string;
   contactPhone: string;
   contactEmail: string;
@@ -449,7 +552,9 @@ export function parseAndValidateBulkClientCsv(
   const idxTan = colIdx(["tan", "tan_no"], 9);
   const idxCin = colIdx(["cin", "llpin", "cin_llpin"], 10);
   const idxFreq = colIdx(["gst_frequency", "gst_scheme", "filing_frequency"], 11);
-  const idxMode = colIdx(["onboarding_mode", "acquisition_type"], 12);
+  const idxMode = colIdx(["onboarding_mode", "acquisition_type", "onboarding_track"], 12);
+  const idxServices = colIdx(["services", "service_scope", "retained_services"], 13);
+  const idxGroup = colIdx(["group_name", "promoter_group", "group"], 14);
 
   const existingPans = new Set(existingClients.map((c) => c.pan.toUpperCase()));
   const seenPansInCsv = new Set<string>();
@@ -473,7 +578,8 @@ export function parseAndValidateBulkClientCsv(
     const contactName = (cols[idxContact] || "").trim() || "Authorized Signatory";
     const contactPhone = (cols[idxPhone] || "").trim();
     const contactEmail = (cols[idxEmail] || "").trim();
-    const turnoverCr = parseFloat(cols[idxTurnover] || "") || 5.0;
+    const parsedTurnover = parseFloat(cols[idxTurnover] || "");
+    const turnoverCr = Number.isFinite(parsedTurnover) && parsedTurnover >= 0 ? parsedTurnover : 0;
     const assignedArticle = (cols[idxArticle] || "").trim() || defaultArticle;
     const tan = (cols[idxTan] || "").toUpperCase().trim() || undefined;
     const cin = (cols[idxCin] || "").toUpperCase().trim() || undefined;
@@ -487,7 +593,31 @@ export function parseAndValidateBulkClientCsv(
         : "UNREGISTERED";
 
     const rawMode = (cols[idxMode] || "").toUpperCase().trim();
-    const onboardingMode: OnboardingMode = rawMode === "CA_TAKEOVER" || rawMode === "TAKEOVER" ? "CA_TAKEOVER" : "NEW_BUSINESS";
+    const onboardingMode: OnboardingMode =
+      rawMode === "CA_TAKEOVER" || rawMode === "TAKEOVER"
+        ? "CA_TAKEOVER"
+        : rawMode === "NEW_BUSINESS" || rawMode === "NEW_INCORP" || rawMode === "FRESH"
+          ? "NEW_BUSINESS"
+          : "EXISTING_CLIENT";
+
+    const rawServices = (cols[idxServices] || "").toUpperCase().trim();
+    const validScopes = new Set<ServiceScopeKey>(["GST", "INCOME_TAX", "TAX_AUDIT", "TDS", "ROC_MCA", "VCFO"]);
+    const parsedScopes = rawServices
+      ? rawServices
+          .split(/[|,;/]+/)
+          .map((s) => s.trim() as ServiceScopeKey)
+          .filter((s) => validScopes.has(s))
+      : [];
+    const serviceScope =
+      parsedScopes.length > 0
+        ? parsedScopes
+        : deriveDefaultServiceScope({
+            type,
+            hasGst: Boolean(rawGstin) && gstFilingFrequency !== "UNREGISTERED",
+            turnoverCr,
+            hasTan: Boolean(tan),
+          });
+    const groupName = (cols[idxGroup] || "").trim() || undefined;
 
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -528,6 +658,8 @@ export function parseAndValidateBulkClientCsv(
       cin,
       gstFilingFrequency,
       onboardingMode,
+      serviceScope,
+      groupName,
       contactName,
       contactPhone,
       contactEmail,

@@ -96,7 +96,6 @@ const TallyDataGrid = dynamic(() => import("@/components/shared/TallyDataGrid").
 const ClientMasterModal = dynamic(() => import("@/components/firm/ClientMasterModal").then(m => m.ClientMasterModal), { ssr: false });
 const FirmHubActionModal = dynamic(() => import("@/components/firm/FirmHubActionModal").then(m => m.FirmHubActionModal), { ssr: false });
 const ClientNotificationBroadcasterModal = dynamic(() => import("@/components/notifications/ClientNotificationBroadcasterModal").then(m => m.ClientNotificationBroadcasterModal), { ssr: false });
-const DiagnosticOnboardingModal = dynamic(() => import("@/components/firm/DiagnosticOnboardingModal").then(m => m.DiagnosticOnboardingModal), { ssr: false });
 const AppLauncherMegaMenu = dynamic(() => import("@/components/navigation/AppLauncherMegaMenu").then(m => m.AppLauncherMegaMenu), { ssr: false });
 const KeyboardShortcutsModal = dynamic(() => import("@/components/shared/KeyboardShortcutsModal").then(m => m.KeyboardShortcutsModal), { ssr: false });
 const LoginModal = dynamic(() => import("@/components/auth/LoginModal").then(m => m.LoginModal), { ssr: false });
@@ -317,13 +316,13 @@ export default function Home() {
   const [loginInitialRole, setLoginInitialRole] = useState<"partner" | "article" | "client">("partner");
   const [loginInitialPhone, setLoginInitialPhone] = useState<string>("");
   const [isClientMasterOpen, setIsClientMasterOpen] = useState(false);
+  const [clientMasterInitialTab, setClientMasterInitialTab] = useState<"directory" | "credentials" | "bulk" | "add">("directory");
   const [isFirmHubOpen, setIsFirmHubOpen] = useState(false);
   const [isClientBroadcasterOpen, setIsClientBroadcasterOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [selectedGstin, setSelectedGstin] = useState<string>("");
-  const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
@@ -759,7 +758,10 @@ export default function Home() {
           groups={groups}
           onSelectClient={handleSelectClient}
           selectedGstin={selectedGstin}
-          onOpenDiagnosticOnboarding={() => setIsDiagnosticModalOpen(true)}
+          onOpenDiagnosticOnboarding={() => {
+            setClientMasterInitialTab("add");
+            setIsClientMasterOpen(true);
+          }}
         />
 
         {/* Master Flex Layout with Left Sidebar */}
@@ -953,7 +955,10 @@ export default function Home() {
                   initialTab={activePartnerTab === "entity-dna" ? "gstins" : "overview"}
                   onSelectClient={handleSelectClient}
                   onUpdateClient={updateClient}
-                  onOpenDiagnosticModal={() => setIsDiagnosticModalOpen(true)}
+                  onOpenDiagnosticModal={() => {
+                    setClientMasterInitialTab("add");
+                    setIsClientMasterOpen(true);
+                  }}
                 />
               )}
 
@@ -1013,7 +1018,7 @@ export default function Home() {
               )}
 
               {activePartnerTab === "legacy-migration" && (
-                <LegacyMigrationWorkbench />
+                <LegacyMigrationWorkbench onMigrationCommitted={refreshData} />
               )}
 
               {activePartnerTab === "pillar-one-gst" && (
@@ -1217,10 +1222,14 @@ export default function Home() {
         currentUser={currentUser}
       />
 
-      {/* Client Master Modal */}
+      {/* Client Master Modal (Unified Onboarding & Client Directory) */}
       <ClientMasterModal
         isOpen={isClientMasterOpen}
-        onClose={() => setIsClientMasterOpen(false)}
+        initialTab={clientMasterInitialTab}
+        onClose={() => {
+          setIsClientMasterOpen(false);
+          setClientMasterInitialTab("directory");
+        }}
         clients={clients}
         groups={groups}
         portalCredentials={portalCredentials}
@@ -1244,19 +1253,7 @@ export default function Home() {
         onBatchImported={async () => {
           await refreshData();
         }}
-      />
-
-      {/* 1-Tap Corporate Diagnostic Onboarding Modal */}
-      <DiagnosticOnboardingModal
-        isOpen={isDiagnosticModalOpen}
-        onClose={() => setIsDiagnosticModalOpen(false)}
-        groups={groups}
-        onAddClient={async (newClient) => {
-          await createClient(newClient);
-          await refreshData();
-          setSelectedEntityId(newClient.id);
-          if (newClient.gstin) setSelectedGstin(newClient.gstin);
-        }}
+        onSelectClient={(client) => handleSelectClient(client.id)}
       />
 
       {/* Superhuman / Linear Style Keyboard Shortcuts Modal (Triggered by '?') */}

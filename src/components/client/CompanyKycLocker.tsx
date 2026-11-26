@@ -14,7 +14,8 @@ import {
   Calendar,
   ExternalLink
 } from "lucide-react";
-import { ClientEntity } from "@/lib/types";
+import { ClientEntity, DocumentItem } from "@/lib/types";
+import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { toast } from "@/components/shared/ToastNotification";
 
 interface KycDocument {
@@ -26,9 +27,27 @@ interface KycDocument {
   expiryDate?: string;
   daysToExpiry?: number;
   fileSize: string;
+  uploadedDocId?: string;
+  uploadedFileName?: string;
 }
 
-export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
+export function CompanyKycLocker({
+  client,
+  uploadedDocs = [],
+}: {
+  client?: ClientEntity | null;
+  uploadedDocs?: DocumentItem[];
+}) {
+  const findUploaded = (keywords: string[]): DocumentItem | undefined => {
+    return uploadedDocs.find((d) =>
+      keywords.some((kw) => d.fileName.toUpperCase().includes(kw))
+    );
+  };
+
+  const coiUpload = findUploaded(["COI", "DEED", "MOA", "AOA", "INCORP"]);
+  const panUpload = findUploaded(["PAN_CARD", "PAN"]);
+  const gstUpload = findUploaded(["GST_REG06", "REG-06", "REG06", "GST_CERT"]);
+
   const docs: KycDocument[] = client ? [
     // Entity Constitution Documents based on real legal form
     ...(client.cin ? [
@@ -38,7 +57,9 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
         category: "PERMANENT_CONSTITUTION" as const,
         numberOrRef: `CIN: ${client.cin}`,
         validity: "LIFETIME" as const,
-        fileSize: "Certified MCA Record"
+        fileSize: coiUpload ? `Uploaded (${coiUpload.fileSize})` : "Pending Upload in Vault",
+        uploadedDocId: coiUpload?.id,
+        uploadedFileName: coiUpload?.fileName,
       },
       {
         id: "KYC-04",
@@ -46,7 +67,9 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
         category: "PERMANENT_CONSTITUTION" as const,
         numberOrRef: "Registered with Registrar of Companies",
         validity: "LIFETIME" as const,
-        fileSize: "ROC Stamped"
+        fileSize: coiUpload ? `Linked in Vault (${coiUpload.fileSize})` : "Pending Upload",
+        uploadedDocId: coiUpload?.id,
+        uploadedFileName: coiUpload?.fileName,
       }
     ] : client.type === "PARTNERSHIP" || client.type === "LLP" ? [
       {
@@ -55,7 +78,9 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
         category: "PERMANENT_CONSTITUTION" as const,
         numberOrRef: `Registered Partnership Form & Deed`,
         validity: "LIFETIME" as const,
-        fileSize: "Certified Stamp Paper Copy"
+        fileSize: coiUpload ? `Uploaded (${coiUpload.fileSize})` : "Pending Upload",
+        uploadedDocId: coiUpload?.id,
+        uploadedFileName: coiUpload?.fileName,
       }
     ] : [
       {
@@ -64,7 +89,9 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
         category: "PERMANENT_CONSTITUTION" as const,
         numberOrRef: `Proprietorship Declaration / MSME`,
         validity: "LIFETIME" as const,
-        fileSize: "Certified Entity File"
+        fileSize: coiUpload ? `Uploaded (${coiUpload.fileSize})` : "Pending Upload",
+        uploadedDocId: coiUpload?.id,
+        uploadedFileName: coiUpload?.fileName,
       }
     ]),
     {
@@ -73,7 +100,9 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
       category: "REGISTRATION_CERTIFICATE" as const,
       numberOrRef: `PAN: ${client.pan}`,
       validity: "LIFETIME" as const,
-      fileSize: "Income Tax Department Record"
+      fileSize: panUpload ? `Uploaded (${panUpload.fileSize})` : "Verified PAN Record",
+      uploadedDocId: panUpload?.id,
+      uploadedFileName: panUpload?.fileName,
     },
     ...(client.gstin ? [
       {
@@ -82,7 +111,9 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
         category: "REGISTRATION_CERTIFICATE" as const,
         numberOrRef: `GSTIN: ${client.gstin}`,
         validity: "LIFETIME" as const,
-        fileSize: "GSTN Stamped REG-06"
+        fileSize: gstUpload ? `Uploaded (${gstUpload.fileSize})` : "Verified GSTIN Record",
+        uploadedDocId: gstUpload?.id,
+        uploadedFileName: gstUpload?.fileName,
       }
     ] : []),
     {
@@ -102,9 +133,14 @@ export function CompanyKycLocker({ client }: { client?: ClientEntity | null }) {
   const handleDownloadDoc = (doc: KycDocument) => {
     if (!client) return;
 
+    if (doc.uploadedDocId) {
+      window.open(`/api/documents/download?id=${encodeURIComponent(doc.uploadedDocId)}`, "_blank", "noopener,noreferrer");
+      toast.success("Downloading Uploaded File", doc.uploadedFileName || doc.name);
+      return;
+    }
+
     const content = `================================================================================
-MINISTRY OF CORPORATE AFFAIRS / GOVERNMENT OF INDIA
-CERTIFIED STATUTORY KYC MASTER RECORD
+STATUTORY KYC MASTER RECORD SUMMARY
 ================================================================================
 Entity Legal Name: ${client.name}
 Legal Entity Type: ${client.type}
@@ -118,28 +154,22 @@ Document Title: ${doc.name}
 Statutory Reference: ${doc.numberOrRef}
 Validity Classification: ${doc.validity} ${doc.expiryDate ? `(Expiry Date: ${doc.expiryDate})` : "(Permanent Lifetime File)"}
 
-CUSTODY & VERIFICATION AUDIT TRAIL:
-- Verified By: GPA & Co., Chartered Accountants
-- ICAI Firm Registration Number (FRN): 022998C
-- Digital Repository: Brains & Taxes Statutory Legal Locker
+CUSTODY RECORD:
+- Practice Firm: ${DEFAULT_FIRM_BRANDING.firmName} (FRN: ${DEFAULT_FIRM_BRANDING.frn})
 - Timestamp: ${new Date().toISOString()}
-- Cryptographic Audit ID: KYC-${doc.id}-${Date.now()}
-================================================================================
-Notice: This document record is certified for statutory banking and compliance
-diligence under Section 129 of the Companies Act, 2013.
 ================================================================================`;
 
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${client.name.replace(/[^a-zA-Z0-9]/g, "_")}_${doc.name.replace(/[^a-zA-Z0-9]/g, "_")}_CERTIFIED.txt`;
+    link.download = `${client.name.replace(/[^a-zA-Z0-9]/g, "_")}_${doc.name.replace(/[^a-zA-Z0-9]/g, "_")}_SUMMARY.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast.success("Document Downloaded", `Verified legal certificate generated for ${doc.name}`);
+    toast.info("KYC Metadata Downloaded", `Original scan not uploaded yet; exported verified summary for ${doc.name}.`);
   };
 
   return (

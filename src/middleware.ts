@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/api/auth/logout" ||
     (pathname === "/api/growth/consultation" && request.method === "POST") ||
     pathname.startsWith("/api/cron/") ||
+    pathname.startsWith("/api/entity/") ||
     pathname === "/api/growth/cron" ||
     pathname === "/api/whatsapp/webhook";
 

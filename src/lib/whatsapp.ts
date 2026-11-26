@@ -7,6 +7,9 @@
  * professionally formatted Indian CA templates.
  */
 
+import { DEFAULT_FIRM_BRANDING, getPortalBaseUrl } from "@/lib/config/branding";
+import { OnboardingMode } from "@/lib/types";
+
 export type WhatsAppTemplate = 
   | "DOC_CHASE"
   | "ADVANCE_TAX_REMINDER"
@@ -44,6 +47,7 @@ export interface WhatsAppTemplateParams {
   daysRemaining?: number;
   entityTypeLabel?: string;
   isTakeover?: boolean;
+  onboardingMode?: OnboardingMode;
   missingPortals?: string[];
 }
 
@@ -76,8 +80,9 @@ function formatINR(val?: number): string {
  * Generate formatted template text according to professional CA communication standards
  */
 export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAppTemplateParams): string {
-  const firm = params.firmName || "GPA & Co., Chartered Accountants & Brains & Taxes";
-  const portalLink = params.portalUrl || "https://ca.naturexpress.in/";
+  const firm = params.firmName || `${DEFAULT_FIRM_BRANDING.firmName}`;
+  const basePortalUrl = getPortalBaseUrl();
+  const portalLink = params.portalUrl || `${basePortalUrl}/`;
 
   switch (template) {
     case "DOC_CHASE": {
@@ -175,54 +180,52 @@ export function buildTemplateMessage(template: WhatsAppTemplate, params: WhatsAp
     }
 
     case "CLIENT_CREDENTIALS": {
-      const clientPortalUrl = params.portalUrl || "https://ca.naturexpress.in/?portal=client";
-      const pin = params.loginPassword || "Last 4 digits of your phone";
-      const oneTapUrl = clientPortalUrl.includes("?") 
-        ? `${clientPortalUrl}&pin=${pin}` 
-        : `${clientPortalUrl}?portal=client&pin=${pin}`;
+      const basePortalUrl = getPortalBaseUrl();
+      const clientPortalUrl = params.portalUrl || `${basePortalUrl}/?portal=client`;
+      const pinHint = params.loginPassword
+        ? `${params.loginPassword} _(for security, never embedded in the link — change inside Profile anytime)_`
+        : "Last 4 digits of your registered mobile number";
 
-      return `*OFFICIAL CLIENT PORTAL ACCESS — GPA & CO.*
-(Chartered Accountants | ICAI FRN: 022998C)
+      return `*OFFICIAL CLIENT PORTAL ACCESS — ${firm.toUpperCase()}*
+(Chartered Accountants | ICAI FRN: ${DEFAULT_FIRM_BRANDING.frn})
 
 Dear ${params.clientName},
 
-Greetings from *GPA & Co., Chartered Accountants*.
+Greetings from *${firm}*.
 Your corporate tax compliance & financial portal is now live for *${params.clientName}*.
 
-🔐 *Your Secure Login Credentials:*
+🔐 *Your Secure Login Details:*
 • *Portal URL:* ${clientPortalUrl}
 • *User ID (Mobile No or PAN):* ${params.loginId || params.clientName}
-• *4-Digit Access PIN:* ${pin}
-*(Zero SMS delay — Instant direct login without OTP delays. You can customize your PIN inside Profile anytime).*
+• *4-Digit Access PIN:* ${pinHint}
 
-📌 *Why you should log in today:*
-1. 🏦 *Banker Loan Dockets:* 1-click audited balance sheets & ITR-V for bank credit renewals.
-2. ⚠️ *Protect GST ITC Loss:* Live alerts for non-filing vendors so you hold defaulting payments.
-3. ⏳ *MSME 43B(h) Clock:* 45-day vendor payment deadline countdown.
-4. ✍️ *Paperless E-Sign:* Approve filed returns & financial statements right from mobile.
+📌 *Inside Your Portal:*
+1. 🏦 *Banker Loan Dockets:* 1-click audited financials & ITR-V pack for credit renewals.
+2. ⚠️ *Protect GST ITC Loss:* Live alerts for non-filing vendors before releasing payment.
+3. ⏳ *MSME 43B(h) Watchdog:* 45-day vendor payment deadline tracker.
+4. ✍️ *Document Vault & Handover:* Upload bank statements, COI, and approve filings securely.
 
-👉 *Log in here:* ${clientPortalUrl}
-⚡ *1-Tap Direct Sign In:* ${oneTapUrl}
-
-For direct assistance, reach our audit desk at +91 98937 23639.
+👉 *Open Client Portal:* ${clientPortalUrl}
 
 Warm regards,
 *Tax & Corporate Compliance Team*
-*GPA & Co., Chartered Accountants*`;
+*${firm}*`;
     }
 
     case "STAFF_CREDENTIALS": {
-      return `*PRACTICE MANAGEMENT ACCESS — GPA & CO.*
-(Chartered Accountants | ICAI FRN: 022998C)
+      const basePortalUrl = getPortalBaseUrl();
+      const staffPortalUrl = `${basePortalUrl}/`;
+      return `*PRACTICE MANAGEMENT ACCESS — ${firm.toUpperCase()}*
+(Chartered Accountants | ICAI FRN: ${DEFAULT_FIRM_BRANDING.frn})
 
 Dear ${params.clientName},
 
-Your staff desk access is active on the GPA & Co. Practice Management System.
+Your staff desk access is active on the ${firm} Practice Management System.
 
-🔐 *Your Secure Login Details:*
-• *Portal URL:* https://ca.naturexpress.in/
+🔐 *Your Login Details:*
+• *Portal URL:* ${staffPortalUrl}
 • *User ID (Email/Phone):* ${params.loginId || params.clientName}
-• *Password:* ${params.loginPassword || "Staff@2026"}
+• *Temporary Password:* ${params.loginPassword || "Set on first login"}
 • *Assigned Role:* ${params.serviceName || "Staff Member"}
 
 📌 *Workbench Capabilities:*
@@ -230,8 +233,8 @@ Your staff desk access is active on the GPA & Co. Practice Management System.
 • Prepare compliance workpapers & route for partner sign-off
 • Manage client digital vaults & automated document chases
 
-👉 *Log in here:* https://ca.naturexpress.in/
-*GPA & Co., Chartered Accountants*`;
+👉 *Log in here:* ${staffPortalUrl}
+*${firm}*`;
     }
 
     case "VENDOR_ITC_HOLD": {
@@ -257,36 +260,38 @@ Your staff desk access is active on the GPA & Co. Practice Management System.
     }
 
     case "ONBOARDING_HANDOVER_KIT": {
-      const clientPortalUrl = params.portalUrl || "https://ca.naturexpress.in/?portal=client";
-      const pin = params.loginPassword || "Last 4 digits of your phone";
-      const oneTapUrl = clientPortalUrl.includes("?")
-        ? `${clientPortalUrl}&pin=${pin}`
-        : `${clientPortalUrl}?portal=client&pin=${pin}`;
+      const basePortalUrl = getPortalBaseUrl();
+      const clientPortalUrl = params.portalUrl || `${basePortalUrl}/?portal=client`;
+      const pin = params.loginPassword || "Last 4 digits of your mobile";
+      const onboardingTrack = params.onboardingMode || (params.isTakeover ? "CA_TAKEOVER" : "EXISTING_CLIENT");
       const checklistLines =
         params.missingDocs && params.missingDocs.length > 0
           ? params.missingDocs.map((d, i) => `  ${i + 1}. ${d}`).join("\n")
-          : "  1. PAN, GSTIN & Last Filed Return Copies\n  2. Current Year Bank Statements + PDF Passwords\n  3. Any Pending Tax / GST Notices";
+          : "  1. Current Year Bank Statements (with PDF Password if any)\n  2. Sales / Purchase Bills or Tally Data\n  3. Any Pending Tax / GST Notices";
       const portalAccessLine =
         params.missingPortals && params.missingPortals.length > 0
-          ? `\n🔑 *Portal Credentials Needed for Baseline Sync:*\n  • ${params.missingPortals.join(", ")} (or 1-time OTP consent on call)\n`
+          ? `\n🔑 *Portal Access Needed (Submit securely inside Portal):*\n  • ${params.missingPortals.join(", ")}\n`
           : "";
-      const takeoverNote = params.isTakeover
-        ? `\n📂 *Smooth Previous-CA Transition:*\nPlease share your last filed ITR/Audit JSONs & any open notices so we can audit past compliance health on Day 1.\n`
-        : "";
+      const trackNote =
+        onboardingTrack === "CA_TAKEOVER"
+          ? `\n📂 *Smooth Previous-CA Transition:*\nPlease upload your last filed ITR/Audit JSONs & any open notices inside the Handover Dropzone so we can audit past compliance health on Day 1.\n`
+          : onboardingTrack === "NEW_BUSINESS"
+            ? `\n🚀 *New Entity Setup:*\nUpload your Incorporation Certificate / COI & Current Account details inside your portal so we can track your statutory milestones.\n`
+            : `\n📂 *Digital Compliance Desk Active:*\nWe have activated your digital compliance portal for ongoing monthly filings, vault storage, and status tracking.\n`;
 
-      return `*WELCOME ONBOARD — ${firm.toUpperCase()}*\n` +
+      return `*WELCOME TO YOUR CLIENT PORTAL — ${firm.toUpperCase()}*\n` +
         `_(${params.entityTypeLabel || "Corporate & Tax Compliance Desk"})_\n\n` +
         `Dear ${params.clientName},\n\n` +
-        `Your dedicated Compliance & Financial Vault is now live.\n\n` +
-        `🔐 *1-Tap Client Portal Access:*\n` +
-        `• *Portal Link:* ${oneTapUrl}\n` +
+        `Your Compliance & Document Vault is now active.\n\n` +
+        `🔐 *Client Portal Access:*\n` +
+        `• *Portal Link:* ${clientPortalUrl}\n` +
         `• *User ID:* ${params.loginId || params.clientName}\n` +
-        `• *4-Digit PIN:* ${pin}\n` +
+        `• *First-Login 4-Digit PIN:* ${pin}\n` +
         portalAccessLine +
-        `\n📋 *Day-1 Onboarding Checklist (Upload via Portal):*\n${checklistLines}\n` +
-        takeoverNote +
-        `\n⚡ *Upload directly from WhatsApp/Mobile:* ${oneTapUrl}\n\n` +
-        `Warm regards,\n*Onboarding & Audit Desk*\n*${firm}*`;
+        `\n📋 *Pending Items (Upload directly in Portal):*\n${checklistLines}\n` +
+        trackNote +
+        `\n👉 *Sign In & Upload:* ${clientPortalUrl}\n\n` +
+        `Warm regards,\n*${firm}*`;
     }
   }
 }

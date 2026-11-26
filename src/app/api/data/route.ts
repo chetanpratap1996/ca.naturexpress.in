@@ -82,6 +82,12 @@ export async function GET(request: NextRequest) {
     let mappedClients = entityRows.map((e: any) => {
       const parentGroup = groupRows.find((g: any) => g.id === e.group_id);
       const gstProf = gstProfileByEntity.get(e.id);
+      const partnerName =
+        (e.partner_in_charge_id && staffUserRows.find((u: any) => u.id === e.partner_in_charge_id)?.full_name) ||
+        DEFAULT_FIRM_BRANDING.managingPartner;
+      const articleName =
+        (e.assigned_article_id && staffUserRows.find((u: any) => u.id === e.assigned_article_id)?.full_name) ||
+        "Unassigned";
       return {
         id: e.id,
         groupId: e.group_id,
@@ -96,12 +102,22 @@ export async function GET(request: NextRequest) {
         onboardingMode: gstProf?.onboardingMode || undefined,
         onboardingChecklist: gstProf?.onboardingChecklist || undefined,
         gstHistory: Array.isArray(gstProf?.gstHistory) ? gstProf.gstHistory : undefined,
+        serviceScope: Array.isArray(gstProf?.serviceScope) ? gstProf.serviceScope : undefined,
+        cutoverDate: gstProf?.cutoverDate || undefined,
+        lastFiledPeriods: gstProf?.lastFiledPeriods || undefined,
+        digitalTxnPct: gstProf?.digitalTxnPct !== undefined ? Number(gstProf.digitalTxnPct) : undefined,
+        registeredAddress: gstProf?.registeredAddress || undefined,
+        directors: Array.isArray(gstProf?.directors) ? gstProf.directors : undefined,
+        bankAccounts: Array.isArray(gstProf?.bankAccounts) ? gstProf.bankAccounts : undefined,
+        complianceBaselines: Array.isArray(gstProf?.complianceBaselines) ? gstProf.complianceBaselines : undefined,
         cin: e.cin || undefined,
         tan: e.tan || undefined,
         turnoverCr: Number(e.turnover_cr || 0),
-        partnerInCharge: DEFAULT_FIRM_BRANDING.managingPartner,
-        assignedArticle: "Practice Team",
-        incorporationYear: e.incorporation_year || 2024,
+        partnerInCharge: partnerName,
+        partnerInChargeId: e.partner_in_charge_id || undefined,
+        assignedArticle: articleName,
+        assignedArticleId: e.assigned_article_id || undefined,
+        incorporationYear: e.incorporation_year || new Date().getFullYear(),
         penaltyRiskAccrued: Number(e.penalty_risk_accrued || 0),
         primaryContact: {
           name: e.primary_contact_name || parentGroup?.promoter_name || "Authorized Signatory",

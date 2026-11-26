@@ -123,7 +123,15 @@ export interface GstComplianceHistoryItem {
 }
 
 export type GstFilingFrequency = "MONTHLY" | "QRMP" | "COMPOSITION" | "UNREGISTERED";
-export type OnboardingMode = "NEW_BUSINESS" | "CA_TAKEOVER";
+export type OnboardingMode = "EXISTING_CLIENT" | "CA_TAKEOVER" | "NEW_BUSINESS";
+export type ServiceScopeKey = "GST" | "INCOME_TAX" | "TAX_AUDIT" | "TDS" | "ROC_MCA" | "VCFO";
+
+export interface LastFiledPeriods {
+  gst?: string;        // e.g. "October 2026"
+  itrAy?: string;      // e.g. "AY 2026-27"
+  tdsQuarter?: string; // e.g. "FY 2026-27 Q2 (Jul-Sep)"
+  rocFy?: string;      // e.g. "FY 2025-26"
+}
 
 export interface ClientEntity {
   id: string;
@@ -136,6 +144,9 @@ export interface ClientEntity {
   gstin?: string;
   gstFilingFrequency?: GstFilingFrequency;
   onboardingMode?: OnboardingMode;
+  serviceScope?: ServiceScopeKey[];
+  cutoverDate?: string;
+  lastFiledPeriods?: LastFiledPeriods;
   onboardingChecklist?: {
     completedPortals: string[];
     takeoverChecklistDone?: string[];
@@ -146,7 +157,9 @@ export interface ClientEntity {
   turnoverCr: number;
   digitalTxnPct?: number;
   partnerInCharge: string;
+  partnerInChargeId?: string;
   assignedArticle: string;
+  assignedArticleId?: string;
   incorporationYear: number;
   penaltyRiskAccrued: number;
   primaryContact: {

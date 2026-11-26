@@ -21,8 +21,33 @@ import {
 } from 'lucide-react';
 import { MigrationSummaryReport, MigratedClientRecord, LegacySoftwareMigrator } from '@/lib/migration/legacySoftwareMigrator';
 import { InstitutionalCotiDossier } from '@/components/itr/InstitutionalCotiDossier';
+import { toast } from '@/components/shared/ToastNotification';
+import { ClientEntity, BankAccountRecordItem } from '@/lib/types';
 
-export function LegacyMigrationWorkbench() {
+interface LegacyMigrationWorkbenchProps {
+  onMigrationCommitted?: () => Promise<void> | void;
+}
+
+function mapLegacyEntityType(t: MigratedClientRecord['entityType']): ClientEntity['type'] {
+  switch (t) {
+    case 'PVT_LTD':
+      return 'PVT_LTD';
+    case 'LTD':
+      return 'PUBLIC_LTD';
+    case 'LLP':
+      return 'LLP';
+    case 'FIRM':
+      return 'PARTNERSHIP';
+    case 'TRUST':
+      return 'TRUST_NGO';
+    case 'INDIVIDUAL':
+    case 'HUF':
+    default:
+      return 'INDIVIDUAL_HNI';
+  }
+}
+
+export function LegacyMigrationWorkbench({ onMigrationCommitted }: LegacyMigrationWorkbenchProps = {}) {
   const [activeTab, setActiveTab] = useState<'MIGRATION_DASHBOARD' | 'COTI_VIEWER' | 'RAW_MAPPINGS'>('MIGRATION_DASHBOARD');
   const [selectedSoftware, setSelectedSoftware] = useState<'WINMAN' | 'COMPUTAX' | 'TALLY_PRIME'>('WINMAN');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +55,8 @@ export function LegacyMigrationWorkbench() {
     LegacySoftwareMigrator.parseWinmanBackup('', 'sample_winman_firm_backup.xml')
   );
   const [selectedClientIndex, setSelectedClientIndex] = useState(0);
-  const [commitStatus, setCommitStatus] = useState<'IDLE' | 'COMMITTED'>('IDLE');
+  const [commitStatus, setCommitStatus] = useState<'IDLE' | 'COMMITTING' | 'COMMITTED' | 'ERROR'>('IDLE');
+  const [commitMessage, setCommitMessage] = useState<string>('');
 
   const handleSimulatePreset = (software: 'WINMAN' | 'COMPUTAX' | 'TALLY_PRIME') => {
     setIsLoading(true);
@@ -52,8 +78,78 @@ export function LegacyMigrationWorkbench() {
     }, 400);
   };
 
-  const handleCommitToDatabase = () => {
-    setCommitStatus('COMMITTED');
+  const handleCommitToDatabase = async () => {
+    if (!report || report.clients.length === 0 || commitStatus === 'COMMITTING') return;
+    setCommitStatus('COMMITTING');
+    setCommitMessage('');
+    try {
+      const batch = report.clients.map((c) => {
+        const primaryGstin = c.gstins?.[0] || '';
+        const bankAccounts: BankAccountRecordItem[] = (c.bankAccounts || []).map((b, idx) => ({
+          id: `MIG-BANK-${c.pan}-${idx + 1}`,
+          bankName: b.bankName,
+          accountNumber: b.accountNumber,
+          accountType: b.accountType,
+          ifsc: b.ifscCode,
+          branch: c.address?.city || '',
+          isPrimary: Boolean(b.isPrimaryForRefund || idx === 0),
+        }));
+        const fullAddress = [c.address?.line1, c.address?.city, c.address?.state, c.address?.pincode]
+          .filter(Boolean)
+          .join(', ');
+
+        return {
+          name: c.clientName,
+          pan: c.pan,
+          gstin: primaryGstin || undefined,
+          tan: c.tan || undefined,
+          type: mapLegacyEntityType(c.entityType),
+          onboardingMode: 'EXISTING_CLIENT',
+          turnoverCr: 0,
+          gstFilingFrequency: primaryGstin ? 'MONTHLY' : 'UNREGISTERED',
+          registeredAddress: fullAddress || undefined,
+          bankAccounts,
+          lastFiledPeriods: {
+            itrAy: c.historicalIncomeSummary?.ay || undefined,
+          },
+          complianceBaselines: {
+            incomeTaxLastFiledAy: c.historicalIncomeSummary?.ay,
+            pastYearsHistorySummary: `Migrated from ${report.sourceSoftware} (${c.historicalIncomeSummary?.ay || 'Prior AY'}): GTI ₹${(
+              c.historicalIncomeSummary?.grossTotalIncome || 0
+            ).toLocaleString('en-IN')}`,
+            unabsorbedLossesBf: c.historicalIncomeSummary?.unabsorbedLossesCarriedForward || 0,
+          },
+          primaryContact: {
+            name: c.tradeName || c.clientName,
+            phone: c.mobile,
+            email: c.email,
+            designation: 'Authorized Signatory',
+          },
+        };
+      });
+
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ batch }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+      const inserted = Number(json.count ?? json.clients?.length ?? batch.length);
+      setCommitStatus('COMMITTED');
+      setCommitMessage(`Committed ${inserted} client(s) & bank/baseline DNA to database.`);
+      toast.success('Legacy Migration Saved', `Committed ${inserted} client(s) from ${report.sourceSoftware} to database.`);
+      if (onMigrationCommitted) {
+        await onMigrationCommitted();
+      }
+    } catch (err: any) {
+      setCommitStatus('ERROR');
+      setCommitMessage(err?.message || 'Failed to commit migrated clients.');
+      toast.error('Migration Commit Failed', err?.message || 'Database commit failed.');
+    }
   };
 
   const activeClient = report?.clients[selectedClientIndex] || report?.clients[0];
@@ -242,20 +338,30 @@ export function LegacyMigrationWorkbench() {
             </div>
 
             {/* Commit Button */}
-            <div className="pt-3 border-t border-slate-200">
+            <div className="pt-3 border-t border-slate-200 space-y-2">
               {commitStatus === 'COMMITTED' ? (
-                <div className="w-full py-3 bg-emerald-50 border border-emerald-300 rounded-xl text-center text-xs font-bold text-emerald-800 flex items-center justify-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  <span>Successfully Committed to Practice Entity DNA</span>
+                <div className="w-full py-3 bg-emerald-50 border border-emerald-300 rounded-xl text-center text-xs font-bold text-emerald-800 flex items-center justify-center space-x-2 px-3">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{commitMessage || 'Committed to Practice Entity DNA'}</span>
                 </div>
               ) : (
-                <button
-                  onClick={handleCommitToDatabase}
-                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md shadow-red-200 flex items-center justify-center space-x-2 transition"
-                >
-                  <Database className="w-4 h-4" />
-                  <span>Commit {report.clients.length} Clients to Entity DNA (0 Re-Typing)</span>
-                </button>
+                <>
+                  <button
+                    onClick={handleCommitToDatabase}
+                    disabled={commitStatus === 'COMMITTING'}
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md shadow-red-200 flex items-center justify-center space-x-2 transition"
+                  >
+                    <Database className="w-4 h-4" />
+                    <span>
+                      {commitStatus === 'COMMITTING'
+                        ? 'Persisting to PostgreSQL...'
+                        : `Commit ${report.clients.length} Clients to Entity DNA (0 Re-Typing)`}
+                    </span>
+                  </button>
+                  {commitStatus === 'ERROR' && commitMessage && (
+                    <p className="text-[11px] text-rose-700 font-semibold text-center">{commitMessage}</p>
+                  )}
+                </>
               )}
             </div>
           </div>

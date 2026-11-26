@@ -279,8 +279,9 @@ export default function Home() {
     deleteDscToken,
   } = useTaxoData(isDemoSandbox);
 
-  // Authenticated user session — matching SSR & client initial state
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(DEMO_USERS.partner);
+  // Authenticated user session — null until verified against /api/session
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState<boolean>(true);
   const [currentView, setCurrentView] = useState<"partner" | "article" | "client-pwa">("partner");
   const [activePartnerTab, setActivePartnerTab] = useState<string>("dashboard");
   const [activeDomain, setActiveDomain] = useState<DomainId>("tasks");
@@ -454,45 +455,50 @@ export default function Home() {
         setLoginInitialRole("client");
         if (cleanPhone) setLoginInitialPhone(cleanPhone);
         setIsLoginModalOpen(true);
+        setIsCheckingSession(false);
         return;
       }
 
-      // CASE 2: Team / Staff persona explicitly requested (?role=team OR ?role=article OR ?view=team)
+      // CASE 2: Staff / Team / Partner login explicitly requested via URL
       if (roleParam === "team" || roleParam === "article" || viewParam === "team") {
-        setCurrentUser(DEMO_USERS.team || DEMO_USERS.article);
-        setCurrentView("partner");
-        setIsDemoSandbox(false);
-        setActivePartnerTab("dashboard");
+        setLoginInitialRole("article");
+        setIsLoginModalOpen(true);
+        setIsCheckingSession(false);
         return;
       }
 
       if (portalParam === "staff" || roleParam === "partner") {
         setLoginInitialRole("partner");
         setIsLoginModalOpen(true);
+        setIsCheckingSession(false);
         return;
       }
 
-      // CASE 3: Standard Existing Authenticated Session
-      if (existing) {
-        setCurrentUser(existing);
-        setIsDemoSandbox(false);
-        if (existing.role === "CLIENT") setCurrentView("client-pwa");
-        else setCurrentView("partner");
-        return;
-      }
-
-      // CASE 4: Explicit Sandbox Evaluation Flag
-      if (demoParam === "true" || viewParam === "sandbox") {
-        setCurrentUser(DEMO_USERS.partner);
-        setCurrentView("partner");
-        setIsDemoSandbox(false);
-        if (tabParam) {
-          setActivePartnerTab(tabParam);
-        }
-        return;
-      }
+      // CASE 3: Verify real server-side HttpOnly session cookie (/api/session)
+      fetch("/api/session", { credentials: "include" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && data?.user) {
+            setActiveSession(data.user);
+            setCurrentUser(data.user);
+            setIsDemoSandbox(false);
+            if (data.user.role === "CLIENT") setCurrentView("client-pwa");
+            else setCurrentView("partner");
+          } else {
+            clearSession();
+            setCurrentUser(null);
+          }
+        })
+        .catch(() => {
+          clearSession();
+          setCurrentUser(null);
+        })
+        .finally(() => {
+          setIsCheckingSession(false);
+        });
     } catch (e) {
       console.warn("Storage session read bypassed:", e);
+      setIsCheckingSession(false);
     }
   }, []);
 
@@ -588,8 +594,11 @@ export default function Home() {
 
   const handleLoginSuccess = (user: AuthUser | null) => {
     if (!user) return;
+    setActiveSession(user);
     setCurrentUser(user);
     setIsDemoSandbox(false);
+    setIsCheckingSession(false);
+    refreshData();
     toast.success(
       "Signed In Successfully",
       `Welcome, ${user.name} (${user.role === "PARTNER" ? "Managing Partner" : user.role === "TEAM" || user.role === "ARTICLE" ? "Team Member" : "Client Portal"})`
@@ -598,7 +607,10 @@ export default function Home() {
     else setCurrentView("partner");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {}
     clearSession();
     setCurrentUser(null);
     setIsDemoSandbox(false);
@@ -607,53 +619,26 @@ export default function Home() {
   };
 
   const handleSwitchUserRole = (role: "partner" | "team" | "article" | "client") => {
-    let targetUser: AuthUser | null = null;
-    if (role === "client") {
-      const activeClient = clients.length > 0 ? clients[0] : null;
-      if (activeClient) {
-        targetUser = {
-          id: `USR-${activeClient.id}`,
-          name: activeClient.primaryContact?.name || "Authorized Director",
-          email: activeClient.primaryContact?.email || "director@client-portal.in",
-          phone: activeClient.primaryContact?.phone || "+91 98000 00003",
-          role: "CLIENT",
-          designation: `${activeClient.primaryContact?.designation || "Director"} (${activeClient.name})`,
-          firmId: "FRM-022998C",
-          firmName: "GPA & Co., Chartered Accountants",
-          firmFrn: "022998C",
-          clientGroupId: activeClient.groupId,
-          clientEntityId: activeClient.id,
-          token: `tok_client_${Date.now()}`,
-          expiresAt: new Date(Date.now() + 86400000).toISOString(),
-        };
-      } else {
-        targetUser = DEMO_USERS.client;
-      }
-    } else if (role === "team" || role === "article") {
-      targetUser = DEMO_USERS.team || DEMO_USERS.article;
-    } else {
-      targetUser = DEMO_USERS.partner;
-    }
-
-    if (targetUser) {
-      setActiveSession(targetUser);
-      toast.info(
-        "Switched Profile",
-        `Active view: ${targetUser.name} (${targetUser.role === "PARTNER" ? "CA Partner" : "Team Member"})`
-      );
-    }
-    setCurrentUser(targetUser);
-    setIsDemoSandbox(false);
-    if (role === "client") {
-      setCurrentView("client-pwa");
-    } else {
-      setCurrentView("partner");
-      setActivePartnerTab("dashboard");
-    }
+    const mappedRole: "partner" | "article" | "client" =
+      role === "team" || role === "article" ? "article" : role === "client" ? "client" : "partner";
+    setLoginInitialRole(mappedRole);
+    setIsLoginModalOpen(true);
   };
 
-  // 1. Explicit Login Modal View (Directly opened via Sign In button)
-  if (isLoginModalOpen && !currentUser) {
+  // 0. Wait briefly while checking real server session cookie
+  if (isCheckingSession && !isLoginModalOpen) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-btred-logo animate-spin" />
+          <p className="text-xs font-bold text-slate-500">Verifying secure practice session…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 1. Explicit Login Modal View (Sign In or Switch Account)
+  if (isLoginModalOpen) {
     return (
       <LoginModal 
         onLoginSuccess={(user) => {
@@ -668,11 +653,10 @@ export default function Home() {
     );
   }
 
-  // 2. If user has no active session and is not in pitch demo -> Show Enterprise SaaS Gateway
-  if (!currentUser && !isDemoSandbox) {
+  // 2. Unauthenticated -> Show Enterprise SaaS Gateway (Real Login Only, No Sandbox)
+  if (!currentUser) {
     return (
       <SaasGateway 
-        onEnterSandbox={(role) => handleSwitchUserRole(role)}
         onOpenLogin={(role) => {
           setLoginInitialRole(role || "partner");
           setIsLoginModalOpen(true);
@@ -680,19 +664,6 @@ export default function Home() {
         onPracticeRegistered={(user) => {
           handleLoginSuccess(user);
         }}
-      />
-    );
-  }
-
-  // 3. Fallback: If user is logged out without gateway
-  if (!currentUser) {
-    return (
-      <LoginModal 
-        onLoginSuccess={handleLoginSuccess} 
-        onClose={() => setIsLoginModalOpen(false)}
-        initialRole={loginInitialRole}
-        initialPhone={loginInitialPhone} 
-        clients={clients}
       />
     );
   }

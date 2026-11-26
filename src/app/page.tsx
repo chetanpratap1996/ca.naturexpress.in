@@ -290,10 +290,14 @@ export default function Home() {
   const [teamAllowedTools, setTeamAllowedTools] = useState<string[]>(["tasks", "gst"]);
 
   useEffect(() => {
-    if (currentUser?.id) {
+    if (currentUser?.allowedTools && Array.isArray(currentUser.allowedTools)) {
+      setTeamAllowedTools(currentUser.allowedTools);
+    } else if (currentUser?.role === "PARTNER") {
+      setTeamAllowedTools(["tasks", "gst", "tax-audit", "notices-udin", "billing-wip", "client-master"]);
+    } else if (currentUser?.id) {
       setTeamAllowedTools(getTeamMemberTools(currentUser.id));
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.allowedTools, currentUser?.role]);
 
   useEffect(() => {
     const handlePermChange = (e: any) => {

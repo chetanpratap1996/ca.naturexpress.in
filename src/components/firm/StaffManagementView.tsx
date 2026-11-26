@@ -96,7 +96,15 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
   const [permissionsMap, setPermissionsMap] = useState<Record<string, string[]>>({});
 
   const getMemberAllowedTools = (memberId: string): string[] => {
-    return permissionsMap[memberId] || getTeamMemberTools(memberId);
+    if (permissionsMap[memberId]) return permissionsMap[memberId];
+    const member = staffList.find((s) => s.id === memberId);
+    if (member?.allowedTools && Array.isArray(member.allowedTools)) {
+      return member.allowedTools;
+    }
+    if (member?.role === "MANAGING_PARTNER") {
+      return ["tasks", "gst", "tax-audit", "notices-udin", "billing-wip", "client-master"];
+    }
+    return getTeamMemberTools(memberId);
   };
 
   const handleToggleTool = (memberId: string, memberName: string, toolId: string) => {
@@ -169,6 +177,13 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ tasks,
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.staff)) {
         setStaffList(data.staff);
+        const syncedPerms: Record<string, string[]> = {};
+        for (const m of data.staff) {
+          if (Array.isArray(m.allowedTools)) {
+            syncedPerms[m.id] = m.allowedTools;
+          }
+        }
+        setPermissionsMap(syncedPerms);
       } else {
         setStaffList([]);
       }

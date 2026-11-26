@@ -95,78 +95,7 @@ export const INITIAL_SECTION_40A2B_SAMPLES = [];
 export const INITIAL_STAFF_SECURITY_LOGS = [];
 export const INITIAL_PARTNER_METRICS = [];
 
-export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif-gstr1-pratwi",
-    recipientRole: "CLIENT",
-    recipientEntityId: "client-pratwi",
-    title: "GSTR-1 Outward Supplies Filing Due (Statutory Cutoff: 11 Nov 2026)",
-    message: "Form GSTR-1 for October 2026 is due on 11 Nov 2026 for Pratwi Solutions Private Limited (GSTIN: 09AANCP9915B1Z4). Sales data mapped under Rule 59(6) compliance protocol.",
-    category: "COMPLIANCE",
-    priority: "HIGH",
-    targetTab: "progress",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: "notif-gstr3b-pratwi",
-    recipientRole: "CLIENT",
-    recipientEntityId: "client-pratwi",
-    title: "GSTR-3B Statutory Summary & ITC Reconciliation (Cutoff: 20 Nov 2026)",
-    message: "Mandatory monthly return GSTR-3B for October 2026 is due on 20 Nov 2026. Input Tax Credit (ITC) electronic matching vs GSTR-2B underway by GPA & Co.",
-    category: "COMPLIANCE",
-    priority: "URGENT",
-    targetTab: "progress",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: "notif-tds-pratwi",
-    recipientRole: "CLIENT",
-    recipientEntityId: "client-pratwi",
-    title: "TDS Challan 281 Deposit Intimation (October 2026)",
-    message: "Statutory cutoff for monthly TDS deposit under Section 200(1) is 07 Nov 2026. Advance payment advice and calculation verified by Lead CA.",
-    category: "COMPLIANCE",
-    priority: "HIGH",
-    targetTab: "progress",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 18).toISOString(),
-  },
-  {
-    id: "notif-shield-pratwi",
-    recipientRole: "CLIENT",
-    recipientEntityId: "client-pratwi",
-    title: "Executive Statutory Shield Active (98% Compliant)",
-    message: "Official compliance health verified by GPA & Co., Chartered Accountants (FRN 022990C). All company KYC documents and director risk profiles are up to date.",
-    category: "NOTICE",
-    priority: "NORMAL",
-    targetTab: "director-risk",
-    isRead: true,
-    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-  },
-  {
-    id: "notif-partner-utr",
-    recipientRole: "PARTNER",
-    title: "New UTR Submitted for Fee Release",
-    message: "Client submitted bank payment UTR UPI982341982 for ₹29,500. Pay-to-Release fee gatekeeper ready for settlement.",
-    category: "BILLING",
-    priority: "HIGH",
-    targetTab: "billing",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: "notif-staff-stmt",
-    recipientRole: "ARTICLE",
-    title: "Bank Statement Uploaded by Client",
-    message: "Client uploaded bank current account statement. Auto-parser and reconciliation active.",
-    category: "DOCUMENT",
-    priority: "NORMAL",
-    targetTab: "workbench",
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-  }
-];
+export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export const INITIAL_STAFF_MEMBERS: StaffMember[] = [
   {
@@ -187,26 +116,6 @@ export const INITIAL_STAFF_MEMBERS: StaffMember[] = [
     activeOpenTasksCount: 0,
     completedTasksThisMonth: 14,
     averageVelocityMinutes: 45
-  },
-  {
-    id: "STF-ARTICLE-01",
-    firmId: "FRM-022998C",
-    fullName: "Kriti Jain",
-    email: "audit.trainee@brainsandtaxes.com",
-    phone: "+91 79999 95897",
-    icaiRegistrationNo: "CRO022998",
-    role: "ARTICLE_TRAINEE",
-    competencyTier: 2,
-    specializations: ["GST", "INCOME_TAX", "TDS", "BOOKKEEPING"],
-    allowedTools: ["tasks", "gst"],
-    maxDailyTaskCapacity: 15,
-    status: "ACTIVE",
-    tempPin: "5897",
-    joinedDate: "2024-06-01",
-    articleshipEndDate: "2026-06-01",
-    activeOpenTasksCount: 0,
-    completedTasksThisMonth: 27,
-    averageVelocityMinutes: 52
   }
 ];
 

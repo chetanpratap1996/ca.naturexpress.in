@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { InvoiceItem, DocumentItem, PayToReleaseConfig } from "@/lib/types";
 import { authenticateServerRequest, ServerAuthContext } from "@/lib/auth/serverAuth";
 import { getPostgresPool } from "@/lib/server/postgres";
-import {
-  resolveFirmUuid,
-  appendPgAuditLog,
-  listWorkspaceRecords,
-  upsertWorkspaceRecord,
-} from "@/lib/server/pgHelpers";
+import { resolveFirmUuid, appendPgAuditLog, listWorkspaceRecords, upsertWorkspaceRecord } from "@/lib/server/pgHelpers";
+import { ensureBillingSchema, getIndianFyFromDate, allocateNextDocumentNumber } from "@/lib/server/billingSchema";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,17 +12,37 @@ function mapDbInvoice(row: any, entityNameMap: Map<string, { name: string; group
   return {
     id: row.id,
     invoiceNo: row.invoice_no,
+    documentType: row.document_type || "TAX_INVOICE",
+    parentInvoiceId: row.parent_invoice_id || undefined,
     entityId: row.entity_id,
-    entityName: ent?.name || "Practice Client",
-    groupId: ent?.groupId || "",
+    entityName: row.entity_name || ent?.name || "Practice Client",
+    groupId: row.group_id || ent?.groupId || "",
     serviceDescription: row.service_description,
+    lineItems: Array.isArray(row.line_items) ? row.line_items : [],
+    pureAgentAmount: Number(row.pure_agent_amount || 0),
     taxableAmount: Number(row.taxable_amount || 0),
     gstRate: Number(row.gst_rate || 18),
     gstAmount: Number(row.gst_amount || 0),
+    roundOff: Number(row.round_off || 0),
     amount: Number(row.total_amount || 0),
+    paidAmount: Number(row.paid_amount || (row.status === "PAID" ? row.total_amount : 0)),
+    tdsClaimedAmount: Number(row.tds_claimed_amount || 0),
+    tds26asVerified: Boolean(row.tds_26as_verified),
     dueDate: row.due_date ? new Date(row.due_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     status: row.status,
     sacCode: row.sac_code || "998231",
+    financialYear: row.financial_year || getIndianFyFromDate(row.due_date || row.created_at),
+    tdsRate: Number(row.tds_rate || 0),
+    tdsAmount: Number(row.tds_amount || 0),
+    isInterState: Boolean(row.is_inter_state),
+    placeOfSupply: row.place_of_supply || undefined,
+    firmGstin: row.firm_gstin || undefined,
+    irn: row.irn || undefined,
+    irnAckNo: row.irn_ack_no || undefined,
+    wipJobId: row.wip_job_id || undefined,
+    promissoryDate: row.promissory_date ? new Date(row.promissory_date).toISOString().split("T")[0] : undefined,
+    dunningPaused: Boolean(row.dunning_paused),
+    lastDunningStage: row.last_dunning_stage || undefined,
     clientUtrNumber: row.client_utr_number || undefined,
     clientPaymentMode: row.client_payment_mode || undefined,
     clientPaymentDate: row.client_payment_date ? new Date(row.client_payment_date).toISOString().split("T")[0] : undefined,
@@ -44,32 +60,134 @@ export async function GET(request: NextRequest) {
 
     const firmId = await resolveFirmUuid(auth);
     const pool = getPostgresPool();
+    await ensureBillingSchema(pool);
 
-    const [{ rows: entRows }, { rows: invRows }] = await Promise.all([
-      pool.query("SELECT id, entity_name, group_id FROM public.client_entities WHERE firm_id = $1", [firmId]),
-      auth.role === "CLIENT" && auth.clientEntityId && UUID_REGEX.test(auth.clientEntityId)
+    const sp = request.nextUrl.searchParams;
+    const fy = sp.get("fy");
+    const status = sp.get("status");
+    const search = (sp.get("search") || "").trim();
+    const requestedEntityId = sp.get("entityId");
+    const pageParam = sp.get("page");
+    const limitParam = sp.get("limit");
+
+    const where: string[] = ["i.firm_id = $1"];
+    const params: any[] = [firmId];
+    let idx = 2;
+
+    if (auth.role === "CLIENT") {
+      if (auth.clientEntityId && UUID_REGEX.test(auth.clientEntityId)) {
+        where.push(`i.entity_id = $${idx++}`);
+        params.push(auth.clientEntityId);
+      } else if (auth.clientGroupId && UUID_REGEX.test(auth.clientGroupId)) {
+        where.push(`ce.group_id = $${idx++}`);
+        params.push(auth.clientGroupId);
+      }
+    } else if (requestedEntityId && UUID_REGEX.test(requestedEntityId)) {
+      where.push(`i.entity_id = $${idx++}`);
+      params.push(requestedEntityId);
+    }
+
+    if (fy && /^\d{4}-\d{2}$/.test(fy)) {
+      where.push(`i.financial_year = $${idx++}`);
+      params.push(fy);
+    }
+
+    // Summary KPIs across the scoped entity/FY (before status/search filter)
+    const baseWhereSql = where.join(" AND ");
+    const summaryParams = [...params];
+
+    if (status && status !== "ALL") {
+      if (status === "PENDING") {
+        where.push(`i.status IN ('PENDING', 'OVERDUE')`);
+      } else {
+        where.push(`i.status = $${idx++}`);
+        params.push(status);
+      }
+    }
+
+    if (search) {
+      where.push(`(ce.entity_name ILIKE $${idx} OR i.invoice_no ILIKE $${idx} OR i.service_description ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const fullWhereSql = where.join(" AND ");
+    const usePagination = Boolean(pageParam || limitParam);
+    const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(limitParam || "50", 10) || 50));
+    const offset = (page - 1) * limit;
+
+    const listQuery = usePagination
+      ? pool.query(
+          `SELECT i.*, ce.entity_name, ce.group_id
+           FROM public.invoices i
+           JOIN public.client_entities ce ON ce.id = i.entity_id
+           WHERE ${fullWhereSql}
+           ORDER BY i.created_at DESC
+           LIMIT $${idx++} OFFSET $${idx++}`,
+          [...params, limit, offset]
+        )
+      : pool.query(
+          `SELECT i.*, ce.entity_name, ce.group_id
+           FROM public.invoices i
+           JOIN public.client_entities ce ON ce.id = i.entity_id
+           WHERE ${fullWhereSql}
+           ORDER BY i.created_at DESC`,
+          params
+        );
+
+    const [invRes, summaryRes, filteredCountRes] = await Promise.all([
+      listQuery,
+      pool.query(
+        `SELECT
+           COUNT(*)::int AS total_count,
+           COALESCE(SUM(i.total_amount), 0)::numeric AS total_billed,
+           COALESCE(SUM(CASE WHEN i.status = 'PAID' THEN i.total_amount ELSE 0 END), 0)::numeric AS collected,
+           COALESCE(SUM(CASE WHEN i.status <> 'PAID' THEN i.total_amount ELSE 0 END), 0)::numeric AS pending,
+           COUNT(*) FILTER (WHERE i.status = 'UTR_SUBMITTED')::int AS utr_review_count,
+           COUNT(*) FILTER (WHERE i.status <> 'PAID' AND i.due_date < CURRENT_DATE - INTERVAL '30 days')::int AS overdue_45_count
+         FROM public.invoices i
+         JOIN public.client_entities ce ON ce.id = i.entity_id
+         WHERE ${baseWhereSql}`,
+        summaryParams
+      ),
+      usePagination
         ? pool.query(
-            "SELECT * FROM public.invoices WHERE firm_id = $1 AND entity_id = $2 ORDER BY created_at DESC",
-            [firmId, auth.clientEntityId]
+            `SELECT COUNT(*)::int AS cnt
+             FROM public.invoices i
+             JOIN public.client_entities ce ON ce.id = i.entity_id
+             WHERE ${fullWhereSql}`,
+            params
           )
-        : pool.query("SELECT * FROM public.invoices WHERE firm_id = $1 ORDER BY created_at DESC", [firmId]),
+        : Promise.resolve({ rows: [{ cnt: 0 }] }),
     ]);
 
-    const entityMap = new Map<string, { name: string; groupId: string }>();
-    for (const e of entRows) {
-      entityMap.set(e.id, { name: e.entity_name, groupId: e.group_id });
-    }
+    const emptyMap = new Map<string, { name: string; groupId: string }>();
+    const invoices = invRes.rows.map((r: any) => mapDbInvoice(r, emptyMap));
+    const s = summaryRes.rows[0] || {};
+    const totalBilled = Number(s.total_billed || 0);
+    const collected = Number(s.collected || 0);
+    const totalFiltered = usePagination ? Number(filteredCountRes.rows[0]?.cnt || 0) : invoices.length;
 
-    let invoices = invRows.map((r: any) => mapDbInvoice(r, entityMap));
-    if (auth.role === "CLIENT") {
-      invoices = invoices.filter(
-        (i: InvoiceItem) =>
-          (auth.clientEntityId && i.entityId === auth.clientEntityId) ||
-          (!auth.clientEntityId && auth.clientGroupId && i.groupId === auth.clientGroupId)
-      );
-    }
-
-    return NextResponse.json({ success: true, invoices });
+    return NextResponse.json({
+      success: true,
+      invoices,
+      pagination: {
+        page,
+        limit: usePagination ? limit : invoices.length || 50,
+        total: totalFiltered,
+        totalPages: usePagination ? Math.max(1, Math.ceil(totalFiltered / limit)) : 1,
+      },
+      summary: {
+        totalBilled,
+        totalInvoicesCount: Number(s.total_count || 0),
+        collected,
+        pending: Number(s.pending || 0),
+        utrReviewCount: Number(s.utr_review_count || 0),
+        overdue45Count: Number(s.overdue_45_count || 0),
+        realizationRate: totalBilled > 0 ? Math.round((collected / totalBilled) * 100) : 0,
+      },
+    });
   } catch (error: any) {
     console.error("GET /api/invoices error:", error);
     return NextResponse.json({ success: false, error: "Failed to load invoices." }, { status: 500 });
@@ -98,11 +216,20 @@ export async function POST(req: NextRequest) {
 
     const firmId = await resolveFirmUuid(auth);
     const pool = getPostgresPool();
+    await ensureBillingSchema(pool);
 
     const entityId = typeof body.entityId === "string" ? body.entityId.trim() : "";
     const amount = Number(body.amount);
     const serviceDescription = typeof body.serviceDescription === "string" ? body.serviceDescription.trim() : "";
     const dueDate = typeof body.dueDate === "string" && body.dueDate ? body.dueDate : new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0];
+    const financialYear = typeof body.financialYear === "string" && /^\d{4}-\d{2}$/.test(body.financialYear)
+      ? body.financialYear
+      : getIndianFyFromDate(dueDate);
+    const tdsRate = Number(body.tdsRate || 0);
+    const tdsAmount = Number(body.tdsAmount || 0);
+    const isInterState = Boolean(body.isInterState);
+    const placeOfSupply = typeof body.placeOfSupply === "string" ? body.placeOfSupply.trim() : null;
+    const wipJobId = typeof body.wipJobId === "string" && UUID_REGEX.test(body.wipJobId) ? body.wipJobId : null;
 
     if (!entityId || !UUID_REGEX.test(entityId) || !serviceDescription || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
@@ -120,40 +247,69 @@ export async function POST(req: NextRequest) {
     }
     const entity = entRes.rows[0];
 
-    const taxable = Number(body.taxableAmount) || Math.round(amount / 1.18);
-    const gst = Number(body.gstAmount) || amount - taxable;
-    const countRes = await pool.query("SELECT count(*)::int as cnt FROM public.invoices WHERE firm_id = $1", [firmId]);
+    const documentType = ["TAX_INVOICE", "PROFORMA", "CREDIT_NOTE", "ADVANCE_RECEIPT"].includes(body.documentType)
+      ? body.documentType
+      : "TAX_INVOICE";
+    const lineItems = Array.isArray(body.lineItems) ? body.lineItems : [];
+    const pureAgentAmount = Number(body.pureAgentAmount || 0);
+    const roundOff = Number(body.roundOff || 0);
+    const firmGstin = typeof body.firmGstin === "string" && body.firmGstin.trim() ? body.firmGstin.trim() : null;
+    const parentInvoiceId = typeof body.parentInvoiceId === "string" && UUID_REGEX.test(body.parentInvoiceId) ? body.parentInvoiceId : null;
+
+    const taxable = Number(body.taxableAmount) || Math.round((amount - pureAgentAmount) / 1.18);
+    const gst = Number(body.gstAmount) ?? Math.max(0, amount - pureAgentAmount - taxable);
     const invoiceNo =
       typeof body.invoiceNo === "string" && body.invoiceNo.trim()
         ? body.invoiceNo.trim()
-        : `BT/2026-27/${String((countRes.rows[0]?.cnt || 0) + 101)}`;
+        : await allocateNextDocumentNumber(pool, firmId, documentType, financialYear);
     const sacCode = typeof body.sacCode === "string" && body.sacCode.trim() ? body.sacCode.trim() : "998231";
 
     const inserted = await pool.query(
       `INSERT INTO public.invoices (
-        firm_id, entity_id, invoice_no, service_description, sac_code,
-        taxable_amount, gst_rate, gst_amount, total_amount, due_date, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, 18, $7, $8, $9, 'PENDING')
+        firm_id, entity_id, invoice_no, document_type, parent_invoice_id,
+        service_description, sac_code, line_items, pure_agent_amount,
+        taxable_amount, gst_rate, gst_amount, round_off, total_amount, due_date, status,
+        financial_year, tds_rate, tds_amount, is_inter_state, place_of_supply, firm_gstin, wip_job_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, 18, $11, $12, $13, $14, 'PENDING', $15, $16, $17, $18, $19, $20, $21)
       RETURNING *`,
-      [firmId, entity.id, invoiceNo, serviceDescription, sacCode, taxable, gst, amount, dueDate]
+      [
+        firmId,
+        entity.id,
+        invoiceNo,
+        documentType,
+        parentInvoiceId,
+        serviceDescription,
+        sacCode,
+        JSON.stringify(lineItems),
+        pureAgentAmount,
+        taxable,
+        gst,
+        roundOff,
+        amount,
+        dueDate,
+        financialYear,
+        tdsRate,
+        tdsAmount,
+        isInterState,
+        placeOfSupply,
+        firmGstin,
+        wipJobId,
+      ]
     );
 
     const row = inserted.rows[0];
-    const newInvoice: InvoiceItem = {
-      id: row.id,
-      invoiceNo: row.invoice_no,
-      entityId: entity.id,
-      entityName: entity.entity_name,
-      groupId: entity.group_id,
-      serviceDescription: row.service_description,
-      taxableAmount: Number(row.taxable_amount),
-      gstRate: 18,
-      gstAmount: Number(row.gst_amount),
-      amount: Number(row.total_amount),
-      dueDate: new Date(row.due_date).toISOString().split("T")[0],
-      status: "PENDING",
-      sacCode: row.sac_code,
-    };
+    if (wipJobId) {
+      await pool.query(
+        `UPDATE public.wip_jobs SET status = 'BILLED', invoice_id = $1, updated_at = now() WHERE id = $2 AND firm_id = $3`,
+        [row.id, wipJobId, firmId]
+      );
+    }
+
+    const emptyMap = new Map<string, { name: string; groupId: string }>();
+    const newInvoice: InvoiceItem = mapDbInvoice(
+      { ...row, entity_name: entity.entity_name, group_id: entity.group_id },
+      emptyMap
+    );
 
     await appendPgAuditLog({
       firmId,
@@ -222,12 +378,23 @@ async function handleInvoiceSettlement(auth: ServerAuthContext, body: any) {
   const clientPaymentMode = rawMode || rawPayMode || "UPI";
   const clientPayerNote = typeof (rawNote || rawPayerNote) === "string" ? (rawNote || rawPayerNote).trim() : "";
 
-  if (action !== "SUBMIT_UTR" && action !== "RECONCILE") {
+  const ALLOWED_ACTIONS = [
+    "SUBMIT_UTR",
+    "RECONCILE",
+    "CONVERT_PROFORMA",
+    "ALLOCATE_PAYMENT",
+    "VERIFY_26AS_TDS",
+    "BOUNCE_PAYMENT",
+    "SET_PROMISSORY",
+    "TOGGLE_DUNNING_PAUSE",
+  ];
+  if (!ALLOWED_ACTIONS.includes(action)) {
     return NextResponse.json({ success: false, error: "Invalid invoice settlement action." }, { status: 400 });
   }
 
   const firmId = await resolveFirmUuid(auth);
   const pool = getPostgresPool();
+  await ensureBillingSchema(pool);
 
   if (!invoiceId || !UUID_REGEX.test(String(invoiceId))) {
     return NextResponse.json({ success: false, error: "Valid invoiceId is required." }, { status: 400 });
@@ -323,17 +490,88 @@ async function handleInvoiceSettlement(auth: ServerAuthContext, body: any) {
         createdAt: new Date().toISOString(),
       },
     });
+  } else if (action === "CONVERT_PROFORMA") {
+    const fy = row.financial_year || getIndianFyFromDate();
+    const newInvNo = await allocateNextDocumentNumber(pool, firmId, "TAX_INVOICE", fy);
+    const upd = await pool.query(
+      `UPDATE public.invoices
+       SET document_type = 'TAX_INVOICE', invoice_no = $1, due_date = GREATEST(due_date, CURRENT_DATE)
+       WHERE id = $2 AND firm_id = $3
+       RETURNING *`,
+      [newInvNo, row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
+  } else if (action === "VERIFY_26AS_TDS") {
+    const upd = await pool.query(
+      `UPDATE public.invoices SET tds_26as_verified = TRUE WHERE id = $1 AND firm_id = $2 RETURNING *`,
+      [row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
+  } else if (action === "SET_PROMISSORY") {
+    const upd = await pool.query(
+      `UPDATE public.invoices SET promissory_date = $1::date, dunning_paused = TRUE WHERE id = $2 AND firm_id = $3 RETURNING *`,
+      [body.promissoryDate || null, row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
+  } else if (action === "TOGGLE_DUNNING_PAUSE") {
+    const upd = await pool.query(
+      `UPDATE public.invoices SET dunning_paused = NOT COALESCE(dunning_paused, FALSE) WHERE id = $1 AND firm_id = $2 RETURNING *`,
+      [row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
+  } else if (action === "BOUNCE_PAYMENT") {
+    await pool.query(
+      `UPDATE public.payment_allocations SET status = 'BOUNCED' WHERE invoice_id = $1 AND firm_id = $2 AND status = 'APPLIED'`,
+      [row.id, firmId]
+    );
+    const upd = await pool.query(
+      `UPDATE public.invoices SET status = 'PENDING', paid_amount = 0, tds_claimed_amount = 0, client_payer_note = COALESCE($1, 'Cheque/Instrument bounced - re-opened') WHERE id = $2 AND firm_id = $3 RETURNING *`,
+      [clientPayerNote || null, row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
+  } else if (action === "ALLOCATE_PAYMENT") {
+    const cashAmount = Math.max(0, Number(body.cashAmount || 0));
+    const tdsAmount = Math.max(0, Number(body.tdsAmount || 0));
+    const validMode = ["NEFT_RTGS", "IMPS", "UPI", "CHEQUE"].includes(clientPaymentMode) ? clientPaymentMode : "NEFT_RTGS";
+    await pool.query(
+      `INSERT INTO public.payment_allocations (
+        firm_id, entity_id, invoice_id, receipt_ref, payment_mode, cash_amount, tds_amount, status, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'APPLIED', $8, $9)`,
+      [firmId, row.entity_id, row.id, clientUtrNumber || `RCPT-${Date.now().toString().slice(-6)}`, validMode, cashAmount, tdsAmount, clientPayerNote || null, auth.userName || "Partner"]
+    );
+    const nextPaid = Number(row.paid_amount || 0) + cashAmount;
+    const nextTds = Number(row.tds_claimed_amount || 0) + tdsAmount;
+    const settled = nextPaid + nextTds >= Number(row.total_amount || 0) - 1;
+    const upd = await pool.query(
+      `UPDATE public.invoices
+       SET paid_amount = $1,
+           tds_claimed_amount = $2,
+           status = CASE WHEN $3 THEN 'PAID'::invoice_status ELSE status END,
+           client_utr_number = COALESCE(NULLIF($4, ''), client_utr_number),
+           client_payment_mode = COALESCE($5::payment_mode, client_payment_mode),
+           reconciled_at = CASE WHEN $3 THEN now() ELSE reconciled_at END
+       WHERE id = $6 AND firm_id = $7
+       RETURNING *`,
+      [nextPaid, nextTds, settled, clientUtrNumber, validMode, row.id, firmId]
+    );
+    updatedRow = upd.rows[0] || row;
   } else {
     // action === "RECONCILE" (Partner-verified bank settlement)
     const actorUuid = auth.user?.id && UUID_REGEX.test(auth.user.id) ? auth.user.id : null;
+    const validMode = ["NEFT_RTGS", "IMPS", "UPI", "CHEQUE"].includes(clientPaymentMode) ? clientPaymentMode : null;
     const upd = await pool.query(
       `UPDATE public.invoices
        SET status = 'PAID',
+           paid_amount = GREATEST(paid_amount, total_amount - COALESCE(tds_claimed_amount, 0)),
+           client_utr_number = COALESCE(NULLIF($2, ''), client_utr_number),
+           client_payment_mode = COALESCE($3::payment_mode, client_payment_mode),
+           client_payment_date = COALESCE(client_payment_date, CURRENT_DATE),
+           client_payer_note = COALESCE(NULLIF($4, ''), client_payer_note),
            reconciled_by_id = $1,
            reconciled_at = now()
-       WHERE id = $2 AND firm_id = $3
+       WHERE id = $5 AND firm_id = $6
        RETURNING *`,
-      [actorUuid, row.id, firmId]
+      [actorUuid, clientUtrNumber, validMode, clientPayerNote, row.id, firmId]
     );
     updatedRow = upd.rows[0] || row;
 

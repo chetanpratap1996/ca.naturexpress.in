@@ -3,6 +3,7 @@ import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { getPostgresPool } from "@/lib/server/postgres";
 import { resolveFirmUuid } from "@/lib/server/pgHelpers";
 import { executePostgresAutopilotSweep } from "@/lib/automation/postgresAutopilot";
+import { runBillingAutopilotForFirm } from "@/lib/automation/billingAutopilotCron";
 
 async function handleSweep(req: NextRequest) {
   const startTime = Date.now();
@@ -37,8 +38,11 @@ async function handleSweep(req: NextRequest) {
     const triggeredBy = isPartner ? auth.userName || "Partner Manual Cron" : "Scheduled Practice Autopilot Cron";
     const results = [];
     for (const fId of targetFirmIds) {
-      const res = await executePostgresAutopilotSweep(fId, triggeredBy);
-      results.push({ firmId: fId, summary: res.summary });
+      const [res, billingRes] = await Promise.all([
+        executePostgresAutopilotSweep(fId, triggeredBy),
+        runBillingAutopilotForFirm(pool, fId, triggeredBy),
+      ]);
+      results.push({ firmId: fId, summary: res.summary, billing: billingRes });
     }
 
     const executionTimeMs = Date.now() - startTime;

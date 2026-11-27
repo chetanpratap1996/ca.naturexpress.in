@@ -28,20 +28,6 @@ import {
 } from "lucide-react";
 
 
-const DEFAULT_PARTNER_METRICS: PartnerRealizationMetrics[] = [
-  {
-    partnerName: "CA Gunjan Jain (FCA)",
-    assignedClientsCount: 1,
-    billableHoursThisMonth: 142,
-    unbilledWipAmount: 420000,
-    billedThisMonth: 1850000,
-    recoveredThisMonth: 1720000,
-    realizationPercentage: 93.0,
-    agingAbove90DaysAmount: 0,
-    atRiskPenaltyClients: 0
-  }
-];
-
 interface EnterpriseSecurityAndRealizationProps {
   partnerMetrics?: PartnerRealizationMetrics[];
   securityLogs?: StaffDataSecurityAudit[];
@@ -55,15 +41,49 @@ export function EnterpriseSecurityAndRealization({
   invoices = [],
   clients = [],
 }: EnterpriseSecurityAndRealizationProps) {
-  const { selectedClient, isFirmWideView } = useClientContext();
+  const { selectedClient, isFirmWideView, selectedFy } = useClientContext();
   const [activeTab, setActiveTab] = useState<"realization" | "security" | "dpdp">("realization");
   const [logs, setLogs] = useState<StaffDataSecurityAudit[]>(securityLogs);
+  const [livePartnerMetrics, setLivePartnerMetrics] = useState<PartnerRealizationMetrics[]>(partnerMetrics);
+  const [agingBuckets, setAgingBuckets] = useState<{
+    bucket0to15: number;
+    bucket16to30: number;
+    bucket31to45: number;
+    bucket45Plus: number;
+  } | null>(null);
+  const [cashflowForecast, setCashflowForecast] = useState<{
+    openReceivablesDue30d: number;
+    scheduledRetainers30d: number;
+    projectedInflow30d: number;
+  } | null>(null);
+  const [serviceMix, setServiceMix] = useState<Array<{ sacCode: string; amount: number; count: number }>>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const qs = new URLSearchParams({ fy: selectedFy });
+    if (selectedClient && !isFirmWideView) qs.set("entityId", selectedClient.id);
+    fetch(`/api/analytics/partner-realization?${qs.toString()}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.success) return;
+        if (Array.isArray(data.partnerMetrics)) setLivePartnerMetrics(data.partnerMetrics);
+        if (Array.isArray(data.securityLogs)) setLogs(data.securityLogs);
+        if (data.agingBuckets) setAgingBuckets(data.agingBuckets);
+        if (data.cashflowForecast30d) setCashflowForecast(data.cashflowForecast30d);
+        if (Array.isArray(data.serviceMix)) setServiceMix(data.serviceMix);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFy, selectedClient, isFirmWideView]);
 
   const derivedFromInvoices: PartnerRealizationMetrics[] = React.useMemo(() => {
-    if (partnerMetrics.length > 0) return partnerMetrics;
+    if (livePartnerMetrics.length > 0) return livePartnerMetrics;
     const scopedInvoices = selectedClient && !isFirmWideView ? invoices.filter(i => i.entityId === selectedClient.id) : invoices;
     const scopedClients = selectedClient && !isFirmWideView ? [selectedClient] : clients;
     if (scopedInvoices.length === 0 && scopedClients.length === 0) return [];
+    const clientById = new Map(clients.map(c => [c.id, c]));
     const byPartner = new Map<string, PartnerRealizationMetrics>();
     scopedClients.forEach(c => {
       const p = c.partnerInCharge || "Managing Partner";
@@ -73,7 +93,7 @@ export function EnterpriseSecurityAndRealization({
       if (c.penaltyRiskAccrued > 0) m.atRiskPenaltyClients += 1;
     });
     scopedInvoices.forEach(inv => {
-      const cl = clients.find(c => c.id === inv.entityId);
+      const cl = clientById.get(inv.entityId);
       const p = cl?.partnerInCharge || "Managing Partner";
       if (!byPartner.has(p)) byPartner.set(p, { partnerName: p, assignedClientsCount: 0, billableHoursThisMonth: 0, unbilledWipAmount: 0, billedThisMonth: 0, recoveredThisMonth: 0, realizationPercentage: 0, agingAbove90DaysAmount: 0, atRiskPenaltyClients: 0 });
       const m = byPartner.get(p)!;
@@ -83,7 +103,7 @@ export function EnterpriseSecurityAndRealization({
     });
     byPartner.forEach(m => { m.realizationPercentage = m.billedThisMonth > 0 ? Number(((m.recoveredThisMonth / m.billedThisMonth) * 100).toFixed(1)) : 0; });
     return Array.from(byPartner.values());
-  }, [partnerMetrics, invoices, clients, selectedClient, isFirmWideView]);
+  }, [livePartnerMetrics, invoices, clients, selectedClient, isFirmWideView]);
   const activeMetrics = derivedFromInvoices;
   const totalBilled = activeMetrics.reduce((sum, p) => sum + p.billedThisMonth, 0);
   const totalRecovered = activeMetrics.reduce((sum, p) => sum + p.recoveredThisMonth, 0);
@@ -113,24 +133,26 @@ export function EnterpriseSecurityAndRealization({
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-                Firm Realization &bull; ICAI Code of Ethics &bull; DPDP Act 2023
-              </span>
-              {selectedClient && !isFirmWideView && (
-                <span className="text-[11px] font-mono text-slate-400">
-                  PAN: {selectedClient.pan}
-                </span>
-              )}
-            </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-red-600" />
-              Multi-Partner Realization &amp; Client Data Protection
+              Partner Insights &amp; Data Governance
             </h1>
+            {selectedClient && !isFirmWideView && (
+              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                Scoped: {selectedClient.name} &bull; PAN: {selectedClient.pan} &bull; FY {selectedFy}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <UniversalClientSelector variant="compact" />
+            <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-right">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Effective Hourly Rate</span>
+              <span className="text-sm font-bold text-slate-900 font-mono">
+                ₹{activeMetrics.reduce((s, p) => s + p.billableHoursThisMonth, 0) > 0
+                  ? Math.round(totalRecovered / activeMetrics.reduce((s, p) => s + p.billableHoursThisMonth, 0)).toLocaleString("en-IN")
+                  : 0}/hr
+              </span>
+            </div>
 
             <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-right">
               <span className="text-[10px] text-slate-500 uppercase font-semibold block">Realization Rate</span>
@@ -210,8 +232,62 @@ export function EnterpriseSecurityAndRealization({
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900">Partner Performance &amp; Collection Scorecard</h3>
-              <span className="text-xs text-slate-600">Current Month: October 2026</span>
+              <span className="text-xs text-slate-600 font-mono">FY {selectedFy}</span>
             </div>
+
+            {agingBuckets && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50/70 border-b border-slate-200 text-xs">
+                <div className="bg-white border border-slate-200 rounded-xl p-3">
+                  <span className="text-[10px] font-bold uppercase text-emerald-700 block">0–15 Days (Safe)</span>
+                  <strong className="text-sm font-mono text-slate-900">₹{agingBuckets.bucket0to15.toLocaleString("en-IN")}</strong>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-3">
+                  <span className="text-[10px] font-bold uppercase text-amber-700 block">16–30 Days</span>
+                  <strong className="text-sm font-mono text-slate-900">₹{agingBuckets.bucket16to30.toLocaleString("en-IN")}</strong>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-3">
+                  <span className="text-[10px] font-bold uppercase text-orange-700 block">31–45 Days</span>
+                  <strong className="text-sm font-mono text-slate-900">₹{agingBuckets.bucket31to45.toLocaleString("en-IN")}</strong>
+                </div>
+                <div className="bg-white border border-red-200 rounded-xl p-3">
+                  <span className="text-[10px] font-bold uppercase text-red-700 block">45+ Days (43B(h) Risk)</span>
+                  <strong className="text-sm font-mono text-red-700">₹{agingBuckets.bucket45Plus.toLocaleString("en-IN")}</strong>
+                </div>
+              </div>
+            )}
+
+            {(cashflowForecast || serviceMix.length > 0) && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 p-4 border-b border-slate-200 bg-white text-xs">
+                {cashflowForecast && (
+                  <div className="border border-slate-200 rounded-xl p-3.5 space-y-2 bg-slate-50/50">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 block">30-Day Cashflow Forecast</span>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-slate-600">Projected Inflow (Next 30d):</span>
+                      <strong className="text-base font-black font-mono text-emerald-700">
+                        ₹{cashflowForecast.projectedInflow30d.toLocaleString("en-IN")}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+                      <span>Due Receivables: ₹{cashflowForecast.openReceivablesDue30d.toLocaleString("en-IN")}</span>
+                      <span>Scheduled Retainers: ₹{cashflowForecast.scheduledRetainers30d.toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                )}
+
+                {serviceMix.length > 0 && (
+                  <div className="border border-slate-200 rounded-xl p-3.5 space-y-1.5 bg-slate-50/50">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 block">Revenue Mix by SAC</span>
+                    <div className="flex flex-wrap gap-2">
+                      {serviceMix.map((s) => (
+                        <span key={s.sacCode} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-mono text-[11px]">
+                          SAC {s.sacCode}: <strong>₹{s.amount.toLocaleString("en-IN")}</strong> ({s.count})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">

@@ -444,8 +444,57 @@ export function useTaxoData(isSandbox: boolean = false) {
     }
   };
 
+  // Create Invoice (Partner action)
+  const createInvoice = async (payload: Partial<InvoiceItem>): Promise<{ success: boolean; invoice?: InvoiceItem; error?: string }> => {
+    if (isSandbox) {
+      const mockInv: InvoiceItem = {
+        id: `INV-${Date.now()}`,
+        invoiceNo: payload.invoiceNo || `BT/2026-27/${invoices.length + 101}`,
+        entityId: payload.entityId || clients[0]?.id || "",
+        entityName: payload.entityName || clients[0]?.name || "Client Entity",
+        groupId: payload.groupId || "",
+        serviceDescription: payload.serviceDescription || "Professional Fee",
+        taxableAmount: Number(payload.taxableAmount || 0),
+        gstRate: Number(payload.gstRate || 18),
+        gstAmount: Number(payload.gstAmount || 0),
+        amount: Number(payload.amount || 0),
+        dueDate: payload.dueDate || new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
+        status: "PENDING",
+        sacCode: payload.sacCode || "998231",
+        financialYear: payload.financialYear,
+      };
+      setInvoices((prev) => [mockInv, ...prev]);
+      return { success: true, invoice: mockInv };
+    }
+
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        return { success: false, error: json.error || `Failed to create invoice (HTTP ${res.status}).` };
+      }
+      if (json.invoice) {
+        setInvoices((prev) => [json.invoice, ...prev]);
+      }
+      refreshData();
+      return { success: true, invoice: json.invoice };
+    } catch (err: any) {
+      console.error("Failed to create invoice", err);
+      return { success: false, error: err?.message || "Network error creating invoice." };
+    }
+  };
+
   // Reconcile Invoice (Partner action)
-  const reconcileInvoice = async (invoiceId: string, reconciledBy?: string) => {
+  const reconcileInvoice = async (
+    invoiceId: string,
+    optionsOrBy?: string | { utr?: string; mode?: InvoiceItem["clientPaymentMode"]; note?: string; reconciledBy?: string }
+  ) => {
+    const opts = typeof optionsOrBy === "string" ? { reconciledBy: optionsOrBy } : optionsOrBy || {};
     const previous = invoices;
     setInvoices((prev) =>
       prev.map((inv) =>
@@ -453,7 +502,10 @@ export function useTaxoData(isSandbox: boolean = false) {
           ? {
               ...inv,
               status: "PAID",
-              reconciledBy: reconciledBy || "Managing Partner",
+              clientUtrNumber: opts.utr || inv.clientUtrNumber,
+              clientPaymentMode: opts.mode || inv.clientPaymentMode,
+              clientPayerNote: opts.note || inv.clientPayerNote,
+              reconciledBy: opts.reconciledBy || "Managing Partner",
               reconciledAt: new Date().toISOString()
             }
           : inv
@@ -470,7 +522,10 @@ export function useTaxoData(isSandbox: boolean = false) {
         body: JSON.stringify({
           invoiceId,
           action: "RECONCILE",
-          reconciledBy
+          clientUtrNumber: opts.utr,
+          clientPaymentMode: opts.mode,
+          clientPayerNote: opts.note,
+          reconciledBy: opts.reconciledBy
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -945,6 +1000,7 @@ export function useTaxoData(isSandbox: boolean = false) {
     uploadDocument,
     reviewDocument,
     submitClientUtr,
+    createInvoice,
     reconcileInvoice,
     checkoutDscToken,
     returnDscToken,

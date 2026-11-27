@@ -11,6 +11,7 @@ import { getAutopilotPolicy } from "@/lib/automation/postgresAutopilot";
 import { hashSecret, normalizePhone10 } from "@/lib/auth/enterpriseAuth";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 import { parseCinStrict } from "@/lib/intelligence/registry/mcaEngine";
+import { reconcileGstinsWithPortal } from "@/lib/gst/gstReconcileServer";
 import crypto from "crypto";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -352,6 +353,7 @@ export async function POST(req: NextRequest) {
             type: item.type || "PVT_LTD",
             pan,
             gstin: item.gstin?.trim().toUpperCase() || undefined,
+            gstinRecords: Array.isArray(item.gstinRecords) ? item.gstinRecords : undefined,
             gstFilingFrequency: item.gstFilingFrequency || undefined,
             onboardingMode: item.onboardingMode || "EXISTING_CLIENT",
             serviceScope: Array.isArray(item.serviceScope) ? item.serviceScope : undefined,
@@ -853,12 +855,39 @@ export async function POST(req: NextRequest) {
     if (isNewEntity) {
       const clientTasks = generateStatutoryTasksForClient(newClient);
       for (const t of clientTasks) {
-        await pool.query(
+        const ins = await pool.query(
           `INSERT INTO public.compliance_tasks (
             firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty, missing_docs_list
-          ) VALUES ($1, $2, $3::compliance_category, $4, $5, $6, $7::workflow_status, $8::task_priority, $9, $10, $11::jsonb)`,
+          ) VALUES ($1, $2, $3::compliance_category, $4, $5, $6, $7::workflow_status, $8::task_priority, $9, $10, $11::jsonb)
+          RETURNING id`,
           [firmId, entityId, t.category, t.title, t.period, t.dueDate, t.status, t.priority, t.penaltyRisk, t.accruingDailyPenalty, JSON.stringify(t.missingDocumentsList || [])]
         );
+        const insertedTaskId = ins.rows[0]?.id;
+        if (insertedTaskId && t.gstin) {
+          await upsertWorkspaceRecord({
+            firmId,
+            entityId,
+            recordType: "GST_FILING_METADATA",
+            matchKey: "taskId",
+            matchValue: insertedTaskId,
+            payload: {
+              taskId: insertedTaskId,
+              gstin: t.gstin.trim().toUpperCase(),
+            },
+          });
+        }
+      }
+
+      // Day-1 Best-Effort GSTN Baseline Sync for existing/takeover clients (discovers unfiled backlog months automatically)
+      const isExistingClient = (newClient.onboardingMode || "EXISTING_CLIENT") !== "NEW_BUSINESS";
+      const hasAnyGstin = Boolean(newClient.gstin || (newClient.gstinRecords && newClient.gstinRecords.length > 0));
+      if (isExistingClient && hasAnyGstin) {
+        await Promise.race([
+          reconcileGstinsWithPortal({ firmId, entityId }).catch((e) =>
+            console.warn("Onboarding GSTN baseline sync skipped:", e?.message)
+          ),
+          new Promise((resolve) => setTimeout(resolve, 5000)),
+        ]);
       }
 
       const policy = await getAutopilotPolicy(firmId).catch(() => null);

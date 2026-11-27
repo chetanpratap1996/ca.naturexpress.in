@@ -8,6 +8,7 @@ import {
   appendPgAuditLog,
 } from "@/lib/server/pgHelpers";
 import { getPeriodsForFy } from "@/lib/gst/gstClientFetch";
+import { canonicalizeReturnKind, taskMatchesGstin } from "@/lib/gst/gstComplianceEngine";
 import { DrcIntimationNotice } from "@/lib/gst/drc01b01cEngine";
 
 export async function GET(req: NextRequest) {
@@ -31,13 +32,32 @@ export async function GET(req: NextRequest) {
       const periods = getPeriodsForFy(fy);
       const periodSet = new Set(periods);
 
-      const [g1Recs, recoRecs, r42Recs, metaRecs, { rows: taskRows }] = await Promise.all([
+      const [g1Recs, recoRecs, r42Recs, metaRecs, gstProfileRecs, { rows: entRows }, { rows: taskRows }] = await Promise.all([
         listWorkspaceRecords<any>(firmId, "GST_GSTR1_DATA"),
         listWorkspaceRecords<any>(firmId, "GST_RECONCILIATION"),
         listWorkspaceRecords<any>(firmId, "GST_RULE42_43"),
         listWorkspaceRecords<any>(firmId, "GST_FILING_METADATA"),
-        getPostgresPool().query("SELECT id, period, title FROM public.compliance_tasks WHERE firm_id = $1 AND category = 'GST'", [firmId]),
+        listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE"),
+        getPostgresPool().query("SELECT id, gstin FROM public.client_entities WHERE firm_id = $1", [firmId]),
+        getPostgresPool().query("SELECT id, entity_id, period, title FROM public.compliance_tasks WHERE firm_id = $1 AND category = 'GST'", [firmId]),
       ]);
+
+      // Resolve which entity owns clientGstin to prevent cross-client or cross-GSTIN data leakage
+      let ownerEntityId: string | null = null;
+      let ownerPrimaryGstin: string | null = null;
+      for (const ent of entRows) {
+        if (String(ent.gstin || "").trim().toUpperCase() === clientGstin) {
+          ownerEntityId = ent.id;
+          ownerPrimaryGstin = clientGstin;
+          break;
+        }
+        const prof = gstProfileRecs.find((r) => (r.entity_id || r.payload?.entityId) === ent.id)?.payload;
+        if (Array.isArray(prof?.gstinRecords) && prof.gstinRecords.some((g: any) => String(g.gstin || "").trim().toUpperCase() === clientGstin)) {
+          ownerEntityId = ent.id;
+          ownerPrimaryGstin = ent.gstin ? String(ent.gstin).trim().toUpperCase() : null;
+          break;
+        }
+      }
 
       const taskById = new Map(taskRows.map((t: any) => [t.id, t]));
 
@@ -108,14 +128,15 @@ export async function GET(req: NextRequest) {
           table7Rule42_43 += Number(r42.rule43Result.monthlyExemptReversal_Te || 0);
         }
 
-        // Check 3B task metadata for this period
+        // Check 3B task metadata strictly scoped to ownerEntityId + clientGstin
         const meta3b = metaRecs.find((m) => {
           const t = taskById.get(m.payload?.taskId);
           return (
             t &&
-            String(t.period) === p &&
-            /3b/i.test(String(t.title || "")) &&
-            (!m.payload?.gstin || String(m.payload.gstin).toUpperCase() === clientGstin)
+            (!ownerEntityId || t.entity_id === ownerEntityId) &&
+            String(t.period).toLowerCase() === p.toLowerCase() &&
+            canonicalizeReturnKind(String(t.title || "")) === "GSTR3B" &&
+            taskMatchesGstin({ gstin: m.payload?.gstin, title: t.title }, clientGstin, ownerPrimaryGstin)
           );
         })?.payload;
 

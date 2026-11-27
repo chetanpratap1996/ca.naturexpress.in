@@ -62,7 +62,7 @@ import { UniversalClientSelector } from '@/components/shared/UniversalClientSele
 import { ClientGateEmptyState } from '@/components/shared/ClientGateEmptyState';
 
 export function BankAuditWorkbench() {
-  const { selectedClient, isFirmWideView } = useClientContext();
+  const { selectedClient, isFirmWideView, selectedFy } = useClientContext();
   const [activeTab, setActiveTab] = useState<
     'IRAC_MOC' | 'DRAWING_POWER' | 'LFAR_MASTER' | 'CONCURRENT_AUDIT' | 'GHOSH_JILANI_EWS' | 'REVENUE_LEAKAGE'
   >('IRAC_MOC');
@@ -95,10 +95,10 @@ export function BankAuditWorkbench() {
   const totalMocProvision = advances.reduce((sum, a) => sum + a.differentialProvisionMoc, 0);
 
   const lfarSummary: LfarAuditPackSummary = LfarMasterEngine.summarizeLfar(lfarQuestions, {
-    branchName: 'Indore Main Commercial Branch (0319)',
-    branchCode: 'BOI-0319',
-    bankName: 'Bank of India',
-    financialYear: '2026-27'
+    branchName: selectedClient && !isFirmWideView ? selectedClient.name : 'Select Bank Branch Entity',
+    branchCode: selectedClient && !isFirmWideView ? selectedClient.pan : 'BRANCH',
+    bankName: selectedClient && !isFirmWideView ? (selectedClient.tradeName || selectedClient.name) : 'Bank Audit Engagement',
+    financialYear: selectedFy
   });
 
   const concurrentSummary = ConcurrentAuditEngine.auditHighValueTransactions(highValueTxns);
@@ -124,24 +124,68 @@ export function BankAuditWorkbench() {
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-                Statutory Bank Audit &bull; RBI IRAC 90-Day NPAs &bull; LFAR 2020 &bull; ICAI SA 700
-              </span>
-              {selectedClient && !isFirmWideView && (
-                <span className="text-[11px] font-mono text-slate-400">
-                  Client: {selectedClient.name} ({selectedClient.pan})
-                </span>
-              )}
-            </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-red-600" />
-              RBI IRAC Norms, LFAR &amp; Bank Audit Desk
+              Bank Audit &amp; RBI IRAC / LFAR Desk
             </h1>
+            {selectedClient && !isFirmWideView && (
+              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                {selectedClient.name} &bull; PAN: {selectedClient.pan} &bull; FY {selectedFy}
+              </p>
+            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <UniversalClientSelector variant="compact" />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Import CBS CSV</span>
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const text = await file.text();
+                  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+                  const parsed: BankAdvanceAccount[] = [];
+                  for (const line of lines.slice(1)) {
+                    const [accountNumber, borrowerName, facilityType, sanctionedLimit, outstandingBalance, overdueDays] =
+                      line.split(",").map((s) => s?.trim() || "");
+                    if (!accountNumber || !borrowerName) continue;
+                    const out = Number(outstandingBalance || 0);
+                    const days = Number(overdueDays || 0);
+                    const rec: AssetClassification =
+                      days > 455 ? "DOUBTFUL_1" : days > 90 ? "SUB_STANDARD" : "STANDARD";
+                    const prov = rec === "STANDARD" ? Math.round(out * 0.004) : Math.round(out * 0.15);
+                    parsed.push({
+                      accountNumber,
+                      borrowerName,
+                      facilityType: (facilityType as any) || "CASH_CREDIT",
+                      sanctionedLimit: Number(sanctionedLimit || out),
+                      drawingPower: Number(sanctionedLimit || out),
+                      outstandingBalance: out,
+                      daysOverdue: days,
+                      securityValuationSecured: out,
+                      unsecuredPortion: 0,
+                      isStockStatementStale: false,
+                      currentClassification: "STANDARD",
+                      recommendedClassification: rec,
+                      isMocRequired: rec !== "STANDARD",
+                      branchProvision: Math.round(out * 0.004),
+                      statutoryRequiredProvision: prov,
+                      differentialProvisionMoc: Math.max(0, prov - Math.round(out * 0.004)),
+                      notes: [rec !== "STANDARD" ? `Overdue ${days}d (>90d RBI IRAC norm)` : "Standard asset"],
+                    });
+                  }
+                  if (parsed.length > 0) {
+                    setAdvances((prev) => [...prev, ...parsed]);
+                    toast.success("CBS Imported", `Loaded ${parsed.length} borrower advance account(s).`);
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </label>
 
             <button
               onClick={handlePrintMoc}
@@ -178,7 +222,7 @@ export function BankAuditWorkbench() {
               ₹{(totalNpa / 10000000).toFixed(2)} Cr
             </span>
             <span className="text-xs font-mono text-red-600 font-bold">
-              {((totalNpa / totalAdvances) * 100).toFixed(1)}% GNPA
+              {totalAdvances > 0 ? ((totalNpa / totalAdvances) * 100).toFixed(1) : "0.0"}% GNPA
             </span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">Downgrades &amp; Overdues &gt; 90d</p>

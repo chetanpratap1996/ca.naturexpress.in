@@ -70,6 +70,7 @@ export function PayToReleaseManager({
   const [overrideHours, setOverrideHours] = useState<number>(48);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [gateFilter, setGateFilter] = useState<"ALL" | "LOCKED" | "UTR_PENDING" | "RELEASED">("ALL");
 
   // Enterprise Interactive Modals
   const [selectedQrConfig, setSelectedQrConfig] = useState<{ config: PayToReleaseConfig; client?: ClientEntity; invoice?: InvoiceItem } | null>(null);
@@ -100,28 +101,38 @@ export function PayToReleaseManager({
     invoiceNo?: string;
   } | null>(null);
 
-  // Self-Healing Dynamic Config Fallback for Live CA Data
-  const effectiveConfigs = useMemo(() => {
-    return clients.map(client => {
-      // Find matching explicit config if present
-      const existingCfg = (configs || []).find(c => c.entityId === client.id);
+  // O(C + I) Indexed Config Resolution for 1,000+ Clients
+  const clientMap = useMemo(() => {
+    const map = new Map<string, ClientEntity>();
+    for (const c of clients) map.set(c.id, c);
+    return map;
+  }, [clients]);
 
-      const clientInvoices = invoices.filter(i => i.entityId === client.id && i.status !== "PAID");
+  const effectiveConfigs = useMemo(() => {
+    const configByEntity = new Map<string, PayToReleaseConfig>();
+    for (const c of configs || []) configByEntity.set(c.entityId, c);
+
+    const unpaidByEntity = new Map<string, InvoiceItem[]>();
+    for (const inv of invoices) {
+      if (inv.status === "PAID") continue;
+      const arr = unpaidByEntity.get(inv.entityId);
+      if (arr) arr.push(inv);
+      else unpaidByEntity.set(inv.entityId, [inv]);
+    }
+
+    const nowMs = Date.now();
+    return clients.map(client => {
+      const existingCfg = configByEntity.get(client.id);
+      const clientInvoices = unpaidByEntity.get(client.id) || [];
       const unpaidSum = clientInvoices.reduce((acc, curr) => acc + curr.amount, 0);
       let maxDays = 0;
-      const now = new Date();
-      clientInvoices.forEach(inv => {
-        const due = new Date(inv.dueDate);
-        const diff = Math.ceil((now.getTime() - due.getTime()) / (1000 * 3600 * 24));
-        if (diff > maxDays) maxDays = Math.max(0, diff);
-      });
+      for (const inv of clientInvoices) {
+        const diff = Math.ceil((nowMs - new Date(inv.dueDate).getTime()) / 86400000);
+        if (diff > maxDays) maxDays = diff;
+      }
 
-      // Check partner override expiry
-      const nowMs = Date.now();
       const overrideExpiry = existingCfg?.partnerOverrideUntil ? new Date(existingCfg.partnerOverrideUntil).getTime() : 0;
       const isOverrideActive = overrideExpiry > nowMs;
-
-      // In a real CA practice, clients with overdue invoices beyond policy are locked unless overridden
       const autoLocked = unpaidSum > 0 && maxDays > lockPolicyDays && !isOverrideActive;
       const isLocked = existingCfg !== undefined ? (isOverrideActive ? false : existingCfg.isLocked) : autoLocked;
 
@@ -156,10 +167,18 @@ export function PayToReleaseManager({
     if (selectedClient && !isFirmWideView) {
       list = effectiveConfigs.filter(cfg => cfg.entityId === selectedClient.id);
     }
+    if (gateFilter === "LOCKED") {
+      list = list.filter((cfg) => cfg.isLocked);
+    } else if (gateFilter === "RELEASED") {
+      list = list.filter((cfg) => !cfg.isLocked);
+    } else if (gateFilter === "UTR_PENDING") {
+      const utrEntities = new Set(invoices.filter((i) => i.status === "UTR_SUBMITTED").map((i) => i.entityId));
+      list = list.filter((cfg) => utrEntities.has(cfg.entityId));
+    }
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(cfg => {
-      const client = clients.find(c => c.id === cfg.entityId);
+      const client = clientMap.get(cfg.entityId);
       return (
         client?.name.toLowerCase().includes(q) ||
         client?.pan.toLowerCase().includes(q) ||
@@ -167,7 +186,7 @@ export function PayToReleaseManager({
         cfg.entityId.toLowerCase().includes(q)
       );
     });
-  }, [effectiveConfigs, clients, searchQuery, selectedClient, isFirmWideView]);
+  }, [effectiveConfigs, clientMap, searchQuery, selectedClient, isFirmWideView, gateFilter, invoices]);
 
   const totalLockedAmount = effectiveConfigs
     .filter((c) => c.isLocked)
@@ -448,25 +467,18 @@ export function PayToReleaseManager({
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-                Deliverable Gatekeeper &bull; MSMED Act Sec 15 &amp; 16 &bull; ICAI SA 210
-              </span>
-              {selectedClient && !isFirmWideView && (
-                <span className="text-[11px] font-mono text-slate-400">
-                  PAN: {selectedClient.pan}
-                </span>
-              )}
-            </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              Fee Realization &amp; Deliverable Gatekeeper (Pay-to-Release)
+              Pay-to-Release Deliverable Gate
             </h1>
+            {selectedClient && !isFirmWideView && (
+              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                {selectedClient.name} &bull; PAN: {selectedClient.pan}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <UniversalClientSelector variant="compact" />
-
             <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-right">
               <span className="text-[10px] text-slate-500 uppercase font-semibold block">Outstanding Dues</span>
               <span className="text-sm font-bold text-emerald-700">₹{totalLockedAmount.toLocaleString("en-IN")}</span>
@@ -532,14 +544,16 @@ export function PayToReleaseManager({
           )}
         </div>
 
-        {/* Card 2: Realization Speed */}
+        {/* Card 2: Pending UTR Queue */}
         <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-slate-900">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase truncate">Realization Speed</span>
-            <Clock className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase truncate">UTR Review Queue</span>
+            <Clock className="w-4 h-4 text-amber-600 shrink-0" />
           </div>
-          <div className="text-base sm:text-lg font-black text-emerald-700 mt-1.5">4.8 Hours</div>
-          <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">From delivery lock to clearance</div>
+          <div className="text-base sm:text-lg font-black text-slate-900 mt-1.5">
+            {invoices.filter((i) => i.status === "UTR_SUBMITTED").length} Pending
+          </div>
+          <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">Awaiting bank credit verification</div>
         </div>
 
         {/* Card 3: Firm UPI Endpoint (High-Contrast & Copyable) */}
@@ -565,7 +579,7 @@ export function PayToReleaseManager({
               {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           </div>
-          <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">NPCI Instant Webhook Reconciliation</div>
+          <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">Direct Firm UPI (0% Gateway Fee)</div>
         </div>
 
         {/* Card 4: ICAI Ethics & SA 210 Grounding */}
@@ -592,6 +606,20 @@ export function PayToReleaseManager({
           </div>
           
           <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-bold text-slate-600">
+              {(["ALL", "LOCKED", "UTR_PENDING", "RELEASED"] as const).map((gf) => (
+                <button
+                  key={gf}
+                  onClick={() => setGateFilter(gf)}
+                  className={`px-2.5 py-1 rounded-lg transition ${
+                    gateFilter === gf ? "bg-white text-slate-900 shadow-xs" : "hover:text-slate-900"
+                  }`}
+                >
+                  {gf === "ALL" ? "All" : gf === "LOCKED" ? "Locked" : gf === "UTR_PENDING" ? "UTR Pending" : "Released"}
+                </button>
+              ))}
+            </div>
+
             {/* Search Box */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
@@ -606,12 +634,11 @@ export function PayToReleaseManager({
 
             <button
               onClick={() => setClientPwaPreviewOpen(true)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-xs"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5"
             >
-              <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Simulate Client Lock Screen</span>
+              <Smartphone className="w-3.5 h-3.5 text-slate-600" />
+              <span>Client View</span>
             </button>
-            <span className="text-xs text-slate-500 font-medium hidden sm:inline">&bull; Auto-Refreshes on payment</span>
           </div>
         </div>
 
@@ -671,7 +698,7 @@ export function PayToReleaseManager({
                           <span>{displayAmount.toLocaleString("en-IN")}</span>
                         </div>
                         <div className="text-xs text-slate-500 font-medium group-hover:underline">
-                          {clientInvoices.length} pending bill(s) &rarr;
+                          {clientInvoices.length > 0 ? `${clientInvoices.length} pending bill(s) →` : "No pending bills"}
                         </div>
                       </div>
                     </td>

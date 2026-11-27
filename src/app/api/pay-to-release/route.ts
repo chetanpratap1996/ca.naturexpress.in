@@ -53,10 +53,26 @@ export async function GET(request: NextRequest) {
     const firmName = firm?.firm_name || DEFAULT_FIRM_BRANDING.firmName;
     const configs: PayToReleaseConfig[] = configRecs.map((r) => r.payload);
 
+    // Index invoices and configs by entityId in O(I + C) instead of O(C * I)
+    const invByEntity = new Map<string, any[]>();
+    for (const inv of invRows) {
+      const list = invByEntity.get(inv.entity_id);
+      if (list) list.push(inv);
+      else invByEntity.set(inv.entity_id, [inv]);
+    }
+    const configByEntity = new Map<string, PayToReleaseConfig>();
+    for (const cfg of configs) {
+      if (cfg?.entityId) configByEntity.set(cfg.entityId, cfg);
+    }
+    const clientNameById = new Map<string, string>();
+    for (const c of clientRows) {
+      clientNameById.set(c.id, c.entity_name);
+    }
+
     const deliverables: GatekeeperDeliverable[] = [];
     for (const c of clientRows) {
-      const clientInvoices = invRows.filter((i: any) => i.entity_id === c.id);
-      const config = configs.find((cfg) => cfg.entityId === c.id);
+      const clientInvoices = invByEntity.get(c.id) || [];
+      const config = configByEntity.get(c.id);
       const clientObj = { id: c.id, name: c.entity_name, type: c.type, turnoverCr: Number(c.turnover_cr || 0) };
       const mappedInvs = clientInvoices.map((inv: any) => ({
         id: inv.id,
@@ -157,11 +173,10 @@ export async function GET(request: NextRequest) {
     const pendingUtrs: UtrReconciliationRecord[] = invRows
       .filter((inv: any) => inv.status === "UTR_SUBMITTED")
       .map((inv: any) => {
-        const clientRow = clientRows.find((c: any) => c.id === inv.entity_id);
         return {
           id: `UTR-REC-${inv.id}`,
           entityId: inv.entity_id,
-          clientName: clientRow?.entity_name || "Client Entity",
+          clientName: clientNameById.get(inv.entity_id) || "Client Entity",
           invoiceId: inv.id,
           invoiceNo: inv.invoice_no,
           amount: Number(inv.total_amount || 0),

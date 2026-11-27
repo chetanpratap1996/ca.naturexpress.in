@@ -67,8 +67,13 @@ export default function PillarEightTallyDesktopWorkbench() {
   const [tabs, setTabs] = useState<MdiClientTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
 
-  // Tally Grid State
-  const [voucherRows, setVoucherRows] = useState<VoucherRow[]>([]);
+  // Tally Grid State (initialized with 2 ready-to-type Dr/Cr rows)
+  const [voucherType, setVoucherType] = useState<'Journal' | 'Sales' | 'Receipt' | 'Payment' | 'Contra'>('Journal');
+  const [voucherDate, setVoucherDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [voucherRows, setVoucherRows] = useState<VoucherRow[]>([
+    { id: 'R-1', type: 'Dr', ledger: '', amount: 0, narration: '' },
+    { id: 'R-2', type: 'Cr', ledger: '', amount: 0, narration: '' },
+  ]);
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number }>({ row: 0, col: 1 });
   const [isAltCModalOpen, setIsAltCModalOpen] = useState(false);
   const [newLedgerName, setNewLedgerName] = useState('');
@@ -186,25 +191,18 @@ export default function PillarEightTallyDesktopWorkbench() {
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-                TallyPrime Integration &bull; ODBC &bull; Multi-Client MDI &bull; Tally XML
-              </span>
-              {selectedClient && !isFirmWideView && (
-                <span className="text-[11px] font-mono text-slate-400">
-                  PAN: {selectedClient.pan}
-                </span>
-              )}
-            </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               <Keyboard className="w-5 h-5 text-red-600" />
-              Tally Voucher Grid &amp; XML Sync Bridge
+              Tally Voucher Grid &amp; XML Bridge
             </h1>
+            {selectedClient && !isFirmWideView && (
+              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                {selectedClient.name} &bull; PAN: {selectedClient.pan}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <UniversalClientSelector variant="compact" />
-
             <button
               onClick={() => {
                 const blob = new Blob([xmlExportPreview], { type: 'application/xml' });
@@ -271,38 +269,33 @@ export default function PillarEightTallyDesktopWorkbench() {
             <ArrowLeftRight className="w-3.5 h-3.5" />
             TallyPrime XML Bridge ({mocs.length} MOCs)
           </button>
-
-          <button
-            onClick={() => setActiveView('BILLING_RECOVERY')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeView === 'BILLING_RECOVERY'
-                ? 'bg-btred-logo text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            Rule 33 Pure Agent Invoicing
-          </button>
-
-          <button
-            onClick={() => setActiveView('MORNING_DIGEST')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeView === 'MORNING_DIGEST'
-                ? 'bg-btred-logo text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            Partner Morning Digest
-          </button>
         </div>
       </div>
 
       {/* VIEW 1: TALLY-SPEED KEYBOARD DATA ENTRY GRID */}
       {activeView === 'TALLY_KEYBOARD_GRID' && (
         <div className="space-y-6">
-          {/* Keyboard Shortcuts Hint Bar */}
+          {/* Voucher Type, Date & Hotkeys Bar */}
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <select
+                value={voucherType}
+                onChange={(e) => setVoucherType(e.target.value as any)}
+                className="border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold bg-slate-50 text-slate-900"
+              >
+                <option value="Journal">Journal (F7)</option>
+                <option value="Sales">Sales (F8)</option>
+                <option value="Receipt">Receipt (F6)</option>
+                <option value="Payment">Payment (F5)</option>
+                <option value="Contra">Contra (F4)</option>
+              </select>
+              <input
+                type="date"
+                value={voucherDate}
+                onChange={(e) => setVoucherDate(e.target.value)}
+                className="border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono bg-slate-50 text-slate-800"
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="font-bold text-red-600 flex items-center gap-1.5">
                 <Keyboard className="w-4 h-4" />
@@ -609,13 +602,52 @@ export default function PillarEightTallyDesktopWorkbench() {
                   <h3 className="text-base font-bold text-slate-900">Audit MOCs (Auto-Generated)</h3>
                   <p className="text-xs text-slate-500">Management Overhaul Corrections ready to post into Tally</p>
                 </div>
-                <button
-                  onClick={handleExportToTally}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition-all"
-                >
-                  <ArrowLeftRight className="w-3.5 h-3.5" />
-                  Post to TallyPrime via XML/ODBC
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/invoices', { credentials: 'include' });
+                        const data = await res.json();
+                        const invs: any[] = data.invoices || [];
+                        if (invs.length === 0) {
+                          setSyncStatus('NO_INVOICES');
+                          return;
+                        }
+                        const voucherXml = invs
+                          .map((inv) => {
+                            const dt = String(inv.dueDate || '2026-11-01').replace(/-/g, '');
+                            return `<TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="Sales" ACTION="Create"><DATE>${dt}</DATE><VOUCHERNUMBER>${inv.invoiceNo}</VOUCHERNUMBER><PARTYLEDGERNAME>${inv.entityName}</PARTYLEDGERNAME><NARRATION>${inv.serviceDescription} (SAC ${inv.sacCode || '998231'})</NARRATION><ALLLEDGERENTRIES.LIST><LEDGERNAME>${inv.entityName}</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-${inv.amount}</AMOUNT></ALLLEDGERENTRIES.LIST><ALLLEDGERENTRIES.LIST><LEDGERNAME>Professional Fees (SAC 9982)</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>${inv.taxableAmount}</AMOUNT></ALLLEDGERENTRIES.LIST><ALLLEDGERENTRIES.LIST><LEDGERNAME>Output GST @ 18%</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>${inv.gstAmount}</AMOUNT></ALLLEDGERENTRIES.LIST></VOUCHER></TALLYMESSAGE>`;
+                          })
+                          .join('\n');
+                        const fullXml = `<ENVELOPE><HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER><BODY><IMPORTDATA><REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME></REQUESTDESC><REQUESTDATA>${voucherXml}</REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`;
+                        setXmlExportPreview(fullXml);
+                        const blob = new Blob([fullXml], { type: 'application/xml;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `TallyPrime_Firm_Invoices_${new Date().toISOString().slice(0, 10)}.xml`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        setSyncStatus('SUCCESS');
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Export Firm Invoices XML
+                  </button>
+                  <button
+                    onClick={handleExportToTally}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition-all"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5" />
+                    Post to TallyPrime via XML/ODBC
+                  </button>
+                </div>
               </div>
 
               {syncStatus === 'SUCCESS' && (

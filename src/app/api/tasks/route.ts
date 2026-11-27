@@ -3,6 +3,7 @@ import { ComplianceTask } from "@/lib/types";
 import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { getPostgresPool } from "@/lib/server/postgres";
 import { resolveFirmUuid, appendPgAuditLog, upsertWorkspaceRecord, listWorkspaceRecords } from "@/lib/server/pgHelpers";
+import { ensureBillingSchema, getIndianFyFromDate } from "@/lib/server/billingSchema";
 import { getAutopilotPolicy, maybeDraftInvoiceForCompletedTask } from "@/lib/automation/postgresAutopilot";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
@@ -176,6 +177,24 @@ export async function POST(req: NextRequest) {
     const row = ins.rows[0];
     const entityMap = new Map([[entity.id, { name: entity.entity_name, groupId: entity.group_id }]]);
     const newTask = mapTaskRow(row, entityMap);
+
+    const cleanGstin = typeof body.gstin === "string" ? body.gstin.trim().toUpperCase() : "";
+    if (cleanGstin || body.isNilReturn !== undefined) {
+      await upsertWorkspaceRecord({
+        firmId,
+        entityId: entity.id,
+        recordType: "GST_FILING_METADATA",
+        matchKey: "taskId",
+        matchValue: row.id,
+        payload: {
+          taskId: row.id,
+          ...(cleanGstin ? { gstin: cleanGstin } : {}),
+          ...(body.isNilReturn !== undefined ? { isNilReturn: Boolean(body.isNilReturn) } : {}),
+        },
+      });
+      if (cleanGstin) newTask.gstin = cleanGstin;
+      if (body.isNilReturn !== undefined) newTask.isNilReturn = Boolean(body.isNilReturn);
+    }
 
     await appendPgAuditLog({
       firmId,
@@ -358,6 +377,55 @@ export async function PATCH(req: NextRequest) {
           firm_id, entity_id, task_id, category, file_name, file_size_bytes, financial_year, review_status, reviewed_by_id, reviewed_at
         ) VALUES ($1, $2, $3, $4::document_category, $5, 250880, $6, 'APPROVED', $7, now())`,
         [firmId, cur.entity_id, cur.id, docCat, ackName, cur.period || "FY 2026-27", actorUuid]
+      );
+
+      // Auto-queue completed statutory work into Unbilled WIP using client_rate_cards (or category defaults)
+      await ensureBillingSchema(pool);
+      const wipFeeMap: Record<string, { fee: number; sac: string; hours: number }> = {
+        TAX_AUDIT: { fee: 25000, sac: "998221", hours: 16 },
+        INCOME_TAX: { fee: 12000, sac: "998222", hours: 8 },
+        GST: { fee: 3500, sac: "998222", hours: 3 },
+        TDS: { fee: 4000, sac: "998222", hours: 3 },
+        ROC_MCA: { fee: 8500, sac: "998231", hours: 5 },
+        TRANSFER_PRICING: { fee: 45000, sac: "998221", hours: 24 },
+      };
+      let wipDef = wipFeeMap[cur.category] || { fee: 5000, sac: "998231", hours: 4 };
+      const rcRes = await pool.query(
+        `SELECT rc.standard_fee, rc.sac_code, rc.default_hours
+         FROM public.client_rate_cards rc
+         JOIN public.client_entities ce ON ce.id = $2
+         WHERE rc.firm_id = $1
+           AND rc.service_category = $3
+           AND (rc.entity_id = $2 OR (rc.entity_id IS NULL AND (rc.entity_type IS NULL OR rc.entity_type = ce.type::text) AND COALESCE(ce.turnover_cr, 0) BETWEEN rc.turnover_min_cr AND rc.turnover_max_cr))
+         ORDER BY (rc.entity_id IS NOT NULL) DESC, rc.created_at DESC
+         LIMIT 1`,
+        [firmId, cur.entity_id, cur.category]
+      );
+      if (rcRes.rows[0]) {
+        wipDef = {
+          fee: Number(rcRes.rows[0].standard_fee || wipDef.fee),
+          sac: rcRes.rows[0].sac_code || wipDef.sac,
+          hours: Number(rcRes.rows[0].default_hours || wipDef.hours),
+        };
+      }
+      const wipFy = getIndianFyFromDate(nextFilingDate || new Date());
+      await pool.query(
+        `INSERT INTO public.wip_jobs (
+          firm_id, entity_id, task_id, financial_year, service_title, sac_code,
+          assigned_staff, hours_spent, estimated_fee, completion_date, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE, 'READY_FOR_BILLING')
+        ON CONFLICT (firm_id, task_id) WHERE task_id IS NOT NULL DO NOTHING`,
+        [
+          firmId,
+          cur.entity_id,
+          cur.id,
+          wipFy,
+          cur.title,
+          wipDef.sac,
+          assignedTo || "Practice Team",
+          wipDef.hours,
+          wipDef.fee,
+        ]
       );
 
       await upsertWorkspaceRecord({

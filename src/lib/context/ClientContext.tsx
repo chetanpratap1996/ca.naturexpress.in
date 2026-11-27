@@ -85,10 +85,12 @@ function deriveAssessmentYear(fy: string): string {
   return "2027-28";
 }
 
+const EMPTY_CLIENTS: ClientEntity[] = [];
+
 export const ClientProvider: React.FC<{
   children: React.ReactNode;
   initialClients?: ClientEntity[];
-}> = ({ children, initialClients = [] }) => {
+}> = ({ children, initialClients = EMPTY_CLIENTS }) => {
   const availableFys = useMemo(() => getAvailableIndianFys(), []);
   const [selectedClient, setSelectedClientState] = useState<ClientEntity | null>(null);
   const [selectedGstin, setSelectedGstinState] = useState<string | null>(null);
@@ -170,9 +172,9 @@ export const ClientProvider: React.FC<{
     });
   }, []);
 
+  // One-time hydration of saved FY, period, recent clients, and firmwide flag from localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     try {
       const savedFy = localStorage.getItem(STORAGE_KEYS.FY);
       if (savedFy && availableFys.includes(savedFy)) setSelectedFyState(savedFy);
@@ -192,13 +194,22 @@ export const ClientProvider: React.FC<{
       if (savedFirmwide !== null) {
         setIsFirmWideViewState(savedFirmwide === "true");
       }
+    } catch (e) {
+      console.warn("ClientContext hydration warning:", e);
+    }
+  }, [availableFys]);
 
+  // Match saved clientId / URL clientId once initialClients are available
+  useEffect(() => {
+    if (typeof window === "undefined" || initialClients.length === 0) return;
+    try {
+      const savedFirmwide = localStorage.getItem(STORAGE_KEYS.FIRMWIDE);
       const urlParams = new URLSearchParams(window.location.search);
       const urlClientId = urlParams.get("clientId");
       const urlGstin = urlParams.get("gstin");
       const savedClientId = urlClientId || localStorage.getItem(STORAGE_KEYS.CLIENT_ID);
 
-      if (savedClientId && initialClients.length > 0 && savedFirmwide !== "true") {
+      if (savedClientId && savedFirmwide !== "true") {
         const matched = initialClients.find((c) => c.id === savedClientId);
         if (matched) {
           setSelectedClientState(matched);
@@ -213,9 +224,9 @@ export const ClientProvider: React.FC<{
         }
       }
     } catch (e) {
-      console.warn("ClientContext hydration warning:", e);
+      console.warn("ClientContext client match warning:", e);
     }
-  }, [initialClients, availableFys]);
+  }, [initialClients]);
 
   // Hydrate saved client selection only if authenticated staff session exists
   useEffect(() => {

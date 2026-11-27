@@ -1,5 +1,15 @@
 import { ClientEntity, ComplianceTask } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
+import {
+  buildGstTaskTitle,
+  computeGstTaskPriority,
+  computeSec47LateFee,
+  getExpectedReturnKindsForPeriod,
+  getGstr10DueDate,
+  getStatutoryGstDueDate,
+  resolveActiveGstinsForClient,
+  resolveCancelledGstinsForClient,
+} from "@/lib/gst/gstComplianceEngine";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -131,121 +141,115 @@ export function generateStatutoryTasksForClient(
   const currentYear = referenceDate.getFullYear();
   const isFreshlyIncorporated = isNewIncorp && (client.incorporationYear || currentYear) >= currentYear - 1;
 
-  // 1. GST Compliance Obligations (ONLY if entity holds an active GSTIN, not UNREGISTERED, & GST is in scope)
+  // 1. GST Compliance Obligations — iterate ALL active GSTINs (respecting per-GSTIN frequency & type)
   const gstAlreadyFiledForCycle =
     Boolean(lastFiled.gst) && lastFiled.gst!.trim().toLowerCase() === cycle.periodLabel.toLowerCase();
+  const activeGstins = hasScope("GST") && gstFreq !== "UNREGISTERED" ? resolveActiveGstinsForClient(client) : [];
 
-  if (hasScope("GST") && gstin && gstin.trim().length === 15 && gstFreq !== "UNREGISTERED") {
+  for (const g of activeGstins) {
+    const gClean = g.gstin.replace(/[^a-zA-Z0-9]/g, "").slice(-6);
     if (!gstAlreadyFiledForCycle) {
-      if (gstFreq === "COMPOSITION") {
+      if (g.registrationType === "COMPOSITION") {
+        const cmpDue = getStatutoryGstDueDate(cycle.periodLabel, "CMP08", g);
         tasks.push({
-          id: `TSK-CMP08-${cycle.periodKey}-${cleanId}`,
+          id: `TSK-CMP08-${cycle.periodKey}-${cleanId}-${gClean}`,
           entityId,
           entityName,
           groupId,
           category: "GST",
-          title: "CMP-08 Quarterly Composition Statement & Tax Payment",
+          title: buildGstTaskTitle("CMP08", g),
           period: `${cycle.fyLabel} Quarter`,
-          dueDate: formatIsoDate(cycle.fyStartYear + 1, 0, 18),
+          dueDate: cmpDue,
           status: "DOCUMENTS_AWAITED",
           assignedTo: article,
           reviewedBy: partner,
-          priority: "HIGH",
+          priority: computeGstTaskPriority(cmpDue, referenceDate),
           penaltyRisk: 0,
           accruingDailyPenalty: 0,
           missingDocumentsCount: 1,
           missingDocumentsList: ["Quarterly Turnover Summary & Exempt Sales Split"],
           chaseCount: 0,
           pan,
-          gstin,
+          gstin: g.gstin,
           clientApprovalStatus: "PENDING",
-          penaltyNote: "Sec 47 Late Fee for CMP-08 post 18th of quarter-end month"
+          penaltyNote: "Sec 47 Late Fee for CMP-08 post 18th of quarter-end month",
         });
-      } else if (gstFreq === "QRMP") {
-        tasks.push({
-          id: `TSK-QRMP-IFF-${cycle.periodKey}-${cleanId}`,
-          entityId,
-          entityName,
-          groupId,
-          category: "GST",
-          title: "QRMP IFF / PMT-06 Monthly Tax Challan (Month 1/2)",
-          period: cycle.periodLabel,
-          dueDate: formatIsoDate(Number(cycle.periodKey.slice(0, 4)), Number(cycle.periodKey.slice(4, 6)) - 1, 25),
-          status: "DOCUMENTS_AWAITED",
-          assignedTo: article,
-          reviewedBy: partner,
-          priority: "HIGH",
-          penaltyRisk: 0,
-          accruingDailyPenalty: 0,
-          missingDocumentsCount: 1,
-          missingDocumentsList: ["B2B Sales Invoices for IFF & 35% Fixed Sum Challan Check"],
-          chaseCount: 0,
-          pan,
-          gstin,
-          clientApprovalStatus: "PENDING",
-          penaltyNote: "IFF due 13th; PMT-06 self-assessment/fixed-sum challan due 25th"
-        });
-        tasks.push({
-          id: `TSK-QRMP-3B-${cycle.periodKey}-${cleanId}`,
-          entityId,
-          entityName,
-          groupId,
-          category: "GST",
-          title: "QRMP Quarterly GSTR-1 & GSTR-3B Return",
-          period: `${cycle.fyLabel} Quarter`,
-          dueDate: formatIsoDate(cycle.fyStartYear + 1, 0, 22),
-          status: "DOCUMENTS_AWAITED",
-          assignedTo: article,
-          reviewedBy: partner,
-          priority: "CRITICAL",
-          penaltyRisk: 0,
-          accruingDailyPenalty: 0,
-          missingDocumentsCount: 2,
-          missingDocumentsList: ["Quarterly Sales Register", "Purchase Register & GSTR-2B Match"],
-          chaseCount: 0,
-          pan,
-          gstin,
-          clientApprovalStatus: "PENDING",
-          penaltyNote: "QRMP due 22nd/24th post-quarter based on state group"
-        });
+      } else if (g.filingFrequency === "QRMP") {
+        const expectedQrmpKinds = getExpectedReturnKindsForPeriod(g, cycle.periodLabel);
+        for (const qKind of expectedQrmpKinds) {
+          const qDue = getStatutoryGstDueDate(cycle.periodLabel, qKind, g);
+          tasks.push({
+            id: `TSK-QRMP-${qKind}-${cycle.periodKey}-${cleanId}-${gClean}`,
+            entityId,
+            entityName,
+            groupId,
+            category: "GST",
+            title: buildGstTaskTitle(qKind, g),
+            period: cycle.periodLabel,
+            dueDate: qDue,
+            status: "DOCUMENTS_AWAITED",
+            assignedTo: article,
+            reviewedBy: partner,
+            priority: computeGstTaskPriority(qDue, referenceDate),
+            penaltyRisk: 0,
+            accruingDailyPenalty: 0,
+            missingDocumentsCount: qKind === "PMT06" ? 1 : 2,
+            missingDocumentsList:
+              qKind === "PMT06"
+                ? ["35% Fixed-Sum / Self-Assessment Challan Check (Optional IFF by 13th)"]
+                : qKind === "GSTR1"
+                ? ["Quarterly B2B & B2C Outward Sales Register"]
+                : ["Quarterly Purchase Register & GSTR-2B Match"],
+            chaseCount: 0,
+            pan,
+            gstin: g.gstin,
+            clientApprovalStatus: "PENDING",
+            penaltyNote:
+              qKind === "PMT06"
+                ? "QRMP M1/M2: IFF optional due 13th; PMT-06 challan due 25th"
+                : `QRMP M3 due ${g.qrmpStateGroup === "24TH" ? "24th" : "22nd"} post-quarter`,
+          });
+        }
       } else {
+        const g1Due = getStatutoryGstDueDate(cycle.periodLabel, "GSTR1", g);
+        const g3bDue = getStatutoryGstDueDate(cycle.periodLabel, "GSTR3B", g);
         tasks.push({
-          id: `TSK-GSTR1-${cycle.periodKey}-${cleanId}`,
+          id: `TSK-GSTR1-${cycle.periodKey}-${cleanId}-${gClean}`,
           entityId,
           entityName,
           groupId,
           category: "GST",
-          title: "GSTR-1 Monthly Outward Supplies",
+          title: buildGstTaskTitle("GSTR1", g),
           period: cycle.periodLabel,
-          dueDate: cycle.gstr1Due,
+          dueDate: g1Due,
           status: "DOCUMENTS_AWAITED",
           assignedTo: article,
           reviewedBy: partner,
-          priority: "CRITICAL",
+          priority: computeGstTaskPriority(g1Due, referenceDate),
           penaltyRisk: 0,
           accruingDailyPenalty: 0,
           missingDocumentsCount: 1,
           missingDocumentsList: ["B2B Sales Invoices & E-way Bill Summary"],
           chaseCount: 0,
           pan,
-          gstin,
+          gstin: g.gstin,
           clientApprovalStatus: "PENDING",
           penaltyNote: "Sec 47 Late Fee (₹50/day; ₹20/day for Nil) applicable only post due date",
         });
 
         tasks.push({
-          id: `TSK-GSTR3B-${cycle.periodKey}-${cleanId}`,
+          id: `TSK-GSTR3B-${cycle.periodKey}-${cleanId}-${gClean}`,
           entityId,
           entityName,
           groupId,
           category: "GST",
-          title: "GSTR-3B Monthly Return Filing",
+          title: buildGstTaskTitle("GSTR3B", g),
           period: cycle.periodLabel,
-          dueDate: cycle.gstr3bDue,
+          dueDate: g3bDue,
           status: "DOCUMENTS_AWAITED",
           assignedTo: article,
           reviewedBy: partner,
-          priority: "CRITICAL",
+          priority: computeGstTaskPriority(g3bDue, referenceDate),
           penaltyRisk: 0,
           accruingDailyPenalty: 0,
           missingDocumentsCount: 2,
@@ -255,7 +259,7 @@ export function generateStatutoryTasksForClient(
           ],
           chaseCount: 0,
           pan,
-          gstin,
+          gstin: g.gstin,
           taxPayableAmount: 0,
           section50Interest: 0,
           clientApprovalStatus: "PENDING",
@@ -264,35 +268,75 @@ export function generateStatutoryTasksForClient(
       }
     }
 
-    // Auto-create catch-up tasks ONLY for non-fresh entities where live GSTN lookup revealed unfiled historical returns
+    // Auto-create catch-up tasks for non-fresh entities where GSTN lookup revealed unfiled historical returns
     if (!isNewIncorp) {
-      const unfiledHistory = (client.gstHistory || []).filter((h) => !h.arn || h.delayDays > 0);
-      unfiledHistory.slice(0, 3).forEach((h, idx) => {
+      const unfiledHistory = (client.gstHistory || []).filter((h: any) => {
+        if (h.arn || (h.delayDays !== undefined && h.delayDays <= 0)) return false;
+        const hGstin = (h.gstin || "").trim().toUpperCase();
+        if (hGstin) return hGstin === g.gstin.toUpperCase();
+        return !gstin || g.gstin.toUpperCase() === gstin.trim().toUpperCase();
+      });
+      unfiledHistory.slice(0, 6).forEach((h: any, idx: number) => {
+        const kind = h.returnType?.includes("1") ? "GSTR1" : "GSTR3B";
+        const period = h.period || "Prior Period";
+        if (period.toLowerCase() === cycle.periodLabel.toLowerCase()) return;
+        const histDue = getStatutoryGstDueDate(period, kind, g);
+        const fee = computeSec47LateFee(histDue, referenceDate);
         tasks.push({
-          id: `TSK-CATCHUP-${h.returnType}-${cleanId}-${idx}`,
+          id: `TSK-CATCHUP-${kind}-${cleanId}-${gClean}-${idx}`,
           entityId,
           entityName,
           groupId,
           category: "GST",
-          title: `Overdue Catch-Up: ${h.returnType.replace("_", "-")} (${h.period || "Prior Period"})`,
-          period: h.period || "Prior Period",
-          dueDate: new Date().toISOString().split("T")[0],
+          title: buildGstTaskTitle(kind, g, true),
+          period,
+          dueDate: histDue,
           status: "DOCUMENTS_AWAITED",
           assignedTo: article,
           reviewedBy: partner,
           priority: "CRITICAL",
-          penaltyRisk: 5000,
-          accruingDailyPenalty: 50,
+          penaltyRisk: fee.lateFee || 500,
+          accruingDailyPenalty: fee.dailyRate || 50,
           missingDocumentsCount: 1,
-          missingDocumentsList: [`Historical ${h.returnType.replace("_", "-")} data for ${h.period}`],
+          missingDocumentsList: [`Historical ${kind === "GSTR1" ? "GSTR-1" : "GSTR-3B"} data for ${period}`],
           chaseCount: 0,
           pan,
-          gstin,
+          gstin: g.gstin,
           clientApprovalStatus: "PENDING",
-          penaltyNote: "Detected unfiled return during GSTN onboarding lookup",
+          penaltyNote: `Detected unfiled return during GSTN onboarding lookup (${fee.daysLate} days overdue)`,
         });
       });
     }
+  }
+
+  // 1B. Cancelled GSTINs -> GSTR-10 Final Return (Sec 45 CGST Act, due within 3 months)
+  const cancelledGstins = hasScope("GST") ? resolveCancelledGstinsForClient(client) : [];
+  for (const cg of cancelledGstins) {
+    const cgClean = cg.gstin.replace(/[^a-zA-Z0-9]/g, "").slice(-6);
+    const g10Due = getGstr10DueDate(cg.cancellationDate, referenceDate);
+    tasks.push({
+      id: `TSK-GSTR10-${cleanId}-${cgClean}`,
+      entityId,
+      entityName,
+      groupId,
+      category: "GST",
+      title: buildGstTaskTitle("GSTR10", cg),
+      period: cg.cancellationDate ? `Cancelled ${cg.cancellationDate}` : "Final Return",
+      dueDate: g10Due,
+      status: "DOCUMENTS_AWAITED",
+      assignedTo: article,
+      reviewedBy: partner,
+      priority: computeGstTaskPriority(g10Due, referenceDate),
+      penaltyRisk: 0,
+      accruingDailyPenalty: 0,
+      missingDocumentsCount: 1,
+      missingDocumentsList: ["Closing Stock & Capital Goods ITC Reversal Schedule"],
+      chaseCount: 0,
+      pan,
+      gstin: cg.gstin,
+      clientApprovalStatus: "PENDING",
+      penaltyNote: "Sec 45 GSTR-10 Final Return due within 3 months of cancellation",
+    });
   }
 
   // 2. TDS Deposit Challan 281 & Quarterly Statement 26Q (if TDS in scope AND entity holds TAN or is corporate)

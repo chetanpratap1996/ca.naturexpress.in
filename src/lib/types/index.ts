@@ -254,27 +254,138 @@ export interface NoticeRecord {
   adjournmentHistory?: { requestedDate: string; reason: string; grantStatus: "PENDING" | "GRANTED" }[];
 }
 
+export type InvoiceDocType = "TAX_INVOICE" | "PROFORMA" | "CREDIT_NOTE" | "ADVANCE_RECEIPT";
+
+export interface InvoiceLineItem {
+  id: string;
+  description: string;
+  sacCode: string;
+  quantity: number;
+  unitRate: number;
+  discount: number;
+  isPureAgent: boolean; // Rule 33: 0% GST statutory challan / reimbursement
+  taxableValue: number;
+  gstRate: number; // 18 or 0
+  gstAmount: number;
+  lineTotal: number;
+}
+
 export interface InvoiceItem {
   id: string;
   invoiceNo: string;
+  documentType?: InvoiceDocType;
+  parentInvoiceId?: string;
   entityId: string;
   entityName: string;
   groupId: string;
   serviceDescription: string;
+  lineItems?: InvoiceLineItem[];
+  pureAgentAmount?: number;
   taxableAmount: number;
   gstRate: number; // e.g. 18
   gstAmount: number;
-  amount: number; // Total amount inclusive of GST
+  roundOff?: number;
+  amount: number; // Total amount inclusive of GST + Pure Agent
+  paidAmount?: number;
+  tdsClaimedAmount?: number;
+  tds26asVerified?: boolean;
   dueDate: string;
   status: "PENDING" | "UTR_SUBMITTED" | "PAID" | "OVERDUE";
   sacCode: string; // e.g., "998231"
   serviceCategory?: string;
+  financialYear?: string;
+  tdsRate?: number;
+  tdsAmount?: number;
+  isInterState?: boolean;
+  placeOfSupply?: string;
+  firmGstin?: string;
+  irn?: string;
+  irnAckNo?: string;
+  wipJobId?: string;
+  promissoryDate?: string;
+  dunningPaused?: boolean;
+  lastDunningStage?: string;
   clientUtrNumber?: string;
   clientPaymentMode?: "UPI" | "NEFT_RTGS" | "IMPS" | "CHEQUE";
   clientPaymentDate?: string;
   clientPayerNote?: string;
   reconciledBy?: string;
   reconciledAt?: string;
+}
+
+export interface PaymentAllocationItem {
+  id: string;
+  entityId: string | null;
+  entityName?: string;
+  invoiceId: string | null;
+  invoiceNo?: string;
+  receiptRef: string;
+  paymentMode: "UPI" | "NEFT_RTGS" | "IMPS" | "CHEQUE";
+  cashAmount: number;
+  tdsAmount: number;
+  allocationDate: string;
+  status: "APPLIED" | "BOUNCED" | "SUSPENSE";
+  notes?: string;
+  createdBy?: string;
+}
+
+export interface RetainerScheduleItem {
+  id: string;
+  entityId: string;
+  entityName: string;
+  title: string;
+  sacCode: string;
+  billingCycle: "MONTHLY" | "QUARTERLY" | "ANNUAL";
+  baseFee: number;
+  autoIssue: boolean;
+  autoDispatch: boolean;
+  nextRunDate: string;
+  lastRunDate?: string | null;
+  maxMonthlyInvoices: number;
+  maxTurnoverCr: number;
+  isActive: boolean;
+}
+
+export interface ClientRateCardItem {
+  id: string;
+  entityId?: string | null;
+  entityName?: string;
+  entityType?: string | null;
+  turnoverMinCr: number;
+  turnoverMaxCr: number;
+  serviceCategory: string;
+  sacCode: string;
+  standardFee: number;
+  defaultHours: number;
+}
+
+export interface WipJobItem {
+  id: string;
+  entityId: string;
+  entityName: string;
+  clientPan?: string;
+  taskId?: string | null;
+  financialYear: string;
+  serviceTitle: string;
+  sacCode: string;
+  assignedStaff: string;
+  hoursSpent: number;
+  estimatedFee: number;
+  completionDate: string;
+  status: "READY_FOR_BILLING" | "IN_PROGRESS" | "BILLED" | "WRITTEN_OFF";
+  invoiceId?: string | null;
+}
+
+export interface BillingSummaryMetrics {
+  totalBilled: number;
+  totalInvoicesCount: number;
+  collected: number;
+  pending: number;
+  utrReviewCount: number;
+  overdue45Count: number;
+  realizationRate: number;
+  wipTotal: number;
+  wipCount: number;
 }
 
 export interface DscRecord {

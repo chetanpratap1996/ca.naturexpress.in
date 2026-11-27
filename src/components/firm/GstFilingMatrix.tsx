@@ -16,6 +16,8 @@ import {
   Layers,
   Send,
   Download,
+  CalendarDays,
+  ShieldAlert,
 } from "lucide-react";
 import {
   ComplianceTask,
@@ -29,6 +31,19 @@ import { UniversalClientSelector } from "@/components/shared/UniversalClientSele
 const ContextualFilingDrawer = dynamic(() => import("@/components/shared/ContextualFilingDrawer").then((m) => m.ContextualFilingDrawer), { ssr: false });
 import { formatCurrencyINR } from "@/lib/utils";
 import { getPeriodsForFy, gstFetchJson } from "@/lib/gst/gstClientFetch";
+import {
+  buildGstTaskTitle,
+  canonicalizeReturnKind,
+  computeGstTaskPriority,
+  computeSec47LateFee,
+  computeSequentialBlockers,
+  extractGstinFromTitle,
+  getStatutoryGstDueDate,
+  periodSortKey,
+  resolveActiveGstCycle,
+  resolveActiveGstinsForClient,
+  taskMatchesGstin,
+} from "@/lib/gst/gstComplianceEngine";
 import { toast } from "@/components/shared/ToastNotification";
 
 interface GstFilingMatrixProps {
@@ -85,7 +100,9 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
   const [activeClient, setActiveClient] = useState<ClientEntity | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [viewMode, setViewMode] = useState<"TASKS" | "PIPELINE">("TASKS");
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [baselineFiledUpTo, setBaselineFiledUpTo] = useState<string>("CURRENT_ONLY");
+  const [viewMode, setViewMode] = useState<"TASKS" | "MATRIX" | "PIPELINE">("TASKS");
   const [isSyncingPortal, setIsSyncingPortal] = useState(false);
   const [pipelinePeriod, setPipelinePeriod] = useState<string>(selectedPeriod || "");
   const [pipelineRows, setPipelineRows] = useState<any[]>([]);
@@ -159,6 +176,7 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
         body: JSON.stringify({
           action: "SYNC_FILING_STATUS",
           fy: selectedFy,
+          entityId: !isFirmWideView && selectedClient ? selectedClient.id : undefined,
           gstin: !isFirmWideView && selectedGstin ? selectedGstin : undefined,
         }),
       });
@@ -166,9 +184,14 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
         toast.warning("GSTN Sync Warning", data?.error || "Could not fetch filing status from GSTN API.");
         return;
       }
+      if (data.syncedGstins === 0 && Array.isArray(data.errors) && data.errors.length > 0) {
+        toast.warning("GSTN API Notice", data.errors[0]);
+        return;
+      }
+      const backfilled = data.createdBacklogTasks || 0;
       toast.success(
-        "GSTN Status Synced",
-        `Checked ${data.syncedGstins} GSTIN(s), auto-updated ${data.updatedTasks} task ARN(s).`
+        "GSTN Status Reconciled",
+        `Checked ${data.syncedGstins} GSTIN(s) • Marked ${data.updatedTasks} filed • Backfilled ${backfilled} unfiled backlog return(s).`
       );
       if (onRefreshData) await onRefreshData();
       if (viewMode === "PIPELINE") await loadFirmPipeline();
@@ -185,13 +208,18 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
       if (t.category !== "GST") return false;
       if (selectedClient && !isFirmWideView) {
         if (t.entityId !== selectedClient.id) return false;
-        if (selectedGstin && t.gstin && t.gstin.toUpperCase() !== selectedGstin.toUpperCase()) {
+        if (selectedGstin && !taskMatchesGstin(t, selectedGstin, selectedClient.gstin)) {
           return false;
         }
       }
       return true;
     });
   }, [tasks, selectedClient, selectedGstin, isFirmWideView]);
+
+  const sequentialBlockers = useMemo(
+    () => computeSequentialBlockers(gstTasks, clients),
+    [gstTasks, clients]
+  );
 
   const availablePeriods = useMemo(() => {
     const set = new Set<string>(fyPeriods);
@@ -202,32 +230,42 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
   }, [gstTasks, fyPeriods]);
 
   const filteredTasks = useMemo(() => {
-    return gstTasks.filter((t) => {
-      const client = clients.find((c) => c.id === t.entityId);
-      const gstin = t.gstin || client?.gstin || "";
-      const matchesSearch =
-        !searchQuery ||
-        t.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        gstin.toLowerCase().includes(searchQuery.toLowerCase());
+    return gstTasks
+      .filter((t) => {
+        const client = clients.find((c) => c.id === t.entityId);
+        const gstin = extractGstinFromTitle(t.title) || t.gstin || client?.gstin || "";
+        const matchesSearch =
+          !searchQuery ||
+          t.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          gstin.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesPeriod = filterPeriod === "ALL" || t.period === filterPeriod;
+        const matchesPeriod = filterPeriod === "ALL" || t.period === filterPeriod;
 
-      let matchesType = true;
-      if (returnTypeFilter === "GSTR-1") matchesType = /gstr-?1|iff/i.test(t.title);
-      else if (returnTypeFilter === "GSTR-3B") matchesType = /gstr-?3b/i.test(t.title);
-      else if (returnTypeFilter === "CMP-08") matchesType = /cmp-?08/i.test(t.title);
-      else if (returnTypeFilter === "GSTR-9") matchesType = /gstr-?9/i.test(t.title);
+        let matchesType = true;
+        if (returnTypeFilter === "GSTR-1") matchesType = /gstr-?1|iff/i.test(t.title);
+        else if (returnTypeFilter === "GSTR-3B") matchesType = /gstr-?3b/i.test(t.title);
+        else if (returnTypeFilter === "CMP-08") matchesType = /cmp-?08/i.test(t.title);
+        else if (returnTypeFilter === "GSTR-9") matchesType = /gstr-?9/i.test(t.title);
 
-      let matchesStatus = true;
-      if (statusFilter === "FILED") matchesStatus = t.status === "FILED_AND_COMPLETED";
-      else if (statusFilter === "PENDING") matchesStatus = t.status !== "FILED_AND_COMPLETED";
-      else if (statusFilter === "CRITICAL") {
-        matchesStatus = t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED";
-      }
+        let matchesStatus = true;
+        if (statusFilter === "FILED") matchesStatus = t.status === "FILED_AND_COMPLETED";
+        else if (statusFilter === "PENDING") matchesStatus = t.status !== "FILED_AND_COMPLETED";
+        else if (statusFilter === "CRITICAL") {
+          matchesStatus = t.priority === "CRITICAL" && t.status !== "FILED_AND_COMPLETED";
+        }
 
-      return matchesSearch && matchesPeriod && matchesType && matchesStatus;
-    });
+        return matchesSearch && matchesPeriod && matchesType && matchesStatus;
+      })
+      .sort((a, b) => {
+        const aFiled = a.status === "FILED_AND_COMPLETED" ? 1 : 0;
+        const bFiled = b.status === "FILED_AND_COMPLETED" ? 1 : 0;
+        if (aFiled !== bFiled) return aFiled - bFiled;
+        const pkDiff = periodSortKey(a.period) - periodSortKey(b.period);
+        if (pkDiff !== 0) return pkDiff;
+        const kindOrder: Record<string, number> = { GSTR1: 1, GSTR3B: 2, CMP08: 3, GSTR9: 4, OTHER: 5 };
+        return (kindOrder[canonicalizeReturnKind(a.title)] || 5) - (kindOrder[canonicalizeReturnKind(b.title)] || 5);
+      });
   }, [gstTasks, clients, searchQuery, filterPeriod, returnTypeFilter, statusFilter]);
 
   const metrics = useMemo(() => {
@@ -257,10 +295,15 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
     arn: string,
     details?: Partial<ComplianceTask>
   ) => {
+    const isFinalFiling = Boolean(arn && arn.trim());
     await onUpdateTask(taskId, {
-      status: "FILED_AND_COMPLETED" as WorkflowStatus,
-      arnNumber: arn,
-      filingDate: details?.filingDate || new Date().toISOString().split("T")[0],
+      ...(isFinalFiling
+        ? {
+            status: "FILED_AND_COMPLETED" as WorkflowStatus,
+            arnNumber: arn.trim(),
+            filingDate: details?.filingDate || new Date().toISOString().split("T")[0],
+          }
+        : {}),
       ...(details || {}),
     });
 
@@ -269,119 +312,60 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
     }
   };
 
-  // Generate monthly / QRMP GST tasks for active client's GSTINs for selectedPeriod
-  const handleGenerateReturnTasks = async () => {
+  // Generate current cycle OR full backlog from "Filed Up To" baseline
+  const handleGenerateReturnTasks = async (filedUpToMode: string = baselineFiledUpTo) => {
     if (!selectedClient || isFirmWideView) {
       toast.info("Select Client", "Select a specific client first to generate GST return tasks.");
       return;
     }
-    const targetPeriod = filterPeriod !== "ALL" ? filterPeriod : selectedPeriod || fyPeriods[0];
-    const gstins =
-      selectedClient.gstinRecords && selectedClient.gstinRecords.length > 0
-        ? selectedClient.gstinRecords.filter((g) => g.status === "ACTIVE")
-        : selectedClient.gstin
-        ? [
-            {
-              gstin: selectedClient.gstin,
-              stateCode: selectedClient.gstin.substring(0, 2),
-              stateName: "",
-              tradeName: selectedClient.tradeName || selectedClient.name,
-              registrationType: "REGULAR" as const,
-              filingFrequency: "MONTHLY" as const,
-              qrmpStateGroup: "22ND" as const,
-              status: "ACTIVE" as const,
-            },
-          ]
-        : [];
-
-    if (gstins.length === 0) {
-      toast.warning("No Active GSTIN", "Add an active GSTIN in GSTIN Master first.");
-      return;
-    }
+    const targetPeriod =
+      filterPeriod !== "ALL"
+        ? filterPeriod
+        : selectedPeriod || resolveActiveGstCycle().periodLabel || fyPeriods[0];
 
     setIsGenerating(true);
-    let created = 0;
+    setShowCreateMenu(false);
     try {
-      for (const g of gstins) {
-        if (g.registrationType === "COMPOSITION") {
-          const exists = gstTasks.some(
-            (t) => t.period === targetPeriod && t.title.includes("CMP-08") && (t.gstin === g.gstin || !t.gstin)
-          );
-          if (!exists) {
-            const { ok } = await gstFetchJson("/api/tasks", {
-              method: "POST",
-              body: JSON.stringify({
-                entityId: selectedClient.id,
-                entityName: selectedClient.name,
-                category: "GST",
-                title: `CMP-08 Quarterly Statement (${g.gstin})`,
-                period: targetPeriod,
-                dueDate: computeStatutoryDueDate(targetPeriod, 18),
-                priority: "HIGH",
-              }),
-            });
-            if (ok) created++;
-          }
-          continue;
-        }
-
-        const isQrmp = g.filingFrequency === "QRMP";
-        const gstr1Title = isQrmp
-          ? `IFF / GSTR-1 (QRMP - ${g.gstin})`
-          : `GSTR-1 Monthly Outward (${g.gstin})`;
-        const gstr3bTitle = isQrmp
-          ? `GSTR-3B Quarterly (${g.gstin})`
-          : `GSTR-3B Monthly Return (${g.gstin})`;
-
-        const has1 = gstTasks.some(
-          (t) => t.period === targetPeriod && /gstr-?1|iff/i.test(t.title) && (!t.gstin || t.gstin === g.gstin)
-        );
-        if (!has1) {
-          const { ok } = await gstFetchJson("/api/tasks", {
-            method: "POST",
-            body: JSON.stringify({
-              entityId: selectedClient.id,
-              entityName: selectedClient.name,
-              category: "GST",
-              title: gstr1Title,
-              period: targetPeriod,
-              dueDate: computeStatutoryDueDate(targetPeriod, isQrmp ? 13 : 11),
-              priority: "HIGH",
-            }),
-          });
-          if (ok) created++;
-        }
-
-        const has3b = gstTasks.some(
-          (t) => t.period === targetPeriod && /gstr-?3b/i.test(t.title) && (!t.gstin || t.gstin === g.gstin)
-        );
-        if (!has3b) {
-          const dueDay = isQrmp ? (g.qrmpStateGroup === "24TH" ? 24 : 22) : 20;
-          const { ok } = await gstFetchJson("/api/tasks", {
-            method: "POST",
-            body: JSON.stringify({
-              entityId: selectedClient.id,
-              entityName: selectedClient.name,
-              category: "GST",
-              title: gstr3bTitle,
-              period: targetPeriod,
-              dueDate: computeStatutoryDueDate(targetPeriod, dueDay),
-              priority: "CRITICAL",
-            }),
-          });
-          if (ok) created++;
-        }
+      const { ok, data } = await gstFetchJson<any>("/api/gst/sync-portal", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "MANUAL_BASELINE_SYNC",
+          entityId: selectedClient.id,
+          fy: selectedFy,
+          gstin: selectedGstin || undefined,
+          filedUpTo: filedUpToMode,
+          singlePeriod: targetPeriod,
+        }),
+      });
+      if (!ok || !data?.success) {
+        toast.error("Generation Failed", data?.error || "Could not create GST return tasks.");
+        return;
       }
-
-      if (created > 0) {
-        toast.success("Tasks Generated", `Created ${created} GST return obligation(s) for ${targetPeriod}.`);
+      if (data.createdTasks > 0 || data.markedFiledHistory > 0) {
+        toast.success(
+          "Returns Updated",
+          `Created ${data.createdTasks} pending return(s)${data.markedFiledHistory > 0 ? ` • Marked ${data.markedFiledHistory} prior return(s) filed` : ""}.`
+        );
         if (onRefreshData) await onRefreshData();
       } else {
-        toast.info("Already Up to Date", `GST obligations for ${targetPeriod} already exist.`);
+        toast.info("Already Up to Date", "All selected GST return obligations already exist.");
       }
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleQuickMarkNil = async (task: ComplianceTask) => {
+    await onUpdateTask(task.id, {
+      isNilReturn: true,
+      taxPayableAmount: 0,
+      cashPaid: 0,
+      section50Interest: 0,
+      lateFeeAmount: 0,
+      status: "MANAGER_REVIEW" as WorkflowStatus,
+    });
+    toast.success("Marked Nil Return", `${task.title} (${task.period}) marked as ₹0 Nil — ready for portal filing & ARN.`);
+    if (onRefreshData) await onRefreshData();
   };
 
   return (
@@ -414,6 +398,12 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                 Task Queue
               </button>
               <button
+                onClick={() => setViewMode("MATRIX")}
+                className={`px-2.5 py-1 rounded-md transition inline-flex items-center gap-1 ${viewMode === "MATRIX" ? "bg-white text-blue-700 shadow-xs" : ""}`}
+              >
+                <CalendarDays className="w-3 h-3" /> FY Matrix Grid
+              </button>
+              <button
                 onClick={() => setViewMode("PIPELINE")}
                 className={`px-2.5 py-1 rounded-md transition inline-flex items-center gap-1 ${viewMode === "PIPELINE" ? "bg-white text-purple-700 shadow-xs" : ""}`}
               >
@@ -425,31 +415,72 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
               onClick={handleSyncGstnPortal}
               disabled={isSyncingPortal}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 transition"
-              title="Sync Live GSTR-1, 3B & 9 Filing Status from GSTN API"
+              title="Two-way GSTN Sync: updates filed ARNs & backfills any unfiled past months"
             >
               <Globe className={`w-3.5 h-3.5 ${isSyncingPortal ? "animate-spin" : ""}`} />
-              <span>{isSyncingPortal ? "Syncing GSTN..." : "Sync GSTN Status"}</span>
+              <span>{isSyncingPortal ? "Reconciling GSTN..." : "Sync GSTN Status"}</span>
             </button>
 
             {selectedClient && !isFirmWideView && (
-              <button
-                onClick={handleGenerateReturnTasks}
-                disabled={isGenerating}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-black text-white transition"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{isGenerating ? "Generating..." : "Create Period Returns"}</span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowCreateMenu((v) => !v)}
+                  disabled={isGenerating}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-black text-white transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isGenerating ? "Generating..." : "Create Period Returns"}</span>
+                </button>
+                {showCreateMenu && (
+                  <div className="absolute right-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-3 z-30 space-y-2.5">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
+                        Client Filed Up To
+                      </label>
+                      <select
+                        value={baselineFiledUpTo}
+                        onChange={(e) => setBaselineFiledUpTo(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="CURRENT_ONLY">Current Cycle Only</option>
+                        <option value="NONE">None Filed in FY (Full Backlog)</option>
+                        {fyPeriods
+                          .filter((p) => periodSortKey(p) < periodSortKey(resolveActiveGstCycle().periodLabel))
+                          .map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateMenu(false)}
+                        className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateReturnTasks(baselineFiledUpTo)}
+                        className="px-3 py-1 rounded-md text-xs font-bold bg-slate-900 text-white hover:bg-black"
+                      >
+                        Generate
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {onRefreshData && (
               <button
                 onClick={() => onRefreshData()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-                title="Refresh Live Records"
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                title="Refresh local records"
               >
-                <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
-                <span>Sync</span>
+                <RefreshCw className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -503,7 +534,145 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
         </div>
       </div>
 
-      {viewMode === "PIPELINE" ? (
+      {viewMode === "MATRIX" ? (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                FY {selectedFy} GSTIN-Level Return Matrix (Apr&ndash;Mar)
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                12-month compliance heatmap per GSTIN: Green = Filed (ARN), Red = Overdue, Amber = Active/Pending, Gray = Not Due.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-bold">
+              <span className="inline-flex items-center gap-1 text-emerald-700"><span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 inline-block" /> Filed</span>
+              <span className="inline-flex items-center gap-1 text-red-700"><span className="w-2.5 h-2.5 rounded-xs bg-red-500 inline-block" /> Overdue</span>
+              <span className="inline-flex items-center gap-1 text-amber-700"><span className="w-2.5 h-2.5 rounded-xs bg-amber-400 inline-block" /> Pending</span>
+              <span className="inline-flex items-center gap-1 text-slate-500"><span className="w-2.5 h-2.5 rounded-xs bg-slate-200 inline-block" /> Future/N.A.</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[11px] text-slate-700">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="px-3 py-2.5 sticky left-0 bg-slate-50 z-10 min-w-[200px]">Client &amp; GSTIN</th>
+                  {fyPeriods.map((p) => (
+                    <th key={p} className="px-2 py-2.5 text-center whitespace-nowrap">
+                      {p.split(" ")[0].slice(0, 3)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(() => {
+                  const targetClients =
+                    selectedClient && !isFirmWideView ? [selectedClient] : clients;
+                  const activeCycleKey = periodSortKey(resolveActiveGstCycle().periodLabel);
+                  const matrixRows: Array<{ client: ClientEntity; gstinRec: ReturnType<typeof resolveActiveGstinsForClient>[number] }> = [];
+                  for (const c of targetClients) {
+                    const recs = resolveActiveGstinsForClient(c);
+                    for (const g of recs) {
+                      if (!isFirmWideView && selectedGstin && g.gstin !== selectedGstin.toUpperCase()) continue;
+                      matrixRows.push({ client: c, gstinRec: g });
+                    }
+                  }
+                  if (matrixRows.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={13} className="py-10 text-center text-slate-500">
+                          No active GSTINs found for the current selection.
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const now = new Date();
+                  return matrixRows.map(({ client, gstinRec }) => {
+                    const gTasks = tasks.filter(
+                      (t) =>
+                        t.category === "GST" &&
+                        t.entityId === client.id &&
+                        taskMatchesGstin(t, gstinRec.gstin, client.gstin)
+                    );
+                    const gHist = (client.gstHistory || []).filter((h: any) => {
+                      const hg = (h.gstin || "").trim().toUpperCase();
+                      return hg ? hg === gstinRec.gstin : gstinRec.gstin === (client.gstin || "").toUpperCase();
+                    });
+                    return (
+                      <tr key={`${client.id}-${gstinRec.gstin}`} className="hover:bg-slate-50/80">
+                        <td className="px-3 py-2.5 sticky left-0 bg-white z-10 border-r border-slate-100">
+                          <div className="font-bold text-slate-900 truncate max-w-[190px]">{client.name}</div>
+                          <div className="font-mono text-[10px] text-slate-500">
+                            {gstinRec.gstin} &bull; {gstinRec.filingFrequency}
+                          </div>
+                        </td>
+                        {fyPeriods.map((period) => {
+                          const pk = periodSortKey(period);
+                          const isFuture = pk > activeCycleKey;
+                          const renderPill = (kind: "GSTR1" | "GSTR3B", shortLabel: string) => {
+                            const task = gTasks.find(
+                              (t) =>
+                                canonicalizeReturnKind(t.title) === kind &&
+                                t.period.toLowerCase() === period.toLowerCase()
+                            );
+                            const hist = gHist.find(
+                              (h: any) =>
+                                (kind === "GSTR1" ? h.returnType?.includes("1") : h.returnType?.includes("3B")) &&
+                                String(h.period || "").toLowerCase() === period.toLowerCase()
+                            );
+                            const isFiled = task?.status === "FILED_AND_COMPLETED" || Boolean(hist?.arn);
+                            const due = task?.dueDate || getStatutoryGstDueDate(period, kind, gstinRec);
+                            const fee = computeSec47LateFee(due, now);
+                            const hasKnownRecord = Boolean(task) || Boolean(hist);
+                            const isOverdue = !isFiled && !isFuture && fee.daysLate > 0 && hasKnownRecord;
+
+                            let cls = "bg-slate-100 text-slate-400";
+                            let tip = `${period} ${kind}: Future / N.A.`;
+                            if (isFiled) {
+                              cls = "bg-emerald-100 text-emerald-800 border border-emerald-300";
+                              tip = `${period} ${kind}: FILED${task?.arnNumber || hist?.arn ? ` (ARN: ${task?.arnNumber || hist?.arn})` : ""}`;
+                            } else if (isOverdue) {
+                              cls = "bg-red-100 text-red-800 border border-red-300";
+                              tip = `${period} ${kind}: OVERDUE ${fee.daysLate}d (Est. Sec 47: ₹${fee.lateFee})`;
+                            } else if (!isFuture && task) {
+                              cls = "bg-amber-100 text-amber-800 border border-amber-300";
+                              tip = `${period} ${kind}: PENDING (Due ${due})`;
+                            } else if (!isFuture && !hasKnownRecord) {
+                              cls = "bg-slate-50 text-slate-500 border border-dashed border-slate-300";
+                              tip = `${period} ${kind}: Not synced from GSTN yet`;
+                            }
+                            return (
+                              <button
+                                key={kind}
+                                type="button"
+                                title={tip}
+                                onClick={() => {
+                                  if (task) handleOpenFiling(task);
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition ${cls} ${task ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
+                              >
+                                {shortLabel}
+                              </button>
+                            );
+                          };
+                          return (
+                            <td key={period} className="px-1.5 py-2 text-center">
+                              <div className="inline-flex items-center gap-0.5">
+                                {renderPill("GSTR1", "1")}
+                                {renderPill("GSTR3B", "3B")}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : viewMode === "PIPELINE" ? (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
           <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70">
             <div>
@@ -742,8 +911,10 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                   const client = clients.find((c) => c.id === t.entityId);
                   const isFiled = t.status === "FILED_AND_COMPLETED";
                   const isCritical = t.priority === "CRITICAL" && !isFiled;
-                  const gstin = t.gstin || client?.gstin || "GSTIN Pending";
+                  const gstin = extractGstinFromTitle(t.title) || t.gstin || client?.gstin || "GSTIN Pending";
                   const hasComputedTax = t.taxPayableAmount !== undefined || t.cashPaid !== undefined || t.isNilReturn;
+                  const blocker = !isFiled ? sequentialBlockers.get(t.id) : undefined;
+                  const fee = !isFiled ? computeSec47LateFee(t.dueDate, new Date(), t.isNilReturn) : { daysLate: 0, lateFee: 0, dailyRate: 0 };
 
                   return (
                     <tr key={t.id} className={`hover:bg-slate-50/80 transition ${isCritical ? "bg-red-50/20" : ""}`}>
@@ -761,8 +932,14 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
 
                       <td className="px-4 py-3.5">
                         <span className="font-mono font-bold text-slate-900 block">{t.dueDate}</span>
-                        <span className={`text-[10px] font-semibold ${isFiled ? "text-emerald-600" : isCritical ? "text-red-600" : "text-slate-500"}`}>
-                          {isFiled ? `Filed ${t.filingDate || ""}` : isCritical ? "Priority Window" : "Scheduled"}
+                        <span className={`text-[10px] font-semibold ${isFiled ? "text-emerald-600" : fee.daysLate > 0 ? "text-red-600" : isCritical ? "text-red-600" : "text-slate-500"}`}>
+                          {isFiled
+                            ? `Filed ${t.filingDate || ""}`
+                            : fee.daysLate > 0
+                            ? `${fee.daysLate}d overdue • +₹${fee.lateFee} Sec 47`
+                            : isCritical
+                            ? "Priority Window"
+                            : "Scheduled"}
                         </span>
                       </td>
 
@@ -776,14 +953,24 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                               <span className="block font-mono text-[10px] text-slate-500">ARN: {t.arnNumber}</span>
                             )}
                           </div>
-                        ) : isCritical ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
-                            <AlertTriangle className="w-3 h-3" /> CRITICAL
-                          </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                            <Clock className="w-3 h-3" /> {t.status.replace(/_/g, " ")}
-                          </span>
+                          <div className="space-y-1">
+                            {isCritical ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
+                                <AlertTriangle className="w-3 h-3" /> CRITICAL
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <Clock className="w-3 h-3" /> {t.status.replace(/_/g, " ")}
+                              </span>
+                            )}
+                            {blocker && (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded w-fit">
+                                <ShieldAlert className="w-3 h-3 shrink-0" />
+                                {blocker}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -805,17 +992,28 @@ export const GstFilingMatrix: React.FC<GstFilingMatrixProps> = ({
                       </td>
 
                       <td className="px-4 py-3.5 text-center">
-                        <button
-                          onClick={() => handleOpenFiling(t)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5 ${
-                            isFiled
-                              ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
-                              : "bg-red-600 hover:bg-red-700 text-white shadow-xs"
-                          }`}
-                        >
-                          {isFiled ? <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" /> : <Lock className="w-3.5 h-3.5" />}
-                          <span>{isFiled ? "View ARN" : "Prepare & File"}</span>
-                        </button>
+                        <div className="inline-flex items-center gap-1.5">
+                          {!isFiled && !t.isNilReturn && (
+                            <button
+                              onClick={() => handleQuickMarkNil(t)}
+                              title="Mark as ₹0 Nil Return (ready for portal ARN)"
+                              className="px-2 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
+                            >
+                              Nil
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleOpenFiling(t)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5 ${
+                              isFiled
+                                ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+                                : "bg-red-600 hover:bg-red-700 text-white shadow-xs"
+                            }`}
+                          >
+                            {isFiled ? <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" /> : <Lock className="w-3.5 h-3.5" />}
+                            <span>{isFiled ? "View ARN" : "Prepare & File"}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

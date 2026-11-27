@@ -409,28 +409,10 @@ export const ClientPortalPwa: React.FC<ClientPortalPwaProps> = ({
       return;
     }
 
-    const enteredUtr = typeof window !== "undefined"
-      ? window.prompt("Enter your 12-digit UPI / IMPS UTR Reference Number after payment:")
-      : "";
-    if (!enteredUtr || !enteredUtr.trim()) return;
-
-    setIsInstantPaying(true);
-    try {
-      await instantUpiUnlock(selectedEntityId, enteredUtr.trim(), currentPayConfig.totalOutstandingAmount);
-      toast.success(
-        "UTR Submitted for Verification",
-        "Your payment reference has been sent to the CA partner for bank reconciliation. Deliverables will unlock once verified."
-      );
-      setUnlockSuccessMsg("UTR submitted! Partner bank verification is in progress.");
-      setTimeout(() => {
-        setPayLockModalDoc(null);
-        setUnlockSuccessMsg("");
-      }, 1800);
-    } catch (e: any) {
-      toast.error("Submission Failed", e?.message || "Failed to submit UTR reference.");
-    } finally {
-      setIsInstantPaying(false);
-    }
+    toast.info(
+      "No Open Invoice Found",
+      "Please contact your engagement partner or refresh your billing ledger before submitting a UTR."
+    );
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

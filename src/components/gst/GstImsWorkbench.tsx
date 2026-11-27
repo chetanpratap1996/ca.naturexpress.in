@@ -25,6 +25,7 @@ import {
 import { formatCurrencyINR } from "@/lib/utils";
 import { toast } from "@/components/shared/ToastNotification";
 import { useClientContext } from "@/lib/context/ClientContext";
+import { resolveActiveGstCycle } from "@/lib/gst/gstComplianceEngine";
 import { UniversalClientSelector } from "@/components/shared/UniversalClientSelector";
 import {
   gstFetchJson,
@@ -48,7 +49,7 @@ export function GstImsWorkbench() {
   } = useClientContext();
 
   const fyPeriods = useMemo(() => getPeriodsForFy(selectedFy), [selectedFy]);
-  const activePeriod = selectedPeriod || fyPeriods[fyPeriods.length - 1] || "October 2026";
+  const activePeriod = selectedPeriod || resolveActiveGstCycle().periodLabel || fyPeriods[0] || "November 2026";
   const activeGstin = useMemo(() => {
     if (isFirmWideView || !selectedClient) return "";
     return selectedGstin || selectedClient.gstin || selectedClient.gstinRecords?.[0]?.gstin || "";

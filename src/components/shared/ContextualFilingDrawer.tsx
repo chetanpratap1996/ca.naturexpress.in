@@ -31,6 +31,12 @@ import {
   toGstnReturnPeriod,
 } from "@/lib/gst/gstClientFetch";
 import { Gstr1Engine } from "@/lib/gst/gstr1Engine";
+import {
+  canonicalizeReturnKind,
+  extractGstinFromTitle,
+  periodSortKey,
+  taskMatchesGstin,
+} from "@/lib/gst/gstComplianceEngine";
 import { formatCurrencyINR } from "@/lib/utils";
 
 interface ContextualFilingDrawerProps {
@@ -85,17 +91,25 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
   const isGstr3b = Boolean(isGstTask && /3b|cmp-?08/i.test(task?.title || ""));
   const isGstr1 = Boolean(isGstTask && /gstr-?1|outward|iff/i.test(task?.title || ""));
   const [savedGstr1Data, setSavedGstr1Data] = useState<any>(null);
-  const activeGstin = task?.gstin || client?.gstin || client?.gstinRecords?.[0]?.gstin || "";
+  const activeGstin =
+    extractGstinFromTitle(task?.title || "") ||
+    task?.gstin ||
+    client?.gstin ||
+    client?.gstinRecords?.[0]?.gstin ||
+    "";
 
-  // Auto-calculate statutory late fee u/s 47 if past due date
-  const autoLateFee = useMemo(() => {
-    if (!isGstTask || !task?.dueDate) return 0;
+  // Auto-calculate statutory late fee u/s 47 & days late if past due date
+  const { daysLate, autoLateFee } = useMemo(() => {
+    if (!isGstTask || !task?.dueDate) return { daysLate: 0, autoLateFee: 0 };
     const due = new Date(task.dueDate);
     const fil = new Date(filingDateInput || new Date().toISOString().split("T")[0]);
-    if (isNaN(due.getTime()) || isNaN(fil.getTime()) || fil <= due) return 0;
-    const daysLate = Math.ceil((fil.getTime() - due.getTime()) / 86400000);
+    if (isNaN(due.getTime()) || isNaN(fil.getTime()) || fil <= due) return { daysLate: 0, autoLateFee: 0 };
+    const dLate = Math.ceil((fil.getTime() - due.getTime()) / 86400000);
     const perDay = isNilReturn ? 20 : 50; // ₹10 CGST + ₹10 SGST for Nil; ₹25 + ₹25 normal
-    return Math.min(isNilReturn ? 500 : 10000, daysLate * perDay);
+    return {
+      daysLate: dLate,
+      autoLateFee: Math.min(isNilReturn ? 500 : 10000, dLate * perDay),
+    };
   }, [isGstTask, task?.dueDate, filingDateInput, isNilReturn]);
 
   // Initialize from task & fetch saved 2B Net ITC 4(C)
@@ -115,16 +129,19 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
     setItcLoadedFrom2b(false);
     setOutwardLoadedFromGstr1(false);
 
-    // Resolve opening credit ledger from prior month's closing ledger or GSTIN Master
+    // Resolve opening credit ledger from prior chronological GSTR-3B closing ledger or GSTIN Master
+    const currentPk = periodSortKey(task.period);
     const priorClosing = allTasks
       .filter(
         (t) =>
           t.id !== task.id &&
           t.entityId === client?.id &&
           t.closingCreditLedger &&
-          (!t.gstin || t.gstin.toUpperCase() === activeGstin.toUpperCase())
+          canonicalizeReturnKind(t.title) === "GSTR3B" &&
+          taskMatchesGstin(t, activeGstin, client?.gstin) &&
+          (currentPk === 0 || periodSortKey(t.period) < currentPk)
       )
-      .sort((a, b) => (b.dueDate || "").localeCompare(a.dueDate || ""))[0]?.closingCreditLedger;
+      .sort((a, b) => periodSortKey(b.period) - periodSortKey(a.period))[0]?.closingCreditLedger;
 
     const masterOpen = client?.gstinRecords?.find(
       (g) => g.gstin?.toUpperCase() === activeGstin.toUpperCase()
@@ -206,6 +223,11 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
     });
   }, [isNilReturn, outIgst, outCgst, outSgst, outCess, itcIgst, itcCgst, itcSgst, itcCess, openCredit, rcmTax]);
 
+  const recommendedSec50Interest = useMemo(() => {
+    if (isNilReturn || daysLate <= 0 || setOff.totalCashPayable <= 0) return 0;
+    return Math.round(setOff.totalCashPayable * 0.18 * (daysLate / 365) * 100) / 100;
+  }, [isNilReturn, daysLate, setOff.totalCashPayable]);
+
   const totalOutwardTax = isNilReturn ? 0 : outIgst + outCgst + outSgst + outCess + rcmTax;
   const totalCashWithInterestAndFee = Math.round(
     (setOff.totalCashPayable + (isNilReturn ? 0 : interestSec50) + autoLateFee) * 100
@@ -213,11 +235,20 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
 
   if (!isOpen || !task || !client) return null;
 
-  // Strictly match ONLY this client's credentials and DSC (never fall back to another client!)
+  // Match GSTIN-specific portal credentials first (for multi-state GSTINs with separate logins), then entity-level
   const portalTypeTarget = task.category === "GST" ? "GST" : "INCOME_TAX";
-  const matchedCred = credentials.find(
+  const entityCreds = credentials.filter(
     (c) => c.entityId === client.id && c.portalType === portalTypeTarget
   );
+  const matchedCred =
+    (activeGstin &&
+      entityCreds.find(
+        (c) =>
+          (c as any).gstin?.toUpperCase() === activeGstin.toUpperCase() ||
+          c.secondaryIdentifier?.toUpperCase() === activeGstin.toUpperCase() ||
+          c.username?.toUpperCase().includes(activeGstin.toUpperCase())
+      )) ||
+    entityCreds[0];
   const matchedDsc = dscTokens.find(
     (d) => d.entityId === client.id || (client.pan && d.pan === client.pan)
   );
@@ -290,14 +321,28 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
   };
 
   const handleExportGstr1Json = () => {
+    const fp = toGstnReturnPeriod(task?.period || "");
     if (!savedGstr1Data?.summary) {
+      if (isNilReturn) {
+        const nilPayload = { gstin: activeGstin, fp, gt: 0, cur_gt: 0, nil_return: true };
+        const blob = new Blob([JSON.stringify(nilPayload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `GSTR1_NIL_${activeGstin}_${fp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Nil GSTR-1 JSON Exported", `Nil GSTR-1 JSON payload downloaded (${fp}).`);
+        return;
+      }
       toast.warning(
         "GSTR-1 Not Saved",
-        "Compile and save GSTR-1 in the Outward Workbench before downloading JSON."
+        "Compile and save GSTR-1 in the Outward Workbench (or toggle Nil Return) before downloading JSON."
       );
       return;
     }
-    const fp = toGstnReturnPeriod(task?.period || "");
     const payload = Gstr1Engine.buildGstnGstr1Json(savedGstr1Data.summary, fp);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -807,7 +852,19 @@ export const ContextualFilingDrawer: React.FC<ContextualFilingDrawerProps> = ({
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] text-slate-500 block">Interest u/s 50</label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] text-slate-500 block">Interest u/s 50 (18% Cash)</label>
+                            {recommendedSec50Interest > 0 && interestSec50 !== recommendedSec50Interest && (
+                              <button
+                                type="button"
+                                onClick={() => setInterestSec50(recommendedSec50Interest)}
+                                className="text-[9px] font-bold text-indigo-700 hover:underline"
+                                title={`18% p.a. on ₹${setOff.totalCashPayable} cash for ${daysLate}d`}
+                              >
+                                Auto ₹{recommendedSec50Interest}
+                              </button>
+                            )}
+                          </div>
                           <input
                             type="number"
                             min={0}

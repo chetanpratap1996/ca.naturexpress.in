@@ -13,6 +13,7 @@ import {
   OutwardSalesInvoice,
   OutwardDocType,
 } from "@/lib/gst/gstr1Engine";
+import { resolveActiveGstCycle } from "@/lib/gst/gstComplianceEngine";
 import { pullSalesVouchersFromTallyPrime } from "@/lib/gst/tallyConnector";
 import {
   Upload,
@@ -83,13 +84,20 @@ export function Gstr1OutwardWorkbench() {
   } = useClientContext();
 
   const fyPeriods = useMemo(() => getPeriodsForFy(selectedFy), [selectedFy]);
-  const [localPeriod, setLocalPeriod] = useState(selectedPeriod || fyPeriods[0] || "Apr 2025");
+  const [localPeriod, setLocalPeriod] = useState(
+    selectedPeriod || resolveActiveGstCycle().periodLabel || fyPeriods[0] || "November 2026"
+  );
   const activePeriod = selectedPeriod || localPeriod;
 
-  const activeGstin = selectedGstin || selectedClient?.gstin || "";
+  const activeGstin = selectedGstin || selectedClient?.gstin || selectedClient?.gstinRecords?.[0]?.gstin || "";
   const supplierStateCode = activeGstin.slice(0, 2) || "27";
 
-  const [turnoverCr, setTurnoverCr] = useState<number>(3.5);
+  const [turnoverCr, setTurnoverCr] = useState<number>(selectedClient?.turnoverCr || 3.5);
+  useEffect(() => {
+    if (selectedClient?.turnoverCr !== undefined && selectedClient.turnoverCr > 0) {
+      setTurnoverCr(selectedClient.turnoverCr);
+    }
+  }, [selectedClient?.id, selectedClient?.turnoverCr]);
   const [b2clThreshold, setB2clThreshold] = useState<number>(100000);
   const [invoices, setInvoices] = useState<OutwardSalesInvoice[]>([]);
   const [isNilGstr1, setIsNilGstr1] = useState(false);
@@ -300,12 +308,15 @@ export function Gstr1OutwardWorkbench() {
 
   const handleExportJson = () => {
     const fp = toGstnReturnPeriod(activePeriod);
-    const payload = Gstr1Engine.buildGstnGstr1Json(summary, fp);
+    const payload =
+      isNilGstr1 || invoices.length === 0
+        ? { gstin: activeGstin, fp, gt: 0, cur_gt: 0, nil_return: true }
+        : Gstr1Engine.buildGstnGstr1Json(summary, fp);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `GSTR1_${activeGstin}_${fp}.json`;
+    a.download = `GSTR1_${isNilGstr1 || invoices.length === 0 ? "NIL_" : ""}${activeGstin}_${fp}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`Exported official GSTN GSTR-1 JSON (${fp})`);

@@ -3,11 +3,8 @@ import { authenticateServerRequest } from "@/lib/auth/serverAuth";
 import { reconcileFirmBankStatement } from "@/lib/billing/bankReceiptReconciler";
 import { parseBankStatementPdfBuffer } from "@/lib/parsers/bankStatementParser";
 import { getPostgresPool } from "@/lib/server/postgres";
-import {
-  resolveFirmUuid,
-  appendPgAuditLog,
-  upsertWorkspaceRecord,
-} from "@/lib/server/pgHelpers";
+import { resolveFirmUuid, appendPgAuditLog, upsertWorkspaceRecord } from "@/lib/server/pgHelpers";
+import { ensureBillingSchema } from "@/lib/server/billingSchema";
 import { InvoiceItem, ClientEntity, PayToReleaseConfig } from "@/lib/types";
 import { DEFAULT_FIRM_BRANDING } from "@/lib/config/branding";
 
@@ -25,6 +22,7 @@ export async function POST(req: NextRequest) {
 
     const firmId = await resolveFirmUuid(auth);
     const pool = getPostgresPool();
+    await ensureBillingSchema(pool);
     const actorName = auth.userName || DEFAULT_FIRM_BRANDING.managingPartner;
     const actorUuid = auth.user?.id && UUID_REGEX.test(auth.user.id) ? auth.user.id : null;
 
@@ -123,13 +121,32 @@ export async function POST(req: NextRequest) {
         await pool.query(
           `UPDATE public.invoices
            SET status = 'PAID',
-               client_utr_number = $1,
-               client_payment_mode = $2::payment_mode,
+               paid_amount = $1,
+               tds_claimed_amount = $2,
+               client_utr_number = $3,
+               client_payment_mode = $4::payment_mode,
                client_payment_date = CURRENT_DATE,
-               reconciled_by_id = $3,
+               reconciled_by_id = $5,
                reconciled_at = now()
-           WHERE id = $4 AND firm_id = $5`,
-          [match.utrNumber, mode, actorUuid, match.invoiceId, firmId]
+           WHERE id = $6 AND firm_id = $7`,
+          [match.matchedAmount, match.tdsAmount || 0, match.utrNumber, mode, actorUuid, match.invoiceId, firmId]
+        );
+
+        await pool.query(
+          `INSERT INTO public.payment_allocations (
+            firm_id, entity_id, invoice_id, receipt_ref, payment_mode, cash_amount, tds_amount, status, notes, created_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'APPLIED', $8, $9)`,
+          [
+            firmId,
+            match.entityId,
+            match.invoiceId,
+            match.utrNumber,
+            mode,
+            match.matchedAmount,
+            match.tdsAmount || 0,
+            match.matchReason,
+            actorName,
+          ]
         );
 
         await appendPgAuditLog({
@@ -188,6 +205,19 @@ export async function POST(req: NextRequest) {
             payload: cfgPayload,
           });
         }
+      }
+    }
+
+    // Park unmatched bank credits in Suspense queue for 1-click partner assignment
+    if (autoApply && report.unmatchedCredits.length > 0) {
+      for (const u of report.unmatchedCredits.slice(0, 50)) {
+        const ref = u.extractedUtr || u.referenceNo || `SUSP-${u.date}-${Math.round(u.creditAmount)}`;
+        await pool.query(
+          `INSERT INTO public.payment_allocations (
+            firm_id, entity_id, invoice_id, receipt_ref, payment_mode, cash_amount, tds_amount, allocation_date, status, notes, created_by
+          ) VALUES ($1, NULL, NULL, $2, 'NEFT_RTGS', $3, 0, $4::date, 'SUSPENSE', $5, $6)`,
+          [firmId, ref, u.creditAmount, u.date || new Date().toISOString().split("T")[0], u.narration, actorName]
+        );
       }
     }
 

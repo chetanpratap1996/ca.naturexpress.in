@@ -268,6 +268,7 @@ export default function Home() {
     deleteClient,
     updateTask,
     createTask,
+    createInvoice,
     reconcileInvoice,
     createPortalCredential,
     updatePortalCredential,
@@ -586,10 +587,10 @@ export default function Home() {
         e.preventDefault();
         handleTabChange("dashboard");
       }
-      // ? (Shift + /) -> Show Keyboard Shortcuts Sheet (when not typing in an input)
+      // ? (Shift + /) -> Show unified Keyboard Shortcuts Sheet (when not typing in an input)
       if (e.key === "?" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
         e.preventDefault();
-        setIsShortcutsModalOpen((prev) => !prev);
+        window.dispatchEvent(new CustomEvent("bt:toggle-shortcuts"));
       }
     };
     window.addEventListener("keydown", handleGlobalShortcuts);
@@ -857,13 +858,14 @@ export default function Home() {
                 />
               )}
 
-              {activePartnerTab === "billing-matrix" && (
+              {(activePartnerTab === "billing-matrix" || activePartnerTab === "billing") && (
                 <BillingWipMatrix
                   invoices={invoices}
                   clients={clients}
                   payConfigs={payConfigs as any}
                   onRefreshData={refreshData}
                   onReconcileInvoice={reconcileInvoice}
+                  onCreateInvoice={createInvoice}
                 />
               )}
 
@@ -1118,13 +1120,7 @@ export default function Home() {
                 />
               )}
 
-              {activePartnerTab === "billing" && (
-                <BillingWip 
-                  invoices={invoices} 
-                  clients={clients}
-                  onRefresh={refreshData}
-                />
-              )}
+              {/* Legacy 'billing' tab unified into BillingWipMatrix above */}
 
               {activePartnerTab === "dsc" && (
                 <KeysVault
@@ -1238,27 +1234,42 @@ export default function Home() {
         onNavigate={(tab) => handleTabChange(tab)}
       />
 
-      {/* TallyPrime & Winman Muscle-Memory Keyboard Overlay (Alt+H / Alt+G / F2-F9) */}
+      {/* Keyboard Shortcuts Overlay (Alt+H / ? / Alt+G / F2-F9) */}
       <TallyKeyboardOverlay 
-        onTriggerAction={(actionId: any) => {
+        onTriggerAction={(actionId: string) => {
           switch (actionId) {
+            case "OPEN_LAUNCHER":
+              setIsAppLauncherOpen((prev) => !prev);
+              break;
+            case "OPEN_DASHBOARD":
+              handleTabChange("dashboard");
+              break;
             case "CHANGE_PERIOD":
               handleTabChange("calendar");
               break;
-            case "OPEN_BRS":
-              handleTabChange("bank-ocr");
-              break;
-            case "OPEN_MSME":
-              handleTabChange("tax-audit-3cd");
+            case "OPEN_FILING_DESK":
+              handleTabChange("gst-filing");
               break;
             case "OPEN_GSTR1":
-              handleTabChange("gst-assembly");
+              handleTabChange("gstr1");
               break;
             case "OPEN_GSTR2B":
               handleTabChange("gstr2b");
               break;
-            case "QUICK_SAVE":
-              toast.success("Voucher & Workpaper Saved — Math validated with ₹0 divergence");
+            case "OPEN_IMS":
+              handleTabChange("gst-ims");
+              break;
+            case "OPEN_ANNUAL_GST":
+              handleTabChange("pillar-one-gst");
+              break;
+            case "OPEN_GSTIN_MASTER":
+              handleTabChange("entity-dna");
+              break;
+            case "OPEN_TAX_AUDIT":
+              handleTabChange("tax-audit-3cd");
+              break;
+            case "OPEN_NOTICES":
+              handleTabChange("notices");
               break;
           }
         }}

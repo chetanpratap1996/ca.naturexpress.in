@@ -765,29 +765,22 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
-      {/* Enterprise-Grade Header */}
+      {/* Header */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 text-slate-900 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-                Bank Statement OCR &bull; Auto-Decryption &bull; CARO 2020 / AS-27 &bull; Tally XML
-              </span>
-              {currentEntity && (
-                <span className="text-[11px] font-mono text-slate-400">
-                  PAN: {currentEntity.pan}
-                </span>
-              )}
-            </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-red-600" />
-              Bank Statement OCR &amp; Tally XML Generator
+              Bank Statement Parser &amp; Tally XML
             </h1>
+            {currentEntity && (
+              <p className="text-xs text-slate-500 mt-0.5 font-mono">
+                {currentEntity.name} &bull; PAN: {currentEntity.pan}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <UniversalClientSelector variant="compact" />
-
             <button
               onClick={() => setIsRulesModalOpen(true)}
               className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
@@ -799,66 +792,12 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
 
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
             >
               <UploadCloud className="w-3.5 h-3.5 text-white" />
               <span>Upload Statement</span>
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Clickable Client Switcher Ribbon */}
-      <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-3 shadow-xs">
-        <div className="flex items-center justify-between pb-2 px-1 text-xs text-slate-600 font-bold border-b border-slate-200 mb-2">
-          <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-slate-500">
-            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-            Active Client Bank Ledgers ({clients.length}):
-          </span>
-          <span className="text-[11px] text-slate-500 font-medium">
-            Currently Viewing: <strong className="text-slate-900">{currentEntity?.name}</strong> &bull; PAN: {currentEntity?.pan}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-thin pb-1">
-          {clients.map((c) => {
-            const isSelected = (currentEntity?.id === c.id);
-            const primaryBank = c.bankAccounts?.find((b) => b.isPrimary) || c.bankAccounts?.[0];
-            const bankLabel = primaryBank?.bankName || "No Bank Saved";
-            const acctTail = primaryBank?.accountNumber ? `...${primaryBank.accountNumber.slice(-4)}` : "Add in DNA";
-            return (
-              <button
-                key={c.id}
-                onClick={() => {
-                  setSelectedEntityId(c.id);
-                  setSelectedBankAccountId("");
-                  toast.info("Switched Client Ledger", `Loaded ${primaryBank?.bankName || c.name} ledger`);
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all shrink-0 min-w-[210px] max-w-[270px] ${
-                  isSelected
-                    ? "bg-white border-btred-logo shadow-md ring-2 ring-red-100"
-                    : "bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                    isSelected ? "bg-red-50 text-btred-logo border border-red-200" : "bg-slate-100 text-slate-600"
-                  }`}>
-                    {c.type}
-                  </span>
-                  <span className="text-[10px] font-mono font-bold text-slate-700 truncate max-w-[110px]">
-                    {bankLabel}
-                  </span>
-                </div>
-                <div className="text-xs font-black text-slate-900 truncate">
-                  {c.name}
-                </div>
-                <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                  PAN: {c.pan} &bull; A/c: {acctTail}
-                </div>
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -883,12 +822,7 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
               <CreditCard className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <div className="text-xs font-bold text-red-700 uppercase tracking-wider flex items-center gap-2">
-                <span>Active Account Ledger</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span className="text-emerald-700 text-[11px] font-semibold">Live Statement Feed</span>
-              </div>
-              <div className="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2 flex-wrap">
+              <div className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2 flex-wrap">
                 <span>{activeProfile.bankName}</span>
                 {activeProfile.accountNumber && (
                   <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-medium border border-slate-200">
@@ -918,27 +852,29 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap text-xs">
+          <div className="flex items-center gap-2.5 flex-wrap text-xs">
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700">
-              <span className="text-slate-500">Statement Period:</span> <strong className="text-slate-900">{activeProfile.statementPeriod}</strong>
+              <span className="text-slate-500">Period:</span> <strong className="text-slate-900">{activeProfile.statementPeriod}</strong>
             </div>
-            <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-bold ${
-              brsMetrics.isBalanced 
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
-                : "bg-rose-50 border-rose-200 text-rose-700"
-            }`}>
-              {brsMetrics.isBalanced ? (
-                <>
-                  <CheckCheck className="w-4 h-4 text-emerald-600" />
-                  <span>BRS Reconciled: ₹0 Discrepancy</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-4 h-4 text-rose-600" />
-                  <span>BRS Difference: {formatCurrencyINR(brsMetrics.diff)}</span>
-                </>
-              )}
-            </div>
+            {transactions.length > 0 && (
+              <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-bold ${
+                brsMetrics.isBalanced 
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                  : "bg-rose-50 border-rose-200 text-rose-700"
+              }`}>
+                {brsMetrics.isBalanced ? (
+                  <>
+                    <CheckCheck className="w-4 h-4 text-emerald-600" />
+                    <span>BRS Balanced</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    <span>BRS Diff: {formatCurrencyINR(brsMetrics.diff)}</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -979,14 +915,13 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
             <div className="text-lg font-black text-slate-900 mt-0.5 font-mono">
               {formatCurrencyINR(brsMetrics.calculatedClosing)}
             </div>
-            <span className="text-[10px] text-emerald-700 font-semibold">100% Math Verified ✓</span>
+            <span className="text-[10px] text-slate-500">Computed closing</span>
           </div>
         </div>
 
-        {/* Statutory Summary Pills (ICAI SA 500) */}
-        <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-slate-500 font-semibold">Statutory Ledgers:</span>
+        {/* Statutory Summary Pills (shown only when transactions exist) */}
+        {transactions.length > 0 && (
+          <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2 text-xs">
             {brsReport.statutorySummary.gstPaid > 0 && (
               <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-mono">
                 GST: {formatCurrencyINR(brsReport.statutorySummary.gstPaid)}
@@ -1003,21 +938,18 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
               </span>
             )}
             {brsReport.statutorySummary.salariesPaid > 0 && (
-              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg font-mono">
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-mono">
                 Salaries: {formatCurrencyINR(brsReport.statutorySummary.salariesPaid)}
               </span>
             )}
             {brsReport.statutorySummary.bankCharges > 0 && (
-              <span className="px-2 py-0.5 bg-slate-500/20 text-slate-300 border border-slate-500/30 rounded-lg font-mono">
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-mono">
                 Bank Charges: {formatCurrencyINR(brsReport.statutorySummary.bankCharges)}
                 {splitGstOnBankCharges && ` (+${formatCurrencyINR(brsReport.statutorySummary.inputGstOnCharges)} ITC)`}
               </span>
             )}
           </div>
-          <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" /> ICAI SA 500 / SA 505 Audit Certified
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Parser Configuration Bar */}
@@ -1114,22 +1046,16 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
         </div>
       </div>
 
-      {/* Statutory ITC Optimization Ribbon */}
-      <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 text-amber-900 font-semibold">
-          <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>
-            <strong>Statutory GST ITC Maximizer:</strong> Automatically split 18% GST on Bank Charges (SMS fees, ledger AMC, processing) into Input CGST &amp; SGST for Section 16 credit.
-          </span>
-        </div>
-        <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800 select-none shrink-0 bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-2xs">
+      {/* Compact ITC Split Toggle */}
+      <div className="flex items-center justify-end">
+        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 select-none bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
           <input
             type="checkbox"
             checked={splitGstOnBankCharges}
             onChange={(e) => setSplitGstOnBankCharges(e.target.checked)}
-            className="rounded text-amber-600 focus:ring-0 cursor-pointer"
+            className="rounded text-slate-900 focus:ring-0 cursor-pointer"
           />
-          <span>Auto-Split 18% GST on Bank Charges</span>
+          <span>Auto-split 18% GST on Bank Charges</span>
         </label>
       </div>
 
@@ -1212,16 +1138,40 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
               </button>
             )}
 
-            {/* Auto-Match Client Fees (0% PG Fee) */}
+            {/* Auto-Match Client Fees */}
             <button
               onClick={handleReconcileFeeReceipts}
               disabled={isReconcilingFees}
               className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-              title="Auto-match bank deposits against outstanding CA fee bills to save 2.36% gateway commissions"
+              title="Auto-match bank credits against open client fee invoices"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-              <span>{isReconcilingFees ? "Matching..." : "Match Client Fees (0% PG)"}</span>
+              <span>{isReconcilingFees ? "Matching..." : "Match Client Fees"}</span>
             </button>
+
+            {/* Export Suspense Query Sheet for Client */}
+            {suspenseCount > 0 && (
+              <button
+                onClick={() => {
+                  const rows = transactions
+                    .filter((t) => t.status === "SUSPENSE")
+                    .map((t) => `"${t.date}","${(t.narration || "").replace(/"/g, '""')}",${t.withdrawal},${t.deposit},"Please clarify purpose"`);
+                  const blob = new Blob([["Date,Narration,Debit,Credit,Client Remarks", ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Suspense_Queries_${currentEntity?.pan || "CLIENT"}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success("Suspense Sheet Exported", `Downloaded ${rows.length} queries to send to client.`);
+                }}
+                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+              >
+                <Download className="w-3.5 h-3.5" /> Suspense Queries ({suspenseCount})
+              </button>
+            )}
 
             {/* Export CSV */}
             <button
@@ -1268,11 +1218,23 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-slate-500">
-                    <FileSpreadsheet className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                    <div className="font-bold text-slate-800 text-sm">No Matching Bank Transactions</div>
-                    <div className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                      Adjust your search or filter criteria, or upload another statement to extract records.
+                    <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                    <div className="font-bold text-slate-800 text-sm">
+                      {transactions.length === 0 ? "Upload a Bank Statement to Start" : "No Matching Transactions"}
                     </div>
+                    <div className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                      {transactions.length === 0
+                        ? "Supports PDF (auto-decrypted via PAN/DOB), CSV, and Excel statements from top 15 Indian banks."
+                        : "Adjust your search or filter criteria."}
+                    </div>
+                    {transactions.length === 0 && (
+                      <button
+                        onClick={() => setIsUploadModalOpen(true)}
+                        className="mt-3 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" /> Upload Statement
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -1284,10 +1246,15 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                       <div className="text-[10px] text-slate-500 font-mono mt-0.5">{t.chqRefNo}</div>
                     </td>
 
-                    {/* Narration */}
+                    {/* Narration + Statutory Compliance Flags */}
                     <td className="p-3 max-w-sm text-[11px] text-slate-800 break-words">
                       {(() => {
                         const dissected = dissectNarration(t.narration, t.withdrawal > 0);
+                        const narUpper = (t.narration || "").toUpperCase();
+                        const isCash = /\b(CASH|ATM|SELF|WDL)\b/.test(narUpper);
+                        const sec40a3Risk = isCash && t.withdrawal > 10000;
+                        const sec269stRisk = isCash && t.deposit >= 200000;
+                        const tdsCheck = t.withdrawal >= 30000 && !["TAX_GOVT", "CONTRA", "SALARY"].includes(dissected.mode);
                         return (
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -1304,6 +1271,21 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
                               <span className="font-bold text-slate-900 truncate max-w-[200px]" title={dissected.cleanCounterparty}>
                                 {dissected.cleanCounterparty}
                               </span>
+                              {sec40a3Risk && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                                  Sec 40A(3) &gt;₹10k
+                                </span>
+                              )}
+                              {sec269stRisk && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                                  Sec 269ST ≥₹2L
+                                </span>
+                              )}
+                              {tdsCheck && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                  Check TDS 194C/J
+                                </span>
+                              )}
                             </div>
 
                             <div className="text-[10px] text-slate-500 font-mono line-clamp-1" title={t.narration}>
@@ -1442,17 +1424,6 @@ export const BankStatementParser: React.FC<BankStatementParserProps> = ({ initia
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Audit Sign-off Footnote */}
-        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 gap-2">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Audit Trail: Form 3CD Clause 21 / CARO 2020 Compliance Verified by <strong>CA Gunjan Jain (FCA)</strong></span>
-          </div>
-          <div className="text-slate-400">
-            Tally Prime Schema: Rel 2.0 - 4.1 Native XML Envelope
-          </div>
         </div>
       </div>
 

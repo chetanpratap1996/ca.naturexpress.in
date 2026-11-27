@@ -4,12 +4,28 @@ import { getPostgresPool } from "@/lib/server/postgres";
 import {
   resolveFirmUuid,
   listWorkspaceRecords,
+  upsertWorkspaceRecord,
   appendPgAuditLog,
 } from "@/lib/server/pgHelpers";
 import { lookupGstin, lookupGstReturns, fetchGstr2bFromApi } from "@/lib/gst/gstinApiClient";
 import { validateGstinDetailed } from "@/lib/gst/gstinChecksum";
 import { parseOfficialGstr2bJson } from "@/lib/parsers/gstr2bParser";
 import { getPeriodsForFy } from "@/lib/gst/gstClientFetch";
+import { reconcileGstinsWithPortal } from "@/lib/gst/gstReconcileServer";
+import {
+  buildGstTaskTitle,
+  canonicalizeReturnKind,
+  computeGstTaskPriority,
+  computeSec47LateFee,
+  getCurrentIndianFy,
+  getExpectedReturnKindsForPeriod,
+  getExpectedReturnPeriodsForFy,
+  getGstr10DueDate,
+  getStatutoryGstDueDate,
+  periodSortKey,
+  resolveActiveGstCycle,
+  taskMatchesGstin,
+} from "@/lib/gst/gstComplianceEngine";
 
 const MONTH_MAP: Record<string, string> = {
   "01": "January", "02": "February", "03": "March", "04": "April",
@@ -36,92 +52,18 @@ export async function POST(req: NextRequest) {
     const firmId = await resolveFirmUuid(auth);
     const pool = getPostgresPool();
 
-    // 1. LIVE GSTN RETURN STATUS SYNC -> AUTO-UPDATE FILING DESK TASKS
+    // 1. TWO-WAY LIVE GSTN RETURN STATUS SYNC -> UPDATE FILED + BACKFILL UNFILED
     if (action === "SYNC_FILING_STATUS") {
-      const fy = String(body.fy || "2025-26");
-      const targetGstin = body.gstin ? String(body.gstin).trim().toUpperCase() : "";
+      const fy = String(body.fy || getCurrentIndianFy());
+      const targetGstin = body.gstin ? String(body.gstin).trim().toUpperCase() : undefined;
+      const entityId = body.entityId ? String(body.entityId).trim() : undefined;
 
-      const [{ rows: entRows }, { rows: taskRows }, gstProfileRecs] = await Promise.all([
-        pool.query("SELECT id, entity_name, gstin, primary_contact_phone FROM public.client_entities WHERE firm_id = $1", [firmId]),
-        pool.query("SELECT * FROM public.compliance_tasks WHERE firm_id = $1 AND category = 'GST'", [firmId]),
-        listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE"),
-      ]);
-
-      const profileMap = new Map<string, any>();
-      for (const r of gstProfileRecs) {
-        const eid = r.entity_id || r.payload?.entityId;
-        if (eid) profileMap.set(eid, r.payload);
-      }
-
-      const gstinTargets: Array<{ entityId: string; entityName: string; gstin: string }> = [];
-      for (const ent of entRows) {
-        const prof = profileMap.get(ent.id);
-        const recs: any[] = Array.isArray(prof?.gstinRecords) && prof.gstinRecords.length > 0
-          ? prof.gstinRecords
-          : ent.gstin
-          ? [{ gstin: ent.gstin, status: "ACTIVE" }]
-          : [];
-        for (const r of recs) {
-          const g = String(r.gstin || "").trim().toUpperCase();
-          if (!g) continue;
-          if (targetGstin && g !== targetGstin) continue;
-          gstinTargets.push({ entityId: ent.id, entityName: ent.entity_name, gstin: g });
-        }
-      }
-
-      let syncedCount = 0;
-      let updatedTasks = 0;
-      const errors: string[] = [];
-
-      for (const tgt of gstinTargets.slice(0, 30)) {
-        const retRes = await lookupGstReturns(tgt.gstin, fy);
-        if (!retRes?.success) {
-          errors.push(`${tgt.gstin}: ${retRes?.error || "Lookup failed"}`);
-          continue;
-        }
-        syncedCount++;
-        const returnsList: any[] = retRes.returns || retRes.data?.returns || retRes.EFiledlist || [];
-
-        for (const r of returnsList) {
-          const rType = String(r.returnType || r.rtntype || "").toUpperCase();
-          const rStatus = String(r.filingStatus || r.status || "").toUpperCase();
-          if (!rStatus.includes("FILED")) continue;
-
-          const periodRaw = String(r.returnPeriod || r.ret_prd || "");
-          const periodLabel = normalizeGstnPeriodToLabel(periodRaw);
-          const arn = String(r.arn || "").trim();
-          const dof = String(r.filingDate || r.dof || "").trim();
-
-          const matchedTask = taskRows.find((t: any) => {
-            if (t.entity_id !== tgt.entityId) return false;
-            if (t.status === "FILED_AND_COMPLETED") return false;
-            const titleUpper = String(t.title || "").toUpperCase();
-            const is1 = rType.includes("1") && (titleUpper.includes("GSTR-1") || titleUpper.includes("GSTR1") || titleUpper.includes("IFF"));
-            const is3b = rType.includes("3B") && (titleUpper.includes("GSTR-3B") || titleUpper.includes("GSTR3B"));
-            const is9 = rType.includes("9") && titleUpper.includes("GSTR-9");
-            if (!is1 && !is3b && !is9) return false;
-            const pMatch =
-              String(t.period || "").toLowerCase() === periodLabel.toLowerCase() ||
-              String(t.period || "").includes(periodRaw);
-            return pMatch;
-          });
-
-          if (matchedTask) {
-            await pool.query(
-              `UPDATE public.compliance_tasks
-               SET status = 'FILED_AND_COMPLETED',
-                   arn_number = COALESCE(NULLIF($1, ''), arn_number),
-                   filing_date = COALESCE(NULLIF($2, '')::date, filing_date, CURRENT_DATE),
-                   penalty_risk = 0,
-                   accruing_daily_penalty = 0,
-                   updated_at = now()
-               WHERE id = $3 AND firm_id = $4`,
-              [arn, dof, matchedTask.id, firmId]
-            );
-            updatedTasks++;
-          }
-        }
-      }
+      const result = await reconcileGstinsWithPortal({
+        firmId,
+        fy,
+        entityId,
+        targetGstin,
+      });
 
       await appendPgAuditLog({
         firmId,
@@ -130,15 +72,219 @@ export async function POST(req: NextRequest) {
         actorRole: auth.role || "PARTNER",
         entityName: targetGstin || "Firm-Wide GSTINs",
         action: "GSTN_FILING_SYNC",
-        details: `Synced ${syncedCount} GSTIN(s) via GSTN API for FY ${fy}; auto-marked ${updatedTasks} filed return task(s).`,
+        details: `Synced ${result.syncedGstins} GSTIN(s) via GSTN API for FY ${fy}; auto-marked ${result.updatedTasks} filed, backfilled ${result.createdBacklogTasks} unfiled backlog task(s).`,
         category: "COMPLIANCE",
       });
 
       return NextResponse.json({
         success: true,
-        syncedGstins: syncedCount,
-        updatedTasks,
-        errors,
+        ...result,
+      });
+    }
+
+    // 1B. MANUAL BASELINE & PERIOD RETURN GENERATION (Works without paid GSTN API credits)
+    if (action === "MANUAL_BASELINE_SYNC") {
+      const entityId = String(body.entityId || "").trim();
+      const fy = String(body.fy || getCurrentIndianFy());
+      const targetGstin = body.gstin ? String(body.gstin).trim().toUpperCase() : "";
+      const filedUpTo = body.filedUpTo ? String(body.filedUpTo).trim() : ""; // "" | "NONE" | "August 2026"
+      const singlePeriod = body.singlePeriod ? String(body.singlePeriod).trim() : "";
+
+      if (!entityId) {
+        return NextResponse.json({ success: false, error: "entityId is required." }, { status: 400 });
+      }
+
+      const [{ rows: entRows }, { rows: taskRows }, gstProfileRecs, gstMetaRecs] = await Promise.all([
+        pool.query("SELECT id, entity_name, gstin FROM public.client_entities WHERE firm_id = $1 AND id = $2", [firmId, entityId]),
+        pool.query("SELECT * FROM public.compliance_tasks WHERE firm_id = $1 AND entity_id = $2 AND category = 'GST'", [firmId, entityId]),
+        listWorkspaceRecords<any>(firmId, "GST_CLIENT_PROFILE"),
+        listWorkspaceRecords<any>(firmId, "GST_FILING_METADATA"),
+      ]);
+
+      const ent = entRows[0];
+      if (!ent) {
+        return NextResponse.json({ success: false, error: "Client entity not found." }, { status: 404 });
+      }
+
+      const prof = gstProfileRecs.find((r) => (r.entity_id || r.payload?.entityId) === entityId)?.payload || {};
+      const metaGstinByTask = new Map<string, string>();
+      for (const r of gstMetaRecs) {
+        if (r.payload?.taskId && r.payload?.gstin) {
+          metaGstinByTask.set(r.payload.taskId, String(r.payload.gstin).trim().toUpperCase());
+        }
+      }
+
+      const rawRecs: any[] =
+        Array.isArray(prof?.gstinRecords) && prof.gstinRecords.length > 0
+          ? prof.gstinRecords
+          : ent.gstin
+          ? [{ gstin: ent.gstin, registrationType: prof?.gstFilingFrequency === "COMPOSITION" ? "COMPOSITION" : "REGULAR", filingFrequency: prof?.gstFilingFrequency === "QRMP" ? "QRMP" : "MONTHLY", qrmpStateGroup: "22ND", status: "ACTIVE", registrationDate: prof?.gstRegistrationDate }]
+          : [];
+
+      const activeRecs = rawRecs.filter((r) => {
+        if (r.status && r.status !== "ACTIVE") return false;
+        const g = String(r.gstin || "").trim().toUpperCase();
+        if (g.length !== 15) return false;
+        return !targetGstin || g === targetGstin;
+      });
+
+      if (activeRecs.length === 0) {
+        return NextResponse.json({ success: false, error: "No active GSTIN found." }, { status: 400 });
+      }
+
+      const now = new Date();
+      const activeCycle = resolveActiveGstCycle(now);
+      const filedUpToKey = filedUpTo && filedUpTo !== "NONE" && filedUpTo !== "CURRENT_ONLY" ? periodSortKey(filedUpTo) : 0;
+
+      let createdTasks = 0;
+      let markedFiledHistory = 0;
+      const prevHist: any[] = Array.isArray(prof.gstHistory) ? prof.gstHistory : [];
+      let mergedHist = [...prevHist];
+
+      for (const rec of activeRecs) {
+        const cleanG = String(rec.gstin).trim().toUpperCase();
+        const isComposition = rec.registrationType === "COMPOSITION";
+        const expectedPeriods =
+          filedUpTo === "CURRENT_ONLY" && singlePeriod
+            ? [singlePeriod]
+            : getExpectedReturnPeriodsForFy(fy, now, rec.registrationDate, isComposition);
+
+        if (filedUpToKey > 0) {
+          mergedHist = mergedHist.filter((h) => (h.gstin || "").trim().toUpperCase() !== cleanG);
+        }
+
+        for (const periodLabel of expectedPeriods) {
+          const pk = periodSortKey(periodLabel);
+          const isFiledByBaseline = filedUpToKey > 0 && pk > 0 && pk <= filedUpToKey;
+          const isPastPeriod = periodLabel.toLowerCase() !== activeCycle.periodLabel.toLowerCase();
+          const kinds = getExpectedReturnKindsForPeriod(rec, periodLabel);
+
+          for (const kind of kinds) {
+            if (isFiledByBaseline) {
+              if (kind !== "PMT06") {
+                mergedHist.push({
+                  gstin: cleanG,
+                  period: periodLabel,
+                  returnType: kind === "GSTR1" ? "GSTR_1" : kind === "GSTR3B" ? "GSTR_3B" : "CMP_08",
+                  arn: "FILED_PRIOR_TAKEOVER",
+                  filingDate: "",
+                  taxLiabilityCash: 0,
+                  itcClaimed: 0,
+                  delayDays: 0,
+                  lateFeePaid: 0,
+                });
+                markedFiledHistory++;
+              }
+              continue;
+            }
+
+            const exists = taskRows.some((t: any) => {
+              if (!taskMatchesGstin({ gstin: metaGstinByTask.get(t.id), title: t.title }, cleanG, ent.gstin)) {
+                return false;
+              }
+              if (canonicalizeReturnKind(t.title) !== kind) return false;
+              return String(t.period || "").toLowerCase() === periodLabel.toLowerCase();
+            });
+
+            if (!exists) {
+              const dueDate = getStatutoryGstDueDate(periodLabel, kind, rec);
+              const fee = computeSec47LateFee(dueDate, now);
+              const title = buildGstTaskTitle(kind, { gstin: cleanG, filingFrequency: rec.filingFrequency || "MONTHLY" }, isPastPeriod && fee.daysLate > 0);
+              const priority = computeGstTaskPriority(dueDate, now);
+              const missingDocs =
+                kind === "GSTR1"
+                  ? ["B2B Sales Invoices & E-way Bill Summary"]
+                  : kind === "PMT06"
+                  ? ["35% Fixed-Sum / Self-Assessment Challan Check"]
+                  : kind === "CMP08"
+                  ? ["Quarterly Turnover Summary & Exempt Sales Split"]
+                  : [`Bank Statement (${periodLabel})`, "Purchase Register & GSTR-2B ITC Match"];
+
+              const ins = await pool.query(
+                `INSERT INTO public.compliance_tasks (
+                  firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty, missing_docs_list, chase_count
+                ) VALUES ($1, $2, 'GST'::compliance_category, $3, $4, $5, 'DOCUMENTS_AWAITED'::workflow_status, $6::task_priority, $7, $8, $9::jsonb, 0)
+                RETURNING *`,
+                [firmId, entityId, title, periodLabel, dueDate, priority, fee.lateFee, fee.dailyRate, JSON.stringify(missingDocs)]
+              );
+              const insertedRow = ins.rows[0];
+              if (insertedRow) {
+                await upsertWorkspaceRecord({
+                  firmId,
+                  entityId,
+                  recordType: "GST_FILING_METADATA",
+                  matchKey: "taskId",
+                  matchValue: insertedRow.id,
+                  payload: { taskId: insertedRow.id, gstin: cleanG },
+                });
+                taskRows.push(insertedRow);
+                metaGstinByTask.set(insertedRow.id, cleanG);
+                createdTasks++;
+              }
+            }
+          }
+        }
+      }
+
+      const cancelledRecs = rawRecs.filter(
+        (r) => r.status === "CANCELLED" && String(r.gstin || "").trim().length === 15 && (!targetGstin || String(r.gstin).trim().toUpperCase() === targetGstin)
+      );
+      for (const crec of cancelledRecs) {
+        const cleanCg = String(crec.gstin).trim().toUpperCase();
+        const exists10 = taskRows.some(
+          (t: any) =>
+            canonicalizeReturnKind(t.title) === "GSTR10" &&
+            taskMatchesGstin({ gstin: metaGstinByTask.get(t.id), title: t.title }, cleanCg, ent.gstin)
+        );
+        if (!exists10) {
+          const g10Due = getGstr10DueDate(crec.cancellationDate, now);
+          const fee10 = computeSec47LateFee(g10Due, now);
+          const ins10 = await pool.query(
+            `INSERT INTO public.compliance_tasks (
+              firm_id, entity_id, category, title, period, due_date, status, priority, penalty_risk, accruing_daily_penalty, missing_docs_list, chase_count
+            ) VALUES ($1, $2, 'GST'::compliance_category, $3, $4, $5, 'DOCUMENTS_AWAITED'::workflow_status, $6::task_priority, $7, $8, $9::jsonb, 0)
+            RETURNING *`,
+            [
+              firmId,
+              entityId,
+              buildGstTaskTitle("GSTR10", { gstin: cleanCg, filingFrequency: crec.filingFrequency || "MONTHLY" }),
+              crec.cancellationDate ? `Cancelled ${crec.cancellationDate}` : "Final Return",
+              g10Due,
+              computeGstTaskPriority(g10Due, now),
+              fee10.lateFee,
+              fee10.dailyRate,
+              JSON.stringify(["Closing Stock & Capital Goods ITC Reversal Schedule"]),
+            ]
+          );
+          if (ins10.rows[0]) {
+            await upsertWorkspaceRecord({
+              firmId,
+              entityId,
+              recordType: "GST_FILING_METADATA",
+              matchKey: "taskId",
+              matchValue: ins10.rows[0].id,
+              payload: { taskId: ins10.rows[0].id, gstin: cleanCg },
+            });
+            createdTasks++;
+          }
+        }
+      }
+
+      if (filedUpToKey > 0) {
+        await upsertWorkspaceRecord({
+          firmId,
+          entityId,
+          recordType: "GST_CLIENT_PROFILE",
+          matchKey: "entityId",
+          matchValue: entityId,
+          payload: { ...prof, entityId, gstHistory: mergedHist },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        createdTasks,
+        markedFiledHistory,
       });
     }
 
@@ -215,7 +361,7 @@ export async function POST(req: NextRequest) {
 
     // 4. FIRM-WIDE BATCH GST PIPELINE SUMMARY
     if (action === "FIRM_PIPELINE") {
-      const fy = String(body.fy || "2025-26");
+      const fy = String(body.fy || getCurrentIndianFy());
       const period = String(body.period || getPeriodsForFy(fy)[0] || "");
 
       const [{ rows: entRows }, { rows: taskRows }, gstProfileRecs, recoRecs, gstr1Recs, metaRecs] =
@@ -261,14 +407,16 @@ export async function POST(req: NextRequest) {
           const task1 = taskRows.find(
             (t: any) =>
               t.entity_id === ent.id &&
-              String(t.period || "") === period &&
-              /gstr-?1|iff/i.test(String(t.title || ""))
+              String(t.period || "").toLowerCase() === period.toLowerCase() &&
+              canonicalizeReturnKind(String(t.title || "")) === "GSTR1" &&
+              taskMatchesGstin({ gstin: metaByTask.get(t.id)?.gstin, title: t.title }, cleanG, ent.gstin)
           );
           const task3b = taskRows.find(
             (t: any) =>
               t.entity_id === ent.id &&
-              String(t.period || "") === period &&
-              /gstr-?3b/i.test(String(t.title || ""))
+              String(t.period || "").toLowerCase() === period.toLowerCase() &&
+              canonicalizeReturnKind(String(t.title || "")) === "GSTR3B" &&
+              taskMatchesGstin({ gstin: metaByTask.get(t.id)?.gstin, title: t.title }, cleanG, ent.gstin)
           );
           const meta3b = task3b ? metaByTask.get(task3b.id) : null;
 
